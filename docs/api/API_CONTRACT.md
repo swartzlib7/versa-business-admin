@@ -11,27 +11,27 @@
 
 All list endpoints return:
 
-\`\`\`json
+```json
 {
   "data": [...],
   "count": 3
 }
-\`\`\`
+```
 
 Singular/special endpoints (health, index) return their own shape.
 
 ### Error Shape
 
-\`\`\`json
+```json
 {
   "error": {
     "code": "NOT_FOUND",
     "message": "The requested resource was not found."
   }
 }
-\`\`\`
+```
 
-Standard HTTP status codes: 200, 400, 404, 500.
+Standard HTTP status codes: 200, 400, 404, 500, 501.
 
 ### Query Filters
 
@@ -53,33 +53,34 @@ Unrecognized filter keys are silently ignored.
 Returns an index of available endpoints.
 
 **Response:**
-\`\`\`json
+```json
 {
   "name": "Versa Admin System API",
   "version": "0.2.0",
   "endpoints": {
     "health": "/api/health",
     "agents": "/api/agents",
+    "agentDetail": "/api/agents/{id}",
     "projects": "/api/projects",
     "integrations": "/api/integrations",
     "tasks": "/api/tasks"
   }
 }
-\`\`\`
+```
 
 ### GET /api/health
 
 System health check.
 
 **Response:**
-\`\`\`json
+```json
 {
   "status": "ok",
   "version": "0.2.0",
   "timestamp": "2026-07-15T04:00:00.000Z",
   "uptime": 123.456
 }
-\`\`\`
+```
 
 ### GET /api/agents
 
@@ -89,7 +90,7 @@ Agent fleet list. Supports ?status= filter.
 - status — filter by agent status (active, idle, error, offline)
 
 **Response:**
-\`\`\`json
+```json
 {
   "data": [
     {
@@ -103,19 +104,99 @@ Agent fleet list. Supports ?status= filter.
   ],
   "count": 1
 }
-\`\`\`
+```
 
 **Example:**
-\`\`\`bash
+```bash
 curl http://localhost:3000/api/agents?status=active
-\`\`\`
+```
+
+### GET /api/agents/{id}
+
+Single agent detail. Returns 404 with standard error shape when the agent is not found.
+
+**Response (200):**
+```json
+{
+  "data": {
+    "id": "agent-1",
+    "name": "Versa (COA)",
+    "role": "Chief Orchestrator Agent",
+    "status": "active",
+    "model": "x-ai/grok-4.5",
+    "lastActive": "2026-07-14T22:30:00Z"
+  }
+}
+```
+
+**Response (404):**
+```json
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Agent 'agent-99' was not found."
+  }
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:3000/api/agents/agent-1
+curl http://localhost:3000/api/agents/missing  # → 404
+```
+
+### PATCH /api/agents/{id} (EXPERIMENTAL)
+
+Mutate an agent's status in the in-memory fixture store. Changes persist for the process lifetime only — restarting the dev server resets all state.
+
+**Request body:**
+```json
+{ "status": "idle" }
+```
+
+Valid status values: `active`, `idle`, `error`, `offline`.
+
+**Response (200):**
+```json
+{
+  "data": {
+    "id": "agent-1",
+    "name": "Versa (COA)",
+    "role": "Chief Orchestrator Agent",
+    "status": "idle",
+    "model": "x-ai/grok-4.5",
+    "lastActive": "2026-07-14T22:30:00Z"
+  }
+}
+```
+
+**Response (400 — invalid status):**
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "status must be one of: active, idle, error, offline."
+  }
+}
+```
+
+**Response (404):** same NOT_FOUND shape as GET.
+
+**Response (501):** returned when the active data adapter does not support mutations.
+
+**Example:**
+```bash
+curl -X PATCH http://localhost:3000/api/agents/agent-1 \
+  -H 'Content-Type: application/json' \
+  -d '{"status":"idle"}'
+```
 
 ### GET /api/projects
 
 Project list.
 
 **Response:**
-\`\`\`json
+```json
 {
   "data": [
     {
@@ -131,14 +212,14 @@ Project list.
   ],
   "count": 5
 }
-\`\`\`
+```
 
 ### GET /api/integrations
 
 Connected systems list.
 
 **Response:**
-\`\`\`json
+```json
 {
   "data": [
     {
@@ -152,7 +233,7 @@ Connected systems list.
   ],
   "count": 5
 }
-\`\`\`
+```
 
 ### GET /api/tasks
 
@@ -162,7 +243,7 @@ Task queue. Supports ?status= filter.
 - status — filter by task status (planned, in_progress, waiting, blocked, done)
 
 **Response:**
-\`\`\`json
+```json
 {
   "data": [
     {
@@ -178,12 +259,12 @@ Task queue. Supports ?status= filter.
   ],
   "count": 1
 }
-\`\`\`
+```
 
 **Example:**
-\`\`\`bash
+```bash
 curl http://localhost:3000/api/tasks?status=in_progress
-\`\`\`
+```
 
 ---
 

@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server';
-import { integrations } from '@/lib/fixtures';
+import { adapter } from '@/lib/data';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const statusFilter = searchParams.get('status');
 
-  let filtered = integrations;
-  if (statusFilter) {
-    filtered = integrations.filter((i) => i.status === statusFilter);
-  }
+  const data = await adapter.listIntegrations(statusFilter ?? undefined);
 
   return NextResponse.json({
-    data: filtered,
-    count: filtered.length,
+    data,
+    count: data.length,
   });
 }

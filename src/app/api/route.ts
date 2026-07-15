@@ -7,6 +7,7 @@ export async function GET() {
     endpoints: {
       health: '/api/health',
       agents: '/api/agents',
+      agentDetail: '/api/agents/{id}',
       projects: '/api/projects',
       integrations: '/api/integrations',
       tasks: '/api/tasks',
