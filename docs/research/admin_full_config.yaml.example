@@ -1,0 +1,69 @@
+enabled: true
+route: /admin
+cache_enabled: true
+theme: grav
+logo_text: AGI Knowledgebase
+body_classes: ''
+content_padding: true
+twofa_enabled: true
+sidebar:
+  activate: tab
+  hover_delay: 100
+  size: auto
+dashboard:
+  days_of_stats: 7
+widgets_display:
+  dashboard-maintenance: true
+  dashboard-statistics: true
+  dashboard-notifications: true
+  dashboard-feed: true
+  dashboard-pages: true
+pages:
+  show_parents: both
+  show_modular: true
+session:
+  timeout: 1800
+edit_mode: normal
+frontend_preview_target: inline
+show_github_msg: false
+admin_icons: line-awesome
+enable_auto_updates_check: true
+notifications:
+  feed: true
+  dashboard: true
+  plugins: true
+  themes: true
+popularity:
+  enabled: false
+  ignore:
+  - /test*
+  - /modular
+  history:
+    daily: 30
+    monthly: 12
+    visitors: 20
+whitelabel:
+  quicktray_recompile: false
+  codemirror_theme: paper
+  codemirror_fontsize: md
+  codemirror_md_font: sans
+  color_scheme:
+    name: Default
+    colors:
+      primary: '#007cba'
+      secondary: '#6c757d'
+      success: '#28a745'
+      danger: '#dc3545'
+      warning: '#ffc107'
+      info: '#17a2b8'
+      light: '#f8f9fa'
+      dark: '#343a40'
+    accents:
+      primary: '#005a87'
+      secondary: '#5a6268'
+      success: '#218838'
+      danger: '#c82333'
+      warning: '#e0a800'
+      info: '#138496'
+      light: '#e2e6ea'
+      dark: '#23272b'
