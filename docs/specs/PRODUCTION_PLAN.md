@@ -3,7 +3,7 @@
 **Project ID:** 26 (`versa-admin-system`)  
 **Game:** #109 Versa Voice AI LLC  
 **Created:** 2026-07-14  
-**Status:** Decisions locked 2026-07-15 — Iteration 0 authorized  
+**Status:** I0+I1 accepted 2026-07-15 (commits 8ddaac4, f851d62). Iteration 2 authorized.  
 
 **Product framing:** Client **mission control** for a Versa AGi-powered business (integrations, systems, ops). **Not AGI Top.** White-label (logo/theme/colors). Public website + agent chat is a later track. **API required** so Versa AGi agents can use the system (not UI-only).
 
@@ -125,7 +125,7 @@ Remote: **none yet** — local git only until Stephen provides URL.
 
 ## 4. Iteration Roadmap
 
-### Iteration 0 — Foundations (now → next)
+### Iteration 0 — Foundations ✅ ACCEPTED (8ddaac4)
 
 **Owner:** COA + web-dev  
 **Outcome:** Repo is a real app skeleton, not just docs.
@@ -133,30 +133,36 @@ Remote: **none yet** — local git only until Stephen provides URL.
 - [x] Project registered (#26), local git initialized  
 - [x] Research seed copied into `docs/research/`  
 - [x] Production plan + product spec written  
-- [ ] web-dev: Next.js + Tailwind + shadcn scaffold in `src/` (or app root as appropriate)  
-- [ ] README: install, run, test commands  
-- [ ] Fixture data module for agents/projects/games/tasks  
-- [ ] COA smoke: app starts, empty shell renders  
+- [x] web-dev: Next.js + Tailwind + shadcn scaffold in `src/`  
+- [x] README: install, run, test commands  
+- [x] Fixture data module for agents/projects/games/tasks  
+- [x] COA smoke: app starts, empty shell renders  
 
-**Exit criteria:** `npm install && npm run dev` (or equivalent) works from a clean clone of this repo.
+**Exit criteria:** met 2026-07-15.
 
-### Iteration 1 — Shell + navigation
+### Iteration 1 — Shell polish + API contract + 3D↔2D ✅ ACCEPTED (f851d62)
 
 **Owner:** web-dev → COA smoke  
 
-- App shell: sidebar, header, placeholder routes  
-- Nav items: Dashboard, Agents, Projects/Games, Tasks, Settings  
-- Theme tokens aligned with research config sample  
-- Basic responsive layout  
+- [x] App shell: sidebar, header, routes + empty states + focus-visible  
+- [x] Settings white-label preview (brand name + primary color)  
+- [x] API_CONTRACT.md + GET /api index + `?status=` filters  
+- [x] R3F nodes = fixture entities; click → Dashboard detail card  
+- [x] Public CNA/Vercel chrome removed; build clean  
 
-### Iteration 2 — First operational surface + independent QA
+**Soft debt:** package.json still 0.1.0 while API advertises 0.2.0.
 
-**Owner:** web-dev → **QA** (hire before this iteration)  
+### Iteration 2 — Agent API depth + operational Agents surface
 
-- Agents fleet table from fixtures  
-- Projects/Games list with parent game grouping  
-- First Playwright smoke suite  
-- COA acceptance  
+**Owner:** web-dev → COA smoke (QA hire still optional; hire when independent E2E needed)  
+
+- Agent detail API: `GET /api/agents/[id]` (+ 404 error shape)  
+- Agents UI: real fleet table + detail view/panel driven by API  
+- Projects list: group or badge by parent game (fixtures already have game fields)  
+- Align `package.json` version to **0.2.0** (match API/health)  
+- Data access: introduce a thin adapter interface with fixture implementation (no live host yet)  
+- Optional experimental: `PATCH /api/agents/[id]` status-only mutation (fixture in-memory; document as experimental)  
+- COA acceptance; Playwright/QA still deferred unless slice grows  
 
 ### Iteration 3 — Hybrid main view (2D + R3F viewport)
 
