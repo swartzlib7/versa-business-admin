@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { theme } from '@/lib/theme';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { theme } from "@/lib/theme";
 import {
   LayoutDashboard,
   Plug,
@@ -11,15 +11,15 @@ import {
   FolderKanban,
   CheckSquare,
   Settings,
-} from 'lucide-react';
+} from "lucide-react";
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/integrations', label: 'Integrations', icon: Plug },
-  { href: '/agents', label: 'Agents', icon: Bot },
-  { href: '/projects', label: 'Projects', icon: FolderKanban },
-  { href: '/tasks', label: 'Tasks', icon: CheckSquare },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/integrations", label: "Integrations", icon: Plug },
+  { href: "/agents", label: "Agents", icon: Bot },
+  { href: "/projects", label: "Projects", icon: FolderKanban },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
@@ -46,19 +46,22 @@ export function Sidebar() {
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
-              pathname.startsWith(item.href + '/');
+              (item.href !== "/dashboard" &&
+                pathname.startsWith(item.href + "/")) ||
+              (item.href === "/dashboard" && pathname === "/dashboard");
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
                     isActive
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                   )}
                 >
-                  <item.icon className="h-4 w-4" />
+                  <item.icon className="h-4 w-4" aria-hidden="true" />
                   {item.label}
                 </Link>
               </li>
@@ -68,7 +71,7 @@ export function Sidebar() {
       </nav>
       <div className="border-t border-sidebar-border px-4 py-3">
         <p className="text-xs text-sidebar-foreground/50">
-          Versa Admin System v0.1.0
+          Versa Admin System v0.2.0
         </p>
       </div>
     </aside>

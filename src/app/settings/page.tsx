@@ -1,11 +1,35 @@
-import { AppShell } from '@/components/shell/app-shell';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { theme } from '@/lib/theme';
+"use client";
+
+import { useState } from "react";
+import { AppShell } from "@/components/shell/app-shell";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { theme } from "@/lib/theme";
 
 export default function SettingsPage() {
+  const [brandName, setBrandName] = useState<string>(theme.brand.name);
+  const [brandColor, setBrandColor] = useState<string>(theme.colors.brand);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    // Local state only — persists for session
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleReset = () => {
+    setBrandName(theme.brand.name);
+    setBrandColor(theme.colors.brand);
+  };
+
   return (
     <AppShell>
       <div className="space-y-6">
@@ -20,34 +44,95 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Branding</CardTitle>
             <CardDescription>
-              Customize how your mission control appears. These tokens are used throughout the system.
+              Customize how your mission control appears. Changes are previewed
+              live and saved for this session.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Brand Name</label>
-                <Input defaultValue={theme.brand.name} readOnly />
+                <Input
+                  value={brandName}
+                  onChange={(e) => setBrandName(e.target.value)}
+                  placeholder="Your brand name"
+                />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Short Name</label>
-                <Input defaultValue={theme.brand.shortName} readOnly />
+                <Input
+                  value={brandName.slice(0, 3).toUpperCase()}
+                  readOnly
+                  className="font-mono text-muted-foreground"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Auto-derived from brand name
+                </p>
               </div>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Brand Color</label>
+              <label className="text-sm font-medium">Primary Color</label>
               <div className="flex items-center gap-3">
                 <div
-                  className="h-8 w-8 rounded-md border"
-                  style={{ backgroundColor: theme.colors.brand }}
+                  className="h-8 w-8 rounded-md border shadow-sm shrink-0"
+                  style={{ backgroundColor: brandColor }}
                 />
-                <Input defaultValue={theme.colors.brand} readOnly className="font-mono" />
+                <Input
+                  value={brandColor}
+                  onChange={(e) => setBrandColor(e.target.value)}
+                  placeholder="#6366f1"
+                  className="font-mono"
+                />
               </div>
             </div>
+
+            {/* Live Preview */}
             <Separator />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Preview</label>
+              <div className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-md text-sm font-bold text-white"
+                    style={{ backgroundColor: brandColor }}
+                  >
+                    {brandName.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">{brandName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Sidebar badge preview
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <div
+                    className="h-6 rounded px-3 text-xs font-medium flex items-center text-white"
+                    style={{ backgroundColor: brandColor }}
+                  >
+                    Active
+                  </div>
+                  <div
+                    className="h-6 rounded px-3 text-xs font-medium flex items-center border"
+                    style={{ borderColor: brandColor, color: brandColor }}
+                  >
+                    Outline
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={handleSave} size="sm">
+                {saved ? "Saved!" : "Save Changes"}
+              </Button>
+              <Button onClick={handleReset} variant="outline" size="sm">
+                Reset to Defaults
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
-              These are placeholder tokens. In production, customers will configure their own branding
-              via environment variables or a setup wizard.
+              These are session-local previews. In production, customers will
+              configure branding via environment variables or a setup wizard.
             </p>
           </CardContent>
         </Card>
@@ -64,7 +149,7 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Version</label>
-              <Input defaultValue="0.1.0" readOnly className="font-mono" />
+              <Input defaultValue="0.2.0" readOnly className="font-mono" />
             </div>
           </CardContent>
         </Card>

@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Menu } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { Sidebar } from './sidebar';
+import { useState } from "react";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sidebar } from "./sidebar";
 
 export function Header() {
   const [open, setOpen] = useState(false);
@@ -15,7 +15,7 @@ export function Header() {
       <Button
         variant="outline"
         size="icon"
-        className="shrink-0 lg:hidden"
+        className="shrink-0 lg:hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         onClick={() => setOpen(true)}
       >
         <Menu className="h-5 w-5" />
