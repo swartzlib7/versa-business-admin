@@ -8,10 +8,10 @@ Use before accepting any new Mission build slice.
 |---|-------------|--------------------|--------------|
 | 1 | Own database + ERD | PRODUCT_SPEC 1.1 | Not started (fixture/API only) |
 | 2 | Secure login + RBAC | PRODUCT_SPEC 1.1; plan I5 | Placeholder only |
-| 3 | Public FE when signed out | Spine §A; plan I4 | Not started as product site |
+| 3 | Public FE when signed out | Spine §A; I4 complete | **Done** — public home page renders from fixture data |
 | 4 | Prefer pre-built secure components | Path A locked | Ongoing |
-| 5 | Familiar business UI — not agent-management chrome | Boundary locked; seed labels still legacy | Reframe in I4 |
-| 6 | Users and agents differ only by type | Boundary locked | Fixture still agent-centric — revise |
+| 5 | Familiar business UI — not agent-management chrome | Boundary locked | **Done** — sidebar reframed: Agents → Users |
+| 6 | Users and agents differ only by type | Boundary locked | **Done** — staff fixture uses type: human \| agent |
 | 7 | Product data separate from host Versa AGi | Boundary locked | Adapter design portable/API-based |
 | 8 | Integration to host only via product API / Script Tasks | Boundary locked | API contract exists; host scripts later |
 
@@ -19,10 +19,10 @@ Use before accepting any new Mission build slice.
 
 | # | Capability | Spec | Build |
 |---|------------|------|-------|
-| A1 | Public business info (name, slogan, logo, description) | PRODUCT_SPEC 1.2 | Not started |
-| A2 | Public service list | PRODUCT_SPEC 1.2 | Not started |
-| A3 | Public product list | PRODUCT_SPEC 1.2 | Not started |
-| A4 | Public staff structure | PRODUCT_SPEC 1.2 | Not started |
+| A1 | Public business info (name, slogan, logo, description) | PRODUCT_SPEC 1.2 | **Done** — /api/public/business + hero section |
+| A2 | Public service list | PRODUCT_SPEC 1.2 | **Done** — /api/public/services + services section |
+| A3 | Public product list | PRODUCT_SPEC 1.2 | **Done** — /api/public/products + products section |
+| A4 | Public staff structure | PRODUCT_SPEC 1.2 | **Done** — /api/public/staff + people section |
 | B1 | User login | PRODUCT_SPEC 1.2 | Placeholder |
 | C1 | Users | PRODUCT_SPEC 1.2 | Partial via deprecated /agents |
 | C2 | Roles | PRODUCT_SPEC 1.2 | Not started |
@@ -39,4 +39,4 @@ Use before accepting any new Mission build slice.
 | Competitors: ERPNext, Odoo | Registered on project #26 |
 | QA agent | Deferred until testable spine UI |
 
-**COA next:** commit I3 docs → brief web-dev → open I4 public-site foundation task.
+**I4 status:** Complete — public site foundation built and verified. Commit 88e07d6 on agent/web-dev. Ready for acceptance.
