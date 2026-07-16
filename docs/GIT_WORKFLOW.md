@@ -32,7 +32,7 @@ Optional short-lived branches: `feature/<slice>` off the owning agent branch whe
 
 ## Remote
 
-- Intended remote: GitHub under `swartzlib7` (exact repo name to confirm — previously noted as `versa-agi-mission`; create empty repo then attach).
+- Remote: `git@github.com:swartzlib7/versa-agi-mission.git` (GitHub, private).
 - SSH key on this host authenticates as `swartzlib7`.
 - After remote exists:
 
@@ -45,4 +45,4 @@ git push -u origin master beta agent/coa agent/web-dev
 
 - LAN `allowedDevOrigins` fix committed on all branches (`6b1ef4e` and docs follow-up).
 - Branches created locally: `master`, `beta`, `agent/coa`, `agent/web-dev`.
-- Push pending empty GitHub repository + Stephen confirmation of repo name.
+- Pushed 2026-07-16: master, beta, agent/coa, agent/web-dev at 0c10c19 (includes Stephen notes).
