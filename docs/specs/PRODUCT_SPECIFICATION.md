@@ -34,6 +34,26 @@ Stephen is considering a deployable website front-end that:
 
 Treat public site + authenticated agent chat as a **later product track** after core mission-control shell is real; capture requirements as we refine.
 
+
+## 1.1 Binding product boundaries (Stephen - 2026-07-16)
+
+Source of truth: `docs/_notes/from_stephen.md`. These override conflicting earlier framing.
+
+1. **Own data plane** - The product has its **own database and ERD**. It is not a thin skin over host Versa AGi tables.
+2. **Auth** - Secure login with **RBAC** is required (not a forever-placeholder).
+3. **Public website surface** - When users are **not** signed in, there is a **public-facing frontend** (the website aspect). Not required to be a CMS. Navigated on LAN first, later HTTPS.
+4. **Components** - Prefer secure, extensible pre-built components when possible (preference, not a hard rule). Outcomes outrank purity.
+5. **Familiar business product - not an agent console**
+   - Must not be confused with an agent-management system by adding Agentic structure or UI chrome.
+   - **No separation of agents over users in the UI** beyond a `type` field (`agent` | `human`).
+   - Business staff man the system; agents participate when granted a credential by an administrator.
+   - Isolated product for business staff; customers may access later.
+6. **Separation from host Versa AGi**
+   - Projects, documents, and operational data created **inside this product** are **completely separate** from host Versa AGi.
+   - If host agents need that data: obtain via this product API, or automate with a Versa AGi Script Task - not by sharing schemas/UI with AGI Top.
+7. **Clarity** - These boundaries must stay explicit in design docs and in guidance to any agent working on the product.
+
+**Implication for current UI seed:** Agents / Projects / Tasks surfaces must read as **business people, work, and work items** (with optional type), not as a second AGI Top. Host control-plane concepts stay out.
 ## 2. Goals
 
 1. Deliver **mission control** for a client business running on Versa AGi — not a host-only ops console.

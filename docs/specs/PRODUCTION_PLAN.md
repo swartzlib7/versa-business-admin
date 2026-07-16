@@ -3,11 +3,19 @@
 **Project ID:** 26 (`versa-admin-system`)  
 **Game:** #109 Versa Voice AI LLC  
 **Created:** 2026-07-14  
-**Status:** I0+I1 accepted 2026-07-15 (commits 8ddaac4, f851d62). Iteration 2 authorized.  
+**Status:** I0+I1+I2 accepted. Git remote live (swartzlib7/versa-agi-mission). Document alignment to Stephen 2026-07-16 note **in progress** before I3.  
 
 **Product framing:** Client **mission control** for a Versa AGi-powered business (integrations, systems, ops). **Not AGI Top.** White-label (logo/theme/colors). Public website + agent chat is a later track. **API required** so Versa AGi agents can use the system (not UI-only).
 
 ---
+
+## Document alignment (2026-07-16)
+
+Stephen note (`docs/_notes/from_stephen.md`) is **binding**. Before inventing Iteration 3 feature slices:
+
+1. Re-read product surfaces against: own DB/ERD, RBAC login, public FE, no agent-console UX, users+agents as people with type, data isolation from host AGi.
+2. Update handoffs and API contract language so agents/projects mean **business entities**, not host registry mirrors.
+3. Plan next every-customer slice only after this alignment pass (or explicit Stephen override).
 
 ## 1. Division of Ownership
 
