@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import type { Project } from "@/lib/data";
 
 const GAME_COLORS: Record<string, string> = {
-  "Versa Voice AI LLC": "#3b82f6",
-  "Software Engineering and Consulting": "#f59e0b",
-  "C3D Studio": "#8b5cf6",
+  "Growth": "#3b82f6",
+  "Operations": "#f59e0b",
+  "Customer": "#8b5cf6",
 };
 
 export default function ProjectsPage() {
@@ -55,7 +55,7 @@ export default function ProjectsPage() {
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-sm font-medium">No projects yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Projects will appear here once created through Versa AGi.
+                Projects will appear here once created.
               </p>
             </CardContent>
           </Card>

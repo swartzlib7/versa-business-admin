@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   return NextResponse.json({
-    name: 'Versa AGi Mission API',
+    name: 'Business Workspace API',
     version: '0.3.0',
     endpoints: {
       health: '/api/health',

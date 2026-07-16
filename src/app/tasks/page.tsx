@@ -27,7 +27,7 @@ export default function TasksPage() {
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-sm font-medium">No tasks in queue</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Tasks will appear here once created through Versa AGi.
+                Tasks will appear here once created.
               </p>
             </CardContent>
           </Card>

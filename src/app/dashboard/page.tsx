@@ -40,7 +40,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Mission Control</h1>
           <p className="text-muted-foreground">
-            Overview of your Versa AGi-powered business operations.
+            Overview of your business operations.
           </p>
         </div>
 

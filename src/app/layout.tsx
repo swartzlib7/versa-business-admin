@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Versa AGi Mission — Business Mission Control',
-  description: 'Client mission control for Versa AGi-powered businesses',
+  title: 'Northstar Consulting Group',
+  description: 'Sample business workspace — replace with your company details',
 };
 
 export default function RootLayout({

@@ -3,8 +3,8 @@
 
 export const theme = {
   brand: {
-    name: 'Versa Admin',
-    shortName: 'VA',
+    name: 'Northstar',
+    shortName: 'NS',
     logoUrl: '/logo.svg',
     faviconUrl: '/favicon.ico',
   },

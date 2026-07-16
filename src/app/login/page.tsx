@@ -97,7 +97,7 @@ function LoginForm() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@versa.ai"
+                    placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-9"
@@ -141,9 +141,9 @@ function LoginForm() {
               <p className="text-xs text-muted-foreground">
                 <span className="font-medium">Demo credentials:</span>
                 <br />
-                Admin: stephen@versa.ai / mission2026
+                Admin: admin@example.com / mission2026
                 <br />
-                Member: webdev@versa.ai / mission2026
+                Member: member@example.com / mission2026
               </p>
             </div>
           </CardContent>

@@ -80,7 +80,7 @@ export default function AgentsPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 {statusFilter
                   ? `No agents match the "${statusFilter}" filter.`
-                  : "Agents will appear here once provisioned through Versa AGi."}
+                  : "Assistants will appear here once provisioned."}
               </p>
             </CardContent>
           </Card>

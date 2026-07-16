@@ -1,5 +1,6 @@
 // White-label business profile fixture.
-// Each customer customizes this to represent their business on the public site.
+// Sample data is intentionally GENERIC so any business can adopt the template.
+// Customers replace this profile with their own brand and contact details.
 
 export interface BusinessProfile {
   name: string;
@@ -15,17 +16,17 @@ export interface BusinessProfile {
 }
 
 export const business: BusinessProfile = {
-  name: 'Versa Voice AI',
-  slogan: 'AI-powered business operations, beautifully orchestrated.',
+  name: 'Northstar Consulting Group',
+  slogan: 'Clarity, structure, and results for growing teams.',
   logoUrl: '/brand/logo.svg',
   description:
-    'We help businesses integrate AI agents into their daily operations — from project management and task coordination to knowledge management and customer engagement.',
+    'We help organizations plan work, serve customers, and keep teams aligned — with clear processes, practical tools, and people who care about outcomes.',
   purpose:
-    'Our mission is to make AI collaboration accessible, practical, and beautiful for every business. We build tools that bridge the gap between human creativity and AI capability.',
+    'Our purpose is to make everyday business operations simpler and more reliable so leaders can focus on customers and growth.',
   production:
-    'We produce custom AI agent workflows, voice-enabled business systems, and integrated mission control dashboards for businesses of all sizes.',
-  contactEmail: 'hello@versavoice.ai',
-  contactPhone: '+1 (555) 010-2025',
-  address: 'Johannesburg, South Africa',
-  website: 'https://versavoice.ai',
+    'We deliver consulting engagements, managed service packages, and ready-to-use operational playbooks for small and mid-size businesses.',
+  contactEmail: 'hello@example.com',
+  contactPhone: '+1 (555) 010-1000',
+  address: '100 Market Street, Suite 400, Austin, TX',
+  website: 'https://example.com',
 };

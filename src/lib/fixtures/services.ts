@@ -1,5 +1,5 @@
 // Public service catalog fixture.
-// Services the business offers, displayed on the public website.
+// Generic services any professional services / SMB business might list.
 
 export interface Service {
   id: string;
@@ -12,80 +12,80 @@ export interface Service {
 export const services: Service[] = [
   {
     id: 'svc-1',
-    name: 'AI Agent Integration',
+    name: 'Strategy & Planning',
     description:
-      'Seamlessly integrate AI agents into your existing business workflows with custom role-based access control.',
-    icon: 'Bot',
+      'Work with leadership to clarify goals, priorities, and a practical roadmap for the next quarter and year.',
+    icon: 'Lightbulb',
     features: [
-      'Custom agent provisioning',
-      'Role-based access control',
-      'Real-time task coordination',
-      'Workflow automation',
+      'Goal and KPI workshops',
+      'Roadmap facilitation',
+      'Risk and opportunity review',
+      'Executive briefings',
     ],
   },
   {
     id: 'svc-2',
-    name: 'Mission Control Dashboard',
+    name: 'Operations Support',
     description:
-      'A unified dashboard for managing projects, tasks, people, and organizational structure in one place.',
+      'Improve day-to-day workflows so teams deliver consistently without unnecessary friction.',
     icon: 'LayoutDashboard',
     features: [
-      'Project and task management',
-      'Organizational hierarchy',
-      'Knowledge base integration',
-      'Real-time activity monitoring',
+      'Process mapping',
+      'Standard operating procedures',
+      'Handoff and SLA design',
+      'Continuous improvement loops',
     ],
   },
   {
     id: 'svc-3',
-    name: 'Voice-Enabled Systems',
+    name: 'Customer Experience',
     description:
-      'Voice and messaging platforms that let your team and customers interact with business systems naturally.',
+      'Design how customers discover, buy, and get support — with clear channels and measurable quality.',
     icon: 'MessageSquare',
     features: [
-      'Voice-to-text transcription',
-      'Multi-language support',
-      'Automated notifications',
-      'Customer engagement tools',
+      'Journey mapping',
+      'Support playbooks',
+      'Feedback collection',
+      'Retention programs',
     ],
   },
   {
     id: 'svc-4',
-    name: 'Knowledge Management',
+    name: 'Knowledge & Training',
     description:
-      'Centralized knowledge base with policies, processes, and articles organized by organizational unit.',
+      'Capture how work is done and train people so quality does not depend on a single expert.',
     icon: 'BookOpen',
     features: [
-      'Policy and process documentation',
-      'Org-unit scoped articles',
-      'Full-text search',
-      'Version-controlled content',
+      'Policy and process docs',
+      'Role-based training paths',
+      'Searchable knowledge base',
+      'Onboarding kits',
     ],
   },
   {
     id: 'svc-5',
-    name: 'IoT Solutions',
+    name: 'Project Delivery',
     description:
-      'Connect and manage IoT devices and sensors with real-time monitoring and automated responses.',
-    icon: 'Cpu',
+      'Plan, track, and close projects with transparent status, owners, and outcomes.',
+    icon: 'FolderKanban',
     features: [
-      'Device management',
-      'Real-time sensor data',
-      'Automated alerting',
-      'Custom dashboards',
+      'Project charters',
+      'Milestone tracking',
+      'Resource planning',
+      'Post-project reviews',
     ],
   },
   {
     id: 'svc-6',
-    name: 'Consulting & Architecture',
+    name: 'Technology Advisory',
     description:
-      'Strategic software architecture, systems integration, and IoT solutions tailored to your business.',
-    icon: 'Lightbulb',
+      'Choose and integrate tools that fit your size and budget — without locking you into unnecessary complexity.',
+    icon: 'Cpu',
     features: [
-      'System architecture design',
-      'Technology stack selection',
+      'Stack selection',
       'Integration planning',
-      'Technical due diligence',
+      'Vendor evaluation',
+      'Security basics review',
     ],
   },
 ];

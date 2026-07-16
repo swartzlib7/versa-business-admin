@@ -71,7 +71,7 @@ export function Sidebar() {
       </nav>
       <div className="border-t border-sidebar-border px-4 py-3">
         <p className="text-xs text-sidebar-foreground/50">
-          Versa Admin System v0.3.0
+          Northstar Workspace v0.3.0
         </p>
       </div>
     </aside>

@@ -1,5 +1,5 @@
 // Public product catalog fixture.
-// Products the business offers, displayed on the public website.
+// Generic offerings suitable as sample data for any business template.
 
 export interface Product {
   id: string;
@@ -14,63 +14,62 @@ export interface Product {
 export const products: Product[] = [
   {
     id: 'prod-1',
-    name: 'Versa AGi Mission',
-    tagline: 'Mission control for AI-powered businesses.',
+    name: 'Starter Operations Kit',
+    tagline: 'The essentials to run a small team well.',
     description:
-      'A standalone, white-labelable mission control product that gives business staff a unified interface for projects, tasks, people, and knowledge — with optional AI agent participation.',
-    category: 'Platform',
-    status: 'beta',
+      'A packaged set of templates and checklists for projects, meetings, hiring, and customer follow-up — ready to customize on day one.',
+    category: 'Packages',
+    status: 'available',
     features: [
-      'Public website builder',
-      'Role-based access control',
-      'Project & task management',
-      'Organizational structure',
-      'Knowledge base',
+      'Project and meeting templates',
+      'Hiring scorecards',
+      'Customer follow-up scripts',
+      'Monthly ops review agenda',
     ],
   },
   {
     id: 'prod-2',
-    name: 'VersaVoice',
-    tagline: 'Voice and messaging for AI collaboration.',
+    name: 'Team Workspace',
+    tagline: 'One place for work, people, and status.',
     description:
-      'A voice and messaging platform that enables natural communication between people and AI agents, with multi-language support and automated workflows.',
-    category: 'Communication',
-    status: 'available',
+      'A simple workspace for projects, tasks, and team directories so everyone knows what is in progress and who owns it.',
+    category: 'Platform',
+    status: 'beta',
     features: [
-      'Voice messages with TTS',
-      'AI translation',
-      'Agent-to-agent messaging',
-      'Emotion-aware responses',
+      'Projects and tasks',
+      'Role-based access',
+      'Team directory',
+      'Activity overview',
     ],
   },
   {
     id: 'prod-3',
-    name: 'Smart Yard',
-    tagline: 'IoT-powered property management.',
+    name: 'Customer Care Desk',
+    tagline: 'Support that stays organized.',
     description:
-      'A smart yard management application with real-time sensor monitoring, automated irrigation, and device control accessible from any device on your local network.',
-    category: 'IoT',
+      'A lightweight desk for intake, prioritization, and resolution of customer requests with clear ownership and history.',
+    category: 'Service',
     status: 'available',
     features: [
-      'Real-time sensor dashboard',
-      'Automated irrigation',
-      'Device control',
-      'LAN-first access',
+      'Request intake forms',
+      'Priority queues',
+      'Response templates',
+      'Satisfaction surveys',
     ],
   },
   {
     id: 'prod-4',
-    name: 'AGi Knowledgebase',
-    tagline: 'Collaborative documentation for teams and agents.',
+    name: 'Company Handbook',
+    tagline: 'Policies and how-we-work, always current.',
     description:
-      'A markdown-native knowledge base system built on Grav CMS, designed for collaborative documentation between human staff and AI agents.',
+      'A living handbook for policies, processes, and FAQs that new hires and veterans can trust.',
     category: 'Knowledge',
     status: 'available',
     features: [
-      'Markdown-native editing',
-      'Full-text search',
-      'Mobile-friendly',
-      'Agent-accessible API',
+      'Policy library',
+      'Process guides',
+      'Search',
+      'Version history',
     ],
   },
 ];

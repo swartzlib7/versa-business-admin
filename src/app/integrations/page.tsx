@@ -12,7 +12,7 @@ export default function IntegrationsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Integrations</h1>
           <p className="text-muted-foreground">
-            Connected systems and services managed through Versa AGi.
+            Connected systems and services for this workspace.
           </p>
         </div>
 
@@ -21,7 +21,7 @@ export default function IntegrationsPage() {
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-sm font-medium">No integrations connected</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Connect external services to start managing them through Versa AGi.
+                Connect external services to start managing them here.
               </p>
             </CardContent>
           </Card>
