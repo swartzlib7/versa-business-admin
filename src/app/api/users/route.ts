@@ -3,6 +3,7 @@ import { adapter } from '@/lib/data';
 import { getSessionFromRequest, isAuthenticated } from '@/lib/auth';
 
 export async function GET(request: Request) {
+  // Protect: require authentication
   const session = getSessionFromRequest(request);
   if (!isAuthenticated(session)) {
     return NextResponse.json(
@@ -12,9 +13,9 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const statusFilter = searchParams.get('status');
+  const typeFilter = searchParams.get('type');
 
-  const data = await adapter.listProjects(statusFilter ?? undefined);
+  const data = await adapter.listUsers(typeFilter ?? undefined);
 
   return NextResponse.json({
     data,

@@ -1,4 +1,4 @@
-import type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember } from './types';
+import type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember, User } from './types';
 
 // ---------------------------------------------------------------------------
 // DataAdapter — the modular boundary between route handlers and data sources.
@@ -19,6 +19,9 @@ export interface DataAdapter {
   listServices(): Promise<Service[]>;
   listProducts(): Promise<Product[]>;
   listStaff(): Promise<StaffMember[]>;
+  // Users (I5)
+  listUsers(type?: string): Promise<User[]>;
+  getUser(id: string): Promise<User | null>;
 }
 
 // ---------------------------------------------------------------------------
@@ -33,6 +36,7 @@ import { business as businessFixture } from '@/lib/fixtures/business';
 import { services as serviceFixtures } from '@/lib/fixtures/services';
 import { products as productFixtures } from '@/lib/fixtures/products';
 import { staff as staffFixtures } from '@/lib/fixtures/staff';
+import { users as userFixtures } from '@/lib/fixtures/users';
 
 // Mutable copies so the optional PATCH can mutate in-process state.
 let mutableAgents: Agent[] = [...agentFixtures];
@@ -99,6 +103,21 @@ export const fixtureAdapter: DataAdapter = {
 
   async listStaff() {
     return staffFixtures;
+  },
+
+  async listUsers(type?: string) {
+    let result = userFixtures.map(({ password, ...u }) => u);
+    if (type) {
+      result = result.filter((u) => u.type === type);
+    }
+    return result;
+  },
+
+  async getUser(id: string) {
+    const found = userFixtures.find((u) => u.id === id);
+    if (!found) return null;
+    const { password, ...user } = found;
+    return user;
   },
 };
 

@@ -1,28 +1,29 @@
 import { NextResponse } from 'next/server';
 import { adapter } from '@/lib/data';
+import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 
-// ---------------------------------------------------------------------------
-// Standard error shape — documented in API_CONTRACT.md
-// ---------------------------------------------------------------------------
 function notFound(id: string) {
   return NextResponse.json(
-    {
-      error: {
-        code: 'NOT_FOUND',
-        message: `Agent '${id}' was not found.`,
-      },
-    },
+    { error: { code: 'NOT_FOUND', message: `Agent '${id}' was not found.` } },
     { status: 404 },
   );
 }
 
 // ---------------------------------------------------------------------------
-// GET /api/agents/[id] — single agent detail
+// GET /api/agents/[id] — single agent detail (auth required)
 // ---------------------------------------------------------------------------
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = getSessionFromRequest(request);
+  if (!isAuthenticated(session)) {
+    return NextResponse.json(
+      { error: { code: 'UNAUTHORIZED', message: 'Authentication required.' } },
+      { status: 401 },
+    );
+  }
+
   const { id } = await params;
   const agent = await adapter.getAgent(id);
 
@@ -34,7 +35,7 @@ export async function GET(
 }
 
 // ---------------------------------------------------------------------------
-// PATCH /api/agents/[id] — experimental status mutation
+// PATCH /api/agents/[id] — status mutation (admin only)
 // Accepts { status: active | idle | error | offline }
 // Mutates the in-memory fixture store for the process lifetime.
 // ---------------------------------------------------------------------------
@@ -42,6 +43,20 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const session = getSessionFromRequest(request);
+  if (!isAuthenticated(session)) {
+    return NextResponse.json(
+      { error: { code: 'UNAUTHORIZED', message: 'Authentication required.' } },
+      { status: 401 },
+    );
+  }
+  if (!isAdmin(session)) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'Admin role required for this action.' } },
+      { status: 403 },
+    );
+  }
+
   const { id } = await params;
 
   if (!adapter.updateAgentStatus) {

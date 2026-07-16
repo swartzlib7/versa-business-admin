@@ -51,7 +51,7 @@ export function PublicHeader({ business }: { business: BusinessProfile }) {
             </Link>
           ))}
           <Link
-            href="/dashboard"
+            href="/login"
             className={cn(buttonVariants({ size: "sm" }))}
           >
             Sign In
@@ -85,7 +85,7 @@ export function PublicHeader({ business }: { business: BusinessProfile }) {
               </Link>
             ))}
             <Link
-              href="/dashboard"
+              href="/login"
               className={cn(buttonVariants({ size: "sm" }), "mt-2")}
               onClick={() => setOpen(false)}
             >

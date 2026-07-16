@@ -6,3 +6,4 @@ export { business, type BusinessProfile } from './business';
 export { services, type Service } from './services';
 export { products, type Product } from './products';
 export { staff, type StaffMember } from './staff';
+export { users, type UserFixture } from './users';

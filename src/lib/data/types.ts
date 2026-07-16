@@ -5,7 +5,7 @@ export interface Agent {
   id: string;
   name: string;
   role: string;
-  status: 'active' | 'idle' | 'error' | 'offline';
+  status: "active" | "idle" | "error" | "offline";
   model: string;
   lastActive: string;
 }
@@ -14,7 +14,7 @@ export interface Project {
   id: string;
   name: string;
   description: string;
-  status: 'active' | 'paused' | 'archived';
+  status: "active" | "paused" | "archived";
   gameId: string;
   gameName: string;
   agentCount: number;
@@ -24,8 +24,8 @@ export interface Project {
 export interface Task {
   id: string;
   title: string;
-  status: 'planned' | 'in_progress' | 'waiting' | 'blocked' | 'done';
-  priority: 'low' | 'normal' | 'high' | 'urgent';
+  status: "planned" | "in_progress" | "waiting" | "blocked" | "done";
+  priority: "low" | "normal" | "high" | "urgent";
   assignee: string;
   projectId: string;
   projectName: string;
@@ -35,8 +35,8 @@ export interface Task {
 export interface Integration {
   id: string;
   name: string;
-  type: 'email' | 'cms' | 'database' | 'api' | 'iot' | 'messaging';
-  status: 'connected' | 'disconnected' | 'error';
+  type: "email" | "cms" | "database" | "api" | "iot" | "messaging";
+  status: "connected" | "disconnected" | "error";
   lastSync: string;
   description: string;
 }
@@ -70,7 +70,7 @@ export interface Product {
   tagline: string;
   description: string;
   category: string;
-  status: 'available' | 'beta' | 'coming-soon';
+  status: "available" | "beta" | "coming-soon";
   features: string[];
 }
 
@@ -78,7 +78,28 @@ export interface StaffMember {
   id: string;
   name: string;
   role: string;
-  type: 'human' | 'agent';
+  type: "human" | "agent";
   bio: string;
   department: string;
+}
+
+// --- Auth + RBAC types (I5) ---
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "member";
+  type: "human" | "agent";
+  department: string;
+  bio: string;
+  status: "active" | "inactive";
+}
+
+export interface Session {
+  userId: string;
+  name: string;
+  email: string;
+  role: "admin" | "member";
+  type: "human" | "agent";
 }
