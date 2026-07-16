@@ -67,7 +67,7 @@ Confirmed models: **DeepSeek V4 Flash** and **DeepSeek V4 Pro** only (Stephen cl
 | Architecture notes, specs, hard debugging | Stronger model (COA current / Pro when needed) | coa |
 | Feature implementation, R3F, Next.js | **deepseek/deepseek-v4-pro** | web-dev |
 | Test writing, checklist runs, log triage | **deepseek/deepseek-v4-flash** | qa (and light COA ops) |
-| Quick research spikes | Flash | researcher (ad hoc) |
+| Quick research spikes | **deepseek/deepseek-v4-flash** | researcher (ad hoc) |
 
 No need for a third developer model unless Pro struggles with a specific stack issue.
 
