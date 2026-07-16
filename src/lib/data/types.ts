@@ -10,26 +10,34 @@ export interface Agent {
   lastActive: string;
 }
 
+// --- I6: Business work-surface types ---
+
 export interface Project {
   id: string;
   name: string;
   description: string;
-  status: "active" | "paused" | "archived";
-  gameId: string;
-  gameName: string;
-  agentCount: number;
+  status: "active" | "paused" | "completed" | "archived";
+  ownerUserId: string;
+  ownerName: string;
+  priority: "low" | "normal" | "high";
+  startDate: string | null;
+  targetDate: string | null;
   taskCount: number;
 }
 
 export interface Task {
   id: string;
   title: string;
+  description: string;
   status: "planned" | "in_progress" | "waiting" | "blocked" | "done";
   priority: "low" | "normal" | "high" | "urgent";
-  assignee: string;
   projectId: string;
   projectName: string;
+  assigneeUserId: string;
+  assigneeName: string;
   dueDate: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Integration {

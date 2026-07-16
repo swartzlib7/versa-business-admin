@@ -1,38 +1,70 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import type { Project } from "@/lib/data";
 
-const GAME_COLORS: Record<string, string> = {
-  "Growth": "#3b82f6",
-  "Operations": "#f59e0b",
-  "Customer": "#8b5cf6",
+const STATUS_OPTIONS = ["active", "paused", "completed", "archived"] as const;
+
+const statusVariant = (status: string) => {
+  switch (status) {
+    case "active": return "default" as const;
+    case "paused": return "secondary" as const;
+    case "completed": return "default" as const;
+    case "archived": return "outline" as const;
+    default: return "outline" as const;
+  }
+};
+
+const priorityVariant = (priority: string) => {
+  switch (priority) {
+    case "high": return "default" as const;
+    case "normal": return "secondary" as const;
+    case "low": return "outline" as const;
+    default: return "outline" as const;
+  }
 };
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  useEffect(() => {
-    fetch("/api/projects")
-      .then((r) => r.json())
+  const fetchProjects = useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    if (searchQuery) params.set("q", searchQuery);
+    fetch(`/api/projects?${params.toString()}`)
+      .then((r) => {
+        if (r.status === 401) {
+          window.location.href = "/login";
+          return null;
+        }
+        return r.json();
+      })
       .then((json) => {
-        setProjects(json.data ?? []);
+        if (json) {
+          setProjects(json.data ?? []);
+          setError(null);
+        }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, []);
+      .catch(() => {
+        setError("Failed to load projects.");
+        setLoading(false);
+      });
+  }, [statusFilter, searchQuery]);
 
-  // Group projects by game
-  const grouped = projects.reduce<Record<string, Project[]>>((acc, p) => {
-    const key = p.gameName || "Ungrouped";
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(p);
-    return acc;
-  }, {});
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   return (
     <AppShell>
@@ -40,8 +72,28 @@ export default function ProjectsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
           <p className="text-muted-foreground">
-            Strategic work organized by game and project.
+            Business work surfaces — track projects, owners, and progress.
           </p>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="">All statuses</option>
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          <Input
+            placeholder="Search projects…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-xs"
+          />
         </div>
 
         {loading ? (
@@ -50,59 +102,66 @@ export default function ProjectsPage() {
               <p className="text-sm text-muted-foreground">Loading projects…</p>
             </CardContent>
           </Card>
+        ) : error ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-sm font-medium text-destructive">{error}</p>
+              <button onClick={fetchProjects} className="mt-2 text-sm text-muted-foreground underline">Retry</button>
+            </CardContent>
+          </Card>
         ) : projects.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-sm font-medium">No projects yet</p>
+              <p className="text-sm font-medium">No projects found</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Projects will appear here once created.
+                Try adjusting your filters.
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-8">
-            {Object.entries(grouped).map(([gameName, gameProjects]) => (
-              <div key={gameName}>
-                <div className="mb-3 flex items-center gap-2">
-                  <span
-                    className="h-3 w-3 rounded-full shrink-0"
-                    style={{ backgroundColor: GAME_COLORS[gameName] ?? "#6b7280" }}
-                  />
-                  <h2 className="text-lg font-semibold">{gameName}</h2>
-                  <Badge variant="secondary" className="text-xs">
-                    {gameProjects.length} project{gameProjects.length !== 1 ? "s" : ""}
-                  </Badge>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {gameProjects.map((project) => (
-                    <Card key={project.id}>
-                      <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium">{project.name}</CardTitle>
-                        <Badge
-                          variant={
-                            project.status === "active"
-                              ? "default"
-                              : project.status === "paused"
-                              ? "secondary"
-                              : "outline"
-                          }
-                        >
-                          {project.status}
-                        </Badge>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground">{project.description}</p>
-                        <div className="mt-3 flex gap-3 text-xs text-muted-foreground">
-                          <span>{project.agentCount} agents</span>
-                          <span>{project.taskCount} tasks</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Projects ({projects.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left">
+                      <th className="pb-2 font-medium">Name</th>
+                      <th className="pb-2 font-medium">Status</th>
+                      <th className="pb-2 font-medium">Priority</th>
+                      <th className="pb-2 font-medium">Owner</th>
+                      <th className="pb-2 font-medium">Tasks</th>
+                      <th className="pb-2 font-medium">Target Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {projects.map((project) => (
+                      <tr key={project.id} className="border-b last:border-0 hover:bg-muted/50">
+                        <td className="py-2 pr-4">
+                          <Link href={`/projects/${project.id}`} className="font-medium text-foreground hover:underline">
+                            {project.name}
+                          </Link>
+                        </td>
+                        <td className="py-2 pr-4">
+                          <Badge variant={statusVariant(project.status)}>{project.status}</Badge>
+                        </td>
+                        <td className="py-2 pr-4">
+                          <Badge variant={priorityVariant(project.priority)}>{project.priority}</Badge>
+                        </td>
+                        <td className="py-2 pr-4">{project.ownerName}</td>
+                        <td className="py-2 pr-4">{project.taskCount}</td>
+                        <td className="py-2">
+                          {project.targetDate ? new Date(project.targetDate).toLocaleDateString() : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </AppShell>

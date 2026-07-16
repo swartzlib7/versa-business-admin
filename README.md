@@ -6,7 +6,7 @@
 
 ## Status
 
-- **Phase:** Building (Iteration 2 — Agent API depth + Agents fleet UI)
+- **Phase:** Building (Iteration 6 — Agent API depth + Agents fleet UI)
 - **Project ID:** 26
 - **Git:** local `main` (no remote yet)
 - **Game:** Versa Voice AI LLC (#109)
@@ -107,10 +107,42 @@ The Dashboard includes a React Three Fiber canvas (`MissionControlScene`) showin
 
 **Click any node** in the 3D scene to focus it. A detail card appears below the scene showing agent or project details. Click the same node again (or another node) to toggle/dismiss. This proves the R3F→React state bridge.
 
+## Work Surfaces (I6)
+
+Projects and Tasks are first-class business work surfaces with list + detail APIs and auth-gated UI tables.
+
+### Demo Steps
+
+1. Start the dev server: npm run dev
+2. Login at /login with admin@example.com / mission2026 (admin) or member@example.com / mission2026 (member)
+3. Navigate to /projects - table with name, status, priority, owner, task count, target date
+4. Filter by status or search by name/description
+5. Click a project row to view /projects/[id] - overview + related tasks list
+6. Navigate to /tasks - table with title, status, priority, project, assignee, due date
+7. Filter by status, priority, or project
+8. Click a task row to view /tasks/[id] - full details with project link
+
+### API Smoke Test
+
+- Login: POST /api/auth/login with JSON body, save cookie
+- List projects: GET /api/projects (authenticated) returns data array + count
+- Filter: GET /api/projects?status=active
+- Search: GET /api/projects?q=website
+- Detail: GET /api/projects/proj-1 (includes related tasks array)
+- 404: GET /api/projects/nonexistent returns standard error shape
+- Tasks with filters: GET /api/tasks?status=in_progress&priority=high
+- Task detail: GET /api/tasks/task-1
+- Unauthenticated: GET /api/projects returns 401
+
 ## Iteration History
 
 | Iteration | Focus | Commit |
 |-----------|-------|--------|
 | I0 | Foundations scaffold (Next.js 16, shadcn/ui v4, R3F, API stubs) | `8ddaac4` |
 | I1 | Shell polish, API contract + query filters, 3D→2D linkage | `f851d62` |
-| I2 | Agent API depth, data adapter, Agents fleet UI, projects grouped by game | (current) |
+| I2 | Agent API depth, data adapter, Agents fleet UI, projects grouped by game | - |
+| I3 | Capability spine + path A; reframe Mission vs ERP competitors | - |
+| I4 | Public site foundation (hero, services, products, staff, contact) | 88e07d6 |
+| I5 | Auth + RBAC skeleton (login/session, roles, Users resource, route protection) | 4722828 |
+| I5.1 | Vanilla public sample data - generic business template | 7f5eede |
+| I6 | Work surfaces: Projects + Tasks business ERD, list+detail APIs, auth-gated UI tables | (current) |

@@ -12,9 +12,13 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const statusFilter = searchParams.get('status');
+  const status = searchParams.get('status') ?? undefined;
+  const projectId = searchParams.get('projectId') ?? undefined;
+  const priority = searchParams.get('priority') ?? undefined;
+  const assignee = searchParams.get('assignee') ?? undefined;
+  const q = searchParams.get('q') ?? undefined;
 
-  const data = await adapter.listTasks(statusFilter ?? undefined);
+  const data = await adapter.listTasks({ status, projectId, priority, assignee, q });
 
   return NextResponse.json({
     data,

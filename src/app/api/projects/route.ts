@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adapter } from '@/lib/data';
-import { getSessionFromRequest, isAuthenticated } from '@/lib/auth';
+import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 
 export async function GET(request: Request) {
   const session = getSessionFromRequest(request);
@@ -12,9 +12,10 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const statusFilter = searchParams.get('status');
+  const status = searchParams.get('status') ?? undefined;
+  const q = searchParams.get('q') ?? undefined;
 
-  const data = await adapter.listProjects(statusFilter ?? undefined);
+  const data = await adapter.listProjects({ status, q });
 
   return NextResponse.json({
     data,

@@ -153,12 +153,12 @@ export default function DashboardPage() {
               {focusedProject && (
                 <div className="grid gap-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Game</span>
-                    <span>{focusedProject.gameName}</span>
+                    <span className="text-muted-foreground">Owner</span>
+                    <span>{focusedProject.ownerName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Agents</span>
-                    <span>{focusedProject.agentCount}</span>
+                    <span className="text-muted-foreground">Priority</span>
+                    <span>{focusedProject.priority}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tasks</span>

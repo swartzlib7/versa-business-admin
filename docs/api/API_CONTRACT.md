@@ -1,10 +1,10 @@
 # Versa AGi Mission — API Contract
 
 **Product:** Versa AGi Mission (project #26)  
-**Version:** 0.3.0-draft (I3 language pass)  
+**Version:** 0.4.0 (I6 work surfaces)  
 **Base Path:** `/api`  
 **Protocol:** HTTP/1.1, JSON only  
-**Auth:** TBD real session/RBAC (I5). Current seed may still be fixture-open — document honestly per endpoint.
+**Auth:** Session-based (httpOnly cookie). Public endpoints are open; backend endpoints require authentication. RBAC: admin can write, member can read.
 
 ## Design principles
 
@@ -84,15 +84,26 @@ The following exist in the current codebase as **fixture-backed** endpoints. The
 
 ```json
 {
-  "name": "Versa AGi Mission API",
-  "version": "0.3.0-draft",
+  "name": "Business Workspace API",
+  "version": "0.4.0",
   "endpoints": {
     "health": "/api/health",
-    "agents": "/api/agents",
-    "agentDetail": "/api/agents/{id}",
+    "login": "/api/auth/login",
+    "logout": "/api/auth/logout",
+    "session": "/api/auth/session",
+    "publicBusiness": "/api/public/business",
+    "publicServices": "/api/public/services",
+    "publicProducts": "/api/public/products",
+    "publicStaff": "/api/public/staff",
+    "users": "/api/users",
+    "userDetail": "/api/users/{id}",
+    "agents": "/api/agents (deprecated — use /api/users?type=agent)",
+    "agentDetail": "/api/agents/{id} (deprecated)",
     "projects": "/api/projects",
-    "integrations": "/api/integrations",
-    "tasks": "/api/tasks"
+    "projectDetail": "/api/projects/{id}",
+    "tasks": "/api/tasks",
+    "taskDetail": "/api/tasks/{id}",
+    "integrations": "/api/integrations"
   }
 }
 ```
@@ -102,8 +113,8 @@ The following exist in the current codebase as **fixture-backed** endpoints. The
 ```json
 {
   "status": "ok",
-  "version": "0.3.0-draft",
-  "timestamp": "2026-07-15T04:00:00.000Z",
+  "version": "0.4.0",
+  "timestamp": "2026-07-16T18:00:00.000Z",
   "uptime": 123.456
 }
 ```
@@ -138,13 +149,132 @@ Single record; 404 standard error when missing.
 
 In-memory fixture status mutation only. Valid status: `active`, `idle`, `error`, `offline`.
 
-### GET /api/projects
+### GET /api/projects  (I6)
 
-Business-oriented project list (fixtures). Must **not** be documented as host Versa AGi project registry.
+Business project list. Requires authenticated session.
 
-### GET /api/tasks
+**Filters:**
 
-Task list with status/priority filters as implemented.
+| Parameter | Type | Example | Notes |
+|-----------|------|---------|-------|
+| status | string | ?status=active | Filter by project status |
+| q | string | ?q=website | Search name/description (case-insensitive contains) |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "proj-1",
+      "name": "Website refresh",
+      "description": "Update public site content...",
+      "status": "active",
+      "ownerUserId": "user-6",
+      "ownerName": "Riley Brooks",
+      "priority": "high",
+      "startDate": "2026-07-01",
+      "targetDate": "2026-08-15",
+      "taskCount": 2
+    }
+  ],
+  "count": 1
+}
+```
+
+**Status values:** `active` | `paused` | `completed` | `archived`
+
+### GET /api/projects/{id}  (I6)
+
+Project detail with related tasks. Requires authenticated session. Returns 404 if not found.
+
+**Response:**
+
+```json
+{
+  "data": {
+    "id": "proj-1",
+    "name": "Website refresh",
+    "description": "...",
+    "status": "active",
+    "ownerUserId": "user-6",
+    "ownerName": "Riley Brooks",
+    "priority": "high",
+    "startDate": "2026-07-01",
+    "targetDate": "2026-08-15",
+    "taskCount": 2,
+    "tasks": [
+      { "id": "task-1", "title": "Draft homepage copy", ... }
+    ]
+  }
+}
+```
+
+### GET /api/tasks  (I6)
+
+Task list. Requires authenticated session.
+
+**Filters:**
+
+| Parameter | Type | Example | Notes |
+|-----------|------|---------|-------|
+| status | string | ?status=in_progress | Filter by task status |
+| projectId | string | ?projectId=proj-1 | Filter by project |
+| priority | string | ?priority=urgent | Filter by priority |
+| assignee | string | ?assignee=user-6 | Filter by assignee user ID or name |
+| q | string | ?q=homepage | Search title/description |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "task-1",
+      "title": "Draft homepage copy for review",
+      "description": "Write the hero section...",
+      "status": "in_progress",
+      "priority": "high",
+      "projectId": "proj-1",
+      "projectName": "Website refresh",
+      "assigneeUserId": "user-6",
+      "assigneeName": "Riley Brooks",
+      "dueDate": "2026-07-18",
+      "createdAt": "2026-07-01T10:00:00Z",
+      "updatedAt": "2026-07-10T14:30:00Z"
+    }
+  ],
+  "count": 1
+}
+```
+
+**Status values:** `planned` | `in_progress` | `waiting` | `blocked` | `done`
+**Priority values:** `low` | `normal` | `high` | `urgent`
+
+### GET /api/tasks/{id}  (I6)
+
+Task detail. Requires authenticated session. Returns 404 if not found.
+
+**Response:**
+
+```json
+{
+  "data": {
+    "id": "task-1",
+    "title": "Draft homepage copy for review",
+    "description": "...",
+    "status": "in_progress",
+    "priority": "high",
+    "projectId": "proj-1",
+    "projectName": "Website refresh",
+    "assigneeUserId": "user-6",
+    "assigneeName": "Riley Brooks",
+    "dueDate": "2026-07-18",
+    "createdAt": "2026-07-01T10:00:00Z",
+    "updatedAt": "2026-07-10T14:30:00Z"
+  }
+}
+```
 
 ### GET /api/integrations
 
@@ -216,9 +346,9 @@ Optional seed; not on capability spine MVP.
 
 ## Versioning
 
-- **0.2.x** — I1–I2 seed (agents/projects/tasks fixtures).  
-- **0.3.0-draft** — I3 contract rewrite; public + users/org/kb planned.  
-- Bump minor when public or users routes ship.
+- **0.2.x** — I1–I2 seed (agents/projects/tasks fixtures).
+- **0.3.0** — I3 contract rewrite; I4 public site; I5 auth + RBAC skeleton.
+- **0.4.0** — I6 work surfaces: Projects + Tasks business ERD, list+detail APIs with filters, auth-gated UI tables.
 
 ## Non-goals for API v1
 
