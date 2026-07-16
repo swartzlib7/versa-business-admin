@@ -40,3 +40,45 @@ export interface Integration {
   lastSync: string;
   description: string;
 }
+
+// --- Public site types (I4) ---
+
+export interface BusinessProfile {
+  name: string;
+  slogan: string;
+  logoUrl: string;
+  description: string;
+  purpose: string;
+  production: string;
+  contactEmail: string;
+  contactPhone: string;
+  address: string;
+  website: string;
+}
+
+export interface Service {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  features: string[];
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  category: string;
+  status: 'available' | 'beta' | 'coming-soon';
+  features: string[];
+}
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  role: string;
+  type: 'human' | 'agent';
+  bio: string;
+  department: string;
+}

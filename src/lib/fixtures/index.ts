@@ -2,3 +2,7 @@ export { agents, type AgentFixture } from './agents';
 export { projects, type ProjectFixture } from './projects';
 export { integrations, type IntegrationFixture } from './integrations';
 export { tasks, type TaskFixture } from './tasks';
+export { business, type BusinessProfile } from './business';
+export { services, type Service } from './services';
+export { products, type Product } from './products';
+export { staff, type StaffMember } from './staff';

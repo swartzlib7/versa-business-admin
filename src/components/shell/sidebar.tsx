@@ -7,7 +7,7 @@ import { theme } from "@/lib/theme";
 import {
   LayoutDashboard,
   Plug,
-  Bot,
+  Users,
   FolderKanban,
   CheckSquare,
   Settings,
@@ -16,7 +16,7 @@ import {
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/integrations", label: "Integrations", icon: Plug },
-  { href: "/agents", label: "Agents", icon: Bot },
+  { href: "/agents", label: "Users", icon: Users },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -71,7 +71,7 @@ export function Sidebar() {
       </nav>
       <div className="border-t border-sidebar-border px-4 py-3">
         <p className="text-xs text-sidebar-foreground/50">
-          Versa Admin System v0.2.0
+          Versa Admin System v0.3.0
         </p>
       </div>
     </aside>

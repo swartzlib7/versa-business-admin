@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Versa Admin — Mission Control',
+  title: 'Versa AGi Mission — Business Mission Control',
   description: 'Client mission control for Versa AGi-powered businesses',
 };
 

@@ -1,4 +1,4 @@
-import type { Agent, Project, Task, Integration } from './types';
+import type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember } from './types';
 
 // ---------------------------------------------------------------------------
 // DataAdapter — the modular boundary between route handlers and data sources.
@@ -14,6 +14,11 @@ export interface DataAdapter {
   listProjects(status?: string): Promise<Project[]>;
   listTasks(status?: string): Promise<Task[]>;
   listIntegrations(status?: string): Promise<Integration[]>;
+  // Public site content (I4)
+  getBusinessProfile(): Promise<BusinessProfile>;
+  listServices(): Promise<Service[]>;
+  listProducts(): Promise<Product[]>;
+  listStaff(): Promise<StaffMember[]>;
 }
 
 // ---------------------------------------------------------------------------
@@ -24,6 +29,10 @@ import { agents as agentFixtures } from '@/lib/fixtures/agents';
 import { projects as projectFixtures } from '@/lib/fixtures/projects';
 import { tasks as taskFixtures } from '@/lib/fixtures/tasks';
 import { integrations as integrationFixtures } from '@/lib/fixtures/integrations';
+import { business as businessFixture } from '@/lib/fixtures/business';
+import { services as serviceFixtures } from '@/lib/fixtures/services';
+import { products as productFixtures } from '@/lib/fixtures/products';
+import { staff as staffFixtures } from '@/lib/fixtures/staff';
 
 // Mutable copies so the optional PATCH can mutate in-process state.
 let mutableAgents: Agent[] = [...agentFixtures];
@@ -74,6 +83,22 @@ export const fixtureAdapter: DataAdapter = {
       result = result.filter((i) => i.status === status);
     }
     return result;
+  },
+
+  async getBusinessProfile() {
+    return businessFixture;
+  },
+
+  async listServices() {
+    return serviceFixtures;
+  },
+
+  async listProducts() {
+    return productFixtures;
+  },
+
+  async listStaff() {
+    return staffFixtures;
   },
 };
 
