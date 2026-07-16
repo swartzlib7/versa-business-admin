@@ -1,16 +1,42 @@
-# Alignment checklist - Stephen note (2026-07-16)
+# Alignment checklist — Stephen note + capability spine (2026-07-16)
 
-Use before accepting any new mission-control slice.
+Use before accepting any new Mission build slice.
+
+## Boundaries (`docs/_notes/from_stephen.md`)
 
 | # | Requirement | Spec / plan status | Build status |
 |---|-------------|--------------------|--------------|
-| 1 | Own database + ERD | Documented in PRODUCT_SPEC 1.1 | Not started (fixture/API only) |
-| 2 | Secure login + RBAC | Documented in PRODUCT_SPEC 1.1 | Placeholder only |
-| 3 | Public FE when signed out | Documented; website track elevated to required surface | Not started |
-| 4 | Prefer pre-built secure components | Preference noted | Ongoing |
-| 5 | Familiar business UI - not agent-management chrome | Boundary locked | Seed UI still uses Agents/Projects labels - reframe next |
-| 6 | Users and agents differ only by type | Boundary locked | Fixture model may still imply host agents - revise |
-| 7 | Product data separate from host Versa AGi | Boundary locked | Adapter design must stay portable/API-based |
+| 1 | Own database + ERD | PRODUCT_SPEC 1.1 | Not started (fixture/API only) |
+| 2 | Secure login + RBAC | PRODUCT_SPEC 1.1; plan I5 | Placeholder only |
+| 3 | Public FE when signed out | Spine §A; plan I4 | Not started as product site |
+| 4 | Prefer pre-built secure components | Path A locked | Ongoing |
+| 5 | Familiar business UI — not agent-management chrome | Boundary locked; seed labels still legacy | Reframe in I4 |
+| 6 | Users and agents differ only by type | Boundary locked | Fixture still agent-centric — revise |
+| 7 | Product data separate from host Versa AGi | Boundary locked | Adapter design portable/API-based |
 | 8 | Integration to host only via product API / Script Tasks | Boundary locked | API contract exists; host scripts later |
 
-**COA next:** finish language pass on PRODUCT_SPEC surfaces + API_CONTRACT naming; propose I3 only as every-customer capability that respects this table.
+## Capability spine
+
+| # | Capability | Spec | Build |
+|---|------------|------|-------|
+| A1 | Public business info (name, slogan, logo, description) | PRODUCT_SPEC 1.2 | Not started |
+| A2 | Public service list | PRODUCT_SPEC 1.2 | Not started |
+| A3 | Public product list | PRODUCT_SPEC 1.2 | Not started |
+| A4 | Public staff structure | PRODUCT_SPEC 1.2 | Not started |
+| B1 | User login | PRODUCT_SPEC 1.2 | Placeholder |
+| C1 | Users | PRODUCT_SPEC 1.2 | Partial via deprecated /agents |
+| C2 | Roles | PRODUCT_SPEC 1.2 | Not started |
+| C3 | Projects | PRODUCT_SPEC 1.2 | Fixture seed |
+| C4 | Tasks | PRODUCT_SPEC 1.2 | Fixture seed |
+| C5 | Organization structure (div→dept→section→unit) | PRODUCT_SPEC 1.2 | Not started |
+| C6 | KB policies / processes / articles on org nodes | PRODUCT_SPEC 1.2 | Not started |
+
+## Path & competition
+
+| Item | Status |
+|------|--------|
+| Path A: Next.js + OSS components (not full ERP) | **Locked** 2026-07-16 |
+| Competitors: ERPNext, Odoo | Registered on project #26 |
+| QA agent | Deferred until testable spine UI |
+
+**COA next:** commit I3 docs → brief web-dev → open I4 public-site foundation task.
