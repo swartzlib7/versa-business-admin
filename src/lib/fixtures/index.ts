@@ -11,3 +11,10 @@ export { otherSystems, type OtherSystemFixture } from './other-systems';
 export { supportTickets, type SupportTicketFixture } from './support-tickets';
 export { metrics, type MetricFixture } from './metrics';
 export { knowledgeArticles, type KnowledgeArticleFixture } from './knowledge-articles';
+export {
+  businessGraphNodes,
+  businessGraphLinks,
+  type BusinessGraphNode,
+  type BusinessGraphLink,
+  type GraphNodeType,
+} from './business-graph';
