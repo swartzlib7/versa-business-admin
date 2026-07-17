@@ -236,9 +236,10 @@ function OrbitalRingGuide({
   color: string;
   opacity: number;
 }) {
+  // Wider band so orbital guides read clearly (esp. dark mode)
   return (
     <Ring
-      args={[radius - 0.02, radius + 0.02, 64]}
+      args={[radius - 0.035, radius + 0.035, 96]}
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, 0, 0]}
     >
@@ -247,6 +248,7 @@ function OrbitalRingGuide({
         transparent
         opacity={opacity}
         side={THREE.DoubleSide}
+        depthWrite={false}
       />
     </Ring>
   );
@@ -274,7 +276,7 @@ function AnimatedConnection({
   useFrame((state) => {
     if (matRef.current && primary) {
       const t = state.clock.getElapsedTime();
-      matRef.current.opacity = opacity * (0.5 + Math.sin(t * 2) * 0.3);
+      matRef.current.opacity = opacity * (0.65 + Math.sin(t * 2) * 0.25);
     }
   });
 
@@ -285,12 +287,16 @@ function AnimatedConnection({
       lineWidth={lineWidth}
       transparent
       opacity={opacity}
+      dashed={!primary}
+      dashSize={primary ? undefined : 0.25}
+      gapSize={primary ? undefined : 0.12}
     >
       <lineBasicMaterial
         ref={matRef}
         color={color}
         transparent
         opacity={opacity}
+        depthWrite={false}
       />
     </Line>
   );
@@ -336,8 +342,8 @@ function SceneContent({
         <OrbitalRingGuide
           key={"ring-" + ring}
           radius={RING_RADII[ring]}
-          color={palette.gridMain}
-          opacity={0.15}
+          color={palette.ringGuideColor}
+          opacity={palette.ringGuideOpacity}
         />
       ))}
 
@@ -345,19 +351,24 @@ function SceneContent({
         const fromPos = positions.get(link.from);
         const toPos = positions.get(link.to);
         if (!fromPos || !toPos) return null;
+        const isPrimary = link.type === "primary";
         return (
           <AnimatedConnection
             key={"link-" + i}
             from={fromPos}
             to={toPos}
             color={
-              link.type === "primary"
+              isPrimary
                 ? theme.scene.primaryLinkColor
-                : theme.scene.secondaryLinkColor
+                : palette.secondaryLinkColor
             }
-            opacity={link.type === "primary" ? 0.4 : 0.15}
-            lineWidth={link.type === "primary" ? 1 : 0.5}
-            primary={link.type === "primary"}
+            opacity={
+              isPrimary
+                ? palette.primaryLinkOpacity
+                : palette.secondaryLinkOpacity
+            }
+            lineWidth={isPrimary ? 1.5 : 2}
+            primary={isPrimary}
           />
         );
       })}
