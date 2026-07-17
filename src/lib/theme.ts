@@ -22,6 +22,40 @@ export const theme = {
     statusError: '#ef4444',    // red-500
     statusOffline: '#6b7280',  // gray-500
   },
+  // 3D Mission Control scene — Versa-branded default.
+  // Override these to rebrand the hub visualization for a customer.
+  scene: {
+    hubName: 'Versa AGi',
+    hubSubtitle: 'Mission Control',
+    // Hub color — Versa brand indigo
+    hubColor: '#6366f1',
+    hubGlow: '#818cf8',
+    // Ring category colors — must be obvious at a glance
+    systemColor: '#3b82f6',   // blue-500 — business systems
+    teamColor: '#22c55e',     // green-500 — people / teams
+    surfaceColor: '#f59e0b',  // amber-500 — operating surfaces
+    // Connection colors
+    primaryLinkColor: '#6366f1',
+    secondaryLinkColor: '#64748b',
+    // Dark mode scene palette
+    dark: {
+      background: '#0a0a0f',
+      gridMain: '#1e1e2e',
+      gridSub: '#16161f',
+      labelColor: '#a1a1aa',
+      ambientIntensity: 0.3,
+      pointLightIntensity: 0.8,
+    },
+    // Light mode scene palette
+    light: {
+      background: '#f8f8fb',
+      gridMain: '#d4d4d8',
+      gridSub: '#e4e4e7',
+      labelColor: '#3f3f46',
+      ambientIntensity: 0.7,
+      pointLightIntensity: 1.0,
+    },
+  },
 } as const;
 
 export type ThemeConfig = typeof theme;

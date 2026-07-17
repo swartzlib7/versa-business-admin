@@ -1,29 +1,43 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Sun, Moon } from "lucide-react";
 import {
   MissionControlScene,
   type SceneNode,
 } from "@/components/r3f/mission-control-scene";
-import { agents, projects, tasks, integrations } from "@/lib/fixtures";
+import { agents, projects, tasks, integrations, businessGraphNodes } from "@/lib/fixtures";
 
 export default function DashboardPage() {
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+  const [darkMode, setDarkMode] = useState(true);
+
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains("dark");
+    setDarkMode(isDark);
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    if (next) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  };
 
   const handleNodeClick = useCallback((node: SceneNode) => {
     setFocusedNodeId((prev) => (prev === node.id ? null : node.id));
   }, []);
 
-  const focusedAgent = focusedNodeId
-    ? agents.find((a) => a.id === focusedNodeId)
+  const focusedNode = focusedNodeId
+    ? businessGraphNodes.find((n) => n.id === focusedNodeId)
     : null;
-  const focusedProject = focusedNodeId
-    ? projects.find((p) => p.id === focusedNodeId)
-    : null;
-  const focusedEntity = focusedAgent || focusedProject;
 
   const activeAgents = agents.filter((a) => a.status === "active").length;
   const activeProjects = projects.filter((p) => p.status === "active").length;
@@ -37,11 +51,16 @@ export default function DashboardPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Mission Control</h1>
-          <p className="text-muted-foreground">
-            Overview of your business operations.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Mission Control</h1>
+            <p className="text-muted-foreground">
+              Versa AGi integration hub - business systems, teams, and operating surfaces.
+            </p>
+          </div>
+          <Button variant="outline" size="icon" onClick={toggleTheme}>
+            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
         </div>
 
         {/* KPI Cards */}
@@ -99,82 +118,33 @@ export default function DashboardPage() {
         {/* 3D Scene */}
         <Card>
           <CardHeader>
-            <CardTitle>Agent Activity Graph</CardTitle>
+            <CardTitle>Integration Hub</CardTitle>
           </CardHeader>
           <CardContent>
             <MissionControlScene
-              agents={agents}
-              projects={projects}
               onNodeClick={handleNodeClick}
               focusedNodeId={focusedNodeId}
             />
           </CardContent>
         </Card>
 
-        {/* Focused Entity Detail */}
-        {focusedEntity && (
-          <Card className="border-brand/50 ring-1 ring-brand/20">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>
-                  {focusedAgent ? focusedAgent.name : focusedProject?.name}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {focusedAgent
-                    ? `Role: ${focusedAgent.role} · Model: ${focusedAgent.model}`
-                    : focusedProject?.description}
-                </p>
-              </div>
-              <Badge
-                variant={
-                  focusedEntity.status === "active"
-                    ? "default"
-                    : focusedEntity.status === "error" || focusedEntity.status === "offline"
-                    ? "destructive"
-                    : "secondary"
-                }
-              >
-                {focusedEntity.status}
-              </Badge>
+        {/* Focused Node Detail */}
+        {focusedNode && (
+          <Card className="border-primary/50 ring-1 ring-primary/20">
+            <CardHeader>
+              <CardTitle>{focusedNode.label}</CardTitle>
+              <p className="text-sm text-muted-foreground capitalize">
+                {focusedNode.type} - {focusedNode.status}
+              </p>
             </CardHeader>
             <CardContent>
-              {focusedAgent && (
-                <div className="grid gap-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Last Active</span>
-                    <span>{new Date(focusedAgent.lastActive).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Model</span>
-                    <span className="font-mono text-xs">{focusedAgent.model}</span>
-                  </div>
-                </div>
-              )}
-              {focusedProject && (
-                <div className="grid gap-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Owner</span>
-                    <span>{focusedProject.ownerName}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Priority</span>
-                    <span>{focusedProject.priority}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Tasks</span>
-                    <span>{focusedProject.taskCount}</span>
-                  </div>
-                </div>
-              )}
-              <p className="mt-3 text-xs text-muted-foreground">
-                Click the same node again or select another to dismiss.
-              </p>
+              <p className="text-sm">{focusedNode.description}</p>
             </CardContent>
           </Card>
         )}
 
-        {/* Recent Activity */}
-        <div className="grid gap-4 lg:grid-cols-2">
+        {/* Recent Tasks + Agent Status */}
+        <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Recent Tasks</CardTitle>
