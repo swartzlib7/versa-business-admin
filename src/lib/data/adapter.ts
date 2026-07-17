@@ -1,4 +1,4 @@
-import type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember, User } from './types';
+import type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember, User, OtherSystem, SupportTicket, Metric, KnowledgeArticle } from './types';
 
 // ---------------------------------------------------------------------------
 // DataAdapter — the modular boundary between route handlers and data sources.
@@ -37,6 +37,11 @@ export interface DataAdapter {
   // Users (I5)
   listUsers(type?: string): Promise<User[]>;
   getUser(id: string): Promise<User | null>;
+  // Mission Control facets (I5.3)
+  listOtherSystems(): Promise<OtherSystem[]>;
+  listSupportTickets(): Promise<SupportTicket[]>;
+  listMetrics(): Promise<Metric[]>;
+  listKnowledgeArticles(): Promise<KnowledgeArticle[]>;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,6 +57,10 @@ import { services as serviceFixtures } from '@/lib/fixtures/services';
 import { products as productFixtures } from '@/lib/fixtures/products';
 import { staff as staffFixtures } from '@/lib/fixtures/staff';
 import { users as userFixtures } from '@/lib/fixtures/users';
+import { otherSystems as otherSystemFixtures } from '@/lib/fixtures/other-systems';
+import { supportTickets as supportTicketFixtures } from '@/lib/fixtures/support-tickets';
+import { metrics as metricFixtures } from '@/lib/fixtures/metrics';
+import { knowledgeArticles as knowledgeArticleFixtures } from '@/lib/fixtures/knowledge-articles';
 
 // Mutable copies so the optional PATCH can mutate in-process state.
 let mutableAgents: Agent[] = [...agentFixtures];
@@ -174,6 +183,24 @@ export const fixtureAdapter: DataAdapter = {
     if (!found) return null;
     const { password, ...user } = found;
     return user;
+  },
+
+  // --- Mission Control facets (I5.3) ---
+
+  async listOtherSystems() {
+    return otherSystemFixtures;
+  },
+
+  async listSupportTickets() {
+    return supportTicketFixtures;
+  },
+
+  async listMetrics() {
+    return metricFixtures;
+  },
+
+  async listKnowledgeArticles() {
+    return knowledgeArticleFixtures;
   },
 };
 

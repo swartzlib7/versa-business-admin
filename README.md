@@ -145,18 +145,5 @@ Projects and Tasks are first-class business work surfaces with list + detail API
 | I4 | Public site foundation (hero, services, products, staff, contact) | 88e07d6 |
 | I5 | Auth + RBAC skeleton (login/session, roles, Users resource, route protection) | 4722828 |
 | I5.1 | Vanilla public sample data - generic business template | 7f5eede |
-| I5.2 | Public Northstar template aligned to Versa AGi / UGPN maker essence | (this commit) |
-| I6 | Work surfaces: Projects + Tasks business ERD, list+detail APIs, auth-gated UI tables | (current) |
-
-
-## Public sample (I5.2)
-
-The public homepage is a **white-label maker / producer template** (Northstar Works), not a consulting brochure and not Versa product branding.
-
-Essence drawn from the Versa AGi README:
-
-- Human intention → production (postulates + creation)
-- People and precision agents collaborating under human direction
-- Local production connected across languages and borders — a practical slice of the **Unified Global Production Network (uGPN)**
-
-Replace fixtures under `src/lib/fixtures/` with your brand. Login for the app shell remains `admin@example.com` / `mission2026`.
+| I6 | Work surfaces: Projects + Tasks business ERD, list+detail APIs, auth-gated UI tables | 7082c6e |
+| I5.3 | Public Mission Control template (generic facets: systems, integrations, operations, support, metrics, knowledge) | (current) |

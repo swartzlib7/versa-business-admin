@@ -10,9 +10,12 @@ import { theme } from "@/lib/theme";
 import type { BusinessProfile } from "@/lib/data";
 
 const navLinks = [
-  { href: "/#services", label: "Services" },
-  { href: "/#products", label: "Products" },
-  { href: "/#staff", label: "People" },
+  { href: "/#facets", label: "Facets" },
+  { href: "/#systems", label: "Systems" },
+  { href: "/#integrations", label: "Integrations" },
+  { href: "/#operations", label: "Operations" },
+  { href: "/#support", label: "Support" },
+  { href: "/#metrics-knowledge", label: "Metrics & Knowledge" },
   { href: "/#about", label: "About" },
   { href: "/#contact", label: "Contact" },
 ];

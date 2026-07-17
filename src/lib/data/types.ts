@@ -91,6 +91,44 @@ export interface StaffMember {
   department: string;
 }
 
+
+// --- I5.3: Mission Control facet types ---
+
+export interface OtherSystem {
+  id: string;
+  name: string;
+  category: string;
+  status: 'connected' | 'standalone' | 'planned';
+  description: string;
+}
+
+export interface SupportTicket {
+  id: string;
+  subject: string;
+  status: 'open' | 'in_progress' | 'resolved';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  customer: string;
+  channel: string;
+  createdAt: string;
+}
+
+export interface Metric {
+  id: string;
+  label: string;
+  value: string;
+  trend: 'up' | 'down' | 'flat';
+  trendValue: string;
+  category: string;
+}
+
+export interface KnowledgeArticle {
+  id: string;
+  title: string;
+  category: string;
+  summary: string;
+  updatedAt: string;
+}
+
 // --- Auth + RBAC types (I5) ---
 
 export interface User {

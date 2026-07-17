@@ -1,8 +1,6 @@
 // White-label business profile fixture.
-// Sample data is intentionally GENERIC so any producer can adopt the template.
-// Tone: makers, founders, and people who ship real work — not a consulting brochure.
-// Essence aligned to Versa AGi / Unified Global Production Network (uGPN):
-// human intention + production, shared across people (and their agents).
+// Mission Control template — generic placeholder content any business can adopt.
+// Replace this profile with your own brand and contact details.
 
 export interface BusinessProfile {
   name: string;
@@ -19,14 +17,14 @@ export interface BusinessProfile {
 
 export const business: BusinessProfile = {
   name: 'Northstar Works',
-  slogan: 'Declare what you will make. Ship it. Share it with the world.',
+  slogan: 'Run your business from one place.',
   logoUrl: '/brand/logo.svg',
   description:
-    'A sample workspace for makers, founders, and operators who turn ambition into products, services, and contribution — alone or with a small team of people and AI agents.',
+    'Mission Control brings your projects, operations, customer support, integrations, and knowledge into a single dashboard — so every part of the business is visible and connected.',
   purpose:
-    'Help every individual who wants to build something real — a business, a craft, a service, a contribution to society — move from intention to finished work without losing the human at the center.',
+    'Give teams a single pane of glass to plan work, serve customers, and keep the business running smoothly.',
   production:
-    'We produce goods, services, and digital offerings; coordinate projects and tasks; and connect local production to customers and collaborators across languages and borders — a practical slice of a Unified Global Production Network.',
+    'Projects, tasks, support tickets, metrics, integrations, and a searchable knowledge base — all in one template, ready to customize.',
   contactEmail: 'hello@example.com',
   contactPhone: '+1 (555) 010-1000',
   address: '100 Market Street, Suite 400, Austin, TX',
