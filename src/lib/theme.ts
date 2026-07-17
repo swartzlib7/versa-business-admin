@@ -3,8 +3,8 @@
 
 export const theme = {
   brand: {
-    name: 'Northstar',
-    shortName: 'NS',
+    name: 'Northstar Works',
+    shortName: 'NW',
     logoUrl: '/logo.svg',
     faviconUrl: '/favicon.ico',
   },

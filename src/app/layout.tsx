@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Northstar Consulting Group',
-  description: 'Sample business workspace — replace with your company details',
+  title: 'Northstar Works',
+  description: 'Sample maker workspace — replace with your brand and production story',
 };
 
 export default function RootLayout({

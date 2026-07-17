@@ -1,6 +1,6 @@
 // Public staff fixture.
-// Generic people and roles for the sample business template.
-// type human | agent is retained for product boundary demos; names are fictional.
+// Sample people + agents for a maker / production team.
+// type human | agent retained for product boundary demos; names are fictional.
 
 export interface StaffMember {
   id: string;
@@ -15,49 +15,49 @@ export const staff: StaffMember[] = [
   {
     id: 'staff-1',
     name: 'Alex Morgan',
-    role: 'Managing Director',
+    role: 'Founder & Producer',
     type: 'human',
-    bio: 'Leads client relationships and sets the standard for delivery quality across engagements.',
-    department: 'Executive',
+    bio: 'Sets the intention for what we make, protects quality, and keeps the human purpose at the center of every release.',
+    department: 'Leadership',
   },
   {
     id: 'staff-2',
     name: 'Jordan Lee',
     role: 'Operations Lead',
     type: 'human',
-    bio: 'Owns day-to-day workflows, capacity planning, and continuous improvement of internal processes.',
+    bio: 'Owns capacity, fulfillment cadence, and the practical systems that turn plans into shipped work.',
     department: 'Operations',
   },
   {
     id: 'staff-3',
     name: 'Sam Rivera',
-    role: 'Delivery Manager',
+    role: 'Craft Lead',
     type: 'human',
-    bio: 'Coordinates projects from kickoff to close-out and keeps stakeholders informed.',
-    department: 'Delivery',
+    bio: 'Guides design and build quality from prototype to finished product or service package.',
+    department: 'Production',
   },
   {
     id: 'staff-4',
     name: 'Casey Nguyen',
-    role: 'Customer Success',
+    role: 'Customer Partner',
     type: 'human',
-    bio: 'Helps clients adopt recommendations and measures outcomes after go-live.',
-    department: 'Customer Success',
+    bio: 'Helps buyers adopt what we ship and feeds real-world feedback back into the next production cycle.',
+    department: 'Customer',
   },
   {
     id: 'staff-5',
     name: 'Riley Brooks',
-    role: 'Marketing Lead',
+    role: 'Story & Reach',
     type: 'human',
-    bio: 'Shapes brand messaging, campaigns, and content that attract the right customers.',
-    department: 'Marketing',
+    bio: 'Tells the story of the work so the right makers and customers find us — without hype that outruns delivery.',
+    department: 'Outreach',
   },
   {
     id: 'staff-6',
-    name: 'Taylor Quinn',
-    role: 'People Partner',
-    type: 'human',
-    bio: 'Supports hiring, onboarding, and a healthy culture so the team can do its best work.',
-    department: 'People',
+    name: 'Nova',
+    role: 'Production Agent',
+    type: 'agent',
+    bio: 'A precision instrument for scheduling, research, and follow-through — works under human direction with memory and clear handoffs.',
+    department: 'Agent Team',
   },
 ];

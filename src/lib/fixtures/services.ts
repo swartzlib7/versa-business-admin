@@ -1,5 +1,5 @@
 // Public service catalog fixture.
-// Generic services any professional services / SMB business might list.
+// Oriented to makers, founders, and producers — not consulting-firm packaging.
 
 export interface Service {
   id: string;
@@ -12,80 +12,80 @@ export interface Service {
 export const services: Service[] = [
   {
     id: 'svc-1',
-    name: 'Strategy & Planning',
+    name: 'Intention to Plan',
     description:
-      'Work with leadership to clarify goals, priorities, and a practical roadmap for the next quarter and year.',
+      'Turn a clear ambition into a workable plan — what you will make, for whom, and what “done” looks like.',
     icon: 'Lightbulb',
     features: [
-      'Goal and KPI workshops',
-      'Roadmap facilitation',
-      'Risk and opportunity review',
-      'Executive briefings',
+      'Postulate and goal framing',
+      'Offer and audience clarity',
+      'Milestone roadmap',
+      'Risk and capacity check',
     ],
   },
   {
     id: 'svc-2',
-    name: 'Operations Support',
+    name: 'Make & Ship',
     description:
-      'Improve day-to-day workflows so teams deliver consistently without unnecessary friction.',
+      'Run the day-to-day production loop: design, build, package, and deliver products or services on a reliable cadence.',
     icon: 'LayoutDashboard',
     features: [
-      'Process mapping',
-      'Standard operating procedures',
-      'Handoff and SLA design',
-      'Continuous improvement loops',
+      'Production workflows',
+      'Quality checkpoints',
+      'Release and fulfillment',
+      'Iteration after feedback',
     ],
   },
   {
     id: 'svc-3',
-    name: 'Customer Experience',
+    name: 'Sell & Serve',
     description:
-      'Design how customers discover, buy, and get support — with clear channels and measurable quality.',
+      'Connect what you make to people who need it — discovery, offers, orders, and ongoing care without losing the craft.',
     icon: 'MessageSquare',
     features: [
-      'Journey mapping',
-      'Support playbooks',
-      'Feedback collection',
-      'Retention programs',
+      'Offer and pricing pages',
+      'Customer conversations',
+      'Order and delivery tracking',
+      'Retention and referrals',
     ],
   },
   {
     id: 'svc-4',
-    name: 'Knowledge & Training',
+    name: 'Knowledge & Craft',
     description:
-      'Capture how work is done and train people so quality does not depend on a single expert.',
+      'Capture how the work is done so quality does not live in one person’s head — and so new makers can join faster.',
     icon: 'BookOpen',
     features: [
-      'Policy and process docs',
-      'Role-based training paths',
+      'Process and recipe docs',
+      'Training paths',
       'Searchable knowledge base',
       'Onboarding kits',
     ],
   },
   {
     id: 'svc-5',
-    name: 'Project Delivery',
+    name: 'Projects & Tasks',
     description:
-      'Plan, track, and close projects with transparent status, owners, and outcomes.',
+      'Keep production visible: owners, priorities, due dates, and status so ambition becomes finished work.',
     icon: 'FolderKanban',
     features: [
       'Project charters',
-      'Milestone tracking',
-      'Resource planning',
-      'Post-project reviews',
+      'Task ownership',
+      'Priority and filters',
+      'Progress reviews',
     ],
   },
   {
     id: 'svc-6',
-    name: 'Technology Advisory',
+    name: 'Human + Agent Team',
     description:
-      'Choose and integrate tools that fit your size and budget — without locking you into unnecessary complexity.',
-    icon: 'Cpu',
+      'Pair people with precision AI agents as extensions of the work — memory, scheduling, and collaboration under human direction.',
+    icon: 'Bot',
     features: [
-      'Stack selection',
-      'Integration planning',
-      'Vendor evaluation',
-      'Security basics review',
+      'Role clarity (human vs agent)',
+      'Approvals and handoffs',
+      'Cross-language collaboration',
+      'Audit-friendly communication',
     ],
   },
 ];

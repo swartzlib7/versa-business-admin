@@ -14,8 +14,8 @@ export interface ProjectFixture {
 export const projects: ProjectFixture[] = [
   {
     id: 'proj-1',
-    name: 'Website refresh',
-    description: 'Update public site content and brand assets for the new fiscal year.',
+    name: 'Public story refresh',
+    description: 'Update the public site so it speaks to makers and producers, not a consulting brochure.',
     status: 'active',
     ownerUserId: 'user-6',
     ownerName: 'Riley Brooks',
@@ -26,8 +26,8 @@ export const projects: ProjectFixture[] = [
   },
   {
     id: 'proj-2',
-    name: 'Customer onboarding',
-    description: 'Standardize how new clients are welcomed, trained, and handed to success.',
+    name: 'First-customer onboarding',
+    description: 'Standardize how new buyers are welcomed, trained, and handed to ongoing care.',
     status: 'active',
     ownerUserId: 'user-5',
     ownerName: 'Casey Nguyen',
@@ -38,8 +38,8 @@ export const projects: ProjectFixture[] = [
   },
   {
     id: 'proj-3',
-    name: 'Q3 ops review',
-    description: 'Quarterly review of capacity, delivery quality, and process improvements.',
+    name: 'Q3 production review',
+    description: 'Quarterly review of capacity, quality, and what to make next.',
     status: 'paused',
     ownerUserId: 'user-3',
     ownerName: 'Jordan Lee',
@@ -50,8 +50,8 @@ export const projects: ProjectFixture[] = [
   },
   {
     id: 'proj-4',
-    name: 'Handbook v2',
-    description: 'Rewrite company policies and how-we-work guides for clarity.',
+    name: 'Craft handbook v2',
+    description: 'Rewrite how-we-make guides so quality is teachable and repeatable.',
     status: 'active',
     ownerUserId: 'user-1',
     ownerName: 'Alex Morgan',
@@ -62,8 +62,8 @@ export const projects: ProjectFixture[] = [
   },
   {
     id: 'proj-5',
-    name: 'Legacy data migration',
-    description: 'Migrate records from the old CRM into the new system.',
+    name: 'Legacy catalog migration',
+    description: 'Move product and customer records from the old shop tools into the new workspace.',
     status: 'completed',
     ownerUserId: 'user-3',
     ownerName: 'Jordan Lee',

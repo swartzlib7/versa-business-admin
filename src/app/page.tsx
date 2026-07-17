@@ -13,6 +13,7 @@ import {
   BookOpen,
   Cpu,
   Lightbulb,
+  FolderKanban,
   ArrowRight,
   CheckCircle2,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   BookOpen,
   Cpu,
   Lightbulb,
+  FolderKanban,
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -79,9 +81,9 @@ export default async function HomePage() {
       <section id="services" className="border-b border-border">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
           <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Our Services</h2>
+            <h2 className="text-3xl font-bold tracking-tight">How We Help You Produce</h2>
             <p className="mt-3 text-muted-foreground">
-              Comprehensive solutions to power your business with AI.
+              Practical ways to move from intention to finished work — alone or with a small team.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -125,9 +127,9 @@ export default async function HomePage() {
       <section id="products" className="border-b border-border bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
           <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Our Products</h2>
+            <h2 className="text-3xl font-bold tracking-tight">What You Can Adopt</h2>
             <p className="mt-3 text-muted-foreground">
-              Tools and platforms built for AI-powered businesses.
+              Things you can adopt, customize, and ship under your own name.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2">
@@ -166,9 +168,9 @@ export default async function HomePage() {
       <section id="staff" className="border-b border-border">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
           <div className="mb-12 text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Our People</h2>
+            <h2 className="text-3xl font-bold tracking-tight">The Team</h2>
             <p className="mt-3 text-muted-foreground">
-              The team behind the mission — humans and AI agents working together.
+              People who make the work real — and agents that extend their reach.
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -234,7 +236,7 @@ export default async function HomePage() {
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight">Get in Touch</h2>
             <p className="mt-3 text-muted-foreground">
-              Ready to power your business with AI? Reach out to us.
+              Building something of your own? Reach out — makers, founders, and producers welcome.
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <a href={`mailto:${business.contactEmail}`} className={cn(buttonVariants({ size: "lg" }))}>
