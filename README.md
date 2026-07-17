@@ -145,4 +145,5 @@ Projects and Tasks are first-class business work surfaces with list + detail API
 | I4 | Public site foundation (hero, services, products, staff, contact) | 88e07d6 |
 | I5 | Auth + RBAC skeleton (login/session, roles, Users resource, route protection) | 4722828 |
 | I5.1 | Vanilla public sample data - generic business template | 7f5eede |
-| I6 | Work surfaces: Projects + Tasks business ERD, list+detail APIs, auth-gated UI tables | (current) |
+| I6 | Work surfaces: Projects + Tasks business ERD, list+detail APIs, auth-gated UI tables | 7082c6e |
+| I5.3 | Public Mission Control template (generic facets: systems, integrations, operations, support, metrics, knowledge) | (current) |

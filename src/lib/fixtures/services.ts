@@ -1,5 +1,6 @@
-// Public service catalog fixture.
-// Generic services any professional services / SMB business might list.
+// Public facet catalog fixture.
+// Maps 1:1 to the six Mission Control facets on the public homepage.
+// Generic placeholder content — any business can map onto these.
 
 export interface Service {
   id: string;
@@ -11,81 +12,81 @@ export interface Service {
 
 export const services: Service[] = [
   {
-    id: 'svc-1',
-    name: 'Strategy & Planning',
+    id: 'facet-systems',
+    name: 'Other Systems',
     description:
-      'Work with leadership to clarify goals, priorities, and a practical roadmap for the next quarter and year.',
-    icon: 'Lightbulb',
+      'See every system the business runs — accounting, CRM, inventory, HR — and how they connect to Mission Control.',
+    icon: 'Server',
     features: [
-      'Goal and KPI workshops',
-      'Roadmap facilitation',
-      'Risk and opportunity review',
-      'Executive briefings',
+      'Connected system inventory',
+      'Health and sync status',
+      'Category grouping',
+      'Planned vs active tracking',
     ],
   },
   {
-    id: 'svc-2',
-    name: 'Operations Support',
+    id: 'facet-integrations',
+    name: 'Integrations',
     description:
-      'Improve day-to-day workflows so teams deliver consistently without unnecessary friction.',
+      'Email, chat, CMS, source control, APIs, and more — all your tools wired into one dashboard.',
+    icon: 'Plug',
+    features: [
+      'Email and messaging',
+      'CMS and knowledge sync',
+      'Source control and APIs',
+      'Connection health monitoring',
+    ],
+  },
+  {
+    id: 'facet-operations',
+    name: 'Operations',
+    description:
+      'Day-to-day run of the business — projects, tasks, workflows, and who owns what.',
     icon: 'LayoutDashboard',
     features: [
-      'Process mapping',
-      'Standard operating procedures',
-      'Handoff and SLA design',
-      'Continuous improvement loops',
+      'Project tracking',
+      'Task assignment and status',
+      'Priority and deadline management',
+      'Activity overview',
     ],
   },
   {
-    id: 'svc-3',
-    name: 'Customer Experience',
+    id: 'facet-support',
+    name: 'Customer Support',
     description:
-      'Design how customers discover, buy, and get support — with clear channels and measurable quality.',
+      'Inbox, tickets, and care loops — keep customers happy with clear ownership and response times.',
     icon: 'MessageSquare',
     features: [
-      'Journey mapping',
-      'Support playbooks',
-      'Feedback collection',
-      'Retention programs',
+      'Ticket intake and queues',
+      'Priority and SLA tracking',
+      'Multi-channel support',
+      'Resolution history',
     ],
   },
   {
-    id: 'svc-4',
-    name: 'Knowledge & Training',
+    id: 'facet-metrics',
+    name: 'Metrics',
     description:
-      'Capture how work is done and train people so quality does not depend on a single expert.',
+      'Simple KPI snapshots and health indicators — know where the business stands at a glance.',
+    icon: 'BarChart3',
+    features: [
+      'Operational KPIs',
+      'Support performance',
+      'System health',
+      'Trend indicators',
+    ],
+  },
+  {
+    id: 'facet-knowledge',
+    name: 'Knowledge Articles',
+    description:
+      'Handbook, process docs, and searchable knowledge — so quality does not depend on a single person.',
     icon: 'BookOpen',
     features: [
-      'Policy and process docs',
-      'Role-based training paths',
-      'Searchable knowledge base',
-      'Onboarding kits',
-    ],
-  },
-  {
-    id: 'svc-5',
-    name: 'Project Delivery',
-    description:
-      'Plan, track, and close projects with transparent status, owners, and outcomes.',
-    icon: 'FolderKanban',
-    features: [
-      'Project charters',
-      'Milestone tracking',
-      'Resource planning',
-      'Post-project reviews',
-    ],
-  },
-  {
-    id: 'svc-6',
-    name: 'Technology Advisory',
-    description:
-      'Choose and integrate tools that fit your size and budget — without locking you into unnecessary complexity.',
-    icon: 'Cpu',
-    features: [
-      'Stack selection',
-      'Integration planning',
-      'Vendor evaluation',
-      'Security basics review',
+      'Policy and process library',
+      'Searchable articles',
+      'Category organization',
+      'Always-current docs',
     ],
   },
 ];

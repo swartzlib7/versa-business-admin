@@ -1,6 +1,6 @@
 // White-label business profile fixture.
-// Sample data is intentionally GENERIC so any business can adopt the template.
-// Customers replace this profile with their own brand and contact details.
+// Mission Control template — generic placeholder content any business can adopt.
+// Replace this profile with your own brand and contact details.
 
 export interface BusinessProfile {
   name: string;
@@ -16,15 +16,15 @@ export interface BusinessProfile {
 }
 
 export const business: BusinessProfile = {
-  name: 'Northstar Consulting Group',
-  slogan: 'Clarity, structure, and results for growing teams.',
+  name: 'Northstar Works',
+  slogan: 'Run your business from one place.',
   logoUrl: '/brand/logo.svg',
   description:
-    'We help organizations plan work, serve customers, and keep teams aligned — with clear processes, practical tools, and people who care about outcomes.',
+    'Mission Control brings your projects, operations, customer support, integrations, and knowledge into a single dashboard — so every part of the business is visible and connected.',
   purpose:
-    'Our purpose is to make everyday business operations simpler and more reliable so leaders can focus on customers and growth.',
+    'Give teams a single pane of glass to plan work, serve customers, and keep the business running smoothly.',
   production:
-    'We deliver consulting engagements, managed service packages, and ready-to-use operational playbooks for small and mid-size businesses.',
+    'Projects, tasks, support tickets, metrics, integrations, and a searchable knowledge base — all in one template, ready to customize.',
   contactEmail: 'hello@example.com',
   contactPhone: '+1 (555) 010-1000',
   address: '100 Market Street, Suite 400, Austin, TX',

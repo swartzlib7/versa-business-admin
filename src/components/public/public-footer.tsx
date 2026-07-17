@@ -16,26 +16,36 @@ export function PublicFooter({ business }: { business: BusinessProfile }) {
 
           {/* Quick Links */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold">Explore</h4>
+            <h4 className="text-sm font-semibold">Mission Control</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href="/#services" className="hover:text-foreground">
-                  Services
+                <Link href="/#facets" className="hover:text-foreground">
+                  Facets
                 </Link>
               </li>
               <li>
-                <Link href="/#products" className="hover:text-foreground">
-                  Products
+                <Link href="/#systems" className="hover:text-foreground">
+                  Systems
                 </Link>
               </li>
               <li>
-                <Link href="/#staff" className="hover:text-foreground">
-                  People
+                <Link href="/#integrations" className="hover:text-foreground">
+                  Integrations
                 </Link>
               </li>
               <li>
-                <Link href="/#about" className="hover:text-foreground">
-                  About
+                <Link href="/#operations" className="hover:text-foreground">
+                  Operations
+                </Link>
+              </li>
+              <li>
+                <Link href="/#support" className="hover:text-foreground">
+                  Support
+                </Link>
+              </li>
+              <li>
+                <Link href="/#metrics-knowledge" className="hover:text-foreground">
+                  Metrics & Knowledge
                 </Link>
               </li>
             </ul>
