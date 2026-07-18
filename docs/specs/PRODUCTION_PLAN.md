@@ -4,7 +4,7 @@
 **Game:** #109 Versa Voice AI LLC  
 **Created:** 2026-07-14  
 **Updated:** 2026-07-18  
-**Status:** Path **A locked**. Spine build through I6 + I5.x on **beta**. ERD keystone **v1.1** locked. **I5.5 COMPLETE** on beta `8c37ba9` (v0.7.0, 2026-07-18). **I7 closed.**
+**Status:** Path **A locked**. Spine build through I6 + I5.x on **beta**. ERD keystone **v1.1** locked. **I5 line COMPLETE** through **I5.5.2** on beta `7e05e33` (v0.7.2, 2026-07-18). **I7 closed** until Stephen opens it.
 
 **Product framing:** Client **business mission control** — public website + login + backend (users/roles/work/zones). **Not agitop.** White-label. Own DB/ERD. API for UI + Versa AGi agents (via HTTP / Script Tasks only).
 
@@ -31,7 +31,7 @@
 | Role | Agent | Status |
 |------|-------|--------|
 | Orchestrator / PM | coa | Active |
-| Developer | web-dev | Active; standing by — **do not start I5.5/I7 until tasked** |
+| Developer | web-dev | Active; standing by — **do not start I7 until tasked** |
 | Tester | qa | Deferred |
 | Research (ad hoc) | researcher | Only if needed |
 
@@ -73,7 +73,7 @@ Workflow: `agent/*` → clean merge to `beta` → Stephen promotes to `master`.
 - [ ] Stephen fleshes Organization departments further  
 - [x] Stephen opened I5.5 (2026-07-18: proceed with next iteration)  
 
-### I5.5 — Keystone implementation (OPEN)
+### I5.5 — Keystone implementation (COMPLETE through I5.5.2)
 
 **Owner:** web-dev → COA smoke  
 
@@ -125,6 +125,7 @@ Workflow: `agent/*` → clean merge to `beta` → Stephen promotes to `master`.
 |------|--------|
 | 2026-07-16 | I3 spine plan |
 | 2026-07-18 | Align to shipped I4–I6 + I5.x; keystone v1.1; I7 closed; I5.5 gated |
+| 2026-07-18 | I5.5 accepted `8c37ba9`; I5.5.1 `cc1448f`; I5.5.2 `7e05e33` v0.7.2 Executive center + XYZ axes |
 
 ---
 
