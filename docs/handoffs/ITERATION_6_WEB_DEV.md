@@ -1,3 +1,8 @@
+> **Historical handoff (I6 — accepted).** Projects + Tasks work surfaces remain valid.  
+> **Nav home** for Projects/Tasks is **Executive** per keystone v1.1 (`docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md`).  
+> **I7 is closed** until Stephen explicitly opens it. Agents remain user `type` only.
+
+---
 # Iteration 6 — Work surfaces (Projects + Tasks)
 
 **Project:** versa-admin-system (#26)  

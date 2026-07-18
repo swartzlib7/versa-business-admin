@@ -1,42 +1,64 @@
-# Alignment checklist — Stephen note + capability spine (2026-07-16)
+# Alignment checklist — Mission Control (updated 2026-07-18)
 
 Use before accepting any new Mission build slice.
 
-## Boundaries (`docs/_notes/from_stephen.md`)
+**ERD source of truth:** `docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md` v1.1
+
+## Boundaries
 
 | # | Requirement | Spec / plan status | Build status |
 |---|-------------|--------------------|--------------|
-| 1 | Own database + ERD | PRODUCT_SPEC 1.1 | Not started (fixture/API only) |
-| 2 | Secure login + RBAC | PRODUCT_SPEC 1.1; plan I5 | **Done** — login flow, session, roles (admin/member) |
-| 3 | Public FE when signed out | Spine §A; I4 complete | **Done** — public home page renders from fixture data |
+| 1 | Own database + ERD | PRODUCT_SPEC 1.1; keystone conceptual ERD | Fixture/API only — SQL DB TBD |
+| 2 | Secure login + RBAC | PRODUCT_SPEC | **Done** (I5) |
+| 3 | Public FE when signed out | Spine §A | **Done** (I4/I5.x) |
 | 4 | Prefer pre-built secure components | Path A locked | Ongoing |
-| 5 | Familiar business UI — not agent-management chrome | Boundary locked | **Done** — sidebar reframed: Agents → Users |
-| 6 | Users and agents differ only by type | Boundary locked | **Done** — staff + users fixtures use type: human \| agent |
-| 7 | Product data separate from host Versa AGi | Boundary locked | Adapter design portable/API-based |
-| 8 | Integration to host only via product API / Script Tasks | Boundary locked | API contract exists; host scripts later |
+| 5 | Familiar business UI — not agent-management chrome | Boundary locked 2026-07-18 reinforced | **Mostly done** — ensure Agents nav stays gone; no new agent chrome |
+| 6 | Users and agents differ only by type | **Locked** — agents = user type only | **Done** in users model |
+| 7 | Product data separate from host Versa AGi | Boundary locked | Adapter portable/API-based |
+| 8 | Host integration only via product API / Script Tasks | Boundary locked | API contract exists |
+| 9 | agitop Organization optional; migration out of scope | Keystone §2 | **Document** in system information (not built) |
+| 10 | No Active Agents / Agent Status in product | Keystone nav remap | Enforce on I5.5 nav pass |
 
 ## Capability spine
 
 | # | Capability | Spec | Build |
 |---|------------|------|-------|
-| A1 | Public business info (name, slogan, logo, description) | PRODUCT_SPEC 1.2 | **Done** — /api/public/business + hero section |
-| A2 | Public service list | PRODUCT_SPEC 1.2 | **Done** — /api/public/services + services section |
-| A3 | Public product list | PRODUCT_SPEC 1.2 | **Done** — /api/public/products + products section |
-| A4 | Public staff structure | PRODUCT_SPEC 1.2 | **Done** — /api/public/staff + people section |
-| B1 | User login | PRODUCT_SPEC 1.2 | **Done** — /login page, /api/auth/login, session cookie |
-| C1 | Users | PRODUCT_SPEC 1.2 | **Done** — /api/users (list+detail), /users page, type filter |
-| C2 | Roles | PRODUCT_SPEC 1.2 | **Done** — admin vs member; admin-only PATCH enforcement |
-| C3 | Projects | PRODUCT_SPEC 1.2 | Fixture seed (auth-protected) |
-| C4 | Tasks | PRODUCT_SPEC 1.2 | Fixture seed (auth-protected) |
-| C5 | Organization structure (div→dept→section→unit) | PRODUCT_SPEC 1.2 | Not started |
-| C6 | KB policies / processes / articles on org nodes | PRODUCT_SPEC 1.2 | Not started |
+| A1–A4 | Public business / services / products / staff | PRODUCT_SPEC | **Done** |
+| B1 | User login | PRODUCT_SPEC | **Done** |
+| C1 | Users (type human \| agent) | PRODUCT_SPEC | **Done** |
+| C2 | Roles | PRODUCT_SPEC | **Done** |
+| C3 | Projects | PRODUCT_SPEC; under Executive | **Done** (I6); nav home pending I5.5 |
+| C4 | Tasks | under Executive/Projects | **Done** (I6); nav home pending I5.5 |
+| C5 | Organization departments (keystone spheres) | Keystone | 3D transitional fixture only; keystone nodes **not** built |
+| C6 | Collaboration parties | Keystone | Not built (labels only after I5.5) |
+| C7 | Environmental entities | Keystone | Not built |
+| C8 | Product → Integrations | Keystone | Integrations exist as legacy surface; remap pending I5.5 |
+| C9 | Knowledgebase depth | PRODUCT_SPEC | Not started |
+| C10 | System information (agitop boundary) | PRODUCT_SPEC §10 | Not started |
+| 3D | Keystone spatial ERD | Keystone | I5.4/I5.4.1 transitional graph on beta |
 
 ## Path & competition
 
 | Item | Status |
 |------|--------|
-| Path A: Next.js + OSS components (not full ERP) | **Locked** 2026-07-16 |
+| Path A: Next.js + OSS components | **Locked** 2026-07-16 |
 | Competitors: ERPNext, Odoo | Registered on project #26 |
-| QA agent | Deferred until testable spine UI |
+| QA agent | Deferred |
+| I7 | **Closed** until Stephen opens |
+| I5.5 | **Not opened** — implement keystone when Stephen asks |
 
-**I5 status:** Complete — auth + RBAC skeleton built and verified. Commit 4722828 on agent/web-dev. Ready for acceptance.
+## Doc audit (2026-07-18)
+
+| Doc | Status |
+|-----|--------|
+| MISSION_CONTROL_ERD_KEYSTONE.md | v1.1 current |
+| PRODUCT_SPECIFICATION.md | Updated 2026-07-18 |
+| PRODUCTION_PLAN.md | Updated 2026-07-18 |
+| ALIGNMENT_CHECKLIST.md | This file |
+| LAYOUT_PROPOSAL.md | Superseded banner added |
+| README.md | Updated |
+| Historical ITERATION_* handoffs | Historical — do not treat I5.4 graph as final ERD |
+
+---
+
+*End of alignment checklist.*

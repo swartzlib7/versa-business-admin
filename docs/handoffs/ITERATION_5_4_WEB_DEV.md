@@ -1,3 +1,8 @@
+> **Historical handoff (I5.4 — accepted).** The hub+3-ring **Sales / Accounting / Teams / Surfaces** graph was the **transitional** implementation.  
+> **Conceptual ERD source of truth is now** `docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md` **v1.1** (Organization / Collaboration / Environmental).  
+> Do **not** start a new build from this file’s ring model. Future 3D/nav work = **I5.5** when COA opens it.
+
+---
 # Iteration 5.4 — 3D hub visualization (Versa AGi middleware graph)
 
 **Project:** versa-admin-system (#26)  
