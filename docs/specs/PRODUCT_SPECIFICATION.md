@@ -1,25 +1,27 @@
 # Product Specification — Versa AGi Mission
 
 **Project:** versa-admin-system (#26)  
-**Product name:** Versa AGi Mission (mission control)  
-**Phase:** I3 document alignment complete; path A locked  
+**Product name:** Versa AGi Mission (business Mission Control)  
+**Phase:** Building — public + auth + users/roles + projects/tasks + I5.4 3D hub on beta; ERD keystone v1.1 locked 2026-07-18  
 **Owner (distribution/architecture):** Stephen Nortje  
 **Lead (planning & delivery orchestration):** Versa (COA)  
-**Date:** 2026-07-16  
+**Updated:** 2026-07-18  
+
+**Canonical 3D / zone ERD:** `docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md` (v1.1)
 
 ---
 
 ## 1. Essence
 
-**Client mission control for a Versa AGi-powered business** — a standalone, distributable product that customers install/use with their Versa AGi system so **business staff** can run the business: public presence, people, work, organization, and knowledge.
+**Client mission control for a Versa AGi-powered business** — a standalone, distributable product that customers install/use with their Versa AGi system so **business staff** can run the business: public presence, people, work, organization, collaboration parties, and environmental context (locations, knowledge, products/services, schedules).
 
-**Not AGI Top.** AGI Top is the operator console for *running* a Versa AGi installation. This product is the **customer-facing product surface** — mission control for the *business*, not the host infrastructure console.
+**Not agitop (AGI Top).** agitop is the operator console for *running* a Versa AGi installation (Agents, host Projects/Tasks, host Organization, system ops). This product is the **customer-facing business Mission Control** — not the host infrastructure console.
 
 It must be **generic, white-labelable, and extensible**.
 
-Hybrid interface (seed retained):
+Hybrid interface:
 - **2D management UI** for day-to-day business surfaces.
-- **3D visualization layer (R3F)** optional depth over iterations (business graph, not agent fleet chrome).
+- **3D visualization layer (R3F)** — spatial ERD of Organization / Collaboration / Environmental zones (see keystone). Not agent-fleet chrome.
 
 ### Competitive frame (Game of Life)
 
@@ -27,41 +29,38 @@ Registered competitors on project #26:
 - **ERPNext** (Frappe) — full ERP + website + org/projects.
 - **Odoo** — all-in-one ERP/CRM/CMS + knowledge modules.
 
-**Path A (locked 2026-07-16):** We do **not** adopt those platforms. We **build** on our Next.js shell and pull OSS *components* where they save time. Mission elevates as a product category against those systems, not as a skin of them.
+**Path A (locked 2026-07-16):** We do **not** adopt those platforms. We **build** on our Next.js shell and pull OSS *components* where they save time.
 
 ---
 
-## 1.1 Binding product boundaries (Stephen — 2026-07-16)
+## 1.1 Binding product boundaries
 
-Source of truth: `docs/_notes/from_stephen.md`. These override conflicting earlier framing.
+Sources: `docs/_notes/from_stephen.md` (2026-07-16) + Stephen clarifications 2026-07-18.
 
 1. **Own data plane** — Own **database and ERD**. Not a thin skin over host Versa AGi tables.
-2. **Auth** — Secure login with **RBAC** (not a forever-placeholder).
-3. **Public website surface** — When users are **not** signed in, a **public-facing frontend** (website aspect). Not required to be a CMS. LAN first, later HTTPS.
-4. **Components** — Prefer secure, extensible pre-built components when possible (preference). Outcomes outrank purity.
+2. **Auth** — Secure login with **RBAC**.
+3. **Public website surface** — Signed-out public frontend (website aspect). Not required to be a CMS. LAN first, later HTTPS.
+4. **Components** — Prefer secure, extensible pre-built components when possible. Outcomes outrank purity.
 5. **Familiar business product — not an agent console**
-   - Must not be confused with an agent-management system by adding Agentic structure or UI chrome.
-   - **No separation of agents over users in the UI** beyond a `type` field (`agent` | `human`).
+   - Must not be confused with an agent-management system.
+   - **AI Agents are only a Type of user** (`type`: `agent` | `human`). That is all.
+   - **No agent-wise UI** (no Active Agents, Agent Status, fleet views). That is **strictly agitop / Versa AGi internal**.
    - Business staff man the system; agents participate when granted a credential by an administrator.
-   - Isolated product for business staff; customers may access later.
 6. **Separation from host Versa AGi**
    - Projects, documents, and operational data created **inside this product** are **completely separate** from host Versa AGi.
-   - Host agents that need data: product API or Versa AGi Script Task — not shared schemas/UI with AGI Top.
-7. **Clarity** — Boundaries stay explicit in design docs and agent guidance.
+   - Host agents that need data: product API or Versa AGi Script Task — not shared schemas/UI with agitop.
+7. **agitop Organization overlap** — The only soft overlap. agitop Organization can be **turned off** when a customer uses this product’s Organization model. Migration of business data from agitop → this product is a future path (agents can help) and is **out of scope** for current build. Document in product **system information**.
+8. **Clarity** — Boundaries stay explicit in design docs, system information UI copy, and agent guidance.
 
 ---
 
-## 1.2 Capability spine (Stephen — 2026-07-16) — product order of truth
-
-This is the **every-customer** capability order. Specs, API, and build slices follow this spine.
+## 1.2 Capability spine — product order of truth
 
 ### A. Public-facing website (signed out)
 
-Header / body / footer covering:
-
 | Area | Content |
 |------|---------|
-| Business information | Name, slogan, logo, description (purpose and production) |
+| Business information | Name, slogan, logo, description |
 | Service list | Services the business offers |
 | Product list | Products the business offers |
 | Staff structure | People and roles (public-appropriate view) |
@@ -74,125 +73,133 @@ Secure authentication into the backend.
 
 | Surface | Notes |
 |---------|-------|
-| Users | People records; `type` = human \| agent only distinction |
+| Users | People records; `type` = human \| agent **only** agent distinction |
 | Roles | RBAC roles and permissions |
-| Projects | Business projects (product data — not host AGi projects) |
-| Tasks | Work items under projects |
-| Organization structure | Hierarchical staff allocation: divisions → departments → sections → units |
-| Knowledgebase | Assignable to org-structure nodes |
-| — Policies | Policy documents |
-| — Processes | Process documents |
-| — Articles | General KB articles |
+| Dashboard | Business dashboard (as-is) |
+| Settings | Product settings (as-is) |
+| **Organization zone** | Departments as spheres (keystone): Executive, Communications, Dissemination, Treasury, Production, Qualification — further flesh-out by Stephen |
+| **Projects / Tasks** | Nested under **Executive** (nav remap) — business projects/tasks, not host AGi |
+| **Collaboration zone** | Vendor (Service Provider), Customer, Partner, Branch (Subsidiary) |
+| **Environmental zone** | Locations (address book), Events, Knowledge, Schedules, Product, Service |
+| **Integrations** | Always under **Product** (factor of a product); Integrations dashboard OK; data sourced from Product |
+| Knowledgebase | Policies, processes, articles (aligns with Environmental → Knowledge; assignable as design matures) |
+| System information | Product vs agitop boundary; optional note on host Organization toggle / future migration |
+| 3D Mission Control | R3F spatial ERD of the three zones (keystone); lightbox expand; billboard labels |
+
+**Legacy spine wording** “divisions → departments → sections → units” remains a possible **I7** hierarchy under Organization departments — **I7 is closed** until explicitly opened. Do not implement agitop-style agent structure under Organization.
 
 ---
 
 ## 2. Goals
 
-1. Deliver **mission control** for a client business — public presence + staff backend — not a host ops console.
-2. Stay **generic/extensible** and **white-labelable** (logo, theme, colors).
-3. Keep the product **self-contained** so Stephen can own packaging and distribution into Versa AGi.
-4. Prefer **setup/purge cycles** that rebuild cleanly from zero (Building-phase mindset).
-5. Ship along the **capability spine**; deepen 3D and integrations iteratively.
-6. Compete on clarity and fit for Versa AGi-powered businesses vs heavy ERPs (ERPNext/Odoo).
+1. Deliver **business mission control** — public presence + staff backend — not a host ops console.
+2. Stay **generic/extensible** and **white-labelable**.
+3. Keep the product **self-contained** for packaging into Versa AGi (Stephen owns distribution).
+4. Prefer clean setup/purge rebuild cycles.
+5. Ship along the capability spine; deepen 3D graph and zone UIs per keystone.
+6. Compete on clarity vs heavy ERPs (ERPNext/Odoo).
 
 ## 3. Non-Goals (v1)
 
-- **Not AGI Top / agitop replacement.**
+- **Not agitop replacement** — no Agents, host Projects/Tasks, or host ops as product chrome.
 - **Not a full ERP** (no inventory, manufacturing, full accounting suite as core).
-- Stephen owns final packaging format, install path into Versa AGi, and distribution channel.
-- No production multi-tenant SaaS in v1 (single-tenant product install is fine).
-- No irreversible coupling to this host's private paths — config and data contracts must be portable.
-- Host agent fleet management UI is out of scope (people with type only).
+- Stephen owns packaging format, install path, distribution.
+- No production multi-tenant SaaS in v1 (single-tenant install is fine).
+- No irreversible coupling to this host’s private paths.
+- **No agent-management UI** beyond user `type`.
+- **No agitop → Mission Organization migration** in current scope (document only).
 
-## 4. Technical Stack (path A — locked 2026-07-16)
+## 4. Technical Stack (path A — locked)
 
 | Layer | Choice | Notes |
 |-------|--------|-------|
 | UI library | **React** | Primary UI foundation |
-| App framework | **Next.js** | Routing, layouts, API routes, production build |
-| 3D | **React Three Fiber** | Optional visualization; not required for spine MVP |
+| App framework | **Next.js** | Routing, layouts, API routes |
+| 3D | **React Three Fiber** | Mission Control spatial ERD |
 | Styling / components | Tailwind CSS + shadcn/ui | White-label friendly |
-| Data | **Own DB + ERD** (implementation TBD; start fixture → real store) | Portable adapters |
-| Auth / RBAC | Secure libraries (OSS components) | Required for login + roles |
+| Data | **Own DB + ERD** (TBD; fixtures → real store) | Portable adapters |
+| Auth / RBAC | Secure libraries (OSS) | Login + roles |
 | API | First-class HTTP JSON API | UI and Versa AGi agents consume same API |
-| Tests | Playwright (E2E) + Vitest (unit) | QA owns strategy when hired |
+| Tests | Playwright + Vitest | QA when hired |
 
-**Path A rule:** Build on this shell. Use OSS **components** (auth kits, rich text, tree UI, tables). Do **not** adopt ERPNext/Odoo as the product platform.
-
-### Why Next.js (plain language)
-
-Next.js is React plus file-based routing, optional server rendering, API routes, and a standard production build. Default remains Next.js unless packaging forces a documented tradeoff.
-
-## 5. Product Surfaces (mapped to capability spine)
+## 5. Product surfaces (summary)
 
 ### Public (signed out)
-1. **Public site shell** — header, body, footer  
-2. **Business profile** — name, slogan, logo, description  
-3. **Services** — public service list  
-4. **Products** — public product list  
-5. **Staff structure (public)** — people/roles appropriate for public view  
+1. Public site shell — header, body, footer  
+2. Business profile, services, products, staff  
 
 ### Auth
-6. **Login / session** — secure login; session boundary  
+3. Login / session  
 
 ### Backend (signed in)
-7. **App shell** — familiar business chrome (sidebar/header) — **not** agent-console chrome  
-8. **Users** — people; type field only for human vs agent  
-9. **Roles** — RBAC administration  
-10. **Projects** — business projects  
-11. **Tasks** — work items  
-12. **Organization structure** — divisions → departments → sections → units  
-13. **Knowledgebase** — policies, processes, articles; assignable to org nodes  
-14. **White-label settings** — logo, theme, colors  
-15. **Product API** — HTTP API for UI + Versa AGi agents  
-16. **(Later) 3D viewport** — optional business graph over the same entities  
+4. App shell — familiar business chrome  
+5. Users / Roles  
+6. Dashboard / Settings  
+7. Zone-driven surfaces per keystone (Organization departments, Collaboration parties, Environmental context)  
+8. Projects & Tasks under Executive  
+9. Product → Integrations  
+10. Knowledgebase  
+11. System information (boundaries)  
+12. 3D Mission Control viewport  
 
-**Deprecated framing (do not reintroduce):** host agent fleet as primary nav, games hierarchy as core UX, AGI Top-style system health as MVP center.
+**Deprecated framing (do not reintroduce):** host agent fleet as primary nav; Games of Life as core UX; AGI Top-style system health as MVP center; Sales/Accounting/Teams rings as the conceptual ERD (I5.4 fixture is transitional until keystone build pass).
 
-## 6. Success Criteria (MVP along spine)
+## 6. Success criteria (MVP along spine)
 
-- [ ] App boots with documented one-command local setup  
-- [ ] Public site shows business info, services, products, staff structure from product data  
-- [ ] Secure login + RBAC roles enforce backend access  
-- [ ] Backend CRUD (or solid fixtures→API) for users, roles, projects, tasks  
-- [ ] Org hierarchy model + UI (tree)  
-- [ ] KB: policies, processes, articles assignable to org nodes  
-- [ ] White-label basics: logo + theme/color tokens  
-- [ ] API documents and serves core resources (fixture or DB)  
-- [ ] UI language is business-familiar (no agent-console confusion)  
-- [ ] Users vs agents differ only by `type`  
-- [ ] Modular structure — easy to extend without rewrite  
-- [ ] Automated smoke tests pass in CI-ready form  
-- [ ] README documents packaging hooks for Versa AGi install (Stephen owns packaging)  
-- [ ] R3F optional — not MVP-blocking for spine  
+- [x] App boots with documented local setup  
+- [x] Public site from product data  
+- [x] Secure login + RBAC skeleton  
+- [x] Users with `type` human \| agent  
+- [x] Projects + Tasks API/UI (I6)  
+- [x] I5.4 3D hub visualization on beta (transitional business-graph fixture)  
+- [ ] Nav + 3D aligned to keystone v1.1 (I5.5 when opened)  
+- [ ] Collaboration + Environmental entity surfaces beyond 3D labels  
+- [ ] Org department flesh-out (Stephen) + optional I7 hierarchy  
+- [ ] KB assignable depth  
+- [ ] Own DB persistence  
+- [ ] White-label depth  
+- [ ] System information section documenting agitop boundary  
+- [ ] Automated smoke tests CI-ready  
+- [ ] README packaging hooks (Stephen owns packaging)  
 
-## 7. Source Material
+## 7. Source material
 
-- `docs/_notes/from_stephen.md` (binding boundaries)  
-- Stephen capability spine message 2026-07-16  
-- Seeded research under `docs/research/`  
-- I0–I2 shell (Next.js + shadcn + R3F seed + fixture API)  
+- `docs/_notes/from_stephen.md`  
+- `docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md` (**3D/zone ERD source of truth**)  
+- Capability spine 2026-07-16  
+- Iteration handoffs under `docs/handoffs/`  
 
 ## 8. Decisions locked
 
 | Date | Decision |
 |------|----------|
-| 2026-07-15 | React + R3F preferred; Next.js OK; modular; API for agents |
-| 2026-07-15 | QA timing flexible; fun name OK |
-| 2026-07-16 | Binding boundaries note (own DB, RBAC, public FE, type field, data isolation) |
-| 2026-07-16 | Capability spine order (public → login → backend org/KB) |
-| 2026-07-16 | **Path A:** build on Next shell + OSS components; not full ERP |
-| 2026-07-16 | ERPNext and Odoo registered as competitors (elevate Mission product frame) |
-| 2026-07-16 | QA agent deferred until testable UI slices exist |
+| 2026-07-15 | React + R3F; Next.js; modular; API for agents |
+| 2026-07-16 | Binding boundaries (own DB, RBAC, public FE, type field, data isolation) |
+| 2026-07-16 | Capability spine; Path A; ERPNext/Odoo competitors |
+| 2026-07-17 | I5.4 hub viz Versa brand + dark/light; I5.4.1 ring clarity |
+| 2026-07-18 | **ERD keystone v1.1:** three zones; departments as spheres; agents = user type only; Branch = subsidiary; Locations = address book; Integrations under Product; agitop boundary; Agents nav falls away |
 
 ## 9. Language rules for agents and docs
 
 | Prefer | Avoid |
 |--------|--------|
-| Users / people | Agent fleet, host agents as primary objects |
-| type: human \| agent | Separate Agents admin chrome |
-| Projects / tasks (business) | Host AGi project registry |
-| Organization structure | Host team/agent topology |
-| Knowledgebase (policies, processes, articles) | Host system markdown dumps |
-| Mission control / business product | AGI Top, agitop, host console |
+| Users / people; type human \| agent | Agent fleet, Active Agents, Agent Status |
+| Business Mission Control | agitop / host ops console |
+| Organization / Collaboration / Environmental | Host Games hierarchy as product UX |
+| Executive / Projects / Tasks | Top-level Tasks with no Executive home |
+| Product / Integrations | Integrations as peer of Product |
+| Branch = Subsidiary; Locations = address book | Branch as free-form site without subsidiary meaning |
+| agitop for Versa AGi internal | Showing agent-wise management in this product |
 
+## 10. System information (product copy — required section)
+
+Ship a short **System information** (help/about/admin) that states:
+
+1. This app is **business Mission Control**, not Versa AGi agitop.  
+2. **Agents** appear only as users with `type = agent`. Agent operations live in agitop.  
+3. **agitop Organization** may be disabled when using this product’s Organization model.  
+4. Migrating data from agitop Organization into this product is a **future** assisted path — not current scope.
+
+---
+
+*End of product specification.*

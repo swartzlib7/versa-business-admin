@@ -2,6 +2,7 @@
 
 **Product:** Versa AGi Mission (project #26)  
 **Version:** 0.4.0 (I6 work surfaces)  
+**ERD note (2026-07-18):** Conceptual business ERD is keystone v1.1 (`docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md`). API resources will grow toward Organization / Collaboration / Environmental entities; do not add agent-fleet endpoints.  
 **Base Path:** `/api`  
 **Protocol:** HTTP/1.1, JSON only  
 **Auth:** Session-based (httpOnly cookie). Public endpoints are open; backend endpoints require authentication. RBAC: admin can write, member can read.

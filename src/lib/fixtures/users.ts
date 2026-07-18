@@ -21,8 +21,8 @@ export const users: UserFixture[] = [
     role: 'admin',
     type: 'human',
     password: 'mission2026',
-    department: 'Executive',
-    bio: 'Managing Director for the sample business.',
+    department: 'Leadership',
+    bio: 'Founder and producer for the sample maker workspace.',
     status: 'active',
   },
   {
@@ -44,7 +44,7 @@ export const users: UserFixture[] = [
     type: 'human',
     password: 'mission2026',
     department: 'Operations',
-    bio: 'Operations lead with member-level access.',
+    bio: 'Operations lead keeping production on cadence.',
     status: 'active',
   },
   {
@@ -65,8 +65,8 @@ export const users: UserFixture[] = [
     role: 'member',
     type: 'human',
     password: 'mission2026',
-    department: 'Customer Success',
-    bio: 'Customer success lead.',
+    department: 'Customer',
+    bio: 'Customer partner helping buyers adopt what we ship.',
     status: 'active',
   },
   {
@@ -76,8 +76,8 @@ export const users: UserFixture[] = [
     role: 'member',
     type: 'human',
     password: 'mission2026',
-    department: 'Marketing',
-    bio: 'Marketing lead.',
+    department: 'Outreach',
+    bio: 'Story and reach lead for the public brand.',
     status: 'active',
   },
 ];

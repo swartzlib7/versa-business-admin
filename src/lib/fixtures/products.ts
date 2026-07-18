@@ -1,5 +1,5 @@
 // Public product catalog fixture.
-// Generic offerings suitable as sample data for any business template.
+// Sample offerings a maker / small producer might list — white-label, not Versa-branded.
 
 export interface Product {
   id: string;
@@ -14,60 +14,60 @@ export interface Product {
 export const products: Product[] = [
   {
     id: 'prod-1',
-    name: 'Starter Operations Kit',
-    tagline: 'The essentials to run a small team well.',
+    name: 'Maker Starter Kit',
+    tagline: 'Templates to go from idea to first sale.',
     description:
-      'A packaged set of templates and checklists for projects, meetings, hiring, and customer follow-up — ready to customize on day one.',
+      'A packaged set of checklists and templates for product specs, first offers, fulfillment, and customer follow-up — ready to customize on day one.',
     category: 'Packages',
     status: 'available',
     features: [
-      'Project and meeting templates',
-      'Hiring scorecards',
-      'Customer follow-up scripts',
-      'Monthly ops review agenda',
+      'Product brief template',
+      'Offer and pricing sheet',
+      'Fulfillment checklist',
+      'First-customer follow-up',
     ],
   },
   {
     id: 'prod-2',
-    name: 'Team Workspace',
-    tagline: 'One place for work, people, and status.',
+    name: 'Production Workspace',
+    tagline: 'One place for projects, tasks, and the people who ship them.',
     description:
-      'A simple workspace for projects, tasks, and team directories so everyone knows what is in progress and who owns it.',
+      'A simple workspace for projects, tasks, and team directories so makers and operators know what is in progress and who owns it — humans and agents included.',
     category: 'Platform',
     status: 'beta',
     features: [
       'Projects and tasks',
       'Role-based access',
-      'Team directory',
+      'Team directory (people + agents)',
       'Activity overview',
     ],
   },
   {
     id: 'prod-3',
     name: 'Customer Care Desk',
-    tagline: 'Support that stays organized.',
+    tagline: 'Support that stays organized while you keep making.',
     description:
       'A lightweight desk for intake, prioritization, and resolution of customer requests with clear ownership and history.',
     category: 'Service',
     status: 'available',
     features: [
-      'Request intake forms',
+      'Request intake',
       'Priority queues',
       'Response templates',
-      'Satisfaction surveys',
+      'Satisfaction check-ins',
     ],
   },
   {
     id: 'prod-4',
-    name: 'Company Handbook',
-    tagline: 'Policies and how-we-work, always current.',
+    name: 'Craft Handbook',
+    tagline: 'How we make things — always current.',
     description:
-      'A living handbook for policies, processes, and FAQs that new hires and veterans can trust.',
+      'A living handbook for recipes, policies, and how-we-work guides that new collaborators and veterans can trust.',
     category: 'Knowledge',
     status: 'available',
     features: [
-      'Policy library',
-      'Process guides',
+      'Process library',
+      'Quality standards',
       'Search',
       'Version history',
     ],

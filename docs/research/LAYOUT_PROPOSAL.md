@@ -1,34 +1,53 @@
-# R3F Admin System - Layout Proposal
+# R3F layout proposal — **SUPERSEDED**
 
-## Overview
+**Status:** Historical seed research only. **Do not implement from this file.**
+
+**Superseded by:** `docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md` (v1.1, 2026-07-18)
+
+---
+
+## Why superseded
+
+This early proposal assumed:
+
+- Agent fleet status in the sidebar  
+- Games of Life as the default 3D graph  
+- Agent activity nodes as primary visualization  
+
+Those conflict with binding product boundaries:
+
+- Business Mission Control, **not** agitop  
+- Agents are only a **user type**  
+- 3D graph = Organization / Collaboration / Environmental zones  
+
+## Current layout direction (summary)
+
+| Layer | Direction |
+|-------|-----------|
+| Sidebar (2D) | Business nav: Dashboard, Users, Roles, zone surfaces, Settings — **no** Active Agents / Agent Status |
+| Header (2D) | Search, profile, familiar business chrome |
+| 3D viewport | Keystone ERD: Organization departments (spheres), Collaboration parties, Environmental context; Versa AGi brand; lightbox expand; billboard labels |
+| Detail (2D) | Zone UI pattern — configure same-level links and reach into other zones |
+
+## Original seed text (archived below for history)
+
+### Overview
 The admin system will feature a hybrid layout: a standard 2D management interface (shadcn/ui) with an integrated 3D viewport (R3F) for immersive data visualization.
 
-## Layout Structure
-
-### 1. Sidebar (2D)
-- **Navigation**: Links to different project views, agent logs, and system settings.
-- **Agent Fleet Status**: Real-time status indicators for all active agents.
+### 1. Sidebar (2D) — obsolete ideas
+- Navigation to project views, **agent logs**, system settings — **agent logs / fleet status removed from product direction**
+- **Agent Fleet Status** — **removed** (agitop territory)
 
 ### 2. Header (2D)
-- **Global Search**: Search across all project files and research data.
-- **User Profile**: Access to Primary User settings and preferences.
-- **Milestone Countdown**: Visual indicator for upcoming deadlines.
+- Global search, user profile — still reasonable
 
-### 3. Main Content Area (Hybrid)
-- **Top Section (3D Viewport)**:
-    - A large, interactive R3F canvas.
-    - **Default View**: A 3D graph of active 'Games of Life' and their connected projects.
-    - **Interaction**: Click on a node to filter the 2D data below.
-- **Bottom Section (2D Data Grid)**:
-    - Detailed task lists, project notes, and research summaries.
-    - Context-aware based on the 3D viewport selection.
+### 3. Main content (hybrid)
+- 3D viewport + 2D data grid — still reasonable **if** 3D follows keystone ERD, not Games/agents
 
-## 3D Visualization Ideas
-- **Agent Activity Nodes**: Pulsing spheres representing agent wake cycles and token usage.
-- **Project Constellations**: Grouping related projects into visual clusters based on their 'Game' ID.
-- **Legacy Timeline**: A 3D scrollable timeline of family milestones and project completions.
+### Obsolete 3D ideas
+- Agent activity nodes, token usage spheres — **do not build**
+- Games of Life constellations as core UX — **do not build**
 
-## Technical Stack
-- **Frontend**: Next.js, Tailwind CSS, shadcn/ui.
-- **3D Engine**: React Three Fiber, @react-three/drei.
-- **Data Layer**: Local JSON/Markdown files (synced with agent workspaces).
+---
+
+*For implementation, read the keystone + PRODUCT_SPEC only.*

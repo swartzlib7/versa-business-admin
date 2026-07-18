@@ -31,3 +31,16 @@ Stephen Nortje
 Founder:
 + VersaVoice AI
 + Versa AGi
+
+
+---
+
+## 2026-07-18 addendum (COA — from Stephen follow-up)
+
+Captured fully in `docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md` v1.1:
+
+- AI Agents are **only a Type of user** in this product; no agent-wise UI (agitop territory).
+- Mission Control = **business**; agitop = Versa AGi internal mission control.
+- agitop Organization may be turned off when using this product; migration out of scope for now — document in system information.
+- Organization departments laid out as **spheres** (Executive and others are departments).
+- Locations = address book; Branches = subsidiaries; Integrations always under Product.
