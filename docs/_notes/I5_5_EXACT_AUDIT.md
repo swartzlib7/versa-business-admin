@@ -16,6 +16,22 @@ What landed well: zone model, node inventory, brand rename on the 3D hub, lightb
 
 **Critical gap:** node placement is still a **flat equal-angle disc** (`y = 0` for every node). Stephen’s parenthetical positions — especially **(top)** / **(bottom)** and **center among org spheres** — require a **true Z-axis / vertical layout**, not equal spacing on a single plane. That is the main accuracy failure of this pass.
 
+
+---
+
+## I5.5.1 ACCEPT note (web-dev, 2026-07-18)
+
+**Fix:** Explicit `position: [x,y,z]` on every fixture node; `computePositions()` reads fixture poses (no equal-angle y=0 disc). RING_RADII guides r2≈4.2, r3≈6.2. Service **+Y**, Product & Qualification **−Y**, Executive near hub center, collab/env compass per from_stephen_02.
+
+| # | Was | Now |
+|---|-----|-----|
+| 5 Org semantic layout | FAIL | **PASS** (fixture poses) |
+| 6 Collab compass | FAIL | **PASS** |
+| 7 Env top/bottom + compass | FAIL | **PASS** |
+| 8 Glossary | DOCS ONLY | **PASS** (Settings → Glossary of Terms) |
+
+Lightbox, billboards, org rim label, nav remap, hub name unchanged. I7 still closed.
+
 ---
 
 ## Checklist vs `from_stephen_02.md`
@@ -26,10 +42,10 @@ What landed well: zone model, node inventory, brand rename on the 3D hub, lightb
 | 2 | Labels always point to camera | **PASS** | `<Billboard>` on hub, zone nodes, Organization rim label |
 | 3 | `Organization` center circle zone + flat label on edge | **PARTIAL** | Rim label exists (`OrganizationRimLabel`). Org nodes sit on ring 1 around brand hub; brand hub is center, not “Organization as center zone” as a distinct geometric treatment beyond the rim label |
 | 4 | `Versa AGi` replaces `Northstar Works` (authenticated viz) | **PARTIAL** | `theme.scene.hubName = 'Versa AGi'` — **PASS for 3D**. Shell/sidebar/public still `theme.brand.name = 'Northstar Works'` (white-label / public sample — keystone allows public Northstar; shell brand may still confuse) |
-| 5 | Org departments: Executive **(center)**, Communications **(left of center)**, Dissemination **(right of center)**, Treasury **(back)**, Production **(front)**, Qualification **(bottom)** | **FAIL** | `computePositions()` places all ring nodes with equal θ and **y=0**. Executive is on the ring at θ=-90°, not center among org spheres. Qualification is not below the plane. No semantic compass mapping |
-| 6 | Collaboration: Vendor **(right)**, Customer **(front)**, Partner **(left)**, Branch **(back)** | **FAIL** | Same equal-angle disc; order in fixture ≠ Stephen compass (vendor first → back-ish, not right) |
-| 7 | Environmental: Locations **(left)**, Events **(right)**, Knowledge **(back)**, Schedules **(front)**, Product **(bottom)**, Service **(top)** | **FAIL** | Equal-angle disc; **Service (top)** and **Product (bottom)** cannot be expressed with y=0 |
-| 8 | Glossary of Terms | **DOCS ONLY** | Full glossary in keystone §6. **No in-product Glossary UI** (Stephen asked to add one) |
+| 5 | Org departments: Executive **(center)**, Communications **(left of center)**, Dissemination **(right of center)**, Treasury **(back)**, Production **(front)**, Qualification **(bottom)** | **PASS** (I5.5.1) | Explicit fixture positions; Executive near hub; Qualification negative Y |
+| 6 | Collaboration: Vendor **(right)**, Customer **(front)**, Partner **(left)**, Branch **(back)** | **PASS** (I5.5.1) | Compass on mid ring via fixture positions |
+| 7 | Environmental: Locations **(left)**, Events **(right)**, Knowledge **(back)**, Schedules **(front)**, Product **(bottom)**, Service **(top)** | **PASS** (I5.5.1) | Outer compass + Service +Y / Product −Y |
+| 8 | Glossary of Terms | **PASS** (I5.5.1) | Settings → Glossary of Terms (keystone summary) |
 | 9 | Nav: Integrations → Product; Projects/Tasks → Executive; Settings/Users/Dashboard as-is | **PASS** (nav) | `sidebar.tsx` groups Executive→Projects/Tasks, Product→Integrations |
 | 10 | Active Agents / Agent Status fall away | **PARTIAL** | Sidebar/KPI no longer show Active Agents. **Legacy routes remain:** `src/app/agents/*`, `/api/agents*` (deprecated aliases). Not linked in main nav, but still reachable |
 | 11 | Three-zone conceptual ERD | **PASS** (data model) | Fixture types `brand \| organization \| collaboration \| environmental`; rings 0–3 |

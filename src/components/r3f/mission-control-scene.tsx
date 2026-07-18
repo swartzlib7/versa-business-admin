@@ -8,6 +8,7 @@ import { theme } from "@/lib/theme";
 import {
   businessGraphNodes,
   businessGraphLinks,
+  RING_RADII,
   type BusinessGraphNode,
 } from "@/lib/fixtures";
 
@@ -75,30 +76,13 @@ function getNodeSize(type: BusinessGraphNode["type"]): number {
 }
 
 // --- Position calculation ---
-
-const RING_RADII = [0, 2.8, 4.8, 6.8];
+// Explicit poses from fixture (from_stephen_02 / I5.5.1). Rings are guides only.
 
 function computePositions(): Map<string, [number, number, number]> {
   const positions = new Map<string, [number, number, number]>();
-  const ringNodes = [1, 2, 3].map((ring) =>
-    businessGraphNodes.filter((n) => n.ring === ring)
-  );
-
-  positions.set("hub", [0, 0, 0]);
-
-  ringNodes.forEach((nodes, idx) => {
-    const radius = RING_RADII[idx + 1];
-    const count = nodes.length;
-    nodes.forEach((node, i) => {
-      const theta = (i / count) * Math.PI * 2 - Math.PI / 2;
-      positions.set(node.id, [
-        Math.cos(theta) * radius,
-        0,
-        Math.sin(theta) * radius,
-      ]);
-    });
-  });
-
+  for (const node of businessGraphNodes) {
+    positions.set(node.id, node.position);
+  }
   return positions;
 }
 
@@ -467,7 +451,7 @@ export function MissionControlScene({
       style={!expanded ? { backgroundColor: palette.background } : undefined}
     >
       <Canvas
-        camera={{ position: [7, 5, 9], fov: 50 }}
+        camera={{ position: [8, 6.5, 10], fov: 50 }}
         gl={{ antialias: true, alpha: true }}
       >
         <ambientLight intensity={palette.ambientIntensity} />
@@ -484,13 +468,13 @@ export function MissionControlScene({
           enableDamping
           dampingFactor={0.1}
           minDistance={5}
-          maxDistance={18}
+          maxDistance={22}
           autoRotate
           autoRotateSpeed={0.3}
         />
         <gridHelper
           args={[16, 32, palette.gridMain, palette.gridSub]}
-          position={[0, -3.5, 0]}
+          position={[0, -2.8, 0]}
         />
       </Canvas>
 

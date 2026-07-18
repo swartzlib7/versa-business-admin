@@ -149,8 +149,92 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Version</label>
-              <Input defaultValue="0.7.0" readOnly className="font-mono" />
+              <Input defaultValue="0.7.1" readOnly className="font-mono" />
             </div>
+          </CardContent>
+        </Card>
+
+
+        {/* Glossary — keystone terms (from_stephen_02 / keystone §6) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Glossary of Terms</CardTitle>
+            <CardDescription>
+              Mission Control ERD keystone — zones and parties
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <div>
+              <p className="font-medium">Zones</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-muted-foreground">
+                <li>
+                  <strong className="text-foreground">Organization</strong> — center
+                  circle of departments (Executive, Communications, Dissemination,
+                  Treasury, Production, Qualification).
+                </li>
+                <li>
+                  <strong className="text-foreground">Collaboration</strong> — parties
+                  the org works with (Vendor, Customer, Partner, Branch).
+                </li>
+                <li>
+                  <strong className="text-foreground">Environmental</strong> — context of
+                  work (Locations, Events, Knowledge, Schedules, Product, Service).
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium">Collaboration parties</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-muted-foreground">
+                <li>
+                  <strong className="text-foreground">Vendor</strong> — AKA service
+                  provider (right on the collab ring).
+                </li>
+                <li>
+                  <strong className="text-foreground">Customer</strong> — person or
+                  business (front).
+                </li>
+                <li>
+                  <strong className="text-foreground">Partner</strong> — business or
+                  investor (left).
+                </li>
+                <li>
+                  <strong className="text-foreground">Branch</strong> — subsidiary (back).
+                </li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-medium">Environmental elements</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-muted-foreground">
+                <li>
+                  <strong className="text-foreground">Locations</strong> — global address
+                  book (left).
+                </li>
+                <li>
+                  <strong className="text-foreground">Events</strong> — planned activity
+                  past or future (right).
+                </li>
+                <li>
+                  <strong className="text-foreground">Knowledge</strong> — documents,
+                  recordings, photos, policies, research (back).
+                </li>
+                <li>
+                  <strong className="text-foreground">Schedules</strong> — when an event,
+                  activity, or task occurs (front).
+                </li>
+                <li>
+                  <strong className="text-foreground">Product</strong> — physical object,
+                  device, manufactured item, or computer file (bottom).
+                </li>
+                <li>
+                  <strong className="text-foreground">Service</strong> — faculty through
+                  which results are achieved (top).
+                </li>
+              </ul>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Full design keystone: docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md. 3D
+              poses follow docs/_notes/from_stephen_02.md (I5.5.1).
+            </p>
           </CardContent>
         </Card>
 
