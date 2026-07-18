@@ -4,7 +4,7 @@
 **Game:** #109 Versa Voice AI LLC  
 **Created:** 2026-07-14  
 **Updated:** 2026-07-18  
-**Status:** Path **A locked**. Spine build through I6 + I5.x public/auth/3D on **beta**. ERD keystone **v1.1** locked. **I7 closed.** I5.5 not opened until Stephen requests keystone implementation build.
+**Status:** Path **A locked**. Spine build through I6 + I5.x on **beta**. ERD keystone **v1.1** locked. **I5.5 OPEN** (2026-07-18 — Stephen: proceed with next iteration). **I7 closed.**
 
 **Product framing:** Client **business mission control** — public website + login + backend (users/roles/work/zones). **Not agitop.** White-label. Own DB/ERD. API for UI + Versa AGi agents (via HTTP / Script Tasks only).
 
@@ -52,7 +52,7 @@
 | I5.4.1 | Clearer rings + system triangle (dark) | Accepted | `0bf3c58` |
 | I6 | Projects + Tasks work surfaces | Accepted | Under future Executive nav home |
 | **Keystone v1.1** | Organization / Collaboration / Environmental ERD | **Documented** | `MISSION_CONTROL_ERD_KEYSTONE.md` — not a build iter |
-| **I5.5** | Implement keystone in 3D + nav remap | **Not opened** | Lightbox, billboards, department spheres, zone nodes, Product/Integrations, drop Agents nav |
+| **I5.5** | Implement keystone in 3D + nav remap | **OPEN** | See `docs/handoffs/ITERATION_5_5_WEB_DEV.md` |
 | **I7** | Organization hierarchy UI (historical spine) | **Closed** | Do not start until Stephen explicitly opens |
 
 Git: `git@github.com:swartzlib7/versa-agi-mission.git`  
@@ -71,9 +71,9 @@ Workflow: `agent/*` → clean merge to `beta` → Stephen promotes to `master`.
 - [x] Keystone v1.1 — agents = user type; departments as spheres; Branch/Locations/Integrations/agitop boundary  
 - [x] Stale doc audit (PRODUCT_SPEC, this plan, alignment, layout research, README)  
 - [ ] Stephen fleshes Organization departments further  
-- [ ] Stephen opens I5.5 when ready for build  
+- [x] Stephen opened I5.5 (2026-07-18: proceed with next iteration)  
 
-### I5.5 — Keystone implementation (when opened)
+### I5.5 — Keystone implementation (OPEN)
 
 **Owner:** web-dev → COA smoke  
 

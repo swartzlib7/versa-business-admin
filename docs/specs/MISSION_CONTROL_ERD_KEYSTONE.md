@@ -213,7 +213,7 @@ Use this document for design clarification, iteration briefs, and implementation
 | Full department flesh-out | Stephen still expanding Organization detail |
 | Map integration on Locations | Later |
 | agitop → Mission data migration | Out of scope; document only |
-| I5.5 build pass | Open only when Stephen requests implementation of this ERD in R3F/nav |
+| I5.5 build pass | **OPEN** 2026-07-18 |
 | I7 Organization hierarchy UI | Closed until explicitly opened (div→dept→section→unit may align later with departments) |
 | SQL ERD / own DB | Still open product-wide |
 
@@ -252,8 +252,8 @@ Handoffs are **not** at the workspace root. They live in the product repo:
 |------|-------|--------|
 | 1 | COA | Keep this keystone + product docs aligned (audit 2026-07-18) |
 | 2 | Stephen | Flesh Organization departments further when ready |
-| 3 | Stephen / COA | When ready for build: open **I5.5** handoff (lightbox, billboards, zone nodes, nav remap, fixture graph) |
-| 4 | web-dev | Implement only when tasked; **I7 closed** until explicit open |
+| 3 | COA | **I5.5 opened** 2026-07-18 — handoff `docs/handoffs/ITERATION_5_5_WEB_DEV.md` |
+| 4 | web-dev | Implement I5.5; **I7 closed** until explicit open |
 
 ---
 
@@ -262,6 +262,7 @@ Handoffs are **not** at the workspace root. They live in the product repo:
 | Date | Change |
 |------|--------|
 | 2026-07-18 | v1.0 initial keystone from Stephen redesign message |
+| 2026-07-18 | **I5.5 opened** — Stephen: proceed with next iteration; handoff written |
 | 2026-07-18 | **v1.1** Stephen answers: agents = user type only; hub departments as spheres; Locations address book; Branch = subsidiary; Integrations under Product; agitop boundary + system info; handoff path clarification |
 
 ---
