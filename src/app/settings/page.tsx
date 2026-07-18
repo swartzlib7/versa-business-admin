@@ -149,7 +149,39 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Version</label>
-              <Input defaultValue="0.2.0" readOnly className="font-mono" />
+              <Input defaultValue="0.7.0" readOnly className="font-mono" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* System Information — agitop boundary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>System Information</CardTitle>
+            <CardDescription>
+              Product boundary — Mission Control vs agitop
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                This application is <strong>business Mission Control</strong> — not
+                Versa AGi agitop. It manages the business operating graph across three
+                zones: Organization (departments), Collaboration (parties), and
+                Environmental (context of work).
+              </p>
+              <p>
+                <strong>Agents</strong> appear only as users with type{" "}
+                <code className="text-xs bg-muted px-1 py-0.5 rounded">agent</code> or{" "}
+                <code className="text-xs bg-muted px-1 py-0.5 rounded">human</code>.
+                Agent operations, fleet management, and host system monitoring live in
+                agitop — the Versa AGi internal operator console.
+              </p>
+              <p>
+                <strong>agitop Organization</strong> may be disabled when a customer uses
+                this product’s Organization model. Migrating data from agitop
+                Organization into this product is a future path — not current scope.
+              </p>
             </div>
           </CardContent>
         </Card>

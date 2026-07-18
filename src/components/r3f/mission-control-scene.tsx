@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useMemo, useCallback, useState, useEffect } from "react";
-import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
-import { OrbitControls, Sphere, Line, Text, Ring } from "@react-three/drei";
+import { Canvas, useFrame, useThree, ThreeEvent } from "@react-three/fiber";
+import { OrbitControls, Sphere, Line, Text, Ring, Billboard } from "@react-three/drei";
 import * as THREE from "three";
 import { theme } from "@/lib/theme";
 import {
@@ -16,7 +16,7 @@ import {
 export interface SceneNode {
   id: string;
   label: string;
-  type: "hub" | "system" | "team" | "surface";
+  type: "brand" | "organization" | "collaboration" | "environmental";
   ring: number;
   description: string;
   status: string;
@@ -28,6 +28,7 @@ export interface SceneNode {
 interface MissionControlSceneProps {
   onNodeClick?: (node: SceneNode) => void;
   focusedNodeId?: string | null;
+  expanded?: boolean;
 }
 
 // --- Theme helpers ---
@@ -55,27 +56,27 @@ function getPalette(dark: boolean): ScenePalette {
 
 function getNodeColor(type: BusinessGraphNode["type"]): string {
   switch (type) {
-    case "hub": return theme.scene.hubColor;
-    case "system": return theme.scene.systemColor;
-    case "team": return theme.scene.teamColor;
-    case "surface": return theme.scene.surfaceColor;
+    case "brand": return theme.scene.hubColor;
+    case "organization": return theme.scene.organizationColor;
+    case "collaboration": return theme.scene.collaborationColor;
+    case "environmental": return theme.scene.environmentalColor;
     default: return "#6b7280";
   }
 }
 
 function getNodeSize(type: BusinessGraphNode["type"]): number {
   switch (type) {
-    case "hub": return 0.55;
-    case "system": return 0.28;
-    case "team": return 0.24;
-    case "surface": return 0.22;
+    case "brand": return 0.55;
+    case "organization": return 0.30;
+    case "collaboration": return 0.26;
+    case "environmental": return 0.24;
     default: return 0.2;
   }
 }
 
 // --- Position calculation ---
 
-const RING_RADII = [0, 2.8, 4.6, 6.4];
+const RING_RADII = [0, 2.8, 4.8, 6.8];
 
 function computePositions(): Map<string, [number, number, number]> {
   const positions = new Map<string, [number, number, number]>();
@@ -101,7 +102,7 @@ function computePositions(): Map<string, [number, number, number]> {
   return positions;
 }
 
-// --- Hub node ---
+// --- Brand hub node ---
 
 function HubNode({
   position,
@@ -150,31 +151,33 @@ function HubNode({
           metalness={0.4}
         />
       </Sphere>
-      <Text
-        position={[0, 1.1, 0]}
-        fontSize={0.3}
-        color={palette.labelColor}
-        anchorX="center"
-        anchorY="middle"
-      >
-        {theme.scene.hubName}
-      </Text>
-      <Text
-        position={[0, 0.75, 0]}
-        fontSize={0.16}
-        color={palette.labelColor}
-        anchorX="center"
-        anchorY="middle"
-      >
-        {theme.scene.hubSubtitle}
-      </Text>
+      <Billboard position={[0, 1.1, 0]}>
+        <Text
+          fontSize={0.3}
+          color={palette.labelColor}
+          anchorX="center"
+          anchorY="middle"
+        >
+          {theme.scene.hubName}
+        </Text>
+      </Billboard>
+      <Billboard position={[0, 0.75, 0]}>
+        <Text
+          fontSize={0.16}
+          color={palette.labelColor}
+          anchorX="center"
+          anchorY="middle"
+        >
+          {theme.scene.hubSubtitle}
+        </Text>
+      </Billboard>
     </group>
   );
 }
 
-// --- Ring node ---
+// --- Zone node (department / party / context) ---
 
-function RingNode({
+function ZoneNode({
   node,
   position,
   focused,
@@ -192,7 +195,7 @@ function RingNode({
   useFrame((state) => {
     if (meshRef.current && focused) {
       const t = state.clock.getElapsedTime();
-      meshRef.current.scale.setScalar(1 + Math.sin(t * 3) * 0.12);
+      meshRef.current.scale.setScalar(1 + Math.sin(t * 3) * 0.06);
     }
   });
 
@@ -211,17 +214,43 @@ function RingNode({
           metalness={0.2}
         />
       </Sphere>
+      <Billboard position={[0, node.size + 0.35, 0]}>
+        <Text
+          fontSize={0.18}
+          color={palette.labelColor}
+          anchorX="center"
+          anchorY="middle"
+          maxWidth={2.5}
+        >
+          {node.label}
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
+// --- Organization rim label ---
+
+function OrganizationRimLabel({
+  radius,
+  palette,
+}: {
+  radius: number;
+  palette: ScenePalette;
+}) {
+  // Flat label along the edge of the Organization circle
+  return (
+    <Billboard position={[0, 0, -radius - 0.3]}>
       <Text
-        position={[0, node.size + 0.35, 0]}
-        fontSize={0.18}
+        fontSize={0.22}
         color={palette.labelColor}
         anchorX="center"
         anchorY="middle"
-        maxWidth={2.5}
+        fillOpacity={0.7}
       >
-        {node.label}
+        Organization
       </Text>
-    </group>
+    </Billboard>
   );
 }
 
@@ -333,7 +362,7 @@ function SceneContent({
     [onNodeClick]
   );
 
-  const hubNode = nodes.find((n) => n.type === "hub")!;
+  const hubNode = nodes.find((n) => n.type === "brand")!;
   const hubPos = positions.get("hub")!;
 
   return (
@@ -346,6 +375,9 @@ function SceneContent({
           opacity={palette.ringGuideOpacity}
         />
       ))}
+
+      {/* Organization rim label */}
+      <OrganizationRimLabel radius={RING_RADII[1]} palette={palette} />
 
       {businessGraphLinks.map((link, i) => {
         const fromPos = positions.get(link.from);
@@ -381,11 +413,11 @@ function SceneContent({
       />
 
       {nodes
-        .filter((n) => n.type !== "hub")
+        .filter((n) => n.type !== "brand")
         .map((node) => {
           const pos = positions.get(node.id)!;
           return (
-            <RingNode
+            <ZoneNode
               key={node.id}
               node={node}
               position={pos}
@@ -404,6 +436,7 @@ function SceneContent({
 export function MissionControlScene({
   onNodeClick,
   focusedNodeId,
+  expanded = false,
 }: MissionControlSceneProps) {
   const dark = useDarkMode();
   const palette = getPalette(dark);
@@ -424,10 +457,14 @@ export function MissionControlScene({
     }));
   }, [positions]);
 
+  const containerClass = expanded
+    ? "fixed inset-0 z-50 bg-background"
+    : "relative h-[500px] w-full rounded-lg border border-border overflow-hidden transition-colors";
+
   return (
     <div
-      className="relative h-[500px] w-full rounded-lg border border-border overflow-hidden transition-colors"
-      style={{ backgroundColor: palette.background }}
+      className={containerClass}
+      style={!expanded ? { backgroundColor: palette.background } : undefined}
     >
       <Canvas
         camera={{ position: [7, 5, 9], fov: 50 }}
@@ -457,29 +494,31 @@ export function MissionControlScene({
         />
       </Canvas>
 
+      {/* Legend */}
       <div className="absolute top-3 left-3 flex flex-col gap-1.5 pointer-events-none">
         <div className="flex items-center gap-2 text-xs">
           <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.hubColor }} />
-          <span className="text-muted-foreground">Hub</span>
+          <span className="text-muted-foreground">Brand</span>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.systemColor }} />
-          <span className="text-muted-foreground">Systems</span>
+          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.organizationColor }} />
+          <span className="text-muted-foreground">Organization</span>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.teamColor }} />
-          <span className="text-muted-foreground">Teams</span>
+          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.collaborationColor }} />
+          <span className="text-muted-foreground">Collaboration</span>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.surfaceColor }} />
-          <span className="text-muted-foreground">Surfaces</span>
+          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.environmentalColor }} />
+          <span className="text-muted-foreground">Environmental</span>
         </div>
       </div>
 
+      {/* Hint */}
       <div className="absolute bottom-2 left-3 text-xs text-muted-foreground pointer-events-none">
         {focusedNodeId
-          ? "Node selected - see detail below. Drag to orbit, scroll to zoom"
-          : "Click a node to focus - drag to orbit, scroll to zoom"}
+          ? "Node selected — see detail below. Drag to orbit, scroll to zoom"
+          : "Click a node to focus — drag to orbit, scroll to zoom"}
       </div>
     </div>
   );

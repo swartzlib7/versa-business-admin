@@ -30,13 +30,13 @@ export const theme = {
     // Hub color — Versa brand indigo
     hubColor: '#6366f1',
     hubGlow: '#818cf8',
-    // Ring category colors — must be obvious at a glance
-    systemColor: '#3b82f6',   // blue-500 — business systems
-    teamColor: '#22c55e',     // green-500 — people / teams
-    surfaceColor: '#f59e0b',  // amber-500 — operating surfaces
+    // Zone colors — must be obvious at a glance
+    organizationColor: '#3b82f6',   // blue-500 — departments
+    collaborationColor: '#22c55e',  // green-500 — parties
+    environmentalColor: '#f59e0b',  // amber-500 — context
     // Connection colors (shared defaults; mode palettes can override)
     primaryLinkColor: '#6366f1',
-    secondaryLinkColor: '#94a3b8', // slate-400 — triangle links between systems
+    secondaryLinkColor: '#94a3b8', // slate-400 — cross-zone links
     // Dark mode scene palette
     dark: {
       background: '#0a0a0f',
@@ -44,7 +44,7 @@ export const theme = {
       gridSub: '#252533',
       ringGuideColor: '#64748b', // slate-500 — clear circle lines on dark bg
       ringGuideOpacity: 0.55,
-      secondaryLinkColor: '#93c5fd', // blue-300 — triangular system links readable in dark
+      secondaryLinkColor: '#93c5fd', // blue-300 — cross-zone links readable in dark
       secondaryLinkOpacity: 0.65,
       primaryLinkOpacity: 0.55,
       labelColor: '#a1a1aa',
@@ -58,7 +58,7 @@ export const theme = {
       gridSub: '#d4d4d8',
       ringGuideColor: '#71717a', // zinc-500
       ringGuideOpacity: 0.45,
-      secondaryLinkColor: '#3b82f6', // blue-500 triangle
+      secondaryLinkColor: '#3b82f6', // blue-500 cross-zone
       secondaryLinkOpacity: 0.5,
       primaryLinkOpacity: 0.5,
       labelColor: '#3f3f46',

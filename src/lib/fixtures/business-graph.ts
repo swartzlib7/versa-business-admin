@@ -1,14 +1,19 @@
 // Business graph fixture for the 3D Mission Control hub visualization.
-// Hub + 3 orbital rings: systems, teams, operating surfaces.
+// Keystone ERD v1.1 — three concentric zones:
+//   Ring 0 = brand hub (Versa AGi)
+//   Ring 1 = Organization (departments as spheres)
+//   Ring 2 = Collaboration (parties the org works with)
+//   Ring 3 = Environmental (context of work)
 // Fixture-driven so the graph is stable and demoable.
+// Source of truth: docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md (v1.1)
 
-export type GraphNodeType = 'hub' | 'system' | 'team' | 'surface';
+export type GraphNodeType = 'brand' | 'organization' | 'collaboration' | 'environmental';
 
 export interface BusinessGraphNode {
   id: string;
   label: string;
   type: GraphNodeType;
-  ring: number; // 0 = hub, 1 = systems, 2 = teams, 3 = surfaces
+  ring: number; // 0 = brand, 1 = organization, 2 = collaboration, 3 = environmental
   description: string;
   status: 'connected' | 'active' | 'standby';
 }
@@ -20,91 +25,161 @@ export interface BusinessGraphLink {
 }
 
 export const businessGraphNodes: BusinessGraphNode[] = [
-  // Hub
+  // Brand hub (center)
   {
     id: 'hub',
     label: 'Versa AGi',
-    type: 'hub',
+    type: 'brand',
     ring: 0,
-    description: 'Mission Control — central integration middleware connecting all business systems, teams, and operating surfaces.',
+    description: 'Mission Control — the business operating hub connecting Organization, Collaboration, and Environmental zones.',
     status: 'active',
   },
-  // Ring 1 — Business systems (inner)
+
+  // Ring 1 — Organization (departments as spheres)
   {
-    id: 'sales',
-    label: 'Sales',
-    type: 'system',
+    id: 'executive',
+    label: 'Executive',
+    type: 'organization',
     ring: 1,
-    description: 'CRM, sales pipeline, and customer relationships.',
+    description: 'Business executive function. Parent path for Projects and Tasks.',
+    status: 'active',
+  },
+  {
+    id: 'communications',
+    label: 'Communications',
+    type: 'organization',
+    ring: 1,
+    description: 'Internal and external communications department.',
+    status: 'connected',
+  },
+  {
+    id: 'dissemination',
+    label: 'Dissemination',
+    type: 'organization',
+    ring: 1,
+    description: 'Distribution and publishing of information and materials.',
+    status: 'connected',
+  },
+  {
+    id: 'treasury',
+    label: 'Treasury',
+    type: 'organization',
+    ring: 1,
+    description: 'Financial management, treasury, and fiscal oversight.',
     status: 'connected',
   },
   {
     id: 'production',
     label: 'Production',
-    type: 'system',
+    type: 'organization',
     ring: 1,
     description: 'Production scheduling, delivery tracking, and operations.',
     status: 'connected',
   },
   {
-    id: 'accounting',
-    label: 'Accounting',
-    type: 'system',
+    id: 'qualification',
+    label: 'Qualification',
+    type: 'organization',
     ring: 1,
-    description: 'Financial management, invoicing, and bookkeeping.',
+    description: 'Quality assurance, compliance, and qualification processes.',
+    status: 'standby',
+  },
+
+  // Ring 2 — Collaboration (parties the org works with)
+  {
+    id: 'vendor',
+    label: 'Vendor',
+    type: 'collaboration',
+    ring: 2,
+    description: 'Service provider — external supplier of goods or services.',
     status: 'connected',
   },
-  // Ring 2 — People / teams (mid)
   {
-    id: 'local-team',
-    label: 'Local Team',
-    type: 'team',
+    id: 'customer',
+    label: 'Customer',
+    type: 'collaboration',
     ring: 2,
-    description: 'On-site / HQ personnel managing day-to-day operations.',
+    description: 'Person or business that receives products or services.',
     status: 'active',
   },
   {
-    id: 'intl-team',
-    label: 'International',
-    type: 'team',
+    id: 'partner',
+    label: 'Partner',
+    type: 'collaboration',
     ring: 2,
-    description: 'Remote / multi-region team supporting global activities.',
+    description: 'Business or investor in a collaborative relationship.',
+    status: 'connected',
+  },
+  {
+    id: 'branch',
+    label: 'Branch',
+    type: 'collaboration',
+    ring: 2,
+    description: 'Subsidiary — a subordinate operating unit of the organization.',
+    status: 'connected',
+  },
+
+  // Ring 3 — Environmental (context of work)
+  {
+    id: 'locations',
+    label: 'Locations',
+    type: 'environmental',
+    ring: 3,
+    description: 'Global address book of business locations and places.',
+    status: 'connected',
+  },
+  {
+    id: 'events',
+    label: 'Events',
+    type: 'environmental',
+    ring: 3,
+    description: 'Past or future planned activities and milestones.',
     status: 'active',
   },
-  // Ring 3 — Operating surfaces (outer)
   {
-    id: 'dashboards',
-    label: 'Dashboards',
-    type: 'surface',
+    id: 'knowledge',
+    label: 'Knowledge',
+    type: 'environmental',
     ring: 3,
-    description: 'Visibility and analytics across all business areas.',
+    description: 'Documents, recordings, photos, policies, and research.',
     status: 'connected',
   },
   {
-    id: 'automations',
-    label: 'Automations',
-    type: 'surface',
+    id: 'schedules',
+    label: 'Schedules',
+    type: 'environmental',
     ring: 3,
-    description: 'Workflows, agent automations, and process orchestration.',
+    description: 'Calendar-like agreements — when events, activities, or tasks occur.',
     status: 'connected',
   },
   {
-    id: 'reporting',
-    label: 'Reporting',
-    type: 'surface',
+    id: 'product',
+    label: 'Product',
+    type: 'environmental',
     ring: 3,
-    description: 'Exports, periodic reviews, and compliance reporting.',
+    description: 'Device, manufactured item, or computer file. Integrations live under Product.',
+    status: 'active',
+  },
+  {
+    id: 'service',
+    label: 'Service',
+    type: 'environmental',
+    ring: 3,
+    description: 'Faculty for results — e.g. Analysis & Design services.',
     status: 'standby',
   },
 ];
 
 export const businessGraphLinks: BusinessGraphLink[] = [
-  // Primary: hub → every node (middleware spokes)
+  // Primary: brand hub → all nodes (middleware spokes)
   ...businessGraphNodes
-    .filter((n) => n.type !== 'hub')
+    .filter((n) => n.type !== 'brand')
     .map((n) => ({ from: 'hub', to: n.id, type: 'primary' as const })),
-  // Secondary: inter-system links (integration feel)
-  { from: 'sales', to: 'accounting', type: 'secondary' },
-  { from: 'sales', to: 'production', type: 'secondary' },
-  { from: 'production', to: 'accounting', type: 'secondary' },
+
+  // Secondary: cross-zone links (sparse, readable)
+  { from: 'executive', to: 'customer', type: 'secondary' },
+  { from: 'production', to: 'schedules', type: 'secondary' },
+  { from: 'customer', to: 'product', type: 'secondary' },
+  { from: 'vendor', to: 'product', type: 'secondary' },
+  { from: 'partner', to: 'knowledge', type: 'secondary' },
 ];

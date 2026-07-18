@@ -5,16 +5,17 @@ import { AppShell } from "@/components/shell/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sun, Moon } from "lucide-react";
+import { Sun, Moon, Maximize2, Minimize2, X } from "lucide-react";
 import {
   MissionControlScene,
   type SceneNode,
 } from "@/components/r3f/mission-control-scene";
-import { agents, projects, tasks, integrations, businessGraphNodes } from "@/lib/fixtures";
+import { projects, tasks, integrations, businessGraphNodes } from "@/lib/fixtures";
 
 export default function DashboardPage() {
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
@@ -39,13 +40,15 @@ export default function DashboardPage() {
     ? businessGraphNodes.find((n) => n.id === focusedNodeId)
     : null;
 
-  const activeAgents = agents.filter((a) => a.status === "active").length;
   const activeProjects = projects.filter((p) => p.status === "active").length;
   const pendingTasks = tasks.filter(
     (t) => t.status === "in_progress" || t.status === "planned"
   ).length;
   const connectedIntegrations = integrations.filter(
     (i) => i.status === "connected"
+  ).length;
+  const orgDepartments = businessGraphNodes.filter(
+    (n) => n.type === "organization"
   ).length;
 
   return (
@@ -55,7 +58,7 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Mission Control</h1>
             <p className="text-muted-foreground">
-              Versa AGi integration hub - business systems, teams, and operating surfaces.
+              Versa AGi — Organization, Collaboration, and Environmental zones.
             </p>
           </div>
           <Button variant="outline" size="icon" onClick={toggleTheme}>
@@ -67,13 +70,13 @@ export default function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
-              <Badge variant="default">{activeAgents}</Badge>
+              <CardTitle className="text-sm font-medium">Departments</CardTitle>
+              <Badge variant="default">{orgDepartments}</Badge>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{activeAgents}</p>
+              <p className="text-2xl font-bold">{orgDepartments}</p>
               <p className="text-xs text-muted-foreground">
-                of {agents.length} total agents
+                Organization zones
               </p>
             </CardContent>
           </Card>
@@ -118,15 +121,63 @@ export default function DashboardPage() {
         {/* 3D Scene */}
         <Card>
           <CardHeader>
-            <CardTitle>Integration Hub</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Mission Control Hub</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setExpanded((prev) => !prev)}
+              >
+                {expanded ? (
+                  <>
+                    <Minimize2 className="h-4 w-4 mr-1" />
+                    Collapse
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="h-4 w-4 mr-1" />
+                    Expand
+                  </>
+                )}
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <MissionControlScene
               onNodeClick={handleNodeClick}
               focusedNodeId={focusedNodeId}
+              expanded={expanded}
             />
           </CardContent>
         </Card>
+
+        {/* Lightbox overlay when expanded */}
+        {expanded && (
+          <div
+            className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+            onClick={() => setExpanded(false)}
+          >
+            <div
+              className="relative w-full h-full max-w-7xl max-h-[90vh] rounded-lg overflow-hidden bg-background border border-border"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute top-3 right-3 z-10">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setExpanded(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <MissionControlScene
+                onNodeClick={handleNodeClick}
+                focusedNodeId={focusedNodeId}
+                expanded={true}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Focused Node Detail */}
         {focusedNode && (
@@ -134,7 +185,7 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle>{focusedNode.label}</CardTitle>
               <p className="text-sm text-muted-foreground capitalize">
-                {focusedNode.type} - {focusedNode.status}
+                {focusedNode.type} — {focusedNode.status}
               </p>
             </CardHeader>
             <CardContent>
@@ -143,7 +194,7 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        {/* Recent Tasks + Agent Status */}
+        {/* Recent Tasks + System Information */}
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
@@ -184,41 +235,27 @@ export default function DashboardPage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Agent Status</CardTitle>
+              <CardTitle>System Information</CardTitle>
             </CardHeader>
             <CardContent>
-              {agents.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  No agents registered yet.
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  This is <strong>business Mission Control</strong> — not Versa AGi agitop.
+                  It manages the business operating graph: Organization, Collaboration,
+                  and Environmental zones.
                 </p>
-              ) : (
-                <ul className="space-y-2">
-                  {agents.map((agent) => (
-                    <li
-                      key={agent.id}
-                      className="flex items-center justify-between text-sm"
-                    >
-                      <span className="truncate">{agent.name}</span>
-                      <span className="flex items-center gap-1.5">
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{
-                            backgroundColor:
-                              agent.status === "active"
-                                ? "#22c55e"
-                                : agent.status === "idle"
-                                ? "#eab308"
-                                : agent.status === "error"
-                                ? "#ef4444"
-                                : "#6b7280",
-                          }}
-                        />
-                        <span className="text-xs capitalize">{agent.status}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                <p>
+                  <strong>Agents</strong> appear only as users with type{" "}
+                  <code className="text-xs bg-muted px-1 py-0.5 rounded">agent</code>.
+                  Agent operations, fleet management, and host system monitoring live in
+                  agitop — the Versa AGi internal operator console.
+                </p>
+                <p>
+                  <strong>agitop Organization</strong> may be disabled when using this
+                  product&apos;s Organization model. Migrating data from agitop Organization
+                  into this product is a future path — not current scope.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
