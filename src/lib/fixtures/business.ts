@@ -16,7 +16,7 @@ export interface BusinessProfile {
 }
 
 export const business: BusinessProfile = {
-  name: 'Northstar Works',
+  name: 'Versa AGi',
   slogan: 'Run your business from one place.',
   logoUrl: '/brand/logo.svg',
   description:

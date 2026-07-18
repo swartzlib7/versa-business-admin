@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Northstar Works',
+  title: 'Versa AGi',
   description: 'Sample maker workspace — replace with your brand and production story',
 };
 

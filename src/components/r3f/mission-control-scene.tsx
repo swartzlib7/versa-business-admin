@@ -17,7 +17,7 @@ import {
 export interface SceneNode {
   id: string;
   label: string;
-  type: "brand" | "organization" | "collaboration" | "environmental";
+  type: "organization" | "collaboration" | "environmental";
   ring: number;
   description: string;
   status: string;
@@ -55,9 +55,9 @@ function getPalette(dark: boolean): ScenePalette {
   return dark ? theme.scene.dark : theme.scene.light;
 }
 
-function getNodeColor(type: BusinessGraphNode["type"]): string {
+function getNodeColor(type: BusinessGraphNode["type"], id?: string): string {
+  if (id === "executive") return theme.scene.hubColor;
   switch (type) {
-    case "brand": return theme.scene.hubColor;
     case "organization": return theme.scene.organizationColor;
     case "collaboration": return theme.scene.collaborationColor;
     case "environmental": return theme.scene.environmentalColor;
@@ -65,9 +65,9 @@ function getNodeColor(type: BusinessGraphNode["type"]): string {
   }
 }
 
-function getNodeSize(type: BusinessGraphNode["type"]): number {
+function getNodeSize(type: BusinessGraphNode["type"], id?: string): number {
+  if (id === "executive") return 0.55;
   switch (type) {
-    case "brand": return 0.55;
     case "organization": return 0.30;
     case "collaboration": return 0.26;
     case "environmental": return 0.24;
@@ -86,9 +86,57 @@ function computePositions(): Map<string, [number, number, number]> {
   return positions;
 }
 
-// --- Brand hub node ---
+// --- Visible X / Y / Z axes (I5.5.2) - Y-up world ---
+// X = red (right +), Y = green (up +), Z = blue (front +)
 
-function HubNode({
+function AxisGuides({ length = 7.5 }: { length?: number }) {
+  const neg = 0.35;
+  const labelOff = length + 0.35;
+  return (
+    <group>
+      <Line
+        points={[[-neg, 0, 0], [length, 0, 0]]}
+        color="#ef4444"
+        lineWidth={2}
+        transparent
+        opacity={0.85}
+      />
+      <Line
+        points={[[0, -neg, 0], [0, length * 0.55, 0]]}
+        color="#22c55e"
+        lineWidth={2}
+        transparent
+        opacity={0.85}
+      />
+      <Line
+        points={[[0, 0, -neg], [0, 0, length]]}
+        color="#3b82f6"
+        lineWidth={2}
+        transparent
+        opacity={0.85}
+      />
+      <Billboard position={[labelOff, 0, 0]}>
+        <Text fontSize={0.28} color="#ef4444" anchorX="center" anchorY="middle">
+          X
+        </Text>
+      </Billboard>
+      <Billboard position={[0, length * 0.55 + 0.25, 0]}>
+        <Text fontSize={0.28} color="#22c55e" anchorX="center" anchorY="middle">
+          Y
+        </Text>
+      </Billboard>
+      <Billboard position={[0, 0, labelOff]}>
+        <Text fontSize={0.28} color="#3b82f6" anchorX="center" anchorY="middle">
+          Z
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
+// --- Center Executive node (I5.5.2: middle sphere is Executive, not product brand) ---
+
+function CenterExecutiveNode({
   position,
   pulse,
   palette,
@@ -142,7 +190,7 @@ function HubNode({
           anchorX="center"
           anchorY="middle"
         >
-          {theme.scene.hubName}
+          Executive
         </Text>
       </Billboard>
       <Billboard position={[0, 0.75, 0]}>
@@ -152,7 +200,7 @@ function HubNode({
           anchorX="center"
           anchorY="middle"
         >
-          {theme.scene.hubSubtitle}
+          Organization center
         </Text>
       </Billboard>
     </group>
@@ -346,11 +394,13 @@ function SceneContent({
     [onNodeClick]
   );
 
-  const hubNode = nodes.find((n) => n.type === "brand")!;
-  const hubPos = positions.get("hub")!;
+  const centerNode = nodes.find((n) => n.id === "executive")!;
+  const centerPos = positions.get("executive")!;
 
   return (
     <group ref={groupRef}>
+      <AxisGuides />
+
       {[1, 2, 3].map((ring) => (
         <OrbitalRingGuide
           key={"ring-" + ring}
@@ -389,15 +439,15 @@ function SceneContent({
         );
       })}
 
-      <HubNode
-        position={hubPos}
+      <CenterExecutiveNode
+        position={centerPos}
         pulse={!!focusedNodeId}
         palette={palette}
-        onClick={handleClick(hubNode)}
+        onClick={handleClick(centerNode)}
       />
 
       {nodes
-        .filter((n) => n.type !== "brand")
+        .filter((n) => n.id !== "executive")
         .map((node) => {
           const pos = positions.get(node.id)!;
           return (
@@ -436,8 +486,8 @@ export function MissionControlScene({
       description: n.description,
       status: n.status,
       pos: positions.get(n.id) || [0, 0, 0],
-      color: getNodeColor(n.type),
-      size: getNodeSize(n.type),
+      color: getNodeColor(n.type, n.id),
+      size: getNodeSize(n.type, n.id),
     }));
   }, [positions]);
 

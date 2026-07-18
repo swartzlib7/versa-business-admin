@@ -1,13 +1,13 @@
 // Business graph fixture for the 3D Mission Control hub visualization.
 // Keystone ERD v1.1 — three concentric zones:
-//   Ring 0 = brand hub (Versa AGi)
+//   Center = Executive (organization) — product name Versa AGi is chrome only
 //   Ring 1 = Organization (departments as spheres)
 //   Ring 2 = Collaboration (parties the org works with)
 //   Ring 3 = Environmental (context of work)
-// Explicit [x,y,z] positions (Y-up) from from_stephen_02 + I5.5.1 handoff.
+// Explicit [x,y,z] positions (Y-up) + I5.5.2: center=Executive, visible XYZ axes.
 // Source of truth: docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md (v1.1)
 
-export type GraphNodeType = 'brand' | 'organization' | 'collaboration' | 'environmental';
+export type GraphNodeType = 'organization' | 'collaboration' | 'environmental';
 
 /** Local pose in the Mission Control scene (Y-up, meters-ish units). */
 export type GraphPosition = [number, number, number];
@@ -35,28 +35,16 @@ const R2 = RING_RADII[2];
 const R3 = RING_RADII[3];
 
 export const businessGraphNodes: BusinessGraphNode[] = [
-  // Brand hub (center)
-  {
-    id: 'hub',
-    label: 'Versa AGi',
-    type: 'brand',
-    ring: 0,
-    description:
-      'Mission Control — the business operating hub connecting Organization, Collaboration, and Environmental zones.',
-    status: 'active',
-    position: [0, 0, 0],
-  },
-
   // Ring 1 — Organization (departments as spheres)
-  // Executive near center; compass + Qualification bottom (negative Y).
+  // Center — Executive (I5.5.2). Compass + Qualification bottom (negative Y).
   {
     id: 'executive',
     label: 'Executive',
     type: 'organization',
-    ring: 1,
-    description: 'Business executive function. Parent path for Projects and Tasks.',
+    ring: 0,
+    description: 'Business executive function. Center of the operating graph. Parent path for Projects and Tasks.',
     status: 'active',
-    position: [0, 0.15, 0],
+    position: [0, 0, 0],
   },
   {
     id: 'communications',
@@ -200,10 +188,10 @@ export const businessGraphNodes: BusinessGraphNode[] = [
 ];
 
 export const businessGraphLinks: BusinessGraphLink[] = [
-  // Primary: brand hub → all nodes (middleware spokes)
+  // Primary: Executive center → all other nodes
   ...businessGraphNodes
-    .filter((n) => n.type !== 'brand')
-    .map((n) => ({ from: 'hub', to: n.id, type: 'primary' as const })),
+    .filter((n) => n.id !== 'executive')
+    .map((n) => ({ from: 'executive', to: n.id, type: 'primary' as const })),
 
   // Secondary: cross-zone links (sparse, readable)
   { from: 'executive', to: 'customer', type: 'secondary' },

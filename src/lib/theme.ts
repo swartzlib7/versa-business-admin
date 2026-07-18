@@ -3,8 +3,8 @@
 
 export const theme = {
   brand: {
-    name: 'Northstar Works',
-    shortName: 'NW',
+    name: 'Versa AGi',
+    shortName: 'VA',
     logoUrl: '/logo.svg',
     faviconUrl: '/favicon.ico',
   },
@@ -25,8 +25,8 @@ export const theme = {
   // 3D Mission Control scene — Versa-branded default.
   // Override these to rebrand the hub visualization for a customer.
   scene: {
-    hubName: 'Versa AGi',
-    hubSubtitle: 'Mission Control',
+    hubName: 'Executive',
+    hubSubtitle: 'Organization center',
     // Hub color — Versa brand indigo
     hubColor: '#6366f1',
     hubGlow: '#818cf8',
