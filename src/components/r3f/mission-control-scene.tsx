@@ -582,8 +582,8 @@ function SceneContent({
   ringGap: number;
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  // I5.5.12/15: collab Customer/Branch +Y; Vendor/Partner X-spin like Environment EL
-  // (start: Vendor +z moves down, Partner -z moves up); KS Y; EL X; zone colors
+  // I5.5.16: collab Customer/Branch +Y; Vendor/Partner rest bottom/top on YZ ring;
+  // VP X-spin opposite of I5.5.15; KS Y; EL X; zone colors
   const collabHorizRef = useRef<THREE.Group>(null);
   const collabVpRef = useRef<THREE.Group>(null);
   const envKsRef = useRef<THREE.Group>(null);
@@ -596,10 +596,10 @@ function SceneContent({
     if (collabHorizRef.current) {
       collabHorizRef.current.rotation.y = t * w;
     }
-    // Vendor + Partner: perpendicular vertical ring (X) — YZ plane like Environment EL
-    // Vendor at +z → first motion down; Partner at -z → first motion up
+    // Vendor + Partner: perpendicular vertical ring (X) — YZ plane
+    // Rest: Vendor -y bottom, Partner +y top; spin opposite of I5.5.15 (+x)
     if (collabVpRef.current) {
-      collabVpRef.current.rotation.x = t * w;
+      collabVpRef.current.rotation.x = -t * w;
     }
     // Knowledge + Schedules: horizontal orbit (Y) — ring in XZ plane
     if (envKsRef.current) {

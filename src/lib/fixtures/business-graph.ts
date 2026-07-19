@@ -176,7 +176,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     axis: '+y',
   },
 
-  // Collaboration — zone 2 (greens stay). I5.5.15: Vendor/Partner on Z (perp X-spin); Customer/Branch on X (Y-spin)
+  // Collaboration — zone 2. I5.5.16: Vendor -y bottom / Partner +y top rest; perp X-spin opposite dir; Customer/Branch on X (Y-spin)
   {
     id: 'vendor',
     label: 'Vendor',
@@ -184,7 +184,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 2,
     description: 'Service provider — external supplier of goods or services.',
     status: 'connected',
-    axis: '+z',
+    axis: '-y',
   },
   {
     id: 'customer',
@@ -202,7 +202,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 2,
     description: 'Business or investor in a collaborative relationship.',
     status: 'connected',
-    axis: '-z',
+    axis: '+y',
   },
   {
     id: 'branch',
