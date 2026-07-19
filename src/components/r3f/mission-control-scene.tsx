@@ -959,15 +959,22 @@ export function MissionControlScene({
         </button>
       </div>
 
-      {/* Legend */}
+      {/* Legend — I5.5.14: Executive split red/blue; no Product/Service; three zones only */}
       <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-3 rounded-md border border-border bg-background/85 px-3 py-2 text-xs shadow-sm backdrop-blur">
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.hubColor }} />
-          Product / Service
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.executiveColor }} />
-          Executive (org zone)
+          <span
+            className="h-3 w-3 shrink-0 rounded-full"
+            style={{
+              background:
+                "linear-gradient(to right, " +
+                theme.scene.executiveColor +
+                " 50%, " +
+                theme.scene.hubColor +
+                " 50%)",
+            }}
+            title="Executive org zone — red / blue"
+          />
+          Executive
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.collaborationColor }} />
