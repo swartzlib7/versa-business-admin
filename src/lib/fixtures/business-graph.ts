@@ -49,7 +49,7 @@ export const RING_RADII = ZONE_RADII;
 
 /** Suggested sphere radii (world units). */
 export const SPHERE_RADIUS = {
-  center: 0.55,
+  center: 0.28,  // I5.5.6: same size as other blue spheres (Service)
   organization: 0.28,
   collaboration: 0.26,
   environmental: 0.24,

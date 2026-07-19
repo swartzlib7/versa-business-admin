@@ -189,7 +189,7 @@ function ZoneCircles({
   );
 }
 
-// --- Center Executive node ---
+// --- Center Product node (I5.5.6) ---
 
 function CenterProductNode({
   position,
@@ -226,32 +226,30 @@ function CenterProductNode({
           metalness={0.4}
         />
       </Sphere>
-      <Billboard position={[0, size + 0.55, 0]}>
+      <Billboard position={[0, size + 0.35, 0]}>
         <Text
-          fontSize={0.3}
+          fontSize={0.18}
           color={palette.labelColor}
           anchorX="center"
           anchorY="middle"
+          maxWidth={2.5}
         >
           Product
-        </Text>
-      </Billboard>
-      <Billboard position={[0, size + 0.22, 0]}>
-        <Text
-          fontSize={0.16}
-          color={palette.labelColor}
-          anchorX="center"
-          anchorY="middle"
-        >
-          Operating nucleus
         </Text>
       </Billboard>
     </group>
   );
 }
 
-/** Translucent glowing shell around the organization zone - Executive collective (I5.5.5). */
-function ExecutiveZoneGlow({ radius }: { radius: number }) {
+function ExecutiveZoneGlow({
+  radius,
+  serviceY,
+  onClick,
+}: {
+  radius: number;
+  serviceY: number;
+  onClick?: (e: ThreeEvent<MouseEvent>) => void;
+}) {
   const glowRef = useRef<THREE.Mesh>(null);
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -262,46 +260,48 @@ function ExecutiveZoneGlow({ radius }: { radius: number }) {
     }
   });
   const r = radius * 1.15;
+  const labelY = serviceY * 0.5;
+
   return (
     <group>
-      <Sphere ref={glowRef} args={[r, 48, 48]}>
+      <Sphere ref={glowRef} args={[r, 48, 48]} onClick={onClick}>
         <meshBasicMaterial
           color={theme.scene.hubGlow}
           transparent
           opacity={0.08}
-          side={THREE.BackSide}
+          side={THREE.DoubleSide}
           depthWrite={false}
         />
       </Sphere>
-      <Sphere args={[r * 1.08, 48, 48]}>
+      <Sphere args={[r * 1.08, 48, 48]} onClick={onClick}>
         <meshBasicMaterial
           color={theme.scene.hubColor}
           transparent
           opacity={0.04}
-          side={THREE.BackSide}
+          side={THREE.DoubleSide}
           depthWrite={false}
         />
       </Sphere>
-      <Billboard position={[0, r * 0.85, 0]}>
+      <Billboard position={[0, labelY + 0.14, 0]}>
         <Text
-          fontSize={0.22}
+          fontSize={0.2}
           color={theme.scene.hubColor}
           anchorX="center"
           anchorY="middle"
-          fillOpacity={0.85}
+          fillOpacity={0.9}
         >
           Executive
         </Text>
       </Billboard>
-      <Billboard position={[0, r * 0.85 - 0.28, 0]}>
+      <Billboard position={[0, labelY - 0.12, 0]}>
         <Text
           fontSize={0.14}
           color={theme.scene.hubColor}
           anchorX="center"
           anchorY="middle"
-          fillOpacity={0.65}
+          fillOpacity={0.7}
         >
-          Organization zone
+          Organization Zone
         </Text>
       </Billboard>
     </group>
@@ -446,11 +446,16 @@ function SceneContent({
   showAxes: boolean;
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  const groupRef = useRef<THREE.Group>(null);
+  const collabRef = useRef<THREE.Group>(null);
+  const envRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
-    if (groupRef.current) {
-      groupRef.current.rotation.y = state.clock.getElapsedTime() * 0.05;
+    const t = state.clock.getElapsedTime();
+    if (collabRef.current) {
+      collabRef.current.rotation.y = t * 0.05;
+    }
+    if (envRef.current) {
+      envRef.current.rotation.y = -t * 0.05;
     }
   });
 
@@ -465,71 +470,117 @@ function SceneContent({
   const centerNode = nodes.find((n) => n.id === HUB_CENTER_ID)!;
   const centerPos = positions.get(HUB_CENTER_ID)!;
 
-  const zoneMeta: { ring: number; label: string; color: string }[] = [
-    { ring: 1, label: "Organization", color: theme.scene.organizationColor },
-    { ring: 2, label: "Collaboration", color: theme.scene.collaborationColor },
-    { ring: 3, label: "Environmental", color: theme.scene.environmentalColor },
-  ];
+  const executiveNode: SceneNode = useMemo(
+    () => ({
+      id: "executive",
+      label: "Executive",
+      type: "organization",
+      ring: 1,
+      description:
+        "Business executive function - collective name for the organization zone.",
+      status: "active",
+      pos: [0, 0, 0],
+      color: theme.scene.hubColor,
+      size: SPHERE_RADIUS.organization,
+    }),
+    []
+  );
+
+  const orgNodes = nodes.filter(
+    (n) => n.id !== HUB_CENTER_ID && n.ring === 1
+  );
+  const collabNodes = nodes.filter((n) => n.ring === 2);
+  const envNodes = nodes.filter((n) => n.ring === 3);
+
+  const servicePos = positions.get("service");
+  const serviceY = servicePos ? servicePos[1] : ZONE_RADII[1];
+
+  const ringOf = (id: string) =>
+    id === HUB_CENTER_ID ? 0 : nodes.find((n) => n.id === id)?.ring ?? -1;
+
+  const orgLinks = businessGraphLinks.filter((link) => {
+    const ra = ringOf(link.from);
+    const rb = ringOf(link.to);
+    return ra <= 1 && rb <= 1;
+  });
+
+  const collabLinks = businessGraphLinks.filter((link) => {
+    const ra = ringOf(link.from);
+    const rb = ringOf(link.to);
+    return (ra === 2 || rb === 2) && ra !== 3 && rb !== 3;
+  });
+
+  const envLinks = businessGraphLinks.filter((link) => {
+    const ra = ringOf(link.from);
+    const rb = ringOf(link.to);
+    return ra === 3 || rb === 3;
+  });
+
+  const renderLink = (
+    link: (typeof businessGraphLinks)[0],
+    i: number,
+    keyPrefix: string
+  ) => {
+    const fromPos = positions.get(link.from);
+    const toPos = positions.get(link.to);
+    if (!fromPos || !toPos) return null;
+    const isPrimary = link.type === "primary";
+    return (
+      <AnimatedConnection
+        key={keyPrefix + i}
+        from={fromPos}
+        to={toPos}
+        color={
+          isPrimary
+            ? theme.scene.primaryLinkColor
+            : palette.secondaryLinkColor
+        }
+        opacity={
+          isPrimary
+            ? palette.primaryLinkOpacity
+            : palette.secondaryLinkOpacity
+        }
+        lineWidth={isPrimary ? 1.5 : 2}
+        primary={isPrimary}
+      />
+    );
+  };
 
   return (
-    <group ref={groupRef}>
-      {showAxes && <AxisGuides />}
+    <>
+      <group>
+        {showAxes && <AxisGuides />}
 
-      {/* Executive = collective glow around organization zone */}
-      <ExecutiveZoneGlow radius={ZONE_RADII[1]} />
+        <ExecutiveZoneGlow
+          radius={ZONE_RADII[1]}
+          serviceY={serviceY}
+          onClick={handleClick(executiveNode)}
+        />
 
-      {zoneMeta.map((z) => (
-        <group key={"zone-" + z.ring}>
-          <ZoneCircles
-            radius={ZONE_RADII[z.ring]}
-            color={palette.ringGuideColor}
-            opacity={palette.ringGuideOpacity}
-          />
-          <ZoneRimLabel
-            radius={ZONE_RADII[z.ring]}
-            label={z.label}
-            palette={palette}
-          />
-        </group>
-      ))}
+        <ZoneCircles
+          radius={ZONE_RADII[1]}
+          color={palette.ringGuideColor}
+          opacity={palette.ringGuideOpacity}
+        />
+        <ZoneRimLabel
+          radius={ZONE_RADII[1]}
+          label="Organization"
+          palette={palette}
+        />
 
-      {businessGraphLinks.map((link, i) => {
-        const fromPos = positions.get(link.from);
-        const toPos = positions.get(link.to);
-        if (!fromPos || !toPos) return null;
-        const isPrimary = link.type === "primary";
-        return (
-          <AnimatedConnection
-            key={"link-" + i}
-            from={fromPos}
-            to={toPos}
-            color={
-              isPrimary
-                ? theme.scene.primaryLinkColor
-                : palette.secondaryLinkColor
-            }
-            opacity={
-              isPrimary
-                ? palette.primaryLinkOpacity
-                : palette.secondaryLinkOpacity
-            }
-            lineWidth={isPrimary ? 1.5 : 2}
-            primary={isPrimary}
-          />
-        );
-      })}
+        {orgLinks.map((link, i) => renderLink(link, i, "org-link-"))}
 
-      <CenterProductNode
-        position={centerPos}
-        pulse={!!focusedNodeId}
-        palette={palette}
-        size={centerNode.size}
-        onClick={handleClick(centerNode)}
-      />
+        <CenterProductNode
+          position={centerPos}
+          pulse={
+            focusedNodeId === HUB_CENTER_ID || focusedNodeId === "executive"
+          }
+          palette={palette}
+          size={centerNode.size}
+          onClick={handleClick(centerNode)}
+        />
 
-      {nodes
-        .filter((n) => n.id !== HUB_CENTER_ID)
-        .map((node) => {
+        {orgNodes.map((node) => {
           const pos = positions.get(node.id)!;
           return (
             <ZoneNode
@@ -542,7 +593,62 @@ function SceneContent({
             />
           );
         })}
-    </group>
+      </group>
+
+      <group ref={collabRef}>
+        <ZoneCircles
+          radius={ZONE_RADII[2]}
+          color={palette.ringGuideColor}
+          opacity={palette.ringGuideOpacity}
+        />
+        <ZoneRimLabel
+          radius={ZONE_RADII[2]}
+          label="Collaboration"
+          palette={palette}
+        />
+        {collabLinks.map((link, i) => renderLink(link, i, "collab-link-"))}
+        {collabNodes.map((node) => {
+          const pos = positions.get(node.id)!;
+          return (
+            <ZoneNode
+              key={node.id}
+              node={node}
+              position={pos}
+              focused={focusedNodeId === node.id}
+              palette={palette}
+              onClick={handleClick(node)}
+            />
+          );
+        })}
+      </group>
+
+      <group ref={envRef}>
+        <ZoneCircles
+          radius={ZONE_RADII[3]}
+          color={palette.ringGuideColor}
+          opacity={palette.ringGuideOpacity}
+        />
+        <ZoneRimLabel
+          radius={ZONE_RADII[3]}
+          label="Environmental"
+          palette={palette}
+        />
+        {envLinks.map((link, i) => renderLink(link, i, "env-link-"))}
+        {envNodes.map((node) => {
+          const pos = positions.get(node.id)!;
+          return (
+            <ZoneNode
+              key={node.id}
+              node={node}
+              position={pos}
+              focused={focusedNodeId === node.id}
+              palette={palette}
+              onClick={handleClick(node)}
+            />
+          );
+        })}
+      </group>
+    </>
   );
 }
 
@@ -612,8 +718,7 @@ export function MissionControlScene({
           dampingFactor={0.1}
           minDistance={5}
           maxDistance={28}
-          autoRotate
-          autoRotateSpeed={0.3}
+          autoRotate={false}
         />
         <gridHelper
           args={[AXIS_STEP * 8, 32, palette.gridMain, palette.gridSub]}
