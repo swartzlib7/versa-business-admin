@@ -582,17 +582,24 @@ function SceneContent({
   ringGap: number;
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  // I5.5.12: collab +Y; KS horizontal Y (same family as collab, opposite);
-  // EL X-spin vertical — perpendicular ring to KS; labels world-up; zone ring colors
-  const collabRef = useRef<THREE.Group>(null);
+  // I5.5.12/15: collab Customer/Branch +Y; Vendor/Partner X-spin like Environment EL
+  // (start: Vendor +z moves down, Partner -z moves up); KS Y; EL X; zone colors
+  const collabHorizRef = useRef<THREE.Group>(null);
+  const collabVpRef = useRef<THREE.Group>(null);
   const envKsRef = useRef<THREE.Group>(null);
   const envElRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     const w = 0.05 * animSpeed;
-    if (collabRef.current) {
-      collabRef.current.rotation.y = t * w;
+    // Customer + Branch: horizontal orbit (Y) — ring in XZ plane
+    if (collabHorizRef.current) {
+      collabHorizRef.current.rotation.y = t * w;
+    }
+    // Vendor + Partner: perpendicular vertical ring (X) — YZ plane like Environment EL
+    // Vendor at +z → first motion down; Partner at -z → first motion up
+    if (collabVpRef.current) {
+      collabVpRef.current.rotation.x = t * w;
     }
     // Knowledge + Schedules: horizontal orbit (Y) — ring in XZ plane
     if (envKsRef.current) {
@@ -635,7 +642,12 @@ function SceneContent({
   const orgNodes = nodes.filter(
     (n) => n.id !== HUB_CENTER_ID && n.ring === 1
   );
-  const collabNodes = nodes.filter((n) => n.ring === 2);
+  const collabHorizNodes = nodes.filter(
+    (n) => n.id === "customer" || n.id === "branch"
+  );
+  const collabVpNodes = nodes.filter(
+    (n) => n.id === "vendor" || n.id === "partner"
+  );
   const envKsNodes = nodes.filter(
     (n) => n.id === "knowledge" || n.id === "schedules"
   );
@@ -729,7 +741,13 @@ function SceneContent({
         {orgNodes.map((n) => renderNode(n))}
       </group>
 
-      <group ref={collabRef}>{collabNodes.map((n) => renderNode(n))}</group>
+      {/* Collab: Customer/Branch horizontal Y; Vendor/Partner perp X (I5.5.15) */}
+      <group ref={collabHorizRef}>
+        {collabHorizNodes.map((n) => renderNode(n))}
+      </group>
+      <group ref={collabVpRef}>
+        {collabVpNodes.map((n) => renderNode(n))}
+      </group>
 
       {/* KS: horizontal Y orbit; EL: perpendicular vertical X (I5.5.12) */}
       <group ref={envKsRef}>{envKsNodes.map((n) => renderNode(n))}</group>

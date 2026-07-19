@@ -176,7 +176,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     axis: '+y',
   },
 
-  // Collaboration — zone 2 (greens stay)
+  // Collaboration — zone 2 (greens stay). I5.5.15: Vendor/Partner on Z (perp X-spin); Customer/Branch on X (Y-spin)
   {
     id: 'vendor',
     label: 'Vendor',
@@ -184,7 +184,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 2,
     description: 'Service provider — external supplier of goods or services.',
     status: 'connected',
-    axis: '+x',
+    axis: '+z',
   },
   {
     id: 'customer',
@@ -193,7 +193,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 2,
     description: 'Person or business that receives products or services.',
     status: 'active',
-    axis: '+z',
+    axis: '+x',
   },
   {
     id: 'partner',
@@ -202,7 +202,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 2,
     description: 'Business or investor in a collaborative relationship.',
     status: 'connected',
-    axis: '-x',
+    axis: '-z',
   },
   {
     id: 'branch',
@@ -211,7 +211,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 2,
     description: 'Subsidiary — a subordinate operating unit of the organization.',
     status: 'connected',
-    axis: '-z',
+    axis: '-x',
   },
 
   // Environmental — zone 3 (Events top / Locations bottom)
