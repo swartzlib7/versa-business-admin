@@ -8,6 +8,9 @@ import { AUTH_CONFIG } from '@/lib/auth';
 // Routes that require authentication
 const PROTECTED_PAGE_PREFIXES = [
   '/dashboard',
+  '/organization',
+  '/collaboration',
+  '/environment',
   '/users',
   '/agents',
   '/projects',

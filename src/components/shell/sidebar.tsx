@@ -15,6 +15,9 @@ import {
   ChevronDown,
   Briefcase,
   Package,
+  Building2,
+  Handshake,
+  Globe2,
 } from "lucide-react";
 
 interface NavItem {
@@ -37,6 +40,9 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 
 const navEntries: NavEntry[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/organization", label: "Organization", icon: Building2 },
+  { href: "/collaboration", label: "Collaboration", icon: Handshake },
+  { href: "/environment", label: "Environment", icon: Globe2 },
   { href: "/users", label: "Users", icon: Users },
   {
     label: "Executive",
