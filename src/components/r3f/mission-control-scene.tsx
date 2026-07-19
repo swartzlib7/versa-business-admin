@@ -318,7 +318,7 @@ function ExecutiveZoneGlow({
       {/* Inner pulse — visual only, not a hit target */}
       <Sphere ref={glowRef} args={[innerR, 48, 48]}>
         <meshBasicMaterial
-          color={theme.scene.hubGlow}
+          color={theme.scene.executiveGlow}
           transparent
           opacity={0.08}
           side={THREE.DoubleSide}
@@ -328,7 +328,7 @@ function ExecutiveZoneGlow({
       {/* Outer shell on collab ring — visual only */}
       <Sphere args={[outerR, 48, 48]}>
         <meshBasicMaterial
-          color={theme.scene.hubColor}
+          color={theme.scene.executiveColor}
           transparent
           opacity={0.035}
           side={THREE.DoubleSide}
@@ -339,7 +339,7 @@ function ExecutiveZoneGlow({
       <Billboard position={[0, labelY + 0.14, 0]}>
         <Text
           fontSize={0.22}
-          color={theme.scene.hubColor}
+          color={theme.scene.executiveColor}
           anchorX="center"
           anchorY="middle"
           fillOpacity={0.95}
@@ -358,7 +358,7 @@ function ExecutiveZoneGlow({
       <Billboard position={[0, labelY - 0.14, 0]}>
         <Text
           fontSize={0.14}
-          color={theme.scene.hubColor}
+          color={theme.scene.executiveColor}
           anchorX="center"
           anchorY="middle"
           fillOpacity={0.7}
@@ -675,21 +675,8 @@ function SceneContent({
 
       <group ref={envKsRef}>{envKsNodes.map((n) => renderNode(n))}</group>
 
-      <group ref={envElRef}>
-        {envElNodes.map((n) => renderNode(n, true))}
-      </group>
-      {envElNodes.map((n) => {
-        const pos = positions.get(n.id)!;
-        return (
-          <FixedTopLabel
-            key={"el-label-" + n.id}
-            position={pos}
-            label={n.label}
-            size={n.size}
-            palette={palette}
-          />
-        );
-      })}
+      {/* Events + Locations: labels rotate with spheres (I5.5.10, like KS) */}
+      <group ref={envElRef}>{envElNodes.map((n) => renderNode(n))}</group>
     </>
   );
 }
@@ -736,7 +723,7 @@ export function MissionControlScene({
   };
 
   const cycleSpeed = () => {
-    const steps = [0.5, 1, 1.5, 2, 0];
+    const steps = [0.5, 1, 2, 4, 6, 8, 10, 0];
     const i = steps.indexOf(animSpeed);
     const next = steps[(i >= 0 ? i + 1 : 1) % steps.length];
     if (animSpeedProp === undefined) setInternalSpeed(next);
@@ -865,7 +852,7 @@ export function MissionControlScene({
           Product / Service
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.organizationColor }} />
+          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.executiveColor }} />
           Executive (org zone)
         </span>
         <span className="flex items-center gap-1.5">

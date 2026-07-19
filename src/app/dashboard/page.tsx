@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const [sphereScale, setSphereScale] = useState(1);
 
   const cycleSpeed = () => {
-    const steps = [0.5, 1, 1.5, 2, 0];
+    const steps = [0.5, 1, 2, 4, 6, 8, 10, 0];
     const i = steps.indexOf(animSpeed);
     setAnimSpeed(steps[(i >= 0 ? i + 1 : 1) % steps.length]);
   };
