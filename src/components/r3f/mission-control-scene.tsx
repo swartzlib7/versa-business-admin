@@ -491,23 +491,24 @@ function FixedTopLabel({
   );
 }
 
-function ZoneRimLabel({
-  radius,
+/** Zone name label at radial midpoint between rings (I5.5.13). */
+function ZoneMidLabel({
+  midRadius,
   label,
-  palette,
+  color,
 }: {
-  radius: number;
+  midRadius: number;
   label: string;
-  palette: ScenePalette;
+  color: string;
 }) {
   return (
-    <Billboard position={[0, 0.05, -radius - 0.35]}>
+    <Billboard position={[0, 0.08, -midRadius]}>
       <Text
-        fontSize={0.2}
-        color={palette.labelColor}
+        fontSize={0.22}
+        color={color}
         anchorX="center"
         anchorY="middle"
-        fillOpacity={0.7}
+        fillOpacity={0.9}
       >
         {label}
       </Text>
@@ -645,11 +646,31 @@ function SceneContent({
   const servicePos = positions.get("service");
   const serviceY = servicePos ? servicePos[1] : radii[1];
 
-  // I5.5.12 zone ring colors: org red, collab green, env orange
-  const zoneMeta: { ring: number; label: string; color: string }[] = [
-    { ring: 1, label: "Organization", color: theme.scene.executiveColor },
-    { ring: 2, label: "Collaboration", color: theme.scene.collaborationColor },
-    { ring: 3, label: "Environmental", color: theme.scene.environmentalColor },
+  // I5.5.12/13: zone ring colors + labels midway between rings; Environment (not Environment)
+  const zoneMeta: {
+    ring: number;
+    label: string;
+    color: string;
+    midRadius: number;
+  }[] = [
+    {
+      ring: 1,
+      label: "Organization",
+      color: theme.scene.executiveColor,
+      midRadius: (0 + radii[1]) / 2,
+    },
+    {
+      ring: 2,
+      label: "Collaboration",
+      color: theme.scene.collaborationColor,
+      midRadius: (radii[1] + radii[2]) / 2,
+    },
+    {
+      ring: 3,
+      label: "Environment",
+      color: theme.scene.environmentalColor,
+      midRadius: (radii[2] + radii[3]) / 2,
+    },
   ];
 
   const renderNode = (node: SceneNode, hideLabel = false) => {
@@ -687,10 +708,10 @@ function SceneContent({
                 color={z.color}
                 opacity={palette.ringGuideOpacity}
               />
-              <ZoneRimLabel
-                radius={radii[z.ring]}
+              <ZoneMidLabel
+                midRadius={z.midRadius}
                 label={z.label}
-                palette={palette}
+                color={z.color}
               />
             </group>
           ))}
@@ -747,6 +768,31 @@ export function MissionControlScene({
   const animSpeed = animSpeedProp ?? internalSpeed;
   const ringGap = ringGapProp ?? internalGap;
   const sphereScale = sphereScaleProp ?? internalSphere;
+  const controlsRef = useRef<any>(null);
+
+  /** I5.5.13 view gizmo presets: Front, Left, Top-left-front angled */
+  const setCameraView = (view: "front" | "left" | "tlf") => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const cam = controls.object as THREE.PerspectiveCamera;
+    const dist = 16;
+    let pos: [number, number, number];
+    switch (view) {
+      case "front":
+        pos = [0, 2, dist];
+        break;
+      case "left":
+        pos = [-dist, 2, 0];
+        break;
+      case "tlf":
+      default:
+        pos = [-dist * 0.7, dist * 0.65, dist * 0.7];
+        break;
+    }
+    cam.position.set(pos[0], pos[1], pos[2]);
+    controls.target.set(0, 0, 0);
+    controls.update();
+  };
 
   const setShowAxes = (next: boolean) => {
     if (showAxesProp === undefined) setInternalAxes(next);
@@ -828,6 +874,7 @@ export function MissionControlScene({
           onNodeClick={onNodeClick}
         />
         <OrbitControls
+          ref={controlsRef}
           enableDamping
           dampingFactor={0.1}
           minDistance={5}
@@ -881,6 +928,37 @@ export function MissionControlScene({
         </div>
       )}
 
+      {/* I5.5.13 view gizmo — top right */}
+      <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5 rounded-md border border-border bg-background/90 p-1.5 shadow-sm backdrop-blur">
+        <span className="px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          View
+        </span>
+        <button
+          type="button"
+          onClick={() => setCameraView("front")}
+          className="rounded border border-border bg-background px-2.5 py-1 text-xs font-medium hover:bg-muted"
+          title="Front view"
+        >
+          Front
+        </button>
+        <button
+          type="button"
+          onClick={() => setCameraView("left")}
+          className="rounded border border-border bg-background px-2.5 py-1 text-xs font-medium hover:bg-muted"
+          title="Left view"
+        >
+          Left
+        </button>
+        <button
+          type="button"
+          onClick={() => setCameraView("tlf")}
+          className="rounded border border-border bg-background px-2.5 py-1 text-xs font-medium hover:bg-muted"
+          title="Top-left-front angled view"
+        >
+          Angle
+        </button>
+      </div>
+
       {/* Legend */}
       <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-3 rounded-md border border-border bg-background/85 px-3 py-2 text-xs shadow-sm backdrop-blur">
         <span className="flex items-center gap-1.5">
@@ -897,7 +975,7 @@ export function MissionControlScene({
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.environmentalColor }} />
-          Environmental
+          Environment
         </span>
         {showAxes && (
           <span className="flex items-center gap-2 text-muted-foreground">
