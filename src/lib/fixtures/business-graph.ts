@@ -1,11 +1,11 @@
 // Business graph fixture for the 3D Mission Control hub visualization.
-// Keystone ERD v1.1 — three concentric zones on a true XYZ axial system (I5.5.3).
-//   Center = Executive (organization) — product name Versa AGi is chrome only
-//   Zone 1 = Organization (departments)
-//   Zone 2 = Collaboration (parties)
-//   Zone 3 = Environmental (context)
-// Placement: spheres sit ON the axis planes, evenly spaced along each half-axis.
-// Sphere diameter ≈ 20% of the zone step (proportional to axis lines).
+// Keystone ERD v1.1 + I5.5.5 layout semantics:
+//   Center = Product (hub blue) — operating nucleus; Integrations under Product
+//   "Executive" = collective name for the organization zone (glow), not a sphere
+//   Zone 1 = Organization (departments + Service above center)
+//   Zone 2 = Collaboration (parties) — greens unchanged
+//   Zone 3 = Environmental (context) — Events top / Locations bottom
+// Placement: spheres on axis planes; distance = ZONE_RADII[ring].
 // Source of truth: docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md (v1.1)
 
 export type GraphNodeType = 'organization' | 'collaboration' | 'environmental';
@@ -20,12 +20,12 @@ export interface BusinessGraphNode {
   id: string;
   label: string;
   type: GraphNodeType;
-  ring: number; // 0 = center, 1 = organization, 2 = collaboration, 3 = environmental
+  ring: number; // 0 = center (Product), 1 = organization, 2 = collaboration, 3 = environmental
   description: string;
   status: 'connected' | 'active' | 'standby';
-  /** Preferred half-axis for layout (I5.5.3). */
+  /** Preferred half-axis for layout. */
   axis: AxisSlot;
-  /** Explicit 3D pose — computed from axis + ring for proportional layout. */
+  /** Explicit 3D pose — computed from axis + ring. */
   position: GraphPosition;
 }
 
@@ -36,25 +36,27 @@ export interface BusinessGraphLink {
 }
 
 /**
- * Zone step along each axis (center-to-zone-1, zone-1-to-zone-2, …).
+ * Zone step along each axis.
  * Sphere diameter targets ~20% of STEP (Stephen I5.5.3).
- * STEP=2.8 → diameter≈0.56 → radius≈0.28 for zone nodes; center slightly larger.
  */
 export const AXIS_STEP = 2.8;
 
 /** Zone circle radii (intersecting circles on XY / XZ / YZ planes). */
 export const ZONE_RADII = [0, AXIS_STEP, AXIS_STEP * 2, AXIS_STEP * 3] as const;
 
-/** @deprecated use ZONE_RADII — kept for any residual imports */
+/** @deprecated use ZONE_RADII */
 export const RING_RADII = ZONE_RADII;
 
-/** Suggested sphere radii (world units) — diameter ≈ 0.2 * AXIS_STEP for zone nodes. */
+/** Suggested sphere radii (world units). */
 export const SPHERE_RADIUS = {
-  center: 0.55, // ~20% of AXIS_STEP as diameter-ish visual weight
+  center: 0.55,
   organization: 0.28,
   collaboration: 0.26,
   environmental: 0.24,
 } as const;
+
+/** Hub center node id (I5.5.5 — Product replaces Executive sphere). */
+export const HUB_CENTER_ID = 'product' as const;
 
 function axisPosition(axis: AxisSlot, ring: number): GraphPosition {
   if (axis === 'origin' || ring === 0) return [0, 0, 0];
@@ -70,10 +72,6 @@ function axisPosition(axis: AxisSlot, ring: number): GraphPosition {
   }
 }
 
-/**
- * Evenly distribute multiple nodes that share the same half-axis.
- * ring values become ordered slots 1..N along that ray at STEP, 2*STEP, …
- */
 function layoutByAxis(
   defs: Omit<BusinessGraphNode, 'position'>[]
 ): BusinessGraphNode[] {
@@ -90,10 +88,8 @@ function layoutByAxis(
       for (const d of list) out.push({ ...d, position: [0, 0, 0] });
       continue;
     }
-    // Sort by intended ring so org stays inward of collab/env on same ray
     const sorted = [...list].sort((a, b) => a.ring - b.ring);
     sorted.forEach((d) => {
-      // Distance from center = zone radius for this node's ring (not slot index)
       const dist = ZONE_RADII[d.ring] ?? AXIS_STEP * d.ring;
       let position: GraphPosition;
       switch (axis) {
@@ -112,17 +108,19 @@ function layoutByAxis(
 }
 
 const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
+  // Center — Product (I5.5.5). Not environmental orange; rendered hub blue in scene.
   {
-    id: 'executive',
-    label: 'Executive',
+    id: 'product',
+    label: 'Product',
     type: 'organization',
     ring: 0,
     description:
-      'Business executive function. Center of the operating graph. Parent path for Projects and Tasks.',
+      'Device, manufactured item, or computer file. Operating nucleus of the graph. Integrations live under Product.',
     status: 'active',
     axis: 'origin',
   },
-  // Organization — zone 1 (inner)
+
+  // Organization — zone 1 (inner). Service fills empty spot above center (+Y).
   {
     id: 'communications',
     label: 'Communications',
@@ -168,7 +166,17 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     status: 'standby',
     axis: '-y',
   },
-  // Collaboration — zone 2
+  {
+    id: 'service',
+    label: 'Service',
+    type: 'organization',
+    ring: 1,
+    description: 'Faculty for results — e.g. Analysis & Design services. Organization zone (above center).',
+    status: 'connected',
+    axis: '+y',
+  },
+
+  // Collaboration — zone 2 (greens stay)
   {
     id: 'vendor',
     label: 'Vendor',
@@ -205,7 +213,8 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     status: 'connected',
     axis: '-z',
   },
-  // Environmental — zone 3
+
+  // Environmental — zone 3 (Events top / Locations bottom)
   {
     id: 'locations',
     label: 'Locations',
@@ -242,35 +251,17 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     status: 'connected',
     axis: '+z',
   },
-  {
-    id: 'product',
-    label: 'Product',
-    type: 'environmental',
-    ring: 3,
-    description: 'Device, manufactured item, or computer file. Integrations live under Product.',
-    status: 'active',
-    axis: '+x',
-  },
-  {
-    id: 'service',
-    label: 'Service',
-    type: 'environmental',
-    ring: 3,
-    description: 'Faculty for results — e.g. Analysis & Design services.',
-    status: 'standby',
-    axis: '-x',
-  },
 ];
 
 export const businessGraphNodes: BusinessGraphNode[] = layoutByAxis(nodeDefs);
 
 export const businessGraphLinks: BusinessGraphLink[] = [
-  // Primary: Executive center → all other nodes
+  // Primary: Product center → all other nodes
   ...businessGraphNodes
-    .filter((n) => n.id !== 'executive')
-    .map((n) => ({ from: 'executive', to: n.id, type: 'primary' as const })),
+    .filter((n) => n.id !== HUB_CENTER_ID)
+    .map((n) => ({ from: HUB_CENTER_ID, to: n.id, type: 'primary' as const })),
 
-  // Secondary: sparse cross-zone (I5.5.4 — dropped partner-knowledge, vendor-product, customer-product)
-  { from: 'executive', to: 'customer', type: 'secondary' },
+  // Secondary: sparse cross-zone
+  { from: HUB_CENTER_ID, to: 'customer', type: 'secondary' },
   { from: 'production', to: 'schedules', type: 'secondary' },
 ];

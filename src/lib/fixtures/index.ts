@@ -18,6 +18,7 @@ export {
   ZONE_RADII,
   AXIS_STEP,
   SPHERE_RADIUS,
+  HUB_CENTER_ID,
   type BusinessGraphNode,
   type BusinessGraphLink,
   type GraphNodeType,

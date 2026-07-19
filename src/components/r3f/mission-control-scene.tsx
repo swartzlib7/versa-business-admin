@@ -11,6 +11,7 @@ import {
   ZONE_RADII,
   AXIS_STEP,
   SPHERE_RADIUS,
+  HUB_CENTER_ID,
   type BusinessGraphNode,
 } from "@/lib/fixtures";
 
@@ -62,8 +63,8 @@ function getPalette(dark: boolean): ScenePalette {
 }
 
 function getNodeColor(type: BusinessGraphNode["type"], id?: string): string {
-  // I5.5.4: Service + Executive share the same executive blue
-  if (id === "executive" || id === "service") return theme.scene.hubColor;
+  // I5.5.5: Product (center) + Service use hub executive blue
+  if (id === HUB_CENTER_ID || id === "service") return theme.scene.hubColor;
   switch (type) {
     case "organization": return theme.scene.organizationColor;
     case "collaboration": return theme.scene.collaborationColor;
@@ -73,7 +74,7 @@ function getNodeColor(type: BusinessGraphNode["type"], id?: string): string {
 }
 
 function getNodeSize(type: BusinessGraphNode["type"], id?: string): number {
-  if (id === "executive") return SPHERE_RADIUS.center;
+  if (id === HUB_CENTER_ID) return SPHERE_RADIUS.center;
   switch (type) {
     case "organization": return SPHERE_RADIUS.organization;
     case "collaboration": return SPHERE_RADIUS.collaboration;
@@ -190,7 +191,7 @@ function ZoneCircles({
 
 // --- Center Executive node ---
 
-function CenterExecutiveNode({
+function CenterProductNode({
   position,
   pulse,
   palette,
@@ -204,7 +205,6 @@ function CenterExecutiveNode({
   onClick?: (e: ThreeEvent<MouseEvent>) => void;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -213,23 +213,10 @@ function CenterExecutiveNode({
         1 + Math.sin(t * 2) * (pulse ? 0.08 : 0.04)
       );
     }
-    if (glowRef.current) {
-      glowRef.current.scale.setScalar(1 + Math.sin(t * 1.5) * 0.15);
-      (glowRef.current.material as THREE.MeshBasicMaterial).opacity =
-        0.08 + Math.sin(t * 1.5) * 0.04;
-    }
   });
 
   return (
     <group position={position}>
-      <Sphere ref={glowRef} args={[size * 1.65, 24, 24]}>
-        <meshBasicMaterial
-          color={theme.scene.hubGlow}
-          transparent
-          opacity={0.1}
-          side={THREE.BackSide}
-        />
-      </Sphere>
       <Sphere ref={meshRef} args={[size, 32, 32]} onClick={onClick}>
         <meshStandardMaterial
           color={theme.scene.hubColor}
@@ -246,7 +233,7 @@ function CenterExecutiveNode({
           anchorX="center"
           anchorY="middle"
         >
-          Executive
+          Product
         </Text>
       </Billboard>
       <Billboard position={[0, size + 0.22, 0]}>
@@ -256,7 +243,65 @@ function CenterExecutiveNode({
           anchorX="center"
           anchorY="middle"
         >
-          Organization center
+          Operating nucleus
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
+/** Translucent glowing shell around the organization zone - Executive collective (I5.5.5). */
+function ExecutiveZoneGlow({ radius }: { radius: number }) {
+  const glowRef = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (glowRef.current) {
+      glowRef.current.scale.setScalar(1 + Math.sin(t * 1.2) * 0.03);
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity =
+        0.07 + Math.sin(t * 1.2) * 0.025;
+    }
+  });
+  const r = radius * 1.15;
+  return (
+    <group>
+      <Sphere ref={glowRef} args={[r, 48, 48]}>
+        <meshBasicMaterial
+          color={theme.scene.hubGlow}
+          transparent
+          opacity={0.08}
+          side={THREE.BackSide}
+          depthWrite={false}
+        />
+      </Sphere>
+      <Sphere args={[r * 1.08, 48, 48]}>
+        <meshBasicMaterial
+          color={theme.scene.hubColor}
+          transparent
+          opacity={0.04}
+          side={THREE.BackSide}
+          depthWrite={false}
+        />
+      </Sphere>
+      <Billboard position={[0, r * 0.85, 0]}>
+        <Text
+          fontSize={0.22}
+          color={theme.scene.hubColor}
+          anchorX="center"
+          anchorY="middle"
+          fillOpacity={0.85}
+        >
+          Executive
+        </Text>
+      </Billboard>
+      <Billboard position={[0, r * 0.85 - 0.28, 0]}>
+        <Text
+          fontSize={0.14}
+          color={theme.scene.hubColor}
+          anchorX="center"
+          anchorY="middle"
+          fillOpacity={0.65}
+        >
+          Organization zone
         </Text>
       </Billboard>
     </group>
@@ -417,8 +462,8 @@ function SceneContent({
     [onNodeClick]
   );
 
-  const centerNode = nodes.find((n) => n.id === "executive")!;
-  const centerPos = positions.get("executive")!;
+  const centerNode = nodes.find((n) => n.id === HUB_CENTER_ID)!;
+  const centerPos = positions.get(HUB_CENTER_ID)!;
 
   const zoneMeta: { ring: number; label: string; color: string }[] = [
     { ring: 1, label: "Organization", color: theme.scene.organizationColor },
@@ -429,6 +474,9 @@ function SceneContent({
   return (
     <group ref={groupRef}>
       {showAxes && <AxisGuides />}
+
+      {/* Executive = collective glow around organization zone */}
+      <ExecutiveZoneGlow radius={ZONE_RADII[1]} />
 
       {zoneMeta.map((z) => (
         <group key={"zone-" + z.ring}>
@@ -471,7 +519,7 @@ function SceneContent({
         );
       })}
 
-      <CenterExecutiveNode
+      <CenterProductNode
         position={centerPos}
         pulse={!!focusedNodeId}
         palette={palette}
@@ -480,7 +528,7 @@ function SceneContent({
       />
 
       {nodes
-        .filter((n) => n.id !== "executive")
+        .filter((n) => n.id !== HUB_CENTER_ID)
         .map((node) => {
           const pos = positions.get(node.id)!;
           return (
@@ -588,11 +636,11 @@ export function MissionControlScene({
       <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-3 rounded-md border border-border bg-background/85 px-3 py-2 text-xs shadow-sm backdrop-blur">
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.hubColor }} />
-          Executive / Service
+          Product / Service
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.organizationColor }} />
-          Organization
+          Executive (org zone)
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.collaborationColor }} />
