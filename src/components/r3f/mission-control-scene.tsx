@@ -37,6 +37,14 @@ interface MissionControlSceneProps {
   showAxes?: boolean;
   /** Notify parent when user toggles axes from the scene chrome. */
   onShowAxesChange?: (show: boolean) => void;
+  /** Show dotted zone rings (default true). */
+  showRings?: boolean;
+  onShowRingsChange?: (show: boolean) => void;
+  /**
+   * When true (default), render in-canvas axes/rings toggles.
+   * Set false when parent Mission Control chrome already owns those controls (I5.5.8).
+   */
+  showCanvasChrome?: boolean;
 }
 
 // --- Theme helpers ---
@@ -437,6 +445,7 @@ function SceneContent({
   focusedNodeId,
   palette,
   showAxes,
+  showRings,
   onNodeClick,
 }: {
   nodes: SceneNode[];
@@ -444,19 +453,28 @@ function SceneContent({
   focusedNodeId?: string | null;
   palette: ScenePalette;
   showAxes: boolean;
+  showRings: boolean;
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  // I5.5.7: zone circles static; collab/env SPHERES orbit (not the rings)
+  // I5.5.8: static circles; collab spheres +Y; env knowledge/schedules -Y;
+  // events/locations own-axis (X) so coplanar every quarter turn; no center spokes
   const collabRef = useRef<THREE.Group>(null);
-  const envRef = useRef<THREE.Group>(null);
+  const envKsRef = useRef<THREE.Group>(null); // knowledge + schedules
+  const envElRef = useRef<THREE.Group>(null); // events + locations
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
+    const w = 0.05;
     if (collabRef.current) {
-      collabRef.current.rotation.y = t * 0.05;
+      collabRef.current.rotation.y = t * w;
     }
-    if (envRef.current) {
-      envRef.current.rotation.y = -t * 0.05;
+    // Knowledge/Schedules: opposite Y orbit (same as prior env)
+    if (envKsRef.current) {
+      envKsRef.current.rotation.y = -t * w;
+    }
+    // Events/Locations: own-axis spin about X so they meet KS plane every pi/2
+    if (envElRef.current) {
+      envElRef.current.rotation.x = t * w;
     }
   });
 
@@ -491,7 +509,12 @@ function SceneContent({
     (n) => n.id !== HUB_CENTER_ID && n.ring === 1
   );
   const collabNodes = nodes.filter((n) => n.ring === 2);
-  const envNodes = nodes.filter((n) => n.ring === 3);
+  const envKsNodes = nodes.filter(
+    (n) => n.id === "knowledge" || n.id === "schedules"
+  );
+  const envElNodes = nodes.filter(
+    (n) => n.id === "events" || n.id === "locations"
+  );
 
   const servicePos = positions.get("service");
   const serviceY = servicePos ? servicePos[1] : ZONE_RADII[1];
@@ -499,14 +522,13 @@ function SceneContent({
   const ringOf = (id: string) =>
     id === HUB_CENTER_ID ? 0 : nodes.find((n) => n.id === id)?.ring ?? -1;
 
-  // Static links: both ends in org/center
+  // Remaining links only (no center spokes after I5.5.8 fixture trim)
   const staticLinks = businessGraphLinks.filter((link) => {
     const ra = ringOf(link.from);
     const rb = ringOf(link.to);
     return ra <= 1 && rb <= 1;
   });
 
-  // Orbit with collab spheres (center is origin — Y-rotation keeps from fixed)
   const collabOrbitLinks = businessGraphLinks.filter((link) => {
     const ra = ringOf(link.from);
     const rb = ringOf(link.to);
@@ -515,22 +537,11 @@ function SceneContent({
     return touchesCollab && !touchesEnv;
   });
 
-  // Orbit with env spheres
-  const envOrbitLinks = businessGraphLinks.filter((link) => {
-    const ra = ringOf(link.from);
-    const rb = ringOf(link.to);
-    // pure env or center-env; exclude org-env cross (handled below)
-    const touchesEnv = ra === 3 || rb === 3;
-    const touchesOrg = ra === 1 || rb === 1;
-    return touchesEnv && !touchesOrg;
-  });
-
-  // Cross-zone org <-> env (e.g. production-schedules): keep static endpoints
-  // (rare secondary; spheres still orbit independently)
+  // production-schedules etc: keep as static endpoints (cross)
   const crossLinks = businessGraphLinks.filter((link) => {
     const ra = ringOf(link.from);
     const rb = ringOf(link.to);
-    return (ra === 1 && rb === 3) || (ra === 3 && rb === 1);
+    return (ra === 1 && rb === 3) || (ra === 3 && rb === 1) || (ra === 2 && rb === 3) || (ra === 3 && rb === 2);
   });
 
   const renderLink = (
@@ -569,9 +580,22 @@ function SceneContent({
     { ring: 3, label: "Environmental" },
   ];
 
+  const renderNode = (node: SceneNode) => {
+    const pos = positions.get(node.id)!;
+    return (
+      <ZoneNode
+        key={node.id}
+        node={node}
+        position={pos}
+        focused={focusedNodeId === node.id}
+        palette={palette}
+        onClick={handleClick(node)}
+      />
+    );
+  };
+
   return (
     <>
-      {/* STATIC: axes, glow, ALL zone circles + rim labels, org, Product */}
       <group>
         {showAxes && <AxisGuides />}
 
@@ -581,20 +605,21 @@ function SceneContent({
           onClick={handleClick(executiveNode)}
         />
 
-        {zoneMeta.map((z) => (
-          <group key={"zone-static-" + z.ring}>
-            <ZoneCircles
-              radius={ZONE_RADII[z.ring]}
-              color={palette.ringGuideColor}
-              opacity={palette.ringGuideOpacity}
-            />
-            <ZoneRimLabel
-              radius={ZONE_RADII[z.ring]}
-              label={z.label}
-              palette={palette}
-            />
-          </group>
-        ))}
+        {showRings &&
+          zoneMeta.map((z) => (
+            <group key={"zone-static-" + z.ring}>
+              <ZoneCircles
+                radius={ZONE_RADII[z.ring]}
+                color={palette.ringGuideColor}
+                opacity={palette.ringGuideOpacity}
+              />
+              <ZoneRimLabel
+                radius={ZONE_RADII[z.ring]}
+                label={z.label}
+                palette={palette}
+              />
+            </group>
+          ))}
 
         {staticLinks.map((link, i) => renderLink(link, i, "static-link-"))}
         {crossLinks.map((link, i) => renderLink(link, i, "cross-link-"))}
@@ -609,58 +634,22 @@ function SceneContent({
           onClick={handleClick(centerNode)}
         />
 
-        {orgNodes.map((node) => {
-          const pos = positions.get(node.id)!;
-          return (
-            <ZoneNode
-              key={node.id}
-              node={node}
-              position={pos}
-              focused={focusedNodeId === node.id}
-              palette={palette}
-              onClick={handleClick(node)}
-            />
-          );
-        })}
+        {orgNodes.map(renderNode)}
       </group>
 
-      {/* COLLAB spheres (+ links from center) orbit; circles stay put */}
+      {/* Greens unchanged: collab spheres orbit +Y */}
       <group ref={collabRef}>
         {collabOrbitLinks.map((link, i) =>
           renderLink(link, i, "collab-link-")
         )}
-        {collabNodes.map((node) => {
-          const pos = positions.get(node.id)!;
-          return (
-            <ZoneNode
-              key={node.id}
-              node={node}
-              position={pos}
-              focused={focusedNodeId === node.id}
-              palette={palette}
-              onClick={handleClick(node)}
-            />
-          );
-        })}
+        {collabNodes.map(renderNode)}
       </group>
 
-      {/* ENV spheres (+ links from center) opposite orbit */}
-      <group ref={envRef}>
-        {envOrbitLinks.map((link, i) => renderLink(link, i, "env-link-"))}
-        {envNodes.map((node) => {
-          const pos = positions.get(node.id)!;
-          return (
-            <ZoneNode
-              key={node.id}
-              node={node}
-              position={pos}
-              focused={focusedNodeId === node.id}
-              palette={palette}
-              onClick={handleClick(node)}
-            />
-          );
-        })}
-      </group>
+      {/* Knowledge + Schedules: Y orbit opposite collab */}
+      <group ref={envKsRef}>{envKsNodes.map(renderNode)}</group>
+
+      {/* Events + Locations: own-axis X spin — coplanar every quarter turn */}
+      <group ref={envElRef}>{envElNodes.map(renderNode)}</group>
     </>
   );
 }
@@ -673,15 +662,25 @@ export function MissionControlScene({
   expanded = false,
   showAxes: showAxesProp,
   onShowAxesChange,
+  showRings: showRingsProp,
+  onShowRingsChange,
+  showCanvasChrome = true,
 }: MissionControlSceneProps) {
   const dark = useDarkMode();
   const palette = getPalette(dark);
   const [internalAxes, setInternalAxes] = useState(true);
+  const [internalRings, setInternalRings] = useState(true);
   const showAxes = showAxesProp ?? internalAxes;
+  const showRings = showRingsProp ?? internalRings;
 
   const setShowAxes = (next: boolean) => {
     if (showAxesProp === undefined) setInternalAxes(next);
     onShowAxesChange?.(next);
+  };
+
+  const setShowRings = (next: boolean) => {
+    if (showRingsProp === undefined) setInternalRings(next);
+    onShowRingsChange?.(next);
   };
 
   const positions = useMemo(() => computePositions(), []);
@@ -724,6 +723,7 @@ export function MissionControlScene({
           focusedNodeId={focusedNodeId}
           palette={palette}
           showAxes={showAxes}
+          showRings={showRings}
           onNodeClick={onNodeClick}
         />
         <OrbitControls
@@ -739,16 +739,25 @@ export function MissionControlScene({
         />
       </Canvas>
 
-      {/* Chrome: axes toggle always visible (incl. fullscreen) */}
-      <div className="absolute top-3 left-3 z-20 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setShowAxes(!showAxes)}
-          className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
-        >
-          {showAxes ? "Hide XYZ axes" : "Show XYZ axes"}
-        </button>
-      </div>
+      {/* Canvas chrome — omit when parent Mission Control already has controls (I5.5.8) */}
+      {showCanvasChrome && (
+        <div className="absolute top-3 left-3 z-20 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setShowAxes(!showAxes)}
+            className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+          >
+            {showAxes ? "Hide XYZ axes" : "Show XYZ axes"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRings(!showRings)}
+            className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+          >
+            {showRings ? "Hide rings" : "Show rings"}
+          </button>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-3 rounded-md border border-border bg-background/85 px-3 py-2 text-xs shadow-sm backdrop-blur">

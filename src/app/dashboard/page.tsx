@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const [darkMode, setDarkMode] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [showAxes, setShowAxes] = useState(true);
+  const [showRings, setShowRings] = useState(true);
 
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
@@ -148,6 +149,13 @@ export default function DashboardPage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  onClick={() => setShowRings((v) => !v)}
+                >
+                  {showRings ? "Hide rings" : "Show rings"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setExpanded(true)}
                 >
                   <Maximize2 className="h-4 w-4 mr-1" />
@@ -163,6 +171,9 @@ export default function DashboardPage() {
                 focusedNodeId={focusedNodeId}
                 expanded={false}
                 showAxes={showAxes}
+                showRings={showRings}
+                onShowRingsChange={setShowRings}
+                showCanvasChrome={false}
                 onShowAxesChange={setShowAxes}
               />
             )}
@@ -186,6 +197,13 @@ export default function DashboardPage() {
                   onClick={() => setShowAxes((v) => !v)}
                 >
                   {showAxes ? "Hide XYZ axes" : "Show XYZ axes"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowRings((v) => !v)}
+                >
+                  {showRings ? "Hide rings" : "Show rings"}
                 </Button>
                 <Button
                   variant="default"
@@ -212,6 +230,9 @@ export default function DashboardPage() {
                 focusedNodeId={focusedNodeId}
                 expanded={true}
                 showAxes={showAxes}
+                showRings={showRings}
+                onShowRingsChange={setShowRings}
+                showCanvasChrome={false}
                 onShowAxesChange={setShowAxes}
               />
             </div>

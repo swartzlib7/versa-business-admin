@@ -256,12 +256,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
 export const businessGraphNodes: BusinessGraphNode[] = layoutByAxis(nodeDefs);
 
 export const businessGraphLinks: BusinessGraphLink[] = [
-  // Primary: Product center → all other nodes
-  ...businessGraphNodes
-    .filter((n) => n.id !== HUB_CENTER_ID)
-    .map((n) => ({ from: HUB_CENTER_ID, to: n.id, type: 'primary' as const })),
-
-  // Secondary: sparse cross-zone
-  { from: HUB_CENTER_ID, to: 'customer', type: 'secondary' },
+  // I5.5.8: no solid center spokes; no product->customer dotted.
+  // Sparse cross-zone only.
   { from: 'production', to: 'schedules', type: 'secondary' },
 ];
