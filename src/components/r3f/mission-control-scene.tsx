@@ -2,7 +2,7 @@
 
 import { useRef, useMemo, useCallback, useState, useEffect } from "react";
 import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
-import { OrbitControls, Sphere, Line, Text, Ring, Billboard } from "@react-three/drei";
+import { OrbitControls, Sphere, Line, Text, Billboard } from "@react-three/drei";
 import * as THREE from "three";
 import { theme } from "@/lib/theme";
 import {
@@ -62,7 +62,8 @@ function getPalette(dark: boolean): ScenePalette {
 }
 
 function getNodeColor(type: BusinessGraphNode["type"], id?: string): string {
-  if (id === "executive") return theme.scene.hubColor;
+  // I5.5.4: Service + Executive share the same executive blue
+  if (id === "executive" || id === "service") return theme.scene.hubColor;
   switch (type) {
     case "organization": return theme.scene.organizationColor;
     case "collaboration": return theme.scene.collaborationColor;
@@ -139,6 +140,24 @@ function AxisGuides({ length = AXIS_STEP * 3.2 }: { length?: number }) {
 // --- Intersecting zone circles on three planes (I5.5.3) ---
 // XY (horizontal top-down), XZ (front), YZ (side) — one set per zone radius.
 
+function circlePoints(
+  radius: number,
+  plane: "xy" | "xz" | "yz",
+  segments = 96
+): [number, number, number][] {
+  const pts: [number, number, number][] = [];
+  for (let i = 0; i <= segments; i++) {
+    const a = (i / segments) * Math.PI * 2;
+    const c = Math.cos(a) * radius;
+    const sn = Math.sin(a) * radius;
+    if (plane === "xy") pts.push([c, sn, 0]);
+    else if (plane === "xz") pts.push([c, 0, sn]);
+    else pts.push([0, c, sn]);
+  }
+  return pts;
+}
+
+/** Intersecting zone circles — lighter gray, dotted, ~50% opacity (I5.5.4). */
 function ZoneCircles({
   radius,
   color,
@@ -148,29 +167,23 @@ function ZoneCircles({
   color: string;
   opacity: number;
 }) {
-  const w = 0.028;
-  const ringMat = () => (
-    <meshBasicMaterial
-      color={color}
-      transparent
-      opacity={opacity}
-      side={THREE.DoubleSide}
-      depthWrite={false}
-    />
-  );
-  // Three.js Ring lies in XY by default.
-  // [-PI/2,0,0] → floor (XZ). [0,0,0] → vertical facing +Z (XY). [0,PI/2,0] → vertical facing +X (YZ).
+  const planes: Array<"xy" | "xz" | "yz"> = ["xy", "xz", "yz"];
   return (
     <group>
-      <Ring args={[radius - w, radius + w, 96]} rotation={[-Math.PI / 2, 0, 0]}>
-        {ringMat()}
-      </Ring>
-      <Ring args={[radius - w, radius + w, 96]} rotation={[0, 0, 0]}>
-        {ringMat()}
-      </Ring>
-      <Ring args={[radius - w, radius + w, 96]} rotation={[0, Math.PI / 2, 0]}>
-        {ringMat()}
-      </Ring>
+      {planes.map((plane) => (
+        <Line
+          key={plane}
+          points={circlePoints(radius, plane)}
+          color={color}
+          lineWidth={1.25}
+          transparent
+          opacity={opacity}
+          dashed
+          dashSize={0.18}
+          gapSize={0.14}
+          depthWrite={false}
+        />
+      ))}
     </group>
   );
 }
@@ -422,7 +435,7 @@ function SceneContent({
           <ZoneCircles
             radius={ZONE_RADII[z.ring]}
             color={palette.ringGuideColor}
-            opacity={palette.ringGuideOpacity * 0.85}
+            opacity={palette.ringGuideOpacity}
           />
           <ZoneRimLabel
             radius={ZONE_RADII[z.ring]}
@@ -575,7 +588,7 @@ export function MissionControlScene({
       <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-3 rounded-md border border-border bg-background/85 px-3 py-2 text-xs shadow-sm backdrop-blur">
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.hubColor }} />
-          Executive
+          Executive / Service
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.organizationColor }} />

@@ -92,9 +92,9 @@ function layoutByAxis(
     }
     // Sort by intended ring so org stays inward of collab/env on same ray
     const sorted = [...list].sort((a, b) => a.ring - b.ring);
-    sorted.forEach((d, i) => {
-      const slot = i + 1; // 1-based along the ray
-      const dist = AXIS_STEP * slot;
+    sorted.forEach((d) => {
+      // Distance from center = zone radius for this node's ring (not slot index)
+      const dist = ZONE_RADII[d.ring] ?? AXIS_STEP * d.ring;
       let position: GraphPosition;
       switch (axis) {
         case '+x': position = [dist, 0, 0]; break;
@@ -213,7 +213,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 3,
     description: 'Global address book of business locations and places.',
     status: 'connected',
-    axis: '-x',
+    axis: '-y',
   },
   {
     id: 'events',
@@ -222,7 +222,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 3,
     description: 'Past or future planned activities and milestones.',
     status: 'active',
-    axis: '+x',
+    axis: '+y',
   },
   {
     id: 'knowledge',
@@ -249,7 +249,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 3,
     description: 'Device, manufactured item, or computer file. Integrations live under Product.',
     status: 'active',
-    axis: '-y',
+    axis: '+x',
   },
   {
     id: 'service',
@@ -258,7 +258,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 3,
     description: 'Faculty for results — e.g. Analysis & Design services.',
     status: 'standby',
-    axis: '+y',
+    axis: '-x',
   },
 ];
 
@@ -270,10 +270,7 @@ export const businessGraphLinks: BusinessGraphLink[] = [
     .filter((n) => n.id !== 'executive')
     .map((n) => ({ from: 'executive', to: n.id, type: 'primary' as const })),
 
-  // Secondary: sparse cross-zone links
+  // Secondary: sparse cross-zone (I5.5.4 — dropped partner-knowledge, vendor-product, customer-product)
   { from: 'executive', to: 'customer', type: 'secondary' },
   { from: 'production', to: 'schedules', type: 'secondary' },
-  { from: 'customer', to: 'product', type: 'secondary' },
-  { from: 'vendor', to: 'product', type: 'secondary' },
-  { from: 'partner', to: 'knowledge', type: 'secondary' },
 ];

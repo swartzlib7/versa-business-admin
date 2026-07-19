@@ -42,8 +42,8 @@ export const theme = {
       background: '#0a0a0f',
       gridMain: '#3f3f55',       // brighter orbital guides (was #1e1e2e — nearly invisible)
       gridSub: '#252533',
-      ringGuideColor: '#64748b', // slate-500 — clear circle lines on dark bg
-      ringGuideOpacity: 0.55,
+      ringGuideColor: '#94a3b8', // slate-400 — lighter gray I5.5.4
+      ringGuideOpacity: 0.5, // I5.5.4 ~50%
       secondaryLinkColor: '#93c5fd', // blue-300 — cross-zone links readable in dark
       secondaryLinkOpacity: 0.65,
       primaryLinkOpacity: 0.55,
@@ -56,8 +56,8 @@ export const theme = {
       background: '#f8f8fb',
       gridMain: '#a1a1aa',
       gridSub: '#d4d4d8',
-      ringGuideColor: '#71717a', // zinc-500
-      ringGuideOpacity: 0.45,
+      ringGuideColor: '#a1a1aa', // zinc-400 lighter I5.5.4
+      ringGuideOpacity: 0.5, // I5.5.4 ~50%
       secondaryLinkColor: '#3b82f6', // blue-500 cross-zone
       secondaryLinkOpacity: 0.5,
       primaryLinkOpacity: 0.5,
