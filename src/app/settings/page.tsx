@@ -149,7 +149,7 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Version</label>
-              <Input defaultValue="0.7.6" readOnly className="font-mono" />
+              <Input defaultValue="0.7.7" readOnly className="font-mono" />
             </div>
           </CardContent>
         </Card>

@@ -446,6 +446,7 @@ function SceneContent({
   showAxes: boolean;
   onNodeClick?: (node: SceneNode) => void;
 }) {
+  // I5.5.7: zone circles static; collab/env SPHERES orbit (not the rings)
   const collabRef = useRef<THREE.Group>(null);
   const envRef = useRef<THREE.Group>(null);
 
@@ -498,22 +499,38 @@ function SceneContent({
   const ringOf = (id: string) =>
     id === HUB_CENTER_ID ? 0 : nodes.find((n) => n.id === id)?.ring ?? -1;
 
-  const orgLinks = businessGraphLinks.filter((link) => {
+  // Static links: both ends in org/center
+  const staticLinks = businessGraphLinks.filter((link) => {
     const ra = ringOf(link.from);
     const rb = ringOf(link.to);
     return ra <= 1 && rb <= 1;
   });
 
-  const collabLinks = businessGraphLinks.filter((link) => {
+  // Orbit with collab spheres (center is origin — Y-rotation keeps from fixed)
+  const collabOrbitLinks = businessGraphLinks.filter((link) => {
     const ra = ringOf(link.from);
     const rb = ringOf(link.to);
-    return (ra === 2 || rb === 2) && ra !== 3 && rb !== 3;
+    const touchesCollab = ra === 2 || rb === 2;
+    const touchesEnv = ra === 3 || rb === 3;
+    return touchesCollab && !touchesEnv;
   });
 
-  const envLinks = businessGraphLinks.filter((link) => {
+  // Orbit with env spheres
+  const envOrbitLinks = businessGraphLinks.filter((link) => {
     const ra = ringOf(link.from);
     const rb = ringOf(link.to);
-    return ra === 3 || rb === 3;
+    // pure env or center-env; exclude org-env cross (handled below)
+    const touchesEnv = ra === 3 || rb === 3;
+    const touchesOrg = ra === 1 || rb === 1;
+    return touchesEnv && !touchesOrg;
+  });
+
+  // Cross-zone org <-> env (e.g. production-schedules): keep static endpoints
+  // (rare secondary; spheres still orbit independently)
+  const crossLinks = businessGraphLinks.filter((link) => {
+    const ra = ringOf(link.from);
+    const rb = ringOf(link.to);
+    return (ra === 1 && rb === 3) || (ra === 3 && rb === 1);
   });
 
   const renderLink = (
@@ -546,8 +563,15 @@ function SceneContent({
     );
   };
 
+  const zoneMeta: { ring: number; label: string }[] = [
+    { ring: 1, label: "Organization" },
+    { ring: 2, label: "Collaboration" },
+    { ring: 3, label: "Environmental" },
+  ];
+
   return (
     <>
+      {/* STATIC: axes, glow, ALL zone circles + rim labels, org, Product */}
       <group>
         {showAxes && <AxisGuides />}
 
@@ -557,18 +581,23 @@ function SceneContent({
           onClick={handleClick(executiveNode)}
         />
 
-        <ZoneCircles
-          radius={ZONE_RADII[1]}
-          color={palette.ringGuideColor}
-          opacity={palette.ringGuideOpacity}
-        />
-        <ZoneRimLabel
-          radius={ZONE_RADII[1]}
-          label="Organization"
-          palette={palette}
-        />
+        {zoneMeta.map((z) => (
+          <group key={"zone-static-" + z.ring}>
+            <ZoneCircles
+              radius={ZONE_RADII[z.ring]}
+              color={palette.ringGuideColor}
+              opacity={palette.ringGuideOpacity}
+            />
+            <ZoneRimLabel
+              radius={ZONE_RADII[z.ring]}
+              label={z.label}
+              palette={palette}
+            />
+          </group>
+        ))}
 
-        {orgLinks.map((link, i) => renderLink(link, i, "org-link-"))}
+        {staticLinks.map((link, i) => renderLink(link, i, "static-link-"))}
+        {crossLinks.map((link, i) => renderLink(link, i, "cross-link-"))}
 
         <CenterProductNode
           position={centerPos}
@@ -595,18 +624,11 @@ function SceneContent({
         })}
       </group>
 
+      {/* COLLAB spheres (+ links from center) orbit; circles stay put */}
       <group ref={collabRef}>
-        <ZoneCircles
-          radius={ZONE_RADII[2]}
-          color={palette.ringGuideColor}
-          opacity={palette.ringGuideOpacity}
-        />
-        <ZoneRimLabel
-          radius={ZONE_RADII[2]}
-          label="Collaboration"
-          palette={palette}
-        />
-        {collabLinks.map((link, i) => renderLink(link, i, "collab-link-"))}
+        {collabOrbitLinks.map((link, i) =>
+          renderLink(link, i, "collab-link-")
+        )}
         {collabNodes.map((node) => {
           const pos = positions.get(node.id)!;
           return (
@@ -622,18 +644,9 @@ function SceneContent({
         })}
       </group>
 
+      {/* ENV spheres (+ links from center) opposite orbit */}
       <group ref={envRef}>
-        <ZoneCircles
-          radius={ZONE_RADII[3]}
-          color={palette.ringGuideColor}
-          opacity={palette.ringGuideOpacity}
-        />
-        <ZoneRimLabel
-          radius={ZONE_RADII[3]}
-          label="Environmental"
-          palette={palette}
-        />
-        {envLinks.map((link, i) => renderLink(link, i, "env-link-"))}
+        {envOrbitLinks.map((link, i) => renderLink(link, i, "env-link-"))}
         {envNodes.map((node) => {
           const pos = positions.get(node.id)!;
           return (
