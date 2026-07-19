@@ -581,10 +581,11 @@ function SceneContent({
   ringGap: number;
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  // I5.5.11: static circles; collab +Y; env (EL+KS) X-spin vertical track;
-  // labels world-up on spheres; Executive inner red / outer blue
+  // I5.5.12: collab +Y; KS horizontal Y (same family as collab, opposite);
+  // EL X-spin vertical — perpendicular ring to KS; labels world-up; zone ring colors
   const collabRef = useRef<THREE.Group>(null);
-  const envRef = useRef<THREE.Group>(null);
+  const envKsRef = useRef<THREE.Group>(null);
+  const envElRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -592,9 +593,13 @@ function SceneContent({
     if (collabRef.current) {
       collabRef.current.rotation.y = t * w;
     }
-    // Environmental ring: vertical (X) orbit — Events/Locations/Knowledge/Schedules up-down track
-    if (envRef.current) {
-      envRef.current.rotation.x = t * w;
+    // Knowledge + Schedules: horizontal orbit (Y) — ring in XZ plane
+    if (envKsRef.current) {
+      envKsRef.current.rotation.y = -t * w;
+    }
+    // Events + Locations: vertical up/down on perpendicular ring (X) — YZ plane
+    if (envElRef.current) {
+      envElRef.current.rotation.x = t * w;
     }
   });
 
@@ -630,21 +635,21 @@ function SceneContent({
     (n) => n.id !== HUB_CENTER_ID && n.ring === 1
   );
   const collabNodes = nodes.filter((n) => n.ring === 2);
-  const envNodes = nodes.filter(
-    (n) =>
-      n.id === "knowledge" ||
-      n.id === "schedules" ||
-      n.id === "events" ||
-      n.id === "locations"
+  const envKsNodes = nodes.filter(
+    (n) => n.id === "knowledge" || n.id === "schedules"
+  );
+  const envElNodes = nodes.filter(
+    (n) => n.id === "events" || n.id === "locations"
   );
 
   const servicePos = positions.get("service");
   const serviceY = servicePos ? servicePos[1] : radii[1];
 
-  const zoneMeta: { ring: number; label: string }[] = [
-    { ring: 1, label: "Organization" },
-    { ring: 2, label: "Collaboration" },
-    { ring: 3, label: "Environmental" },
+  // I5.5.12 zone ring colors: org red, collab green, env orange
+  const zoneMeta: { ring: number; label: string; color: string }[] = [
+    { ring: 1, label: "Organization", color: theme.scene.executiveColor },
+    { ring: 2, label: "Collaboration", color: theme.scene.collaborationColor },
+    { ring: 3, label: "Environmental", color: theme.scene.environmentalColor },
   ];
 
   const renderNode = (node: SceneNode, hideLabel = false) => {
@@ -679,7 +684,7 @@ function SceneContent({
             <group key={"zone-static-" + z.ring}>
               <ZoneCircles
                 radius={radii[z.ring]}
-                color={palette.ringGuideColor}
+                color={z.color}
                 opacity={palette.ringGuideOpacity}
               />
               <ZoneRimLabel
@@ -705,8 +710,9 @@ function SceneContent({
 
       <group ref={collabRef}>{collabNodes.map((n) => renderNode(n))}</group>
 
-      {/* Env ring: EL + KS on vertical X track; labels float world-up on spheres (I5.5.11) */}
-      <group ref={envRef}>{envNodes.map((n) => renderNode(n))}</group>
+      {/* KS: horizontal Y orbit; EL: perpendicular vertical X (I5.5.12) */}
+      <group ref={envKsRef}>{envKsNodes.map((n) => renderNode(n))}</group>
+      <group ref={envElRef}>{envElNodes.map((n) => renderNode(n))}</group>
     </>
   );
 }
