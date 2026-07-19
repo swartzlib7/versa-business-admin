@@ -154,9 +154,9 @@ export default function DashboardPage() {
         {/* 3D Scene — inline (hidden chrome when fullscreen so one canvas owns the view) */}
         <Card className={expanded ? "invisible h-0 overflow-hidden p-0 border-0 shadow-none" : undefined}>
           <CardHeader>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <CardTitle>Mission Control Hub</CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex max-w-full flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -217,14 +217,14 @@ export default function DashboardPage() {
         {/* True fullscreen shell — restore control always on top */}
         {expanded && (
           <div className="fixed inset-0 z-[100] flex flex-col bg-background">
-            <div className="flex items-center justify-between gap-3 border-b border-border bg-background/95 px-4 py-3 shadow-sm backdrop-blur z-[110]">
-              <div>
+            <div className="flex flex-col gap-3 border-b border-border bg-background/95 px-4 py-3 shadow-sm backdrop-blur z-[110] sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0 shrink">
                 <p className="text-sm font-semibold tracking-tight">Mission Control Hub</p>
                 <p className="text-xs text-muted-foreground">
                   Full screen — restore to return to the dashboard layout
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex max-w-full flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"

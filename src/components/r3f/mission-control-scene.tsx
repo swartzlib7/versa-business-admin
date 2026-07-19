@@ -325,10 +325,10 @@ function ExecutiveZoneGlow({
           depthWrite={false}
         />
       </Sphere>
-      {/* Outer shell on collab ring — visual only */}
+      {/* Outer shell on collab ring — blue (I5.5.11); inner stays red */}
       <Sphere args={[outerR, 48, 48]}>
         <meshBasicMaterial
-          color={theme.scene.executiveColor}
+          color={theme.scene.organizationColor}
           transparent
           opacity={0.035}
           side={THREE.DoubleSide}
@@ -372,6 +372,50 @@ function ExecutiveZoneGlow({
 
 // --- Zone node ---
 
+/** Label that stays on top of the sphere in world-Y even when parent group spins (I5.5.11). */
+function SphereTopLabel({
+  size,
+  label,
+  palette,
+}: {
+  size: number;
+  label: string;
+  palette: ScenePalette;
+}) {
+  const ref = useRef<THREE.Group>(null);
+  const worldPos = useRef(new THREE.Vector3());
+  const localPos = useRef(new THREE.Vector3());
+
+  useFrame(() => {
+    const g = ref.current;
+    if (!g?.parent) return;
+    g.parent.getWorldPosition(worldPos.current);
+    localPos.current.set(
+      worldPos.current.x,
+      worldPos.current.y + size + 0.35,
+      worldPos.current.z
+    );
+    g.parent.worldToLocal(localPos.current);
+    g.position.copy(localPos.current);
+  });
+
+  return (
+    <group ref={ref}>
+      <Billboard>
+        <Text
+          fontSize={0.18}
+          color={palette.labelColor}
+          anchorX="center"
+          anchorY="middle"
+          maxWidth={2.5}
+        >
+          {label}
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
 function ZoneNode({
   node,
   position,
@@ -385,7 +429,7 @@ function ZoneNode({
   focused: boolean;
   palette: ScenePalette;
   onClick?: (e: ThreeEvent<MouseEvent>) => void;
-  /** When true, sphere only — label rendered elsewhere (I5.5.9 EL fixed labels). */
+  /** When true, sphere only — label rendered elsewhere. */
   hideLabel?: boolean;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -413,17 +457,7 @@ function ZoneNode({
         />
       </Sphere>
       {!hideLabel && (
-        <Billboard position={[0, node.size + 0.35, 0]}>
-          <Text
-            fontSize={0.18}
-            color={palette.labelColor}
-            anchorX="center"
-            anchorY="middle"
-            maxWidth={2.5}
-          >
-            {node.label}
-          </Text>
-        </Billboard>
+        <SphereTopLabel size={node.size} label={node.label} palette={palette} />
       )}
     </group>
   );
@@ -547,11 +581,10 @@ function SceneContent({
   ringGap: number;
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  // I5.5.9: static circles; collab +Y; KS -Y; EL X-spin with world-fixed labels;
-  // no links; Executive label-only tap; outer glow to collab ring
+  // I5.5.11: static circles; collab +Y; env (EL+KS) X-spin vertical track;
+  // labels world-up on spheres; Executive inner red / outer blue
   const collabRef = useRef<THREE.Group>(null);
-  const envKsRef = useRef<THREE.Group>(null);
-  const envElRef = useRef<THREE.Group>(null);
+  const envRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -559,11 +592,9 @@ function SceneContent({
     if (collabRef.current) {
       collabRef.current.rotation.y = t * w;
     }
-    if (envKsRef.current) {
-      envKsRef.current.rotation.y = -t * w;
-    }
-    if (envElRef.current) {
-      envElRef.current.rotation.x = t * w;
+    // Environmental ring: vertical (X) orbit — Events/Locations/Knowledge/Schedules up-down track
+    if (envRef.current) {
+      envRef.current.rotation.x = t * w;
     }
   });
 
@@ -589,7 +620,7 @@ function SceneContent({
         "Business executive function - collective name for the organization zone.",
       status: "active",
       pos: [0, 0, 0],
-      color: theme.scene.hubColor,
+      color: theme.scene.executiveColor,
       size: centerNode.size,
     }),
     [centerNode.size]
@@ -599,11 +630,12 @@ function SceneContent({
     (n) => n.id !== HUB_CENTER_ID && n.ring === 1
   );
   const collabNodes = nodes.filter((n) => n.ring === 2);
-  const envKsNodes = nodes.filter(
-    (n) => n.id === "knowledge" || n.id === "schedules"
-  );
-  const envElNodes = nodes.filter(
-    (n) => n.id === "events" || n.id === "locations"
+  const envNodes = nodes.filter(
+    (n) =>
+      n.id === "knowledge" ||
+      n.id === "schedules" ||
+      n.id === "events" ||
+      n.id === "locations"
   );
 
   const servicePos = positions.get("service");
@@ -673,10 +705,8 @@ function SceneContent({
 
       <group ref={collabRef}>{collabNodes.map((n) => renderNode(n))}</group>
 
-      <group ref={envKsRef}>{envKsNodes.map((n) => renderNode(n))}</group>
-
-      {/* Events + Locations: labels rotate with spheres (I5.5.10, like KS) */}
-      <group ref={envElRef}>{envElNodes.map((n) => renderNode(n))}</group>
+      {/* Env ring: EL + KS on vertical X track; labels float world-up on spheres (I5.5.11) */}
+      <group ref={envRef}>{envNodes.map((n) => renderNode(n))}</group>
     </>
   );
 }
@@ -806,7 +836,7 @@ export function MissionControlScene({
 
       {/* Canvas chrome — omit when parent Mission Control already has controls (I5.5.8) */}
       {showCanvasChrome && (
-        <div className="absolute top-3 left-3 z-20 flex flex-wrap gap-2">
+        <div className="absolute top-3 left-3 right-3 z-20 flex max-w-full flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setShowAxes(!showAxes)}
