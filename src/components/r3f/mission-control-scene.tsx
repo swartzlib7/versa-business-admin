@@ -45,6 +45,15 @@ interface MissionControlSceneProps {
    * Set false when parent Mission Control chrome already owns those controls (I5.5.8).
    */
   showCanvasChrome?: boolean;
+  /** Orbit animation speed multiplier (1 = default). */
+  animSpeed?: number;
+  onAnimSpeedChange?: (v: number) => void;
+  /** Ring gap multiplier (1 = default zone spacing). */
+  ringGap?: number;
+  onRingGapChange?: (v: number) => void;
+  /** Sphere size multiplier (1 = default). */
+  sphereScale?: number;
+  onSphereScaleChange?: (v: number) => void;
 }
 
 // --- Theme helpers ---
@@ -81,22 +90,50 @@ function getNodeColor(type: BusinessGraphNode["type"], id?: string): string {
   }
 }
 
-function getNodeSize(type: BusinessGraphNode["type"], id?: string): number {
-  if (id === HUB_CENTER_ID) return SPHERE_RADIUS.center;
-  switch (type) {
-    case "organization": return SPHERE_RADIUS.organization;
-    case "collaboration": return SPHERE_RADIUS.collaboration;
-    case "environmental": return SPHERE_RADIUS.environmental;
-    default: return 0.2;
+function getNodeSize(
+  type: BusinessGraphNode["type"],
+  id?: string,
+  scale = 1
+): number {
+  let base: number;
+  if (id === HUB_CENTER_ID) base = SPHERE_RADIUS.center;
+  else {
+    switch (type) {
+      case "organization":
+        base = SPHERE_RADIUS.organization;
+        break;
+      case "collaboration":
+        base = SPHERE_RADIUS.collaboration;
+        break;
+      case "environmental":
+        base = SPHERE_RADIUS.environmental;
+        break;
+      default:
+        base = 0.2;
+    }
   }
+  return base * scale;
 }
 
-function computePositions(): Map<string, [number, number, number]> {
+/** Scale fixture positions by ring gap (radial distance from origin). */
+function computePositions(
+  ringGap = 1
+): Map<string, [number, number, number]> {
   const positions = new Map<string, [number, number, number]>();
   for (const node of businessGraphNodes) {
-    positions.set(node.id, node.position);
+    const [x, y, z] = node.position;
+    positions.set(node.id, [x * ringGap, y * ringGap, z * ringGap]);
   }
   return positions;
+}
+
+function zoneRadii(ringGap = 1): [number, number, number, number] {
+  return [
+    0,
+    AXIS_STEP * ringGap,
+    AXIS_STEP * 2 * ringGap,
+    AXIS_STEP * 3 * ringGap,
+  ];
 }
 
 // --- Visible X / Y / Z axes (I5.5.2/3) — Y-up; length tracks outer zone ---
@@ -250,13 +287,18 @@ function CenterProductNode({
 }
 
 function ExecutiveZoneGlow({
-  radius,
+  orgRadius,
+  collabRadius,
   serviceY,
-  onClick,
+  onLabelClick,
 }: {
-  radius: number;
+  /** Inner pulsing glow — organization zone. */
+  orgRadius: number;
+  /** Outer static shell — reaches collaboration ring (I5.5.9). */
+  collabRadius: number;
   serviceY: number;
-  onClick?: (e: ThreeEvent<MouseEvent>) => void;
+  /** Only the Executive label is tappable (I5.5.9). */
+  onLabelClick?: (e: ThreeEvent<MouseEvent>) => void;
 }) {
   const glowRef = useRef<THREE.Mesh>(null);
   useFrame((state) => {
@@ -267,12 +309,14 @@ function ExecutiveZoneGlow({
         0.07 + Math.sin(t * 1.2) * 0.025;
     }
   });
-  const r = radius * 1.15;
+  const innerR = orgRadius * 1.15;
+  const outerR = collabRadius * 1.02;
   const labelY = serviceY * 0.5;
 
   return (
     <group>
-      <Sphere ref={glowRef} args={[r, 48, 48]} onClick={onClick}>
+      {/* Inner pulse — visual only, not a hit target */}
+      <Sphere ref={glowRef} args={[innerR, 48, 48]}>
         <meshBasicMaterial
           color={theme.scene.hubGlow}
           transparent
@@ -281,27 +325,37 @@ function ExecutiveZoneGlow({
           depthWrite={false}
         />
       </Sphere>
-      <Sphere args={[r * 1.08, 48, 48]} onClick={onClick}>
+      {/* Outer shell on collab ring — visual only */}
+      <Sphere args={[outerR, 48, 48]}>
         <meshBasicMaterial
           color={theme.scene.hubColor}
           transparent
-          opacity={0.04}
+          opacity={0.035}
           side={THREE.DoubleSide}
           depthWrite={false}
         />
       </Sphere>
+      {/* Executive label — sole tap target for Executive focus */}
       <Billboard position={[0, labelY + 0.14, 0]}>
         <Text
-          fontSize={0.2}
+          fontSize={0.22}
           color={theme.scene.hubColor}
           anchorX="center"
           anchorY="middle"
-          fillOpacity={0.9}
+          fillOpacity={0.95}
+          onClick={onLabelClick}
+          onPointerOver={(e) => {
+            e.stopPropagation();
+            document.body.style.cursor = "pointer";
+          }}
+          onPointerOut={() => {
+            document.body.style.cursor = "auto";
+          }}
         >
           Executive
         </Text>
       </Billboard>
-      <Billboard position={[0, labelY - 0.12, 0]}>
+      <Billboard position={[0, labelY - 0.14, 0]}>
         <Text
           fontSize={0.14}
           color={theme.scene.hubColor}
@@ -324,12 +378,15 @@ function ZoneNode({
   focused,
   palette,
   onClick,
+  hideLabel = false,
 }: {
   node: SceneNode;
   position: [number, number, number];
   focused: boolean;
   palette: ScenePalette;
   onClick?: (e: ThreeEvent<MouseEvent>) => void;
+  /** When true, sphere only — label rendered elsewhere (I5.5.9 EL fixed labels). */
+  hideLabel?: boolean;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
 
@@ -355,18 +412,48 @@ function ZoneNode({
           metalness={0.2}
         />
       </Sphere>
-      <Billboard position={[0, node.size + 0.35, 0]}>
-        <Text
-          fontSize={0.18}
-          color={palette.labelColor}
-          anchorX="center"
-          anchorY="middle"
-          maxWidth={2.5}
-        >
-          {node.label}
-        </Text>
-      </Billboard>
+      {!hideLabel && (
+        <Billboard position={[0, node.size + 0.35, 0]}>
+          <Text
+            fontSize={0.18}
+            color={palette.labelColor}
+            anchorX="center"
+            anchorY="middle"
+            maxWidth={2.5}
+          >
+            {node.label}
+          </Text>
+        </Billboard>
+      )}
     </group>
+  );
+}
+
+/** World-fixed label at the top of a sphere's rest position (does not orbit). */
+function FixedTopLabel({
+  position,
+  label,
+  size,
+  palette,
+}: {
+  position: [number, number, number];
+  label: string;
+  size: number;
+  palette: ScenePalette;
+}) {
+  const [x, y, z] = position;
+  return (
+    <Billboard position={[x, y + size + 0.4, z]}>
+      <Text
+        fontSize={0.18}
+        color={palette.labelColor}
+        anchorX="center"
+        anchorY="middle"
+        maxWidth={2.5}
+      >
+        {label}
+      </Text>
+    </Billboard>
   );
 }
 
@@ -446,6 +533,8 @@ function SceneContent({
   palette,
   showAxes,
   showRings,
+  animSpeed,
+  ringGap,
   onNodeClick,
 }: {
   nodes: SceneNode[];
@@ -454,25 +543,25 @@ function SceneContent({
   palette: ScenePalette;
   showAxes: boolean;
   showRings: boolean;
+  animSpeed: number;
+  ringGap: number;
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  // I5.5.8: static circles; collab spheres +Y; env knowledge/schedules -Y;
-  // events/locations own-axis (X) so coplanar every quarter turn; no center spokes
+  // I5.5.9: static circles; collab +Y; KS -Y; EL X-spin with world-fixed labels;
+  // no links; Executive label-only tap; outer glow to collab ring
   const collabRef = useRef<THREE.Group>(null);
-  const envKsRef = useRef<THREE.Group>(null); // knowledge + schedules
-  const envElRef = useRef<THREE.Group>(null); // events + locations
+  const envKsRef = useRef<THREE.Group>(null);
+  const envElRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
-    const w = 0.05;
+    const w = 0.05 * animSpeed;
     if (collabRef.current) {
       collabRef.current.rotation.y = t * w;
     }
-    // Knowledge/Schedules: opposite Y orbit (same as prior env)
     if (envKsRef.current) {
       envKsRef.current.rotation.y = -t * w;
     }
-    // Events/Locations: own-axis spin about X so they meet KS plane every pi/2
     if (envElRef.current) {
       envElRef.current.rotation.x = t * w;
     }
@@ -488,6 +577,7 @@ function SceneContent({
 
   const centerNode = nodes.find((n) => n.id === HUB_CENTER_ID)!;
   const centerPos = positions.get(HUB_CENTER_ID)!;
+  const radii = zoneRadii(ringGap);
 
   const executiveNode: SceneNode = useMemo(
     () => ({
@@ -500,9 +590,9 @@ function SceneContent({
       status: "active",
       pos: [0, 0, 0],
       color: theme.scene.hubColor,
-      size: SPHERE_RADIUS.organization,
+      size: centerNode.size,
     }),
-    []
+    [centerNode.size]
   );
 
   const orgNodes = nodes.filter(
@@ -517,62 +607,7 @@ function SceneContent({
   );
 
   const servicePos = positions.get("service");
-  const serviceY = servicePos ? servicePos[1] : ZONE_RADII[1];
-
-  const ringOf = (id: string) =>
-    id === HUB_CENTER_ID ? 0 : nodes.find((n) => n.id === id)?.ring ?? -1;
-
-  // Remaining links only (no center spokes after I5.5.8 fixture trim)
-  const staticLinks = businessGraphLinks.filter((link) => {
-    const ra = ringOf(link.from);
-    const rb = ringOf(link.to);
-    return ra <= 1 && rb <= 1;
-  });
-
-  const collabOrbitLinks = businessGraphLinks.filter((link) => {
-    const ra = ringOf(link.from);
-    const rb = ringOf(link.to);
-    const touchesCollab = ra === 2 || rb === 2;
-    const touchesEnv = ra === 3 || rb === 3;
-    return touchesCollab && !touchesEnv;
-  });
-
-  // production-schedules etc: keep as static endpoints (cross)
-  const crossLinks = businessGraphLinks.filter((link) => {
-    const ra = ringOf(link.from);
-    const rb = ringOf(link.to);
-    return (ra === 1 && rb === 3) || (ra === 3 && rb === 1) || (ra === 2 && rb === 3) || (ra === 3 && rb === 2);
-  });
-
-  const renderLink = (
-    link: (typeof businessGraphLinks)[0],
-    i: number,
-    keyPrefix: string
-  ) => {
-    const fromPos = positions.get(link.from);
-    const toPos = positions.get(link.to);
-    if (!fromPos || !toPos) return null;
-    const isPrimary = link.type === "primary";
-    return (
-      <AnimatedConnection
-        key={keyPrefix + i}
-        from={fromPos}
-        to={toPos}
-        color={
-          isPrimary
-            ? theme.scene.primaryLinkColor
-            : palette.secondaryLinkColor
-        }
-        opacity={
-          isPrimary
-            ? palette.primaryLinkOpacity
-            : palette.secondaryLinkOpacity
-        }
-        lineWidth={isPrimary ? 1.5 : 2}
-        primary={isPrimary}
-      />
-    );
-  };
+  const serviceY = servicePos ? servicePos[1] : radii[1];
 
   const zoneMeta: { ring: number; label: string }[] = [
     { ring: 1, label: "Organization" },
@@ -580,7 +615,7 @@ function SceneContent({
     { ring: 3, label: "Environmental" },
   ];
 
-  const renderNode = (node: SceneNode) => {
+  const renderNode = (node: SceneNode, hideLabel = false) => {
     const pos = positions.get(node.id)!;
     return (
       <ZoneNode
@@ -590,6 +625,7 @@ function SceneContent({
         focused={focusedNodeId === node.id}
         palette={palette}
         onClick={handleClick(node)}
+        hideLabel={hideLabel}
       />
     );
   };
@@ -597,32 +633,30 @@ function SceneContent({
   return (
     <>
       <group>
-        {showAxes && <AxisGuides />}
+        {showAxes && <AxisGuides length={AXIS_STEP * 3.2 * ringGap} />}
 
         <ExecutiveZoneGlow
-          radius={ZONE_RADII[1]}
+          orgRadius={radii[1]}
+          collabRadius={radii[2]}
           serviceY={serviceY}
-          onClick={handleClick(executiveNode)}
+          onLabelClick={handleClick(executiveNode)}
         />
 
         {showRings &&
           zoneMeta.map((z) => (
             <group key={"zone-static-" + z.ring}>
               <ZoneCircles
-                radius={ZONE_RADII[z.ring]}
+                radius={radii[z.ring]}
                 color={palette.ringGuideColor}
                 opacity={palette.ringGuideOpacity}
               />
               <ZoneRimLabel
-                radius={ZONE_RADII[z.ring]}
+                radius={radii[z.ring]}
                 label={z.label}
                 palette={palette}
               />
             </group>
           ))}
-
-        {staticLinks.map((link, i) => renderLink(link, i, "static-link-"))}
-        {crossLinks.map((link, i) => renderLink(link, i, "cross-link-"))}
 
         <CenterProductNode
           position={centerPos}
@@ -634,22 +668,28 @@ function SceneContent({
           onClick={handleClick(centerNode)}
         />
 
-        {orgNodes.map(renderNode)}
+        {orgNodes.map((n) => renderNode(n))}
       </group>
 
-      {/* Greens unchanged: collab spheres orbit +Y */}
-      <group ref={collabRef}>
-        {collabOrbitLinks.map((link, i) =>
-          renderLink(link, i, "collab-link-")
-        )}
-        {collabNodes.map(renderNode)}
+      <group ref={collabRef}>{collabNodes.map((n) => renderNode(n))}</group>
+
+      <group ref={envKsRef}>{envKsNodes.map((n) => renderNode(n))}</group>
+
+      <group ref={envElRef}>
+        {envElNodes.map((n) => renderNode(n, true))}
       </group>
-
-      {/* Knowledge + Schedules: Y orbit opposite collab */}
-      <group ref={envKsRef}>{envKsNodes.map(renderNode)}</group>
-
-      {/* Events + Locations: own-axis X spin — coplanar every quarter turn */}
-      <group ref={envElRef}>{envElNodes.map(renderNode)}</group>
+      {envElNodes.map((n) => {
+        const pos = positions.get(n.id)!;
+        return (
+          <FixedTopLabel
+            key={"el-label-" + n.id}
+            position={pos}
+            label={n.label}
+            size={n.size}
+            palette={palette}
+          />
+        );
+      })}
     </>
   );
 }
@@ -665,13 +705,25 @@ export function MissionControlScene({
   showRings: showRingsProp,
   onShowRingsChange,
   showCanvasChrome = true,
+  animSpeed: animSpeedProp,
+  onAnimSpeedChange,
+  ringGap: ringGapProp,
+  onRingGapChange,
+  sphereScale: sphereScaleProp,
+  onSphereScaleChange,
 }: MissionControlSceneProps) {
   const dark = useDarkMode();
   const palette = getPalette(dark);
   const [internalAxes, setInternalAxes] = useState(true);
   const [internalRings, setInternalRings] = useState(true);
+  const [internalSpeed, setInternalSpeed] = useState(1);
+  const [internalGap, setInternalGap] = useState(1);
+  const [internalSphere, setInternalSphere] = useState(1);
   const showAxes = showAxesProp ?? internalAxes;
   const showRings = showRingsProp ?? internalRings;
+  const animSpeed = animSpeedProp ?? internalSpeed;
+  const ringGap = ringGapProp ?? internalGap;
+  const sphereScale = sphereScaleProp ?? internalSphere;
 
   const setShowAxes = (next: boolean) => {
     if (showAxesProp === undefined) setInternalAxes(next);
@@ -683,7 +735,31 @@ export function MissionControlScene({
     onShowRingsChange?.(next);
   };
 
-  const positions = useMemo(() => computePositions(), []);
+  const cycleSpeed = () => {
+    const steps = [0.5, 1, 1.5, 2, 0];
+    const i = steps.indexOf(animSpeed);
+    const next = steps[(i >= 0 ? i + 1 : 1) % steps.length];
+    if (animSpeedProp === undefined) setInternalSpeed(next);
+    onAnimSpeedChange?.(next);
+  };
+
+  const cycleGap = () => {
+    const steps = [0.75, 1, 1.25, 1.5];
+    const i = steps.indexOf(ringGap);
+    const next = steps[(i >= 0 ? i + 1 : 1) % steps.length];
+    if (ringGapProp === undefined) setInternalGap(next);
+    onRingGapChange?.(next);
+  };
+
+  const cycleSphere = () => {
+    const steps = [0.75, 1, 1.25, 1.5];
+    const i = steps.indexOf(sphereScale);
+    const next = steps[(i >= 0 ? i + 1 : 1) % steps.length];
+    if (sphereScaleProp === undefined) setInternalSphere(next);
+    onSphereScaleChange?.(next);
+  };
+
+  const positions = useMemo(() => computePositions(ringGap), [ringGap]);
 
   const nodes: SceneNode[] = useMemo(() => {
     return businessGraphNodes.map((n) => ({
@@ -695,9 +771,9 @@ export function MissionControlScene({
       status: n.status,
       pos: positions.get(n.id) || [0, 0, 0],
       color: getNodeColor(n.type, n.id),
-      size: getNodeSize(n.type, n.id),
+      size: getNodeSize(n.type, n.id, sphereScale),
     }));
-  }, [positions]);
+  }, [positions, sphereScale]);
 
   // When used inside a parent fullscreen shell, fill the parent (h-full).
   // When standalone expanded, cover the viewport.
@@ -724,6 +800,8 @@ export function MissionControlScene({
           palette={palette}
           showAxes={showAxes}
           showRings={showRings}
+          animSpeed={animSpeed}
+          ringGap={ringGap}
           onNodeClick={onNodeClick}
         />
         <OrbitControls
@@ -755,6 +833,27 @@ export function MissionControlScene({
             className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
           >
             {showRings ? "Hide rings" : "Show rings"}
+          </button>
+          <button
+            type="button"
+            onClick={cycleSpeed}
+            className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+          >
+            Speed {animSpeed === 0 ? "off" : animSpeed + "x"}
+          </button>
+          <button
+            type="button"
+            onClick={cycleGap}
+            className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+          >
+            Gap {ringGap}x
+          </button>
+          <button
+            type="button"
+            onClick={cycleSphere}
+            className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+          >
+            Spheres {sphereScale}x
           </button>
         </div>
       )}

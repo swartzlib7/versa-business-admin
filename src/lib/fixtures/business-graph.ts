@@ -256,7 +256,5 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
 export const businessGraphNodes: BusinessGraphNode[] = layoutByAxis(nodeDefs);
 
 export const businessGraphLinks: BusinessGraphLink[] = [
-  // I5.5.8: no solid center spokes; no product->customer dotted.
-  // Sparse cross-zone only.
-  { from: 'production', to: 'schedules', type: 'secondary' },
+  // I5.5.9: no center spokes, no product->customer, no production->env dotted.
 ];

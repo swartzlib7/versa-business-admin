@@ -18,6 +18,25 @@ export default function DashboardPage() {
   const [expanded, setExpanded] = useState(false);
   const [showAxes, setShowAxes] = useState(true);
   const [showRings, setShowRings] = useState(true);
+  const [animSpeed, setAnimSpeed] = useState(1);
+  const [ringGap, setRingGap] = useState(1);
+  const [sphereScale, setSphereScale] = useState(1);
+
+  const cycleSpeed = () => {
+    const steps = [0.5, 1, 1.5, 2, 0];
+    const i = steps.indexOf(animSpeed);
+    setAnimSpeed(steps[(i >= 0 ? i + 1 : 1) % steps.length]);
+  };
+  const cycleGap = () => {
+    const steps = [0.75, 1, 1.25, 1.5];
+    const i = steps.indexOf(ringGap);
+    setRingGap(steps[(i >= 0 ? i + 1 : 1) % steps.length]);
+  };
+  const cycleSphere = () => {
+    const steps = [0.75, 1, 1.25, 1.5];
+    const i = steps.indexOf(sphereScale);
+    setSphereScale(steps[(i >= 0 ? i + 1 : 1) % steps.length]);
+  };
 
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
@@ -153,6 +172,15 @@ export default function DashboardPage() {
                 >
                   {showRings ? "Hide rings" : "Show rings"}
                 </Button>
+                <Button variant="outline" size="sm" onClick={cycleSpeed}>
+                  Speed {animSpeed === 0 ? "off" : animSpeed + "x"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={cycleGap}>
+                  Gap {ringGap}x
+                </Button>
+                <Button variant="outline" size="sm" onClick={cycleSphere}>
+                  Spheres {sphereScale}x
+                </Button>
                 <Button
                   variant="outline"
                   size="sm"
@@ -174,6 +202,12 @@ export default function DashboardPage() {
                 showRings={showRings}
                 onShowRingsChange={setShowRings}
                 showCanvasChrome={false}
+                animSpeed={animSpeed}
+                onAnimSpeedChange={setAnimSpeed}
+                ringGap={ringGap}
+                onRingGapChange={setRingGap}
+                sphereScale={sphereScale}
+                onSphereScaleChange={setSphereScale}
                 onShowAxesChange={setShowAxes}
               />
             )}
@@ -205,6 +239,15 @@ export default function DashboardPage() {
                 >
                   {showRings ? "Hide rings" : "Show rings"}
                 </Button>
+                <Button variant="outline" size="sm" onClick={cycleSpeed}>
+                  Speed {animSpeed === 0 ? "off" : animSpeed + "x"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={cycleGap}>
+                  Gap {ringGap}x
+                </Button>
+                <Button variant="outline" size="sm" onClick={cycleSphere}>
+                  Spheres {sphereScale}x
+                </Button>
                 <Button
                   variant="default"
                   size="sm"
@@ -233,6 +276,12 @@ export default function DashboardPage() {
                 showRings={showRings}
                 onShowRingsChange={setShowRings}
                 showCanvasChrome={false}
+                animSpeed={animSpeed}
+                onAnimSpeedChange={setAnimSpeed}
+                ringGap={ringGap}
+                onRingGapChange={setRingGap}
+                sphereScale={sphereScale}
+                onSphereScaleChange={setSphereScale}
                 onShowAxesChange={setShowAxes}
               />
             </div>
