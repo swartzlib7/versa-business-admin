@@ -15,8 +15,12 @@ export {
   businessGraphNodes,
   businessGraphLinks,
   RING_RADII,
+  ZONE_RADII,
+  AXIS_STEP,
+  SPHERE_RADIUS,
   type BusinessGraphNode,
   type BusinessGraphLink,
   type GraphNodeType,
   type GraphPosition,
+  type AxisSlot,
 } from './business-graph';

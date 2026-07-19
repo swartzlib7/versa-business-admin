@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(true);
   const [expanded, setExpanded] = useState(false);
+  const [showAxes, setShowAxes] = useState(true);
 
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
@@ -118,62 +119,88 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* 3D Scene */}
-        <Card>
+        {/* 3D Scene — inline (hidden chrome when fullscreen so one canvas owns the view) */}
+        <Card className={expanded ? "invisible h-0 overflow-hidden p-0 border-0 shadow-none" : undefined}>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <CardTitle>Mission Control Hub</CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setExpanded((prev) => !prev)}
-              >
-                {expanded ? (
-                  <>
-                    <Minimize2 className="h-4 w-4 mr-1" />
-                    Collapse
-                  </>
-                ) : (
-                  <>
-                    <Maximize2 className="h-4 w-4 mr-1" />
-                    Expand
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAxes((v) => !v)}
+                  title="Toggle XYZ axis guides"
+                >
+                  {showAxes ? "Hide axes" : "Show axes"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setExpanded(true)}
+                >
+                  <Maximize2 className="h-4 w-4 mr-1" />
+                  Full screen
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
-            <MissionControlScene
-              onNodeClick={handleNodeClick}
-              focusedNodeId={focusedNodeId}
-              expanded={expanded}
-            />
+            {!expanded && (
+              <MissionControlScene
+                onNodeClick={handleNodeClick}
+                focusedNodeId={focusedNodeId}
+                expanded={false}
+                showAxes={showAxes}
+                onShowAxesChange={setShowAxes}
+              />
+            )}
           </CardContent>
         </Card>
 
-        {/* Lightbox overlay when expanded */}
+        {/* True fullscreen shell — restore control always on top */}
         {expanded && (
-          <div
-            className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-            onClick={() => setExpanded(false)}
-          >
-            <div
-              className="relative w-full h-full max-w-7xl max-h-[90vh] rounded-lg overflow-hidden bg-background border border-border"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="absolute top-3 right-3 z-10">
+          <div className="fixed inset-0 z-[100] flex flex-col bg-background">
+            <div className="flex items-center justify-between gap-3 border-b border-border bg-background/95 px-4 py-3 shadow-sm backdrop-blur z-[110]">
+              <div>
+                <p className="text-sm font-semibold tracking-tight">Mission Control Hub</p>
+                <p className="text-xs text-muted-foreground">
+                  Full screen — restore to return to the dashboard layout
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAxes((v) => !v)}
+                >
+                  {showAxes ? "Hide XYZ axes" : "Show XYZ axes"}
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => setExpanded(false)}
+                  className="gap-1"
+                >
+                  <Minimize2 className="h-4 w-4" />
+                  Restore
+                </Button>
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => setExpanded(false)}
+                  aria-label="Close full screen"
                 >
                   <X className="h-5 w-5" />
                 </Button>
               </div>
+            </div>
+            <div className="relative min-h-0 flex-1">
               <MissionControlScene
                 onNodeClick={handleNodeClick}
                 focusedNodeId={focusedNodeId}
                 expanded={true}
+                showAxes={showAxes}
+                onShowAxesChange={setShowAxes}
               />
             </div>
           </div>

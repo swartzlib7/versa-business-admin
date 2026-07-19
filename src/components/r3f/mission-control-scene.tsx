@@ -1,14 +1,16 @@
 "use client";
 
 import { useRef, useMemo, useCallback, useState, useEffect } from "react";
-import { Canvas, useFrame, useThree, ThreeEvent } from "@react-three/fiber";
+import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Sphere, Line, Text, Ring, Billboard } from "@react-three/drei";
 import * as THREE from "three";
 import { theme } from "@/lib/theme";
 import {
   businessGraphNodes,
   businessGraphLinks,
-  RING_RADII,
+  ZONE_RADII,
+  AXIS_STEP,
+  SPHERE_RADIUS,
   type BusinessGraphNode,
 } from "@/lib/fixtures";
 
@@ -30,6 +32,10 @@ interface MissionControlSceneProps {
   onNodeClick?: (node: SceneNode) => void;
   focusedNodeId?: string | null;
   expanded?: boolean;
+  /** Show XYZ axis guides (default true). Parent can control. */
+  showAxes?: boolean;
+  /** Notify parent when user toggles axes from the scene chrome. */
+  onShowAxesChange?: (show: boolean) => void;
 }
 
 // --- Theme helpers ---
@@ -66,17 +72,14 @@ function getNodeColor(type: BusinessGraphNode["type"], id?: string): string {
 }
 
 function getNodeSize(type: BusinessGraphNode["type"], id?: string): number {
-  if (id === "executive") return 0.55;
+  if (id === "executive") return SPHERE_RADIUS.center;
   switch (type) {
-    case "organization": return 0.30;
-    case "collaboration": return 0.26;
-    case "environmental": return 0.24;
+    case "organization": return SPHERE_RADIUS.organization;
+    case "collaboration": return SPHERE_RADIUS.collaboration;
+    case "environmental": return SPHERE_RADIUS.environmental;
     default: return 0.2;
   }
 }
-
-// --- Position calculation ---
-// Explicit poses from fixture (from_stephen_02 / I5.5.1). Rings are guides only.
 
 function computePositions(): Map<string, [number, number, number]> {
   const positions = new Map<string, [number, number, number]>();
@@ -86,12 +89,11 @@ function computePositions(): Map<string, [number, number, number]> {
   return positions;
 }
 
-// --- Visible X / Y / Z axes (I5.5.2) - Y-up world ---
-// X = red (right +), Y = green (up +), Z = blue (front +)
+// --- Visible X / Y / Z axes (I5.5.2/3) — Y-up; length tracks outer zone ---
 
-function AxisGuides({ length = 7.5 }: { length?: number }) {
-  const neg = 0.35;
-  const labelOff = length + 0.35;
+function AxisGuides({ length = AXIS_STEP * 3.2 }: { length?: number }) {
+  const neg = length * 0.08;
+  const labelOff = length + 0.4;
   return (
     <group>
       <Line
@@ -99,34 +101,34 @@ function AxisGuides({ length = 7.5 }: { length?: number }) {
         color="#ef4444"
         lineWidth={2}
         transparent
-        opacity={0.85}
+        opacity={0.9}
       />
       <Line
-        points={[[0, -neg, 0], [0, length * 0.55, 0]]}
+        points={[[0, -neg, 0], [0, length, 0]]}
         color="#22c55e"
         lineWidth={2}
         transparent
-        opacity={0.85}
+        opacity={0.9}
       />
       <Line
         points={[[0, 0, -neg], [0, 0, length]]}
         color="#3b82f6"
         lineWidth={2}
         transparent
-        opacity={0.85}
+        opacity={0.9}
       />
       <Billboard position={[labelOff, 0, 0]}>
-        <Text fontSize={0.28} color="#ef4444" anchorX="center" anchorY="middle">
+        <Text fontSize={0.32} color="#ef4444" anchorX="center" anchorY="middle">
           X
         </Text>
       </Billboard>
-      <Billboard position={[0, length * 0.55 + 0.25, 0]}>
-        <Text fontSize={0.28} color="#22c55e" anchorX="center" anchorY="middle">
+      <Billboard position={[0, labelOff, 0]}>
+        <Text fontSize={0.32} color="#22c55e" anchorX="center" anchorY="middle">
           Y
         </Text>
       </Billboard>
       <Billboard position={[0, 0, labelOff]}>
-        <Text fontSize={0.28} color="#3b82f6" anchorX="center" anchorY="middle">
+        <Text fontSize={0.32} color="#3b82f6" anchorX="center" anchorY="middle">
           Z
         </Text>
       </Billboard>
@@ -134,17 +136,58 @@ function AxisGuides({ length = 7.5 }: { length?: number }) {
   );
 }
 
-// --- Center Executive node (I5.5.2: middle sphere is Executive, not product brand) ---
+// --- Intersecting zone circles on three planes (I5.5.3) ---
+// XY (horizontal top-down), XZ (front), YZ (side) — one set per zone radius.
+
+function ZoneCircles({
+  radius,
+  color,
+  opacity,
+}: {
+  radius: number;
+  color: string;
+  opacity: number;
+}) {
+  const w = 0.028;
+  const ringMat = () => (
+    <meshBasicMaterial
+      color={color}
+      transparent
+      opacity={opacity}
+      side={THREE.DoubleSide}
+      depthWrite={false}
+    />
+  );
+  // Three.js Ring lies in XY by default.
+  // [-PI/2,0,0] → floor (XZ). [0,0,0] → vertical facing +Z (XY). [0,PI/2,0] → vertical facing +X (YZ).
+  return (
+    <group>
+      <Ring args={[radius - w, radius + w, 96]} rotation={[-Math.PI / 2, 0, 0]}>
+        {ringMat()}
+      </Ring>
+      <Ring args={[radius - w, radius + w, 96]} rotation={[0, 0, 0]}>
+        {ringMat()}
+      </Ring>
+      <Ring args={[radius - w, radius + w, 96]} rotation={[0, Math.PI / 2, 0]}>
+        {ringMat()}
+      </Ring>
+    </group>
+  );
+}
+
+// --- Center Executive node ---
 
 function CenterExecutiveNode({
   position,
   pulse,
   palette,
+  size,
   onClick,
 }: {
   position: [number, number, number];
   pulse: boolean;
   palette: ScenePalette;
+  size: number;
   onClick?: (e: ThreeEvent<MouseEvent>) => void;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -166,7 +209,7 @@ function CenterExecutiveNode({
 
   return (
     <group position={position}>
-      <Sphere ref={glowRef} args={[0.9, 24, 24]}>
+      <Sphere ref={glowRef} args={[size * 1.65, 24, 24]}>
         <meshBasicMaterial
           color={theme.scene.hubGlow}
           transparent
@@ -174,7 +217,7 @@ function CenterExecutiveNode({
           side={THREE.BackSide}
         />
       </Sphere>
-      <Sphere ref={meshRef} args={[0.55, 32, 32]} onClick={onClick}>
+      <Sphere ref={meshRef} args={[size, 32, 32]} onClick={onClick}>
         <meshStandardMaterial
           color={theme.scene.hubColor}
           emissive={theme.scene.hubColor}
@@ -183,7 +226,7 @@ function CenterExecutiveNode({
           metalness={0.4}
         />
       </Sphere>
-      <Billboard position={[0, 1.1, 0]}>
+      <Billboard position={[0, size + 0.55, 0]}>
         <Text
           fontSize={0.3}
           color={palette.labelColor}
@@ -193,7 +236,7 @@ function CenterExecutiveNode({
           Executive
         </Text>
       </Billboard>
-      <Billboard position={[0, 0.75, 0]}>
+      <Billboard position={[0, size + 0.22, 0]}>
         <Text
           fontSize={0.16}
           color={palette.labelColor}
@@ -207,7 +250,7 @@ function CenterExecutiveNode({
   );
 }
 
-// --- Zone node (department / party / context) ---
+// --- Zone node ---
 
 function ZoneNode({
   node,
@@ -261,61 +304,29 @@ function ZoneNode({
   );
 }
 
-// --- Organization rim label ---
-
-function OrganizationRimLabel({
+function ZoneRimLabel({
   radius,
+  label,
   palette,
 }: {
   radius: number;
+  label: string;
   palette: ScenePalette;
 }) {
-  // Flat label along the edge of the Organization circle
   return (
-    <Billboard position={[0, 0, -radius - 0.3]}>
+    <Billboard position={[0, 0.05, -radius - 0.35]}>
       <Text
-        fontSize={0.22}
+        fontSize={0.2}
         color={palette.labelColor}
         anchorX="center"
         anchorY="middle"
         fillOpacity={0.7}
       >
-        Organization
+        {label}
       </Text>
     </Billboard>
   );
 }
-
-// --- Orbital ring guide ---
-
-function OrbitalRingGuide({
-  radius,
-  color,
-  opacity,
-}: {
-  radius: number;
-  color: string;
-  opacity: number;
-}) {
-  // Wider band so orbital guides read clearly (esp. dark mode)
-  return (
-    <Ring
-      args={[radius - 0.035, radius + 0.035, 96]}
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, 0, 0]}
-    >
-      <meshBasicMaterial
-        color={color}
-        transparent
-        opacity={opacity}
-        side={THREE.DoubleSide}
-        depthWrite={false}
-      />
-    </Ring>
-  );
-}
-
-// --- Animated connection line ---
 
 function AnimatedConnection({
   from,
@@ -333,11 +344,10 @@ function AnimatedConnection({
   primary?: boolean;
 }) {
   const matRef = useRef<THREE.LineBasicMaterial>(null);
-
   useFrame((state) => {
     if (matRef.current && primary) {
       const t = state.clock.getElapsedTime();
-      matRef.current.opacity = opacity * (0.65 + Math.sin(t * 2) * 0.25);
+      matRef.current.opacity = opacity * (0.75 + 0.25 * Math.sin(t * 2));
     }
   });
 
@@ -363,19 +373,19 @@ function AnimatedConnection({
   );
 }
 
-// --- Scene content (inside Canvas) ---
-
 function SceneContent({
   nodes,
   positions,
   focusedNodeId,
   palette,
+  showAxes,
   onNodeClick,
 }: {
   nodes: SceneNode[];
   positions: Map<string, [number, number, number]>;
   focusedNodeId?: string | null;
   palette: ScenePalette;
+  showAxes: boolean;
   onNodeClick?: (node: SceneNode) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
@@ -397,21 +407,30 @@ function SceneContent({
   const centerNode = nodes.find((n) => n.id === "executive")!;
   const centerPos = positions.get("executive")!;
 
+  const zoneMeta: { ring: number; label: string; color: string }[] = [
+    { ring: 1, label: "Organization", color: theme.scene.organizationColor },
+    { ring: 2, label: "Collaboration", color: theme.scene.collaborationColor },
+    { ring: 3, label: "Environmental", color: theme.scene.environmentalColor },
+  ];
+
   return (
     <group ref={groupRef}>
-      <AxisGuides />
+      {showAxes && <AxisGuides />}
 
-      {[1, 2, 3].map((ring) => (
-        <OrbitalRingGuide
-          key={"ring-" + ring}
-          radius={RING_RADII[ring]}
-          color={palette.ringGuideColor}
-          opacity={palette.ringGuideOpacity}
-        />
+      {zoneMeta.map((z) => (
+        <group key={"zone-" + z.ring}>
+          <ZoneCircles
+            radius={ZONE_RADII[z.ring]}
+            color={palette.ringGuideColor}
+            opacity={palette.ringGuideOpacity * 0.85}
+          />
+          <ZoneRimLabel
+            radius={ZONE_RADII[z.ring]}
+            label={z.label}
+            palette={palette}
+          />
+        </group>
       ))}
-
-      {/* Organization rim label */}
-      <OrganizationRimLabel radius={RING_RADII[1]} palette={palette} />
 
       {businessGraphLinks.map((link, i) => {
         const fromPos = positions.get(link.from);
@@ -443,6 +462,7 @@ function SceneContent({
         position={centerPos}
         pulse={!!focusedNodeId}
         palette={palette}
+        size={centerNode.size}
         onClick={handleClick(centerNode)}
       />
 
@@ -471,9 +491,18 @@ export function MissionControlScene({
   onNodeClick,
   focusedNodeId,
   expanded = false,
+  showAxes: showAxesProp,
+  onShowAxesChange,
 }: MissionControlSceneProps) {
   const dark = useDarkMode();
   const palette = getPalette(dark);
+  const [internalAxes, setInternalAxes] = useState(true);
+  const showAxes = showAxesProp ?? internalAxes;
+
+  const setShowAxes = (next: boolean) => {
+    if (showAxesProp === undefined) setInternalAxes(next);
+    onShowAxesChange?.(next);
+  };
 
   const positions = useMemo(() => computePositions(), []);
 
@@ -491,17 +520,19 @@ export function MissionControlScene({
     }));
   }, [positions]);
 
+  // When used inside a parent fullscreen shell, fill the parent (h-full).
+  // When standalone expanded, cover the viewport.
   const containerClass = expanded
-    ? "fixed inset-0 z-50 bg-background"
+    ? "relative h-full w-full min-h-[500px] overflow-hidden"
     : "relative h-[500px] w-full rounded-lg border border-border overflow-hidden transition-colors";
 
   return (
     <div
       className={containerClass}
-      style={!expanded ? { backgroundColor: palette.background } : undefined}
+      style={{ backgroundColor: palette.background }}
     >
       <Canvas
-        camera={{ position: [8, 6.5, 10], fov: 50 }}
+        camera={{ position: [10, 8, 12], fov: 50 }}
         gl={{ antialias: true, alpha: true }}
       >
         <ambientLight intensity={palette.ambientIntensity} />
@@ -512,47 +543,59 @@ export function MissionControlScene({
           positions={positions}
           focusedNodeId={focusedNodeId}
           palette={palette}
+          showAxes={showAxes}
           onNodeClick={onNodeClick}
         />
         <OrbitControls
           enableDamping
           dampingFactor={0.1}
           minDistance={5}
-          maxDistance={22}
+          maxDistance={28}
           autoRotate
           autoRotateSpeed={0.3}
         />
         <gridHelper
-          args={[16, 32, palette.gridMain, palette.gridSub]}
-          position={[0, -2.8, 0]}
+          args={[AXIS_STEP * 8, 32, palette.gridMain, palette.gridSub]}
+          position={[0, -AXIS_STEP * 3.2, 0]}
         />
       </Canvas>
 
-      {/* Legend */}
-      <div className="absolute top-3 left-3 flex flex-col gap-1.5 pointer-events-none">
-        <div className="flex items-center gap-2 text-xs">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.hubColor }} />
-          <span className="text-muted-foreground">Brand</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.organizationColor }} />
-          <span className="text-muted-foreground">Organization</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.collaborationColor }} />
-          <span className="text-muted-foreground">Collaboration</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.environmentalColor }} />
-          <span className="text-muted-foreground">Environmental</span>
-        </div>
+      {/* Chrome: axes toggle always visible (incl. fullscreen) */}
+      <div className="absolute top-3 left-3 z-20 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setShowAxes(!showAxes)}
+          className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+        >
+          {showAxes ? "Hide XYZ axes" : "Show XYZ axes"}
+        </button>
       </div>
 
-      {/* Hint */}
-      <div className="absolute bottom-2 left-3 text-xs text-muted-foreground pointer-events-none">
-        {focusedNodeId
-          ? "Node selected — see detail below. Drag to orbit, scroll to zoom"
-          : "Click a node to focus — drag to orbit, scroll to zoom"}
+      {/* Legend */}
+      <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-3 rounded-md border border-border bg-background/85 px-3 py-2 text-xs shadow-sm backdrop-blur">
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.hubColor }} />
+          Executive
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.organizationColor }} />
+          Organization
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.collaborationColor }} />
+          Collaboration
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.environmentalColor }} />
+          Environmental
+        </span>
+        {showAxes && (
+          <span className="flex items-center gap-2 text-muted-foreground">
+            <span className="text-[#ef4444]">X</span>
+            <span className="text-[#22c55e]">Y</span>
+            <span className="text-[#3b82f6]">Z</span>
+          </span>
+        )}
       </div>
     </div>
   );
