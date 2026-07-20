@@ -6,7 +6,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | I5.6 Zone ERD + backend menu tabbed config + User-pilot baseline ERD |
-| **Status** | 🔧 In progress — **ERD plan approved by Stephen 2026-07-20**; baseline lock next |
+| **Status** | In progress — ERD plan approved; **hub visual notes CLOSED 2026-07-20**; baseline lock next (Party model confirmed simple) |
 | **Last verified against code** | 2026-07-20 (hub I5.6.28 beta `1f9de1a` / v0.7.45; ERD docs only for persistence) |
 | **Primary code** | `mission-control-scene` hub; zone routes `/organization` `/collaboration` `/environment`; users admin |
 | **Task** | #176 |
@@ -167,8 +167,8 @@ Record JSON stores picklist **api codes**; UI resolves labels from catalog.
 - Labels billboard to camera.
 - Legend toggles zone visibility; Product with Executive legend.
 - EL side rest: Events +x / Locations −x, phase 0 static; on-ring with KS (I5.6.26 accepted direction).
-- I5.6.27 anim −π/2 **rejected** (intersections); I5.6.28 restored plain orbit — await final visual if still open.
-- I5.6.22 UI still await visual notes when Stephen has them.
+- I5.6.27 anim phase offset **rejected** (intersections); I5.6.28 restored plain orbit.
+- **Hub visual notes CLOSED 2026-07-20** (Stephen): treat I5.6.22 / I5.6.28 line as done unless he reopens.
 
 ---
 
@@ -271,6 +271,8 @@ erDiagram
 
 | Date | Scenario | Result | Follow-up |
 |------|----------|--------|-----------|
+| 2026-07-20 | Stephen: hub visual notes DONE — no further hub polish unless reopened |
+| 2026-07-20 | COA: baseline Party(party_kind) matches single-table+type spirit — recommend lock; await explicit word |
 | 2026-07-20 | Stephen: ERD plan looks great, approved; revisit I5 draft; need statefold | Acked; statefold created; I5 keystone/zone/baseline/UI folded | Await formal lock + hub visual |
 | 2026-07-20 | I5.6.28 rollback EL anim −π/2 | Shipped; intersections fixed vs I5.6.27 | Visual confirm |
 | 2026-07-20 | I5.6.26 on-ring EL side rest | Stephen side rest good | Locked direction |
@@ -282,6 +284,7 @@ erDiagram
 
 | Date | Change | Items |
 |------|--------|-------|
+| 2026-07-20 | Hub visuals closed per Stephen; Party simplicity recommendation sent; baseline still awaiting explicit lock |
 | 2026-07-20 | Statefold created; Stephen ERD plan approval recorded | Folded keystone + zone ERD + baseline I5.6.23 + UI pattern; archive copies under `__archive/` |
 | 2026-07-20 | Prior baseline draft authored (I5.6.23) | User pilot, JSON-in-DB, layout + value_set stubs |
 | 2026-07-19 | Zone ERD + IA I5.6.0–I5.6.10 | Mesh env, no collab cross-party, Production/Executive/Vendor ownership |
