@@ -11,23 +11,23 @@ function soft(hex: string, alpha = "22") {
 }
 
 /** I5.6.6 — IA restructure per Stephen:
- *  Org Executive: Policy, Projects, Tasks
- *  Org Production: Product + Service (Service moved under Production)
+ *  Org Executive: self + Policy, Projects, Tasks
+ *  Org Production: self + Product + Service
  *  Env: no Product tab
- *  Collab Vendor: Integrations nested under Vendor
+ *  Collab Vendor: self + Integrations (parent self-tab via ZoneConfigView)
  */
 export const organizationZone: ZoneConfig = {
   id: "organization",
   title: "Organization",
   subtitle:
-    "Internal faculties. Executive owns Policy, Projects, and Tasks. Production owns Product and Service.",
+    "Internal faculties. Executive (self + Policy/Projects/Tasks). Production (self + Product/Service).",
   accent: orgAccent,
   accentSoft: soft(orgAccent),
   tabs: [
     {
       id: "executive",
       label: "Executive",
-      summary: "Business executive function — policy, projects, and tasks.",
+      summary: "Business executive function — default executive data, plus policy, projects, and tasks.",
       fields: [
         { label: "Display name", placeholder: "Executive" },
         { label: "Lead", placeholder: "Name or user" },

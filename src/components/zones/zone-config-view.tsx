@@ -80,17 +80,39 @@ function TabPanel({
   tab: ZoneTab;
   accent: string;
 }) {
-  const [childId, setChildId] = useState(tab.children?.[0]?.id ?? "");
+  /** I5.6.9 - parent keeps a default/self sub-tab (same label) so nesting does not drop the parent UI. */
+  const selfPanel: ZoneTab = useMemo(
+    () => ({
+      id: tab.id,
+      label: tab.label,
+      summary: tab.summary,
+      fields: tab.fields,
+      relations: tab.relations,
+      links: tab.links,
+    }),
+    [tab]
+  );
+
+  const subTabs = useMemo(() => {
+    if (!tab.children?.length) return null;
+    return [selfPanel, ...tab.children];
+  }, [tab.children, selfPanel]);
+
+  const [childId, setChildId] = useState(tab.id);
   useEffect(() => {
-    setChildId(tab.children?.[0]?.id ?? "");
-  }, [tab.id, tab.children]);
+    setChildId(tab.id);
+  }, [tab.id]);
 
   const activeChild = useMemo(() => {
-    if (!tab.children?.length) return null;
-    return tab.children.find((c) => c.id === childId) ?? tab.children[0];
-  }, [tab.children, childId]);
+    if (!subTabs?.length) return null;
+    return subTabs.find((c) => c.id === childId) ?? subTabs[0];
+  }, [subTabs, childId]);
 
   const panel = activeChild ?? tab;
+  const title =
+    subTabs && panel.id !== tab.id
+      ? `${tab.label} · ${panel.label}`
+      : tab.label;
 
   return (
     <div className="grid gap-4 lg:grid-cols-5">
@@ -98,9 +120,7 @@ function TabPanel({
         <CardHeader className="border-b bg-muted/30">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <CardTitle className="text-lg">
-                {tab.children?.length ? `${tab.label} · ${panel.label}` : tab.label}
-              </CardTitle>
+              <CardTitle className="text-lg">{title}</CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">{panel.summary}</p>
             </div>
             <Badge
@@ -110,13 +130,13 @@ function TabPanel({
               Configure
             </Badge>
           </div>
-          {tab.children && tab.children.length > 0 && (
+          {subTabs && subTabs.length > 0 && (
             <div
               role="tablist"
               aria-label={`${tab.label} sub-elements`}
               className="mt-4 flex flex-wrap gap-1"
             >
-              {tab.children.map((c) => {
+              {subTabs.map((c) => {
                 const on = c.id === panel.id;
                 return (
                   <button
