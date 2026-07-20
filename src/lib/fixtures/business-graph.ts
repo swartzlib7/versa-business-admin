@@ -214,7 +214,8 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     axis: '-x',
   },
 
-  // Environmental — zone 3. I5.6.5: Event left (−x next to Branch), Location right (+x next to Customer)
+  // Environmental — zone 3. I5.6.25: Events right of Customer (+x); Locations left of Branch (−x)
+  // (I5.6.5 had the opposite pairing; phase offsets later parked them on ±y when anim stopped.)
   {
     id: 'locations',
     label: 'Locations',
@@ -222,7 +223,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 3,
     description: 'Global address book of business locations and places.',
     status: 'connected',
-    axis: '+x',
+    axis: '-x',
   },
   {
     id: 'events',
@@ -231,7 +232,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 3,
     description: 'Past or future planned activities and milestones.',
     status: 'active',
-    axis: '-x',
+    axis: '+x',
   },
   {
     id: 'knowledge',

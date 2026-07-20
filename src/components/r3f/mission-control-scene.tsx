@@ -659,7 +659,8 @@ function SceneContent({
   onNodeClick?: (node: SceneNode) => void;
 }) {
   // I5.6.12: collab CB Y-orbit ±x; VP X-spin +π/2; env KS Y-orbit ±z; EL Z-spin @ 2w
-  // I5.6.24: EL orbit radius scale >1 so XY path never meets KS XZ path on ±x (phase alone cannot prevent that)
+  // I5.6.24: EL orbit radius scale >1 so XY path never meets KS XZ path on ±x
+  // I5.6.25: EL phase 0 — rest Events +x (right of Customer), Locations −x (left of Branch)
   const collabHorizRef = useRef<THREE.Group>(null);
   const collabVpRef = useRef<THREE.Group>(null);
   const envKsRef = useRef<THREE.Group>(null);
@@ -682,9 +683,10 @@ function SceneContent({
     if (envKsRef.current) {
       envKsRef.current.rotation.y = -t * wEnv;
     }
-    // Events + Locations: Z-spin (XY plane). Phase kept at −π/2; clearance is via radius scale (I5.6.24).
+    // Events + Locations: Z-spin (XY plane). Phase 0 = rest on graph ±x (Events +x / Locations −x).
+    // I5.6.23/14 constant ±π/2 parked them on ±y when animSpeed=0 (static twins). Clearance = radius scale (I5.6.24).
     if (envElRef.current) {
-      envElRef.current.rotation.z = t * wEnv - Math.PI / 2;
+      envElRef.current.rotation.z = t * wEnv; // I5.6.25: no phase offset — side rest restored
     }
   });
 

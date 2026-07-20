@@ -192,7 +192,7 @@ export function Sidebar() {
       </nav>
       <div className="border-t border-sidebar-border px-4 py-3">
         <p className="text-xs text-sidebar-foreground/50">
-          {theme.brand.name} v0.7.41
+          {theme.brand.name} v0.7.42
         </p>
       </div>
     </aside>
