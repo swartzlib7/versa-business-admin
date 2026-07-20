@@ -658,7 +658,8 @@ function SceneContent({
   zoneVisible: { organization: boolean; collaboration: boolean; environment: boolean };
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  // I5.6.12: collab CB Y-orbit ±x; VP X-spin +π/2; env KS Y-orbit ±z; EL Z-spin Location up / Events down @ 2w; phase −π/2 (I5.6.23)
+  // I5.6.12: collab CB Y-orbit ±x; VP X-spin +π/2; env KS Y-orbit ±z; EL Z-spin @ 2w
+  // I5.6.24: EL orbit radius scale >1 so XY path never meets KS XZ path on ±x (phase alone cannot prevent that)
   const collabHorizRef = useRef<THREE.Group>(null);
   const collabVpRef = useRef<THREE.Group>(null);
   const envKsRef = useRef<THREE.Group>(null);
@@ -681,10 +682,9 @@ function SceneContent({
     if (envKsRef.current) {
       envKsRef.current.rotation.y = -t * wEnv;
     }
-    // Events + Locations: Z-spin (XY plane) — Location up-around / Events down-around.
-    // I5.6.14: +π/2 start; I5.6.23: −π (half turn behind) so EL clear KS pairs (Location↔Schedules, Events↔Knowledge).
+    // Events + Locations: Z-spin (XY plane). Phase kept at −π/2; clearance is via radius scale (I5.6.24).
     if (envElRef.current) {
-      envElRef.current.rotation.z = t * wEnv - Math.PI / 2; // was +π/2; half rotation behind
+      envElRef.current.rotation.z = t * wEnv - Math.PI / 2;
     }
   });
 
@@ -762,8 +762,17 @@ function SceneContent({
     },
   ];
 
-  const renderNode = (node: SceneNode, hideLabel = false) => {
-    const pos = positions.get(node.id)!;
+  // I5.6.24 — EL (Events/Locations) orbit on a larger radius than KS so the
+  // XY Z-spin path never intersects the XZ Y-orbit path (equal radii always
+  // meet on ±x regardless of phase).
+  const ENV_EL_ORBIT_SCALE = 1.28;
+
+  const renderNode = (node: SceneNode, hideLabel = false, orbitScale = 1) => {
+    const base = positions.get(node.id)!;
+    const pos: [number, number, number] =
+      orbitScale === 1
+        ? base
+        : [base[0] * orbitScale, base[1] * orbitScale, base[2] * orbitScale];
     return (
       <ZoneNode
         key={node.id}
@@ -855,11 +864,13 @@ function SceneContent({
         </>
       )}
 
-      {/* Env: KS Y-orbit ±z; EL Z-spin Location up-around / Events down-around @ 2× (I5.6.12) */}
+      {/* Env: KS Y-orbit ±z @ ring3; EL Z-spin @ ring3×1.28 (I5.6.24 clearance) */}
       {zoneVisible.environment && (
         <>
           <group ref={envKsRef}>{envKsNodes.map((n) => renderNode(n))}</group>
-          <group ref={envElRef}>{envElNodes.map((n) => renderNode(n))}</group>
+          <group ref={envElRef}>
+            {envElNodes.map((n) => renderNode(n, false, ENV_EL_ORBIT_SCALE))}
+          </group>
         </>
       )}
     </>
