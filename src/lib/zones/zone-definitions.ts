@@ -10,18 +10,24 @@ function soft(hex: string, alpha = "22") {
   return hex;
 }
 
+/** I5.6.6 — IA restructure per Stephen:
+ *  Org Executive: Policy, Projects, Tasks
+ *  Org Production: Product + Service (Service moved under Production)
+ *  Env: no Product tab
+ *  Collab Vendor: Integrations nested under Vendor
+ */
 export const organizationZone: ZoneConfig = {
   id: "organization",
   title: "Organization",
   subtitle:
-    "Configure internal departments and service faculty. Projects and tasks hang under Executive.",
+    "Internal faculties. Executive owns Policy, Projects, and Tasks. Production owns Product and Service.",
   accent: orgAccent,
   accentSoft: soft(orgAccent),
   tabs: [
     {
       id: "executive",
       label: "Executive",
-      summary: "Business executive function — owns projects and strategic direction.",
+      summary: "Business executive function — policy, projects, and tasks.",
       fields: [
         { label: "Display name", placeholder: "Executive" },
         { label: "Lead", placeholder: "Name or user" },
@@ -34,9 +40,72 @@ export const organizationZone: ZoneConfig = {
         { label: "Mandate", placeholder: "Short charter...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Organization", label: "Projects & tasks", hint: "Existing /projects and /tasks routes map here." },
-        { zone: "Collaboration", label: "Key accounts", hint: "Link priority customers and partners." },
-        { zone: "Environment", label: "Strategy knowledge", hint: "Attach policies and board packs from Knowledge." },
+        { zone: "Collaboration", label: "Key accounts", hint: "Priority customers and partners." },
+        { zone: "Environment", label: "Strategy knowledge", hint: "Board packs and research." },
+      ],
+      children: [
+        {
+          id: "policy",
+          label: "Policy",
+          summary: "Governing policies and executive directives for the organization.",
+          fields: [
+            { label: "Policy title", placeholder: "Operating policy name" },
+            {
+              label: "Scope",
+              placeholder: "Select scope",
+              kind: "select",
+              options: ["organization", "department", "product", "compliance"],
+            },
+            { label: "Owner", placeholder: "Executive lead" },
+            { label: "Summary", placeholder: "Intent and rules...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Environment", label: "Knowledge assets", hint: "Published policy documents." },
+            { zone: "Organization", label: "Owning faculty", hint: "Usually Executive." },
+          ],
+        },
+        {
+          id: "projects",
+          label: "Projects",
+          summary: "Strategic and delivery projects owned by Executive.",
+          fields: [
+            { label: "Project name", placeholder: "Mission Control beta" },
+            {
+              label: "Status",
+              placeholder: "Select status",
+              kind: "select",
+              options: ["planned", "active", "blocked", "done"],
+            },
+            { label: "Owner", placeholder: "Project lead" },
+            { label: "Description", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Tasks", hint: "Work breakdown under this project." },
+            { zone: "Collaboration", label: "External parties", hint: "Customers or partners involved." },
+          ],
+          links: [{ href: "/projects", label: "Projects list" }],
+        },
+        {
+          id: "tasks",
+          label: "Tasks",
+          summary: "Executable work items under Executive projects.",
+          fields: [
+            { label: "Task title", placeholder: "Ship I5.6.6" },
+            {
+              label: "Status",
+              placeholder: "Select status",
+              kind: "select",
+              options: ["todo", "in_progress", "waiting", "done"],
+            },
+            { label: "Assignee", placeholder: "Person or agent" },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Parent project", hint: "Project this task belongs to." },
+            { zone: "Environment", label: "Schedule", hint: "When the task is due." },
+          ],
+          links: [{ href: "/tasks", label: "Tasks list" }],
+        },
       ],
     },
     {
@@ -63,7 +132,7 @@ export const organizationZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Environment", label: "Products", hint: "What is being disseminated." },
+        { zone: "Organization", label: "Products", hint: "What Production owns is disseminated here." },
         { zone: "Collaboration", label: "Distribution partners", hint: "Partner and vendor channels." },
       ],
     },
@@ -78,13 +147,13 @@ export const organizationZone: ZoneConfig = {
       ],
       relations: [
         { zone: "Collaboration", label: "Billing parties", hint: "Customers and vendors for AR/AP." },
-        { zone: "Environment", label: "Priced offerings", hint: "Products and services rate cards." },
+        { zone: "Organization", label: "Priced offerings", hint: "Product and service rate cards under Production." },
       ],
     },
     {
       id: "production",
       label: "Production",
-      summary: "Making and delivering work product.",
+      summary: "Making and delivering work product — owns Product and Service.",
       fields: [
         { label: "Display name", placeholder: "Production" },
         { label: "Capacity notes", placeholder: "...", kind: "textarea" },
@@ -92,6 +161,49 @@ export const organizationZone: ZoneConfig = {
       relations: [
         { zone: "Environment", label: "Schedules & locations", hint: "When and where production runs." },
         { zone: "Collaboration", label: "Vendors", hint: "Supply inputs from vendors." },
+      ],
+      children: [
+        {
+          id: "product",
+          label: "Product",
+          summary:
+            "Device, manufactured item, or computer file — operating nucleus. Owned by Production (moved from Environment).",
+          fields: [
+            { label: "Product name", placeholder: "Versa AGi Mission Control" },
+            {
+              label: "Kind",
+              placeholder: "Select kind",
+              kind: "select",
+              options: ["device", "manufactured", "software", "file"],
+            },
+            { label: "Description", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Service offerings", hint: "Services that wrap or deliver this product." },
+            { zone: "Collaboration", label: "Buyers & suppliers", hint: "Via org ownership — customers and vendors." },
+            { zone: "Environment", label: "Knowledge", hint: "Specs and docs describing the product." },
+          ],
+        },
+        {
+          id: "service",
+          label: "Service",
+          summary: "Faculty for results — e.g. Analysis & Design. Nested under Production (I5.6.6).",
+          fields: [
+            { label: "Service name", placeholder: "Analysis & Design" },
+            {
+              label: "Status",
+              placeholder: "Select status",
+              kind: "select",
+              options: ["connected", "active", "standby"],
+            },
+            { label: "Description", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Related products", hint: "Products this service delivers or supports." },
+            { zone: "Collaboration", label: "Service customers", hint: "Who receives this service." },
+            { zone: "Environment", label: "Delivery events", hint: "Engagements scheduled as Events." },
+          ],
+        },
       ],
     },
     {
@@ -104,27 +216,8 @@ export const organizationZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Environment", label: "Policies", hint: "Knowledge assets for standards." },
+        { zone: "Environment", label: "Policies & knowledge", hint: "Standards documentation." },
         { zone: "Collaboration", label: "Auditors / partners", hint: "External qualification parties." },
-      ],
-    },
-    {
-      id: "service",
-      label: "Service",
-      summary: "Faculty for results — e.g. Analysis & Design services.",
-      fields: [
-        { label: "Service name", placeholder: "Analysis & Design" },
-        {
-          label: "Status",
-          placeholder: "Select status",
-          kind: "select",
-          options: ["connected", "active", "standby"],
-        },
-        { label: "Description", placeholder: "...", kind: "textarea" },
-      ],
-      relations: [
-        { zone: "Collaboration", label: "Service customers", hint: "Who receives this service." },
-        { zone: "Environment", label: "Delivery events", hint: "Engagements scheduled as Events." },
       ],
     },
   ],
@@ -133,14 +226,15 @@ export const organizationZone: ZoneConfig = {
 export const collaborationZone: ZoneConfig = {
   id: "collaboration",
   title: "Collaboration",
-  subtitle: "Parties the organization works with — vendors, customers, partners, and branches.",
+  subtitle:
+    "Parties the organization works with. Integrations are handled under Vendor.",
   accent: collabAccent,
   accentSoft: soft(collabAccent),
   tabs: [
     {
       id: "vendor",
       label: "Vendor",
-      summary: "Service provider — external supplier of goods or services.",
+      summary: "Service provider — external supplier. Integrations nest here (I5.6.6).",
       fields: [
         { label: "Legal name", placeholder: "Vendor Co." },
         { label: "Category", placeholder: "Cloud, materials, freelancers..." },
@@ -153,8 +247,40 @@ export const collaborationZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        // I5.6.4: no collab↔collab edges; org owns the party link (env product optional later via org)
-        { zone: "Organization", label: "Owning department", hint: "Usually Production or Treasury. Org→Vendor only — not Vendor→Customer." },
+        {
+          zone: "Organization",
+          label: "Owning department",
+          hint: "Usually Production or Treasury. Org→Vendor only — not Vendor→Customer.",
+        },
+      ],
+      children: [
+        {
+          id: "integrations",
+          label: "Integrations",
+          summary:
+            "Technical and commercial integrations with this vendor (moved from Product menu).",
+          fields: [
+            { label: "Integration name", placeholder: "Stripe billing" },
+            {
+              label: "Kind",
+              placeholder: "Select kind",
+              kind: "select",
+              options: ["api", "webhook", "sftp", "manual", "other"],
+            },
+            {
+              label: "Status",
+              placeholder: "Select status",
+              kind: "select",
+              options: ["connected", "active", "standby", "error"],
+            },
+            { label: "Notes", placeholder: "Endpoints, credentials owner...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Collaboration", label: "Vendor", hint: "Parent vendor this integration belongs to." },
+            { zone: "Organization", label: "Owning faculty", hint: "Production / Treasury / Service." },
+          ],
+          links: [{ href: "/integrations", label: "Integrations list" }],
+        },
       ],
     },
     {
@@ -173,7 +299,11 @@ export const collaborationZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Organization", label: "Account owner", hint: "Executive or Communications ownership. No Customer↔Vendor capture." },
+        {
+          zone: "Organization",
+          label: "Account owner",
+          hint: "Executive or Communications ownership. No Customer↔Vendor capture.",
+        },
       ],
     },
     {
@@ -191,7 +321,11 @@ export const collaborationZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Organization", label: "Partnership owner", hint: "Executive sponsorship. No Partner↔other collab edges." },
+        {
+          zone: "Organization",
+          label: "Partnership owner",
+          hint: "Executive sponsorship. No Partner↔other collab edges.",
+        },
       ],
     },
     {
@@ -204,7 +338,11 @@ export const collaborationZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Organization", label: "Parent organization", hint: "Subsidiary_of — org has branch; no Branch↔Customer/Vendor/Partner." },
+        {
+          zone: "Organization",
+          label: "Parent organization",
+          hint: "Subsidiary_of — org has branch; no Branch↔Customer/Vendor/Partner.",
+        },
       ],
     },
   ],
@@ -213,7 +351,8 @@ export const collaborationZone: ZoneConfig = {
 export const environmentZone: ZoneConfig = {
   id: "environment",
   title: "Environment",
-  subtitle: "Context of work — places, time, knowledge, and offerings (product nucleus).",
+  subtitle:
+    "Context of work — places, time, and knowledge. Product lives under Organization → Production.",
   accent: envAccent,
   accentSoft: soft(envAccent),
   tabs: [
@@ -228,7 +367,6 @@ export const environmentZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        // I5.6.4 env full mesh: Location ↔ Event, Knowledge, Schedule
         { zone: "Environment", label: "Events", hint: "Events that occur at this location." },
         { zone: "Environment", label: "Knowledge", hint: "Knowledge gained or held at this location." },
         { zone: "Environment", label: "Schedules", hint: "Schedules tied to this location." },
@@ -291,26 +429,6 @@ export const environmentZone: ZoneConfig = {
         { zone: "Environment", label: "Locations", hint: "Places this schedule applies to." },
         { zone: "Environment", label: "Knowledge", hint: "Knowledge acquired on this schedule." },
         { zone: "Organization", label: "Linked tasks", hint: "Executive project tasks." },
-      ],
-    },
-    {
-      id: "product",
-      label: "Product",
-      summary: "Device, manufactured item, or computer file — operating nucleus. Integrations nest here.",
-      fields: [
-        { label: "Product name", placeholder: "Versa AGi Mission Control" },
-        {
-          label: "Kind",
-          placeholder: "Select kind",
-          kind: "select",
-          options: ["device", "manufactured", "software", "file"],
-        },
-        { label: "Description", placeholder: "...", kind: "textarea" },
-      ],
-      relations: [
-        { zone: "Environment", label: "Integrations", hint: "Use Product to Integrations nav; data sourced from Product." },
-        { zone: "Collaboration", label: "Buyers & suppliers", hint: "Customers and vendors on this product." },
-        { zone: "Organization", label: "Owning faculty", hint: "Production / Dissemination / Service." },
       ],
     },
   ],

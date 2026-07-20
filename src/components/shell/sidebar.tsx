@@ -7,14 +7,9 @@ import { cn } from "@/lib/utils";
 import { theme } from "@/lib/theme";
 import {
   LayoutDashboard,
-  Plug,
   Users,
-  FolderKanban,
-  CheckSquare,
   Settings,
   ChevronDown,
-  Briefcase,
-  Package,
   Building2,
   Handshake,
   Globe2,
@@ -38,27 +33,15 @@ function isGroup(entry: NavEntry): entry is NavGroup {
   return "children" in entry;
 }
 
+// I5.6.6: zone menus own IA — Executive (Policy/Projects/Tasks) under Organization,
+// Production (Product/Service) under Organization, Integrations under Collaboration→Vendor.
+// Legacy /projects /tasks /integrations routes remain; linked from zone config panels.
 const navEntries: NavEntry[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/organization", label: "Organization", icon: Building2 },
   { href: "/collaboration", label: "Collaboration", icon: Handshake },
   { href: "/environment", label: "Environment", icon: Globe2 },
   { href: "/users", label: "Users", icon: Users },
-  {
-    label: "Executive",
-    icon: Briefcase,
-    children: [
-      { href: "/projects", label: "Projects", icon: FolderKanban },
-      { href: "/tasks", label: "Tasks", icon: CheckSquare },
-    ],
-  },
-  {
-    label: "Product",
-    icon: Package,
-    children: [
-      { href: "/integrations", label: "Integrations", icon: Plug },
-    ],
-  },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

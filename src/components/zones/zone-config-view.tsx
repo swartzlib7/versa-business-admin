@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,10 @@ export type ZoneTab = {
     options?: string[];
   }[];
   relations: { zone: string; label: string; hint: string }[];
+  /** Optional deep links shown in the panel (e.g. existing /projects route). */
+  links?: { href: string; label: string }[];
+  /** Nested UIs under this tab (I5.6.6 — Production/Product+Service, Executive/Policy+Projects+Tasks, Vendor/Integrations). */
+  children?: ZoneTab[];
 };
 
 export type ZoneConfig = {
@@ -66,6 +70,166 @@ function FieldMock({
         <input className={base} placeholder={placeholder} defaultValue="" />
       )}
     </label>
+  );
+}
+
+function TabPanel({
+  tab,
+  accent,
+}: {
+  tab: ZoneTab;
+  accent: string;
+}) {
+  const [childId, setChildId] = useState(tab.children?.[0]?.id ?? "");
+  useEffect(() => {
+    setChildId(tab.children?.[0]?.id ?? "");
+  }, [tab.id, tab.children]);
+
+  const activeChild = useMemo(() => {
+    if (!tab.children?.length) return null;
+    return tab.children.find((c) => c.id === childId) ?? tab.children[0];
+  }, [tab.children, childId]);
+
+  const panel = activeChild ?? tab;
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <Card className="lg:col-span-3 overflow-hidden">
+        <CardHeader className="border-b bg-muted/30">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg">
+                {tab.children?.length ? `${tab.label} · ${panel.label}` : tab.label}
+              </CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">{panel.summary}</p>
+            </div>
+            <Badge
+              className="shrink-0 border-0 text-white"
+              style={{ backgroundColor: accent }}
+            >
+              Configure
+            </Badge>
+          </div>
+          {tab.children && tab.children.length > 0 && (
+            <div
+              role="tablist"
+              aria-label={`${tab.label} sub-elements`}
+              className="mt-4 flex flex-wrap gap-1"
+            >
+              {tab.children.map((c) => {
+                const on = c.id === panel.id;
+                return (
+                  <button
+                    key={c.id}
+                    role="tab"
+                    type="button"
+                    aria-selected={on}
+                    onClick={() => setChildId(c.id)}
+                    className={cn(
+                      "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                      on
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                    )}
+                    style={
+                      on ? { boxShadow: `inset 0 -2px 0 ${accent}` } : undefined
+                    }
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </CardHeader>
+        <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
+          {panel.fields.map((f) => (
+            <div
+              key={f.label}
+              className={f.kind === "textarea" ? "sm:col-span-2" : undefined}
+            >
+              <FieldMock {...f} />
+            </div>
+          ))}
+          {panel.links && panel.links.length > 0 && (
+            <div className="sm:col-span-2 flex flex-wrap gap-2">
+              {panel.links.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+                >
+                  Open {l.label} →
+                </Link>
+              ))}
+            </div>
+          )}
+          <div className="sm:col-span-2 flex flex-wrap gap-2 pt-2">
+            <button
+              type="button"
+              className="rounded-md px-4 py-2 text-sm font-medium text-white"
+              style={{ backgroundColor: accent }}
+            >
+              Save draft
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+            >
+              Reset
+            </button>
+            <span className="self-center text-xs text-muted-foreground">
+              Mock only — no persistence yet
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-col gap-4 lg:col-span-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Relationships</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Connect this element across zones (keystone ERD pattern).
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {panel.relations.map((r) => (
+              <div
+                key={r.label + r.zone}
+                className="rounded-lg border border-border bg-muted/20 p-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium">{r.label}</span>
+                  <Badge variant="secondary" className="font-normal">
+                    {r.zone}
+                  </Badge>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{r.hint}</p>
+              </div>
+            ))}
+            {panel.relations.length === 0 && (
+              <p className="text-sm text-muted-foreground">No relations defined yet.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Zone map</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              Spatial twin: Mission Control 3D hub on the dashboard. Operational
+              twin: this tabbed surface.
+            </p>
+            <p className="text-xs">
+              Brand: {theme.brand.name}. Spec: docs/specs/MISSION_CONTROL_ZONE_ERD_I5.6.md
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
 
@@ -140,102 +304,18 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
                 }
               >
                 {t.label}
+                {t.children && t.children.length > 0 ? (
+                  <span className="ml-1 text-[10px] opacity-70">
+                    ({t.children.length})
+                  </span>
+                ) : null}
               </button>
             );
           })}
         </div>
       </div>
 
-      {tab && (
-        <div className="grid gap-4 lg:grid-cols-5">
-          <Card className="lg:col-span-3 overflow-hidden">
-            <CardHeader className="border-b bg-muted/30">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <CardTitle className="text-lg">{tab.label}</CardTitle>
-                  <p className="mt-1 text-sm text-muted-foreground">{tab.summary}</p>
-                </div>
-                <Badge
-                  className="shrink-0 border-0 text-white"
-                  style={{ backgroundColor: config.accent }}
-                >
-                  Configure
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
-              {tab.fields.map((f) => (
-                <div
-                  key={f.label}
-                  className={f.kind === "textarea" ? "sm:col-span-2" : undefined}
-                >
-                  <FieldMock {...f} />
-                </div>
-              ))}
-              <div className="sm:col-span-2 flex flex-wrap gap-2 pt-2">
-                <button
-                  type="button"
-                  className="rounded-md px-4 py-2 text-sm font-medium text-white"
-                  style={{ backgroundColor: config.accent }}
-                >
-                  Save draft
-                </button>
-                <button
-                  type="button"
-                  className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
-                >
-                  Reset
-                </button>
-                <span className="self-center text-xs text-muted-foreground">
-                  Mock only — no persistence yet
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex flex-col gap-4 lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Relationships</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Connect this element across zones (keystone ERD pattern).
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {tab.relations.map((r) => (
-                  <div
-                    key={r.label + r.zone}
-                    className="rounded-lg border border-border bg-muted/20 p-3"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium">{r.label}</span>
-                      <Badge variant="secondary" className="font-normal">
-                        {r.zone}
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{r.hint}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Zone map</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm text-muted-foreground">
-                <p>
-                  Spatial twin: Mission Control 3D hub on the dashboard. Operational
-                  twin: this tabbed surface.
-                </p>
-                <p className="text-xs">
-                  Brand: {theme.brand.name}. Spec: docs/specs/MISSION_CONTROL_ZONE_ERD_I5.6.md
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      )}
+      {tab && <TabPanel key={tab.id} tab={tab} accent={config.accent} />}
     </div>
   );
 }

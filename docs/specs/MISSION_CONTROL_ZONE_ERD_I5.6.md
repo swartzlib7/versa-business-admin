@@ -1,6 +1,6 @@
 # Mission Control — Zone Entity ERD (I5.6 basic)
 
-**Status:** Draft v0.2 — I5.6.4 relationship rules (2026-07-19)
+**Status:** Draft v0.3 — I5.6.6 IA restructure (2026-07-19)
 **Project:** versa-admin-system (#26) · Game #109
 **Builds on:** `MISSION_CONTROL_ERD_KEYSTONE.md` v1.1
 **Author:** Versa (COA)
@@ -24,11 +24,11 @@ This is a **conceptual ERD** (product model), not a locked SQL schema. Storage t
 
 | Zone | Route | Color cue | Elements (tabs) |
 |------|-------|-----------|-----------------|
-| **Organization** | `/organization` | Executive red | Executive, Communications, Dissemination, Treasury, Production, Qualification, Service |
-| **Collaboration** | `/collaboration` | Collab green | Vendor, Customer, Partner, Branch |
-| **Environment** | `/environment` | Env orange | Locations, Events, Knowledge, Schedules, Product (+ Integrations under Product) |
+| **Organization** | `/organization` | Executive red | Executive (Policy, Projects, Tasks), Communications, Dissemination, Treasury, Production (Product, Service), Qualification |
+| **Collaboration** | `/collaboration` | Collab green | Vendor (Integrations), Customer, Partner, Branch |
+| **Environment** | `/environment` | Env orange | Locations, Events, Knowledge, Schedules |
 
-> **Product** sits at the hub in the 3D viz and is the nucleus for offerings; **Service** is modeled as Organization faculty in the live hub. **Integrations** always nest under Product.
+> **I5.6.6 IA:** Product + Service live under **Production**. Policy + Projects + Tasks live under **Executive**. Integrations live under **Vendor** (Collaboration). Product is removed from Environment tabs (3D hub nucleus unchanged).
 
 ---
 
@@ -40,9 +40,11 @@ This is a **conceptual ERD** (product model), not a locked SQL schema. Storage t
 |--------|------|--------|
 | **Organization** | Aggregate | The enterprise; owns departments |
 | **Department** | Entity | Executive, Communications, Dissemination, Treasury, Production, Qualification |
-| **Service** | Entity | Faculty for results (e.g. Analysis & Design) |
-| **Project** | Entity | Lives under Executive (nav remap) |
-| **Task** | Entity | Lives under Project |
+| **Service** | Entity | Under Production (with Product) — faculty for results |
+| **Product** | Entity | Under Production (moved from Environment tabs) |
+| **Policy** | Entity | Under Executive |
+| **Project** | Entity | Under Executive |
+| **Task** | Entity | Under Executive / Project |
 
 ### 3.2 Collaboration zone
 
@@ -62,8 +64,7 @@ This is a **conceptual ERD** (product model), not a locked SQL schema. Storage t
 | **Event** | Entity | Planned activity past/future |
 | **KnowledgeAsset** | Entity | Docs, recordings, photos, policies, research |
 | **Schedule** | Entity | When an Event / Activity / Task occurs |
-| **Product** | Entity | Device, manufactured item, or computer file — hub nucleus |
-| **Integration** | Entity | Always under Product |
+| **Integration** | Entity | Under Collaboration → Vendor (I5.6.6) |
 
 ### 3.4 Cross-cutting
 
@@ -199,3 +200,4 @@ erDiagram
 |------|------|
 | 2026-07-19 | I5.6.0 basic ERD + tab map from Stephen next-stage brief after I5.5.16 visual accept |
 
+| 0.3 | 2026-07-19 | I5.6.6: Production←Product+Service; Executive←Policy+Projects+Tasks; Vendor←Integrations; Product off Environment |
