@@ -855,9 +855,10 @@ const ZONE_CAMERA_FIT: Record<
   "organization" | "collaboration" | "environment",
   { radius: number; fill: number }
 > = {
-  organization: { radius: ZONE_RADII[1], fill: 0.85 },
-  collaboration: { radius: ZONE_RADII[2], fill: 0.85 },
-  environment: { radius: ZONE_RADII[3], fill: 0.92 },
+  // I5.6.18 — Stephen: org/env ~25% less zoomed-in, collab ~10% less
+  organization: { radius: ZONE_RADII[1], fill: 0.68 }, // was 0.85 / 1.25
+  collaboration: { radius: ZONE_RADII[2], fill: 0.773 }, // was 0.85 / 1.10
+  environment: { radius: ZONE_RADII[3], fill: 0.736 }, // was 0.92 / 1.25
 };
 
 function fitDistanceForZone(

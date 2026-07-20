@@ -1,212 +1,711 @@
 "use client";
 
-import Link from "next/link";
+import { Fragment, useMemo, useState } from "react";
 import { AppShell } from "@/components/shell/app-shell";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { theme } from "@/lib/theme";
 
-type Term = {
-  term: string;
-  definition: string;
-  group: string;
+/** I5.6.18 — glossary as data: sections + entries (listing + inline editor). */
+
+type GlossarySection = {
+  id: string;
+  name: string;
+  description: string;
 };
 
-/** Sourced from MISSION_CONTROL_ERD_KEYSTONE.md + I5.6 IA updates. */
-const TERMS: Term[] = [
+type GlossaryEntry = {
+  id: string;
+  sectionId: string;
+  name: string;
+  definition: string;
+};
+
+const INITIAL_SECTIONS: GlossarySection[] = [
   {
-    group: "Zones",
-    term: "Organization",
+    id: "zones",
+    name: "Zones",
+    description: "Top-level operating spheres of the business graph.",
+  },
+  {
+    id: "organization",
+    name: "Organization",
+    description: "Internal faculties and executive nesting.",
+  },
+  {
+    id: "collaboration",
+    name: "Collaboration",
+    description: "Parties the organization works with.",
+  },
+  {
+    id: "environment",
+    name: "Environment",
+    description: "Context of work — places, time, and knowledge.",
+  },
+  {
+    id: "ui-pattern",
+    name: "UI pattern",
+    description: "Shared Mission Control configuration patterns.",
+  },
+];
+
+const INITIAL_ENTRIES: GlossaryEntry[] = [
+  {
+    id: "e-org-zone",
+    sectionId: "zones",
+    name: "Organization",
     definition:
       "Center circle of internal faculties: Executive, Communications, Dissemination, Treasury, Production, Qualification.",
   },
   {
-    group: "Zones",
-    term: "Collaboration",
+    id: "e-collab-zone",
+    sectionId: "zones",
+    name: "Collaboration",
     definition:
       "Parties the organization works with: Vendor, Customer, Partner, Branch. Integrations nest under Vendor.",
   },
   {
-    group: "Zones",
-    term: "Environment",
+    id: "e-env-zone",
+    sectionId: "zones",
+    name: "Environment",
     definition:
       "Context of work: Locations, Events, Knowledge, Schedules. Product and Service live under Organization / Production (I5.6).",
   },
   {
-    group: "Organization",
-    term: "Executive",
+    id: "e-executive",
+    sectionId: "organization",
+    name: "Executive",
     definition:
       "Business executive function. Owns Policy, Projects, and Tasks as nested elements; parent self-tab keeps executive defaults.",
   },
   {
-    group: "Organization",
-    term: "Policy",
+    id: "e-policy",
+    sectionId: "organization",
+    name: "Policy",
     definition: "Governing policies and executive directives for the organization.",
   },
   {
-    group: "Organization",
-    term: "Projects",
+    id: "e-projects",
+    sectionId: "organization",
+    name: "Projects",
     definition: "Strategic and delivery projects owned by Executive.",
   },
   {
-    group: "Organization",
-    term: "Tasks",
+    id: "e-tasks",
+    sectionId: "organization",
+    name: "Tasks",
     definition: "Executable work items under Executive projects.",
   },
   {
-    group: "Organization",
-    term: "Production",
+    id: "e-production",
+    sectionId: "organization",
+    name: "Production",
     definition: "Making and delivering work product. Owns Product and Service.",
   },
   {
-    group: "Organization",
-    term: "Product",
+    id: "e-product",
+    sectionId: "organization",
+    name: "Product",
     definition:
       "Device, manufactured item, or computer file — operating nucleus. Owned by Production (moved from Environment in I5.6).",
   },
   {
-    group: "Organization",
-    term: "Service",
+    id: "e-service",
+    sectionId: "organization",
+    name: "Service",
     definition: "Faculty for results (e.g. Analysis & Design). Nested under Production.",
   },
   {
-    group: "Organization",
-    term: "Communications",
+    id: "e-comms",
+    sectionId: "organization",
+    name: "Communications",
     definition: "Internal and external messaging faculty.",
   },
   {
-    group: "Organization",
-    term: "Dissemination",
+    id: "e-dissem",
+    sectionId: "organization",
+    name: "Dissemination",
     definition: "Distribution of products, content, and outcomes.",
   },
   {
-    group: "Organization",
-    term: "Treasury",
+    id: "e-treasury",
+    sectionId: "organization",
+    name: "Treasury",
     definition: "Financial control and commercial terms.",
   },
   {
-    group: "Organization",
-    term: "Qualification",
+    id: "e-qual",
+    sectionId: "organization",
+    name: "Qualification",
     definition: "Quality, compliance, and qualification processes.",
   },
   {
-    group: "Collaboration",
-    term: "Vendor",
+    id: "e-vendor",
+    sectionId: "collaboration",
+    name: "Vendor",
     definition: "Service provider / external supplier. Integrations nest under Vendor.",
   },
   {
-    group: "Collaboration",
-    term: "Integrations",
-    definition: "Technical and commercial integrations with a vendor (API, webhook, SFTP, etc.).",
+    id: "e-integrations",
+    sectionId: "collaboration",
+    name: "Integrations",
+    definition:
+      "Technical and commercial integrations with a vendor (API, webhook, SFTP, etc.).",
   },
   {
-    group: "Collaboration",
-    term: "Customer",
+    id: "e-customer",
+    sectionId: "collaboration",
+    name: "Customer",
     definition: "Person or business that receives products or services.",
   },
   {
-    group: "Collaboration",
-    term: "Partner",
+    id: "e-partner",
+    sectionId: "collaboration",
+    name: "Partner",
     definition: "Business or investor in a collaborative relationship.",
   },
   {
-    group: "Collaboration",
-    term: "Branch",
+    id: "e-branch",
+    sectionId: "collaboration",
+    name: "Branch",
     definition: "Subsidiary — subordinate operating unit of the organization.",
   },
   {
-    group: "Environment",
-    term: "Locations",
+    id: "e-locations",
+    sectionId: "environment",
+    name: "Locations",
     definition: "Global address book of business locations and places.",
   },
   {
-    group: "Environment",
-    term: "Events",
+    id: "e-events",
+    sectionId: "environment",
+    name: "Events",
     definition: "Planned activity past or future.",
   },
   {
-    group: "Environment",
-    term: "Knowledge",
+    id: "e-knowledge",
+    sectionId: "environment",
+    name: "Knowledge",
     definition: "Documents, recordings, photos, policies, research.",
   },
   {
-    group: "Environment",
-    term: "Schedules",
+    id: "e-schedules",
+    sectionId: "environment",
+    name: "Schedules",
     definition: "When an event, activity, or task occurs.",
   },
   {
-    group: "UI pattern",
-    term: "Listing",
+    id: "e-listing",
+    sectionId: "ui-pattern",
+    name: "Listing",
     definition:
       "Table of entities with New and Edit. Edit expands an inline collapsible form on that row; New opens under the header. Not a modal.",
   },
   {
-    group: "UI pattern",
-    term: "Parent self-tab",
+    id: "e-self-tab",
+    sectionId: "ui-pattern",
+    name: "Parent self-tab",
     definition:
       "When a menu tab has children, the first sub-tab is the parent itself (same label) so the default UI is not lost under nesting.",
   },
 ];
 
-const groups = Array.from(new Set(TERMS.map((t) => t.group)));
+const ACCENT = theme.scene.hubColor;
+
+function uid(prefix: string) {
+  return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+type Editor =
+  | null
+  | { kind: "section-new" }
+  | { kind: "section-edit"; id: string }
+  | { kind: "entry-new" }
+  | { kind: "entry-edit"; id: string };
 
 export default function GlossaryPage() {
+  const [sections, setSections] = useState(INITIAL_SECTIONS);
+  const [entries, setEntries] = useState(INITIAL_ENTRIES);
+  const [activeSectionId, setActiveSectionId] = useState(
+    INITIAL_SECTIONS[0]?.id ?? ""
+  );
+  const [editor, setEditor] = useState<Editor>(null);
+
+  const [secDraft, setSecDraft] = useState({ name: "", description: "" });
+  const [entryDraft, setEntryDraft] = useState({
+    name: "",
+    definition: "",
+    sectionId: INITIAL_SECTIONS[0]?.id ?? "",
+  });
+
+  const activeSection =
+    sections.find((s) => s.id === activeSectionId) ?? sections[0];
+
+  const sectionEntries = useMemo(
+    () =>
+      entries.filter((e) => e.sectionId === (activeSection?.id ?? "")),
+    [entries, activeSection?.id]
+  );
+
+  const cancel = () => setEditor(null);
+
+  const startSectionNew = () => {
+    if (editor?.kind === "section-new") {
+      setEditor(null);
+      return;
+    }
+    setSecDraft({ name: "", description: "" });
+    setEditor({ kind: "section-new" });
+  };
+
+  const startSectionEdit = (id: string) => {
+    if (editor?.kind === "section-edit" && editor.id === id) {
+      setEditor(null);
+      return;
+    }
+    const sec = sections.find((s) => s.id === id);
+    if (!sec) return;
+    setSecDraft({ name: sec.name, description: sec.description });
+    setEditor({ kind: "section-edit", id });
+  };
+
+  const commitSection = () => {
+    const name = secDraft.name.trim();
+    if (!name) return;
+    if (editor?.kind === "section-edit") {
+      setSections((prev) =>
+        prev.map((s) =>
+          s.id === editor.id
+            ? {
+                ...s,
+                name,
+                description: secDraft.description.trim(),
+              }
+            : s
+        )
+      );
+    } else {
+      const id = uid("sec");
+      setSections((prev) => [
+        ...prev,
+        {
+          id,
+          name,
+          description: secDraft.description.trim(),
+        },
+      ]);
+      setActiveSectionId(id);
+    }
+    setEditor(null);
+  };
+
+  const startEntryNew = () => {
+    if (editor?.kind === "entry-new") {
+      setEditor(null);
+      return;
+    }
+    setEntryDraft({
+      name: "",
+      definition: "",
+      sectionId: activeSection?.id ?? sections[0]?.id ?? "",
+    });
+    setEditor({ kind: "entry-new" });
+  };
+
+  const startEntryEdit = (id: string) => {
+    if (editor?.kind === "entry-edit" && editor.id === id) {
+      setEditor(null);
+      return;
+    }
+    const e = entries.find((x) => x.id === id);
+    if (!e) return;
+    setEntryDraft({
+      name: e.name,
+      definition: e.definition,
+      sectionId: e.sectionId,
+    });
+    setEditor({ kind: "entry-edit", id });
+  };
+
+  const commitEntry = () => {
+    const name = entryDraft.name.trim();
+    if (!name || !entryDraft.sectionId) return;
+    if (editor?.kind === "entry-edit") {
+      setEntries((prev) =>
+        prev.map((e) =>
+          e.id === editor.id
+            ? {
+                ...e,
+                name,
+                definition: entryDraft.definition.trim(),
+                sectionId: entryDraft.sectionId,
+              }
+            : e
+        )
+      );
+    } else {
+      setEntries((prev) => [
+        ...prev,
+        {
+          id: uid("e"),
+          name,
+          definition: entryDraft.definition.trim(),
+          sectionId: entryDraft.sectionId,
+        },
+      ]);
+      setActiveSectionId(entryDraft.sectionId);
+    }
+    setEditor(null);
+  };
+
+  const SectionForm = ({ heading }: { heading: string }) => (
+    <div
+      className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6"
+      style={{ boxShadow: `inset 3px 0 0 ${ACCENT}` }}
+    >
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-medium">{heading}</p>
+        <span className="text-xs text-muted-foreground">
+          Section editor · mock only
+        </span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block space-y-1.5 text-sm">
+          <span className="font-medium text-foreground">Name</span>
+          <input
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            value={secDraft.name}
+            onChange={(e) =>
+              setSecDraft((d) => ({ ...d, name: e.target.value }))
+            }
+            placeholder="e.g. Zones"
+          />
+        </label>
+        <label className="block space-y-1.5 text-sm sm:col-span-2">
+          <span className="font-medium text-foreground">Description</span>
+          <textarea
+            className="min-h-[72px] w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm"
+            value={secDraft.description}
+            onChange={(e) =>
+              setSecDraft((d) => ({ ...d, description: e.target.value }))
+            }
+            placeholder="Subheading shown under the section name"
+          />
+        </label>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={commitSection}
+          className="rounded-md px-4 py-2 text-sm font-medium text-white"
+          style={{ backgroundColor: ACCENT }}
+        >
+          {editor?.kind === "section-edit" ? "Update section" : "Add section"}
+        </button>
+        <button
+          type="button"
+          onClick={cancel}
+          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+
+  const EntryForm = ({ heading }: { heading: string }) => (
+    <div
+      className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6"
+      style={{ boxShadow: `inset 3px 0 0 ${ACCENT}` }}
+    >
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-medium">{heading}</p>
+        <span className="text-xs text-muted-foreground">
+          Inline row editor · mock only
+        </span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block space-y-1.5 text-sm">
+          <span className="font-medium text-foreground">Section</span>
+          <select
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            value={entryDraft.sectionId}
+            onChange={(e) =>
+              setEntryDraft((d) => ({ ...d, sectionId: e.target.value }))
+            }
+          >
+            {sections.map((sec) => (
+              <option key={sec.id} value={sec.id}>
+                {sec.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block space-y-1.5 text-sm">
+          <span className="font-medium text-foreground">Name</span>
+          <input
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            value={entryDraft.name}
+            onChange={(e) =>
+              setEntryDraft((d) => ({ ...d, name: e.target.value }))
+            }
+            placeholder="Blue label term"
+          />
+        </label>
+        <label className="block space-y-1.5 text-sm sm:col-span-2">
+          <span className="font-medium text-foreground">Definition</span>
+          <textarea
+            className="min-h-[88px] w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm"
+            value={entryDraft.definition}
+            onChange={(e) =>
+              setEntryDraft((d) => ({ ...d, definition: e.target.value }))
+            }
+            placeholder="Full definition"
+          />
+        </label>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={commitEntry}
+          className="rounded-md px-4 py-2 text-sm font-medium text-white"
+          style={{ backgroundColor: ACCENT }}
+        >
+          {editor?.kind === "entry-edit" ? "Update entry" : "Add to table"}
+        </button>
+        <button
+          type="button"
+          onClick={cancel}
+          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <AppShell>
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mx-auto max-w-5xl space-y-6">
         <div className="space-y-2">
           <Badge variant="outline" className="font-normal">
-            Reference
+            Reference · editable mock
           </Badge>
-          <h1 className="text-2xl font-bold tracking-tight">Glossary of Terms</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Glossary</h1>
           <p className="max-w-2xl text-muted-foreground">
-            Shared language for Mission Control zones, parties, and UI patterns.
-            Sourced from the ERD keystone and I5.6 information architecture.
+            Sections group terms; each entry has a name (blue label) and
+            definition. Same listing pattern as zone config — New at top, Edit
+            expands inline on the row.
           </p>
         </div>
-        <Link
-          href="/dashboard"
-          className="rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          3D hub
-        </Link>
-      </div>
 
-      {groups.map((g) => (
-        <Card key={g}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">{g}</CardTitle>
-            <CardDescription>
-              {g === "Zones"
-                ? "Top-level operating spheres"
-                : g === "UI pattern"
-                  ? "How configuration screens behave"
-                  : `Terms under ${g}`}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="divide-y divide-border">
-            {TERMS.filter((t) => t.group === g).map((t) => (
-              <div key={t.term} className="grid gap-1 py-3 sm:grid-cols-[10rem_1fr] sm:gap-4">
-                <dt
-                  className="text-sm font-semibold"
-                  style={{ color: theme.colors.brand }}
-                >
-                  {t.term}
-                </dt>
-                <dd className="text-sm text-muted-foreground">{t.definition}</dd>
+        {/* Sections listing */}
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b bg-muted/30">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-lg">Sections</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Choose a section, then manage entries below. Description is
+                  the subheading under each area.
+                </p>
               </div>
-            ))}
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge
+                  className="shrink-0 border-0 text-white"
+                  style={{ backgroundColor: ACCENT }}
+                >
+                  Listing
+                </Badge>
+                <button
+                  type="button"
+                  onClick={startSectionNew}
+                  className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                  style={{ backgroundColor: ACCENT }}
+                >
+                  {editor?.kind === "section-new" ? "Close" : "New section"}
+                </button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-0 p-0">
+            {editor?.kind === "section-new" && (
+              <SectionForm heading="New section" />
+            )}
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[480px] border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="px-4 py-2.5 font-medium">Name</th>
+                    <th className="px-4 py-2.5 font-medium">Description</th>
+                    <th className="px-4 py-2.5 font-medium text-right">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sections.map((sec) => {
+                    const on = sec.id === activeSection?.id;
+                    const editing =
+                      editor?.kind === "section-edit" && editor.id === sec.id;
+                    return (
+                      <Fragment key={sec.id}>
+                        <tr
+                          className={cn(
+                            "border-b border-border/70 transition-colors hover:bg-muted/30",
+                            on && "bg-muted/40"
+                          )}
+                        >
+                          <td className="px-4 py-3 align-top">
+                            <button
+                              type="button"
+                              onClick={() => setActiveSectionId(sec.id)}
+                              className="text-left font-medium hover:underline"
+                              style={{ color: ACCENT }}
+                            >
+                              {sec.name}
+                            </button>
+                          </td>
+                          <td className="px-4 py-3 align-top text-muted-foreground">
+                            <span className="line-clamp-3">
+                              {sec.description || "—"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right align-top">
+                            <button
+                              type="button"
+                              onClick={() => startSectionEdit(sec.id)}
+                              className="text-sm font-medium text-muted-foreground hover:text-foreground"
+                            >
+                              {editing ? "Close" : "Edit"}
+                            </button>
+                          </td>
+                        </tr>
+                        {editing && (
+                          <tr>
+                            <td colSpan={3} className="p-0">
+                              <SectionForm heading={`Edit · ${sec.name}`} />
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
-      ))}
 
-      <p className="text-xs text-muted-foreground">
-        Design keystone: docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md. Zone ERD:
-        docs/specs/MISSION_CONTROL_ZONE_ERD_I5.6.md. UI pattern:
-        docs/specs/ZONE_CONFIG_UI_PATTERN_I5.6.md.
-      </p>
-    </div>
+        {/* Entries listing for active section */}
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b bg-muted/30">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-lg">
+                  Entries
+                  {activeSection ? ` · ${activeSection.name}` : ""}
+                </CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {activeSection?.description ||
+                    "Select a section above to filter entries."}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge
+                  className="shrink-0 border-0 text-white"
+                  style={{ backgroundColor: ACCENT }}
+                >
+                  Listing
+                </Badge>
+                <button
+                  type="button"
+                  onClick={startEntryNew}
+                  className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                  style={{ backgroundColor: ACCENT }}
+                >
+                  {editor?.kind === "entry-new" ? "Close" : "New entry"}
+                </button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-0 p-0">
+            {editor?.kind === "entry-new" && (
+              <EntryForm heading="New entry" />
+            )}
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[520px] border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="px-4 py-2.5 font-medium">Name</th>
+                    <th className="px-4 py-2.5 font-medium">Definition</th>
+                    <th className="px-4 py-2.5 font-medium text-right">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sectionEntries.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="px-4 py-8 text-center text-sm text-muted-foreground"
+                      >
+                        No entries in this section yet. Use New entry.
+                      </td>
+                    </tr>
+                  )}
+                  {sectionEntries.map((row) => {
+                    const editing =
+                      editor?.kind === "entry-edit" && editor.id === row.id;
+                    return (
+                      <Fragment key={row.id}>
+                        <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
+                          <td className="px-4 py-3 align-top">
+                            <span
+                              className="font-medium"
+                              style={{ color: ACCENT }}
+                            >
+                              {row.name}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 align-top text-foreground">
+                            <span className="line-clamp-4 whitespace-pre-wrap">
+                              {row.definition}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right align-top">
+                            <button
+                              type="button"
+                              onClick={() => startEntryEdit(row.id)}
+                              className="text-sm font-medium text-muted-foreground hover:text-foreground"
+                            >
+                              {editing ? "Close" : "Edit"}
+                            </button>
+                          </td>
+                        </tr>
+                        {editing && (
+                          <tr>
+                            <td colSpan={3} className="p-0">
+                              <EntryForm heading={`Edit · ${row.name}`} />
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        <p className="text-xs text-muted-foreground">
+          Mock only — changes stay in this browser session. Pattern matches zone
+          config listing (I5.6.10+).
+        </p>
+      </div>
     </AppShell>
   );
 }
