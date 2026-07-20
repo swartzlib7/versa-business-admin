@@ -10,9 +10,10 @@ Standalone, distributable product that customers install/use with their Versa AG
 |--|--|
 | **Project ID** | 26 |
 | **Game** | #109 Versa Voice AI LLC |
-| **Phase** | Building — I0–I6 + I5.x on **beta**; ERD keystone v1.1 locked |
+| **Phase** | Building — I0–I6 + I5.x through **I5.6** on **beta** (package **v0.7.45**) |
 | **Remote** | `git@github.com:swartzlib7/versa-agi-mission.git` |
 | **Branches** | `master`, `beta`, `agent/coa`, `agent/web-dev` |
+| **HEAD (beta)** | I5.6.29 docs statefold zone ERD; hub code through I5.6.28 |
 
 ## Product boundaries (short)
 
@@ -24,17 +25,17 @@ Standalone, distributable product that customers install/use with their Versa AG
 - **agitop Organization** may be turned off when using this product’s Organization model; migration is future/out of scope.
 
 Full rules: `docs/specs/PRODUCT_SPECIFICATION.md`  
-**3D / zone ERD source of truth:** `docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md`
+**3D / zone ERD source of truth:** `docs/design/spec/state/state_i5_6_zone_erd.md` (keystone + zone + baseline + UI pattern folded 2026-07-20)
 
-## Conceptual ERD (keystone v1.1)
+## Conceptual ERD (keystone)
 
 Three zones (circles):
 
 1. **Organization** — departments as spheres: Executive, Communications, Dissemination, Treasury, Production, Qualification  
 2. **Collaboration** — Vendor (Service Provider), Customer, Partner, Branch (Subsidiary)  
-3. **Environmental** — Locations (address book), Events, Knowledge, Schedules, Product, Service  
+3. **Environmental** — Locations (address book), Events, Knowledge, Schedules; Product/Service owned under Organization/Production per I5.6 IA  
 
-Nav intent: **Projects/Tasks → Executive**; **Integrations → Product**; Active Agents / Agent Status **fall away**.
+Nav intent: **Projects/Tasks → Executive**; **Integrations → Vendor/Product path**; Active Agents / Agent Status **fall away**.
 
 ## Stack
 
@@ -59,14 +60,19 @@ npm run build && npm start
 
 | Path | Role |
 |------|------|
-| `docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md` | **Canonical** 3D/zone ERD + glossary + agitop boundary |
+| `docs/design/spec/state/state_i5_6_zone_erd.md` | **Living** zone ERD + baseline persistence + zone config UI |
+| `docs/design/spec/state/state_api_contract.md` | **Living** HTTP API contract |
+| `docs/design/spec/state/state_layout_mission_ui.md` | **Living** shell layout / IA chrome |
 | `docs/specs/PRODUCT_SPECIFICATION.md` | Product essence, spine, non-goals |
-| `docs/specs/PRODUCTION_PLAN.md` | Iteration status; I5.5 gated; I7 closed |
-| `docs/api/API_CONTRACT.md` | HTTP API contract |
-| `docs/handoffs/ITERATION_*_WEB_DEV.md` | Historical / active build briefs (**not** at workspace root) |
-| `docs/_notes/from_stephen.md` | Binding early boundaries note |
+| `docs/specs/PRODUCTION_PLAN.md` | Iteration history / gates (may lag HEAD — prefer git + state docs) |
+| `docs/api/API_CONTRACT.md` | **Stub** → state_api_contract |
+| `docs/research/LAYOUT_PROPOSAL.md` | **Stub** → state_layout_mission_ui |
+| `docs/research/RESEARCH.md` | **Archived pointer** — early R3F notes only |
+| `docs/handoffs/ITERATION_*_WEB_DEV.md` | Historical / active build briefs |
+| `docs/_notes/from_stephen_*.md` | Binding early boundary notes |
 | `docs/_notes/ALIGNMENT_CHECKLIST.md` | Acceptance checklist |
-| `docs/research/LAYOUT_PROPOSAL.md` | **Superseded** seed — do not implement |
+
+Folded ERD specs under `docs/specs/*KEYSTONE*`, `*ZONE_ERD*`, `*BASELINE*`, `*ZONE_CONFIG*` are **stubs** pointing at the zone ERD state doc.
 
 ## Current build status (high level)
 
@@ -75,14 +81,16 @@ npm run build && npm start
 | Public site + facets | Done (I4 / I5.x) |
 | Auth + RBAC + Users | Done (I5) |
 | Projects + Tasks | Done (I6) |
-| 3D hub viz | Done transitional (I5.4 / I5.4.1) — **not yet keystone nodes** |
-| Keystone ERD in UI/nav | **I5.5 not opened** |
-| Organization hierarchy I7 | **Closed** |
-| Own SQL DB | Not started |
+| Keystone zones in 3D + nav | Done through **I5.5.x**; hub polish **I5.6** through **I5.6.28** (v0.7.45) |
+| Zone ERD + baseline docs | Living statefold **I5.6.29**; formal baseline lock still open |
+| Organization hierarchy I7 | **Closed** until Stephen opens |
+| Own SQL DB | Not started (JSON-in-DB direction locked for flexible attrs) |
 
 ## API (summary)
 
-See `docs/api/API_CONTRACT.md`. Prefer business resources: `users`, `roles`, `projects`, `tasks`, public `*`. Legacy `/api/agents*` naming is **deprecated** transitional alias of users with `type=agent` — do not expand agent-fleet semantics.
+See **`docs/design/spec/state/state_api_contract.md`**. Prefer business resources: `users`, `projects`, `tasks`, public `*`. Legacy `/api/agents*` naming is **deprecated** transitional alias of users with `type=agent` — do not expand agent-fleet semantics.
+
+Package version **0.7.45**; API index label may still report **0.4.0** (capability series) while health tracks package version — see API state doc.
 
 ## White-label
 
@@ -94,7 +102,7 @@ Branding tokens in `src/lib/theme.ts` (including hub name **Versa AGi** for Miss
 2. COA accepts → merge to **`beta`**  
 3. Stephen promotes **`beta` → `master`** when ready  
 
-web-dev stands by for **I5.5** (keystone implementation) only when explicitly tasked. **I7** stays closed until Stephen opens it.
+web-dev stands by unless explicitly tasked. **I7** stays closed until Stephen opens it. Hub visual experiments only with explicit direction.
 
 ## System information (product requirement)
 
