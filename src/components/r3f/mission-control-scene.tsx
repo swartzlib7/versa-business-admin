@@ -661,6 +661,7 @@ function SceneContent({
   // I5.6.12: collab CB Y-orbit ±x; VP X-spin +π/2; env KS Y-orbit ±z; EL Z-spin @ 2w
   // I5.6.25: EL phase 0 — rest Events +x (right of Customer), Locations −x (left of Branch)
   // I5.6.26: EL back on ring3 (removed 1.28× scale from I5.6.24 — was one step off the env ring)
+  // I5.6.27: EL anim phase −π/2 only while moving; static (animSpeed=0) stays phase 0
   const collabHorizRef = useRef<THREE.Group>(null);
   const collabVpRef = useRef<THREE.Group>(null);
   const envKsRef = useRef<THREE.Group>(null);
@@ -683,10 +684,12 @@ function SceneContent({
     if (envKsRef.current) {
       envKsRef.current.rotation.y = -t * wEnv;
     }
-    // Events + Locations: Z-spin (XY plane). Phase 0 = rest on graph ±x (Events +x / Locations −x).
-    // I5.6.26: same ring3 radius as KS (on the env ring); no orbit scale.
+    // Events + Locations: Z-spin (XY plane). Static rest = graph ±x (Events +x / Locations −x).
+    // I5.6.27: when animating, start one quarter turn (−π/2) behind rest so motion lines up;
+    // when animSpeed=0 force phase 0 so stopped view never parks on ±y.
     if (envElRef.current) {
-      envElRef.current.rotation.z = t * wEnv;
+      envElRef.current.rotation.z =
+        animSpeed === 0 ? 0 : t * wEnv - Math.PI / 2;
     }
   });
 
