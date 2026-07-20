@@ -858,6 +858,35 @@ function SceneContent({
   );
 }
 
+
+/** I5.6.20 — keep orbit pivot locked on product sphere center (origin).
+ *  Standard OrbitControls pan moves target with the camera, which shifts the
+ *  rotation point and makes the model look distorted. After each controls
+ *  update we snap target back to the product center so RMB pan trucks the
+ *  camera while look-at (and next orbit) stay on the hub. */
+function OrbitPivotLock({
+  controlsRef,
+  target = DEFAULT_CAM_TARGET,
+}: {
+  controlsRef: React.RefObject<any>;
+  target?: [number, number, number];
+}) {
+  useFrame(() => {
+    const controls = controlsRef.current;
+    if (!controls?.target) return;
+    const [x, y, z] = target;
+    if (
+      controls.target.x !== x ||
+      controls.target.y !== y ||
+      controls.target.z !== z
+    ) {
+      controls.target.set(x, y, z);
+      controls.update();
+    }
+  });
+  return null;
+}
+
 // --- Camera telemetry (I5.6.1) - live pos / target / zoom for default-view capture ---
 
 const CAM_MIN_DIST = 5;
@@ -1139,11 +1168,11 @@ export function MissionControlScene({
 
   // When used inside a parent fullscreen shell, fill the parent (h-full).
   // When standalone expanded, cover the viewport.
-  // I5.6.16: className lets zone pages fill a column (h-full) without fixed 500px.
+  // I5.6.16/20: className lets zone pages fill a column (h-full); default hub height 750px (I5.6.20 +50%).
   const containerClass = cn(
     expanded
-      ? "relative h-full w-full min-h-[500px] overflow-hidden"
-      : "relative h-[500px] w-full rounded-lg border border-border overflow-hidden transition-colors",
+      ? "relative h-full w-full min-h-[750px] overflow-hidden"
+      : "relative h-[750px] w-full rounded-lg border border-border overflow-hidden transition-colors",
     className
   );
 
@@ -1178,12 +1207,21 @@ export function MissionControlScene({
         />
         <OrbitControls
           ref={controlsRef}
+          makeDefault
           enableDamping
-          dampingFactor={0.1}
+          dampingFactor={0.08}
           minDistance={CAM_MIN_DIST}
           maxDistance={CAM_MAX_DIST}
           autoRotate={false}
+          enablePan
+          screenSpacePanning
+          // I5.6.20 — product sphere is always the orbit center
+          target={DEFAULT_CAM_TARGET}
+          // Prevent extreme polar flip that reads as model distortion
+          minPolarAngle={0.12}
+          maxPolarAngle={Math.PI - 0.12}
         />
+        <OrbitPivotLock controlsRef={controlsRef} target={DEFAULT_CAM_TARGET} />
         <CameraTelemetryReporter controlsRef={controlsRef} onUpdate={onCamTel} />
         <gridHelper
           args={[AXIS_STEP * 8, 32, palette.gridMain, palette.gridSub]}
