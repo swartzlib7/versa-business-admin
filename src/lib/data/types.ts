@@ -138,8 +138,10 @@ export interface User {
   role: "admin" | "member";
   type: "human" | "agent";
   department: string;
+  department_id?: string;
   bio: string;
   status: "active" | "inactive";
+  data?: Record<string, unknown>;
 }
 
 export interface Session {

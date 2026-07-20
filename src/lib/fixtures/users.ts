@@ -9,8 +9,10 @@ export interface UserFixture {
   type: 'human' | 'agent';
   password: string; // fixture-only; real auth will use hashed credentials
   department: string;
+  department_id?: string;
   bio: string;
   status: 'active' | 'inactive';
+  data?: Record<string, unknown>;
 }
 
 export const users: UserFixture[] = [
@@ -22,6 +24,8 @@ export const users: UserFixture[] = [
     type: 'human',
     password: 'mission2026',
     department: 'Leadership',
+    department_id: 'dept-leadership',
+    data: { job_title: 'Founder and producer for the sample maker worksp' },
     bio: 'Founder and producer for the sample maker workspace.',
     status: 'active',
   },
@@ -33,6 +37,8 @@ export const users: UserFixture[] = [
     type: 'agent',
     password: 'mission2026',
     department: 'Operations',
+    department_id: 'dept-operations',
+    data: { job_title: 'Sample agent account with admin role for demos' },
     bio: 'Sample agent account with admin role for demos.',
     status: 'active',
   },
@@ -44,6 +50,8 @@ export const users: UserFixture[] = [
     type: 'human',
     password: 'mission2026',
     department: 'Operations',
+    department_id: 'dept-operations',
+    data: { job_title: 'Operations lead keeping production on cadence' },
     bio: 'Operations lead keeping production on cadence.',
     status: 'active',
   },
@@ -55,6 +63,8 @@ export const users: UserFixture[] = [
     type: 'agent',
     password: 'mission2026',
     department: 'Research',
+    department_id: 'dept-research',
+    data: { job_title: 'Sample agent account with member role' },
     bio: 'Sample agent account with member role.',
     status: 'active',
   },
@@ -66,6 +76,8 @@ export const users: UserFixture[] = [
     type: 'human',
     password: 'mission2026',
     department: 'Customer',
+    department_id: 'dept-customer',
+    data: { job_title: 'Customer partner helping buyers adopt what we sh' },
     bio: 'Customer partner helping buyers adopt what we ship.',
     status: 'active',
   },
@@ -77,6 +89,8 @@ export const users: UserFixture[] = [
     type: 'human',
     password: 'mission2026',
     department: 'Outreach',
+    department_id: 'dept-outreach',
+    data: { job_title: 'Story and reach lead for the public brand' },
     bio: 'Story and reach lead for the public brand.',
     status: 'active',
   },

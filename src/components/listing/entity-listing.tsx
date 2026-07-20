@@ -11,6 +11,8 @@ export type ListingField = {
   label: string;
   kind?: "text" | "textarea" | "select";
   options?: string[];
+  /** Display labels parallel to options (api codes stay as values) */
+  optionLabels?: string[];
   /** Show in table columns (default true for first fields) */
   column?: boolean;
 };
@@ -22,8 +24,10 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   fields: ListingField[];
   rows: T[];
   getRowId: (row: T) => string;
-  /** Map row -> display values by field key */
+  /** Map row -> raw field values (used for edit draft) */
   getCell: (row: T, key: string) => string;
+  /** Optional display formatter (defaults to getCell) */
+  formatCell?: (row: T, key: string, raw: string) => string;
   /** Called when user adds a mock/local row (optional persistence later) */
   onAdd?: (draft: Record<string, string>) => void;
   onUpdate?: (id: string, draft: Record<string, string>) => void;
@@ -55,9 +59,9 @@ function FieldInput({
       ) : kind === "select" ? (
         <select className={base} value={value} onChange={(e) => onChange(e.target.value)}>
           <option value="">Select…</option>
-          {(field.options ?? []).map((o) => (
+          {(field.options ?? []).map((o, i) => (
             <option key={o} value={o}>
-              {o}
+              {field.optionLabels?.[i] ?? o}
             </option>
           ))}
         </select>
@@ -79,11 +83,16 @@ export function EntityListing<T extends Record<string, unknown>>({
   rows,
   getRowId,
   getCell,
+  formatCell,
   onAdd,
   onUpdate,
   emptyLabel,
   headerExtra,
 }: EntityListingProps<T>) {
+  const displayCell = (row: T, key: string) => {
+    const raw = getCell(row, key);
+    return formatCell ? formatCell(row, key, raw) : raw;
+  };
   const columns = useMemo(
     () => fields.filter((f) => f.column !== false),
     [fields]
