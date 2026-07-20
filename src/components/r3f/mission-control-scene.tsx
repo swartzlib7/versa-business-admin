@@ -776,17 +776,21 @@ function SceneContent({
               </group>
             ))}
 
-        <CenterProductNode
-          position={centerPos}
-          pulse={
-            focusedNodeId === HUB_CENTER_ID || focusedNodeId === "executive"
-          }
-          palette={palette}
-          size={centerNode.size}
-          onClick={handleClick(centerNode)}
-        />
-
-        {zoneVisible.organization && orgNodes.map((n) => renderNode(n))}
+        {/* I5.6.7: Product is part of Executive/Organization zone — hide with zone toggle */}
+        {zoneVisible.organization && (
+          <>
+            <CenterProductNode
+              position={centerPos}
+              pulse={
+                focusedNodeId === HUB_CENTER_ID || focusedNodeId === "executive"
+              }
+              palette={palette}
+              size={centerNode.size}
+              onClick={handleClick(centerNode)}
+            />
+            {orgNodes.map((n) => renderNode(n))}
+          </>
+        )}
       </group>
 
       {/* Collab: Customer/Branch horizontal Y; Vendor/Partner perp X (I5.5.15) */}

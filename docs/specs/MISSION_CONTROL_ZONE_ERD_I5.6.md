@@ -28,7 +28,9 @@ This is a **conceptual ERD** (product model), not a locked SQL schema. Storage t
 | **Collaboration** | `/collaboration` | Collab green | Vendor (Integrations), Customer, Partner, Branch |
 | **Environment** | `/environment` | Env orange | Locations, Events, Knowledge, Schedules |
 
-> **I5.6.6 IA:** Product + Service live under **Production**. Policy + Projects + Tasks live under **Executive**. Integrations live under **Vendor** (Collaboration). Product is removed from Environment tabs (3D hub nucleus unchanged).
+> **I5.6.6 IA:** Product + Service live under **Production**. Policy + Projects + Tasks live under **Executive**. Integrations live under **Vendor** (Collaboration). Product is removed from Environment tabs.
+>
+> **I5.6.7 hub:** Product sphere is a member of the **Organization / Executive zone** in the 3D model — toggled with the Executive legend control (not a free-floating nucleus outside zones).
 
 ---
 
