@@ -604,7 +604,7 @@ function SceneContent({
   zoneVisible: { organization: boolean; collaboration: boolean; environment: boolean };
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  // I5.6.8: collab CB Y-orbit ±x; VP X-spin +π/2; env KS Y-orbit ±z; EL X-spin (perp) @ 2w
+  // I5.6.12: collab CB Y-orbit ±x; VP X-spin +π/2; env KS Y-orbit ±z; EL Z-spin Location up / Events down @ 2w
   const collabHorizRef = useRef<THREE.Group>(null);
   const collabVpRef = useRef<THREE.Group>(null);
   const envKsRef = useRef<THREE.Group>(null);
@@ -627,10 +627,10 @@ function SceneContent({
     if (envKsRef.current) {
       envKsRef.current.rotation.y = -t * wEnv;
     }
-    // Events + Locations: perpendicular X-spin (YZ plane) — restores independent orbit (I5.6.8)
-    // Rest still Event −x / Location +x from fixtures; X-spin takes them off the KS plane.
+    // Events + Locations: Z-spin (XY plane) — Location (+x) up-and-around; Events (-x) down-and-around (I5.6.12).
+    // Prior X-spin left rest positions on the rotation axis so nodes looked static.
     if (envElRef.current) {
-      envElRef.current.rotation.x = t * wEnv;
+      envElRef.current.rotation.z = t * wEnv;
     }
   });
 
@@ -798,7 +798,7 @@ function SceneContent({
         </>
       )}
 
-      {/* Env: KS Y-orbit ±z; EL X-spin Event−x/Location+x @ 2× (I5.6.8 restore perp) */}
+      {/* Env: KS Y-orbit ±z; EL Z-spin Location up-around / Events down-around @ 2× (I5.6.12) */}
       {zoneVisible.environment && (
         <>
           <group ref={envKsRef}>{envKsNodes.map((n) => renderNode(n))}</group>
