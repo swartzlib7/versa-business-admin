@@ -326,14 +326,23 @@ function ExecutiveZoneGlow({
   orgRadius,
   serviceY,
   onLabelClick,
+  selected = false,
 }: {
   orgRadius: number;
   serviceY: number;
   /** Only the Executive label is tappable (I5.5.9). */
   onLabelClick?: (e: ThreeEvent<MouseEvent>) => void;
+  /** I5.6.21 — selection on Executive label, not the product sphere. */
+  selected?: boolean;
 }) {
   const r = orgRadius * 1.15;
+  // I5.6.21 — single label (removed duplicate "Organization Zone"; ring mid-label covers zone name)
   const labelY = serviceY * 0.5;
+  const labelColor = selected
+    ? "#fca5a5"
+    : theme.scene.executiveColor;
+  // Brackets + underline treatment when selected (Stephen I5.6.21)
+  const labelText = selected ? "[ Executive ]" : "Executive";
 
   return (
     <group>
@@ -341,18 +350,20 @@ function ExecutiveZoneGlow({
         <meshBasicMaterial
           color={theme.scene.executiveGlow ?? theme.scene.executiveColor}
           transparent
-          opacity={0.09}
+          opacity={selected ? 0.14 : 0.09}
           side={THREE.DoubleSide}
           depthWrite={false}
         />
       </Sphere>
-      <Billboard position={[0, labelY + 0.14, 0]}>
+      <Billboard position={[0, labelY, 0]}>
         <Text
-          fontSize={0.22}
-          color={theme.scene.executiveColor}
+          fontSize={selected ? 0.24 : 0.22}
+          color={labelColor}
           anchorX="center"
           anchorY="middle"
-          fillOpacity={0.95}
+          fillOpacity={1}
+          outlineWidth={selected ? 0.012 : 0}
+          outlineColor={selected ? theme.scene.executiveColor : undefined}
           onClick={onLabelClick}
           onPointerOver={(e) => {
             e.stopPropagation();
@@ -362,20 +373,23 @@ function ExecutiveZoneGlow({
             document.body.style.cursor = "auto";
           }}
         >
-          Executive
+          {labelText}
         </Text>
       </Billboard>
-      <Billboard position={[0, labelY - 0.14, 0]}>
-        <Text
-          fontSize={0.14}
-          color={theme.scene.executiveColor}
-          anchorX="center"
-          anchorY="middle"
-          fillOpacity={0.7}
-        >
-          Organization Zone
-        </Text>
-      </Billboard>
+      {/* I5.6.21 — underline bar under Executive when selected */}
+      {selected && (
+        <Billboard position={[0, labelY - 0.2, 0]}>
+          <Text
+            fontSize={0.12}
+            color={labelColor}
+            anchorX="center"
+            anchorY="middle"
+            fillOpacity={0.95}
+          >
+            ———
+          </Text>
+        </Billboard>
+      )}
     </group>
   );
 }
@@ -786,6 +800,7 @@ function SceneContent({
             orgRadius={radii[1]}
             serviceY={serviceY}
             onLabelClick={handleClick(executiveNode)}
+            selected={focusedNodeId === "executive"}
           />
         )}
 
@@ -823,9 +838,7 @@ function SceneContent({
           <>
             <CenterProductNode
               position={centerPos}
-              pulse={
-                focusedNodeId === HUB_CENTER_ID || focusedNodeId === "executive"
-              }
+              pulse={focusedNodeId === HUB_CENTER_ID}
               palette={palette}
               size={centerNode.size}
               onClick={handleClick(centerNode)}
