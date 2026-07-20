@@ -6,7 +6,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | I5.6 Zone ERD + backend menu tabbed config + User-pilot baseline ERD |
-| **Status** | ERD-D shipped (Project/Task/Product catalog+pages); finish wrap — await Stephen review before webdev |
+| **Status** | I5.6 UI wrap COMPLETE (Stephen 2026-07-20). ERD-D on beta 7fc2cb1. Web-dev formal clone + DeepSeek V4 Pro. Awaiting implementer brief execution. |
 | **Last verified against code** | 2026-07-20 (hub I5.6.28 beta `1f9de1a` / v0.7.45; ERD docs only for persistence) |
 | **Primary code** | `mission-control-scene` hub; zone routes `/organization` `/collaboration` `/environment`; users admin |
 | **Task** | #176 |
@@ -289,6 +289,7 @@ erDiagram
 
 | Date | Change | Items |
 |------|--------|-------|
+| 2026-07-20 | I5.6 UI wrap complete + Web-dev formal setup | Stephen wrap; web-dev own clone agent/web-dev @ 7fc2cb1; model deepseek/deepseek-v4-pro; duties+brief under docs/handoff/ |
 | 2026-07-20 | ERD-D roll User pattern to Project/Task/Product | catalog value sets/fields/layouts + /projects /tasks /products list+detail; sidebar nav |
 | 2026-07-20 | UI-Z zone ListingPanel → shared EntityListing (parity with Users) | zone-config-view + entity-listing hoist InlineForm |
 | 2026-07-20 | ERD-C User pilot: catalog-driven listing + detail/edit layouts; finish-before-webdev per Stephen | /users, /users/[id], layout-to-fields, LayoutDrivenForm |
