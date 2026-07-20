@@ -595,7 +595,9 @@ function SceneContent({
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
+    // I5.6.4: collab base rate w; environment runs at 2w (two env revs per collab rev)
     const w = 0.05 * animSpeed;
+    const wEnv = w * 2;
     // Customer + Branch: horizontal orbit (Y) — ring in XZ plane; rest ±x
     if (collabHorizRef.current) {
       collabHorizRef.current.rotation.y = t * w;
@@ -605,13 +607,13 @@ function SceneContent({
     if (collabVpRef.current) {
       collabVpRef.current.rotation.x = -t * w + Math.PI / 2;
     }
-    // Knowledge + Schedules: horizontal orbit (Y) — ring in XZ plane
+    // Knowledge + Schedules: horizontal orbit (Y) — 2× collab rate
     if (envKsRef.current) {
-      envKsRef.current.rotation.y = -t * w;
+      envKsRef.current.rotation.y = -t * wEnv;
     }
-    // Events + Locations: vertical up/down on perpendicular ring (X) — YZ plane
+    // Events + Locations: vertical X-spin — 2× collab rate
     if (envElRef.current) {
-      envElRef.current.rotation.x = t * w;
+      envElRef.current.rotation.x = t * wEnv;
     }
   });
 

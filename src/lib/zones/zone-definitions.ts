@@ -153,8 +153,8 @@ export const collaborationZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Environment", label: "Supplied products", hint: "Link products or components they supply." },
-        { zone: "Organization", label: "Owning department", hint: "Usually Production or Treasury." },
+        // I5.6.4: no collab↔collab edges; org owns the party link (env product optional later via org)
+        { zone: "Organization", label: "Owning department", hint: "Usually Production or Treasury. Org→Vendor only — not Vendor→Customer." },
       ],
     },
     {
@@ -173,8 +173,7 @@ export const collaborationZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Environment", label: "Products & services", hint: "What they buy or receive." },
-        { zone: "Organization", label: "Account owner", hint: "Executive or Communications ownership." },
+        { zone: "Organization", label: "Account owner", hint: "Executive or Communications ownership. No Customer↔Vendor capture." },
       ],
     },
     {
@@ -192,8 +191,7 @@ export const collaborationZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Organization", label: "Partnership owner", hint: "Executive sponsorship." },
-        { zone: "Environment", label: "Joint offerings", hint: "Co-branded products or events." },
+        { zone: "Organization", label: "Partnership owner", hint: "Executive sponsorship. No Partner↔other collab edges." },
       ],
     },
     {
@@ -206,8 +204,7 @@ export const collaborationZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Organization", label: "Parent organization", hint: "Subsidiary_of relationship." },
-        { zone: "Environment", label: "Home location", hint: "Primary address book entry." },
+        { zone: "Organization", label: "Parent organization", hint: "Subsidiary_of — org has branch; no Branch↔Customer/Vendor/Partner." },
       ],
     },
   ],
@@ -231,7 +228,10 @@ export const environmentZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Collaboration", label: "Parties at site", hint: "Customers, vendors, branches hosted here." },
+        // I5.6.4 env full mesh: Location ↔ Event, Knowledge, Schedule
+        { zone: "Environment", label: "Events", hint: "Events that occur at this location." },
+        { zone: "Environment", label: "Knowledge", hint: "Knowledge gained or held at this location." },
+        { zone: "Environment", label: "Schedules", hint: "Schedules tied to this location." },
         { zone: "Organization", label: "Responsible dept", hint: "Production or Executive ownership." },
       ],
     },
@@ -250,8 +250,10 @@ export const environmentZone: ZoneConfig = {
         { label: "Description", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Environment", label: "Schedule & location", hint: "When and where it occurs." },
-        { zone: "Collaboration", label: "Attendees", hint: "Customers, partners, vendors." },
+        { zone: "Environment", label: "Schedule", hint: "When this event runs." },
+        { zone: "Environment", label: "Knowledge", hint: "Knowledge attached to this event." },
+        { zone: "Environment", label: "Location", hint: "Where the event occurs." },
+        { zone: "Organization", label: "Owning dept", hint: "Who runs the event." },
       ],
     },
     {
@@ -269,8 +271,10 @@ export const environmentZone: ZoneConfig = {
         { label: "Summary", placeholder: "...", kind: "textarea" },
       ],
       relations: [
+        { zone: "Environment", label: "Event", hint: "Events this knowledge relates to." },
+        { zone: "Environment", label: "Location", hint: "Where knowledge is gained or stored." },
+        { zone: "Environment", label: "Schedule", hint: "When knowledge is acquired." },
         { zone: "Organization", label: "Owning department", hint: "Who maintains this asset." },
-        { zone: "Collaboration", label: "Shared with parties", hint: "External visibility rules." },
       ],
     },
     {
@@ -283,7 +287,9 @@ export const environmentZone: ZoneConfig = {
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
-        { zone: "Environment", label: "Linked events", hint: "Events this schedule drives." },
+        { zone: "Environment", label: "Events", hint: "Events on this schedule." },
+        { zone: "Environment", label: "Locations", hint: "Places this schedule applies to." },
+        { zone: "Environment", label: "Knowledge", hint: "Knowledge acquired on this schedule." },
         { zone: "Organization", label: "Linked tasks", hint: "Executive project tasks." },
       ],
     },

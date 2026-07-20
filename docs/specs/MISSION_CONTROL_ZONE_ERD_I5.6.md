@@ -1,6 +1,6 @@
 # Mission Control — Zone Entity ERD (I5.6 basic)
 
-**Status:** Draft v0.1 for Stephen review (2026-07-19)
+**Status:** Draft v0.2 — I5.6.4 relationship rules (2026-07-19)
 **Project:** versa-admin-system (#26) · Game #109
 **Builds on:** `MISSION_CONTROL_ERD_KEYSTONE.md` v1.1
 **Author:** Versa (COA)
@@ -74,7 +74,18 @@ This is a **conceptual ERD** (product model), not a locked SQL schema. Storage t
 
 ---
 
-## 4. Relationships (basic)
+## 4. Relationships (I5.6.4 rules)
+
+### 4.0 Zone relationship policy (Stephen 2026-07-19)
+
+| Zone | Intra-zone edges | Rationale |
+|------|------------------|-----------|
+| **Environment** | **Full mesh** among Event, Schedule, Knowledge, Location | An event can have a schedule, knowledge, and location; knowledge can be gained at a location or on a schedule; locations/schedules relate to events, knowledge, and each other. |
+| **Collaboration** | **None** between Vendor, Customer, Partner, Branch | Parties are distinct. Vendor↔Customer (etc.) may exist in the real world but are **not captured** here — we view this layer from the executive Organization zone. |
+| **Organization → Collaboration** | Org **has** each party type | Organization can have a branch, partner, customer, and vendor. Those are org-owned links only. |
+| **Organization** | (detail deferred) | Stephen will specify org internal model in a later pass. |
+
+### 4.1 Relationship table
 
 | From | To | Relationship | Cardinality (intent) |
 |------|-----|--------------|----------------------|
@@ -82,19 +93,23 @@ This is a **conceptual ERD** (product model), not a locked SQL schema. Storage t
 | Organization | Service | offers | 1 : N |
 | Department (Executive) | Project | owns | 1 : N |
 | Project | Task | contains | 1 : N |
-| Organization | Party (any collab) | relates_to | M : N |
-| Vendor | Product / Service | supplies | M : N |
-| Customer | Product / Service | buys / receives | M : N |
-| Partner | Organization | partners_with | M : N |
-| Branch | Organization | subsidiary_of | N : 1 |
-| Event | Location | occurs_at | N : 0..1 |
-| Event | Schedule | scheduled_by | 1 : N |
+| Organization | Vendor | has | 1 : N |
+| Organization | Customer | has | 1 : N |
+| Organization | Partner | has | 1 : N |
+| Organization | Branch | has (subsidiary) | 1 : N |
+| Event | Schedule | relates | M : N |
+| Event | KnowledgeAsset | relates | M : N |
+| Event | Location | relates | M : N |
+| KnowledgeAsset | Location | relates | M : N |
+| KnowledgeAsset | Schedule | relates | M : N |
+| Location | Schedule | relates | M : N |
 | Task | Schedule | scheduled_by | N : 0..1 |
-| KnowledgeAsset | any zone entity | documents | M : N |
 | Product | Integration | has | 1 : N |
 | Product | KnowledgeAsset | described_by | M : N |
 | User | Department | assigned_to | M : N |
 | User | Party | may_represent | M : N |
+
+> **Explicit non-edges (Collaboration):** Vendor↛Customer, Vendor↛Partner, Vendor↛Branch, Customer↛Partner, Customer↛Branch, Partner↛Branch — and reverse. Do not model party-to-party graphs in this layer.
 
 ---
 
@@ -106,25 +121,22 @@ erDiagram
   ORGANIZATION ||--o{ SERVICE : offers
   DEPARTMENT ||--o{ PROJECT : owns
   PROJECT ||--o{ TASK : contains
-  ORGANIZATION }o--o{ PARTY : relates_to
-  PARTY ||--o| VENDOR : is
-  PARTY ||--o| CUSTOMER : is
-  PARTY ||--o| PARTNER : is
-  PARTY ||--o| BRANCH : is
-  BRANCH }o--|| ORGANIZATION : subsidiary_of
-  VENDOR }o--o{ PRODUCT : supplies
-  VENDOR }o--o{ SERVICE : supplies
-  CUSTOMER }o--o{ PRODUCT : receives
-  CUSTOMER }o--o{ SERVICE : receives
-  PARTNER }o--|| ORGANIZATION : partners_with
+  ORGANIZATION ||--o{ VENDOR : has
+  ORGANIZATION ||--o{ CUSTOMER : has
+  ORGANIZATION ||--o{ PARTNER : has
+  ORGANIZATION ||--o{ BRANCH : has
+  %% I5.6.4: no edges among VENDOR/CUSTOMER/PARTNER/BRANCH
   PRODUCT ||--o{ INTEGRATION : has
   PRODUCT }o--o{ KNOWLEDGE : described_by
-  EVENT }o--o| LOCATION : occurs_at
-  EVENT ||--o{ SCHEDULE : scheduled_by
+  %% Environment full mesh
+  EVENT }o--o{ LOCATION : relates
+  EVENT }o--o{ SCHEDULE : relates
+  EVENT }o--o{ KNOWLEDGE : relates
+  KNOWLEDGE }o--o{ LOCATION : relates
+  KNOWLEDGE }o--o{ SCHEDULE : relates
+  LOCATION }o--o{ SCHEDULE : relates
   TASK }o--o| SCHEDULE : scheduled_by
   KNOWLEDGE }o--o{ DEPARTMENT : documents
-  KNOWLEDGE }o--o{ PARTY : documents
-  KNOWLEDGE }o--o{ EVENT : documents
   USER }o--o{ DEPARTMENT : assigned_to
   USER }o--o{ PARTY : may_represent
   ORGANIZATION { string id string name }
