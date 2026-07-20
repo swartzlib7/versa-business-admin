@@ -491,7 +491,7 @@ function FixedTopLabel({
   );
 }
 
-/** Zone name label at radial midpoint between rings (I5.5.13). */
+/** Zone name label — bottom-left center of each ring quadrant in front view (I5.6.3). */
 function ZoneMidLabel({
   midRadius,
   label,
@@ -501,8 +501,12 @@ function ZoneMidLabel({
   label: string;
   color: string;
 }) {
+  // Front view: +X right, +Y up. Bottom-left quadrant center at 225 deg on XY.
+  const k = Math.SQRT1_2; // 1/sqrt(2)
+  const x = -midRadius * k;
+  const y = -midRadius * k;
   return (
-    <Billboard position={[0, 0.08, -midRadius]}>
+    <Billboard position={[x, y, 0.08]}>
       <Text
         fontSize={0.22}
         color={color}
@@ -760,6 +764,12 @@ function SceneContent({
 
 const CAM_MIN_DIST = 5;
 const CAM_MAX_DIST = 28;
+/** I5.6.3 — Stephen default view (pos rounded ~0.1 from capture; lookAt origin; dist 28; fov 50) */
+const DEFAULT_CAM_POS: [number, number, number] = [-11.4, 9.0, 23.9];
+const DEFAULT_CAM_TARGET: [number, number, number] = [0, 0, 0];
+const DEFAULT_CAM_FOV = 50;
+/** Anim speed cycle: off, 1, 5, 10, 15, 20 (I5.6.3) */
+const ANIM_SPEED_STEPS = [0, 1, 5, 10, 15, 20];
 
 export type CameraTelemetry = {
   pos: [number, number, number];
@@ -839,7 +849,7 @@ export function MissionControlScene({
 }: MissionControlSceneProps) {
   const dark = useDarkMode();
   const palette = getPalette(dark);
-  const [internalAxes, setInternalAxes] = useState(true);
+  const [internalAxes, setInternalAxes] = useState(false); // I5.6.3 hide axes by default
   const [internalRings, setInternalRings] = useState(true);
   const [internalSpeed, setInternalSpeed] = useState(1);
   const [internalGap, setInternalGap] = useState(1);
@@ -853,12 +863,12 @@ export function MissionControlScene({
   const [camTel, setCamTel] = useState<CameraTelemetry | null>(null);
   const onCamTel = useCallback((t: CameraTelemetry) => setCamTel(t), []);
 
-  /** I5.5.13 view gizmo presets: Front, Left, Top-left-front angled */
+  /** I5.5.13 / I5.6.3 view gizmo: Front, Left, Angle (= Stephen default) */
   const setCameraView = (view: "front" | "left" | "tlf") => {
     const controls = controlsRef.current;
     if (!controls) return;
     const cam = controls.object as THREE.PerspectiveCamera;
-    const dist = 16;
+    const dist = CAM_MAX_DIST;
     let pos: [number, number, number];
     switch (view) {
       case "front":
@@ -869,13 +879,40 @@ export function MissionControlScene({
         break;
       case "tlf":
       default:
-        pos = [-dist * 0.7, dist * 0.65, dist * 0.7];
+        pos = [...DEFAULT_CAM_POS];
         break;
     }
     cam.position.set(pos[0], pos[1], pos[2]);
-    controls.target.set(0, 0, 0);
+    controls.target.set(
+      DEFAULT_CAM_TARGET[0],
+      DEFAULT_CAM_TARGET[1],
+      DEFAULT_CAM_TARGET[2]
+    );
     controls.update();
   };
+
+  // Apply Stephen default camera once OrbitControls mounts (I5.6.3)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      const controls = controlsRef.current;
+      if (!controls) return;
+      const cam = controls.object as THREE.PerspectiveCamera;
+      cam.position.set(
+        DEFAULT_CAM_POS[0],
+        DEFAULT_CAM_POS[1],
+        DEFAULT_CAM_POS[2]
+      );
+      cam.fov = DEFAULT_CAM_FOV;
+      cam.updateProjectionMatrix();
+      controls.target.set(
+        DEFAULT_CAM_TARGET[0],
+        DEFAULT_CAM_TARGET[1],
+        DEFAULT_CAM_TARGET[2]
+      );
+      controls.update();
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const setShowAxes = (next: boolean) => {
     if (showAxesProp === undefined) setInternalAxes(next);
@@ -888,7 +925,7 @@ export function MissionControlScene({
   };
 
   const cycleSpeed = () => {
-    const steps = [0.5, 1, 2, 4, 6, 8, 10, 0];
+    const steps = ANIM_SPEED_STEPS;
     const i = steps.indexOf(animSpeed);
     const next = steps[(i >= 0 ? i + 1 : 1) % steps.length];
     if (animSpeedProp === undefined) setInternalSpeed(next);
@@ -939,7 +976,10 @@ export function MissionControlScene({
       style={{ backgroundColor: palette.background }}
     >
       <Canvas
-        camera={{ position: [10, 8, 12], fov: 50 }}
+        camera={{
+          position: DEFAULT_CAM_POS,
+          fov: DEFAULT_CAM_FOV,
+        }}
         gl={{ antialias: true, alpha: true }}
       >
         <ambientLight intensity={palette.ambientIntensity} />

@@ -16,14 +16,14 @@ export default function DashboardPage() {
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(true);
   const [expanded, setExpanded] = useState(false);
-  const [showAxes, setShowAxes] = useState(true);
+  const [showAxes, setShowAxes] = useState(false); // I5.6.3 hide axes by default
   const [showRings, setShowRings] = useState(true);
   const [animSpeed, setAnimSpeed] = useState(1);
   const [ringGap, setRingGap] = useState(1);
   const [sphereScale, setSphereScale] = useState(1);
 
   const cycleSpeed = () => {
-    const steps = [0.5, 1, 2, 4, 6, 8, 10, 0];
+    const steps = [0, 1, 5, 10, 15, 20]; // I5.6.3
     const i = steps.indexOf(animSpeed);
     setAnimSpeed(steps[(i >= 0 ? i + 1 : 1) % steps.length]);
   };
