@@ -7,21 +7,40 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { theme } from "@/lib/theme";
 
+/**
+ * I5.6.10 zone config UI pattern (Stephen):
+ * - Nested parents synthesize a self/default sub-tab first (I5.6.9).
+ * - Entity surfaces use presentation "listing": polished table + New/Edit,
+ *   collapsible inline form (not modal) that appends a mock row on Add.
+ * - Executive tree stays presentation "form" until Stephen designs it.
+ * Spec: docs/specs/ZONE_CONFIG_UI_PATTERN_I5.6.md
+ */
+
+export type ZoneField = {
+  label: string;
+  placeholder: string;
+  kind?: "text" | "textarea" | "select";
+  options?: string[];
+};
+
 export type ZoneTab = {
   id: string;
   label: string;
   summary: string;
-  fields: {
-    label: string;
-    placeholder: string;
-    kind?: "text" | "textarea" | "select";
-    options?: string[];
-  }[];
+  fields: ZoneField[];
   relations: { zone: string; label: string; hint: string }[];
-  /** Optional deep links shown in the panel (e.g. existing /projects route). */
   links?: { href: string; label: string }[];
-  /** Nested UIs under this tab (I5.6.6 — Production/Product+Service, Executive/Policy+Projects+Tasks, Vendor/Integrations). */
+  /** Nested UIs under this tab. Parent self-tab is synthesized first in TabPanel (I5.6.9). */
   children?: ZoneTab[];
+  /**
+   * form = single-record mock (default for Executive tree).
+   * listing = multi-row table + collapsible New form (I5.6.10 default for entity tabs).
+   */
+  presentation?: "form" | "listing";
+  /** Column headers for listing tables (defaults derived from fields). */
+  listColumns?: string[];
+  /** Seed rows for listing mocks. */
+  sampleRows?: string[][];
 };
 
 export type ZoneConfig = {
@@ -38,25 +57,33 @@ function FieldMock({
   placeholder,
   kind = "text",
   options,
-}: {
-  label: string;
-  placeholder: string;
-  kind?: "text" | "textarea" | "select";
-  options?: string[];
+  value,
+  onChange,
+}: ZoneField & {
+  value?: string;
+  onChange?: (v: string) => void;
 }) {
   const base =
     "w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+  const controlled = value !== undefined;
   return (
     <label className="flex flex-col gap-1.5">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       {kind === "textarea" ? (
         <textarea
-          className={cn(base, "min-h-[88px] resize-y")}
+          className={cn(base, "min-h-[72px] resize-y")}
           placeholder={placeholder}
-          defaultValue=""
+          value={controlled ? value : undefined}
+          defaultValue={controlled ? undefined : ""}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         />
       ) : kind === "select" ? (
-        <select className={base} defaultValue="">
+        <select
+          className={base}
+          value={controlled ? value : undefined}
+          defaultValue={controlled ? undefined : ""}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        >
           <option value="" disabled>
             {placeholder}
           </option>
@@ -67,9 +94,386 @@ function FieldMock({
           ))}
         </select>
       ) : (
-        <input className={base} placeholder={placeholder} defaultValue="" />
+        <input
+          className={base}
+          placeholder={placeholder}
+          value={controlled ? value : undefined}
+          defaultValue={controlled ? undefined : ""}
+          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        />
       )}
     </label>
+  );
+}
+
+function RelationsCard({
+  relations,
+}: {
+  relations: ZoneTab["relations"];
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Relationships</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Connect this element across zones (keystone ERD pattern).
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {relations.map((r) => (
+          <div
+            key={r.label + r.zone}
+            className="rounded-lg border border-border bg-muted/20 p-3"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-medium">{r.label}</span>
+              <Badge variant="secondary" className="font-normal">
+                {r.zone}
+              </Badge>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{r.hint}</p>
+          </div>
+        ))}
+        {relations.length === 0 && (
+          <p className="text-sm text-muted-foreground">No relations defined yet.</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** I5.6.10 - table + New collapsible form + row Edit (mock, client-only). */
+function ListingPanel({
+  panel,
+  accent,
+}: {
+  panel: ZoneTab;
+  accent: string;
+}) {
+  const columns =
+    panel.listColumns && panel.listColumns.length > 0
+      ? panel.listColumns
+      : panel.fields.slice(0, 4).map((f) => f.label);
+
+  const seed: string[][] =
+    panel.sampleRows && panel.sampleRows.length > 0
+      ? panel.sampleRows.map((r) => [...r])
+      : [
+          columns.map((_, i) => (i === 0 ? `Sample ${panel.label} A` : "-")),
+          columns.map((_, i) => (i === 0 ? `Sample ${panel.label} B` : "-")),
+        ];
+
+  const [rows, setRows] = useState<string[][]>(seed);
+  const [openNew, setOpenNew] = useState(false);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [editing, setEditing] = useState<number | null>(null);
+
+  useEffect(() => {
+    setRows(seed);
+    setOpenNew(false);
+    setDraft({});
+    setEditing(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panel.id]);
+
+  const fieldForCol = (col: string) =>
+    panel.fields.find((f) => f.label === col) ?? {
+      label: col,
+      placeholder: col,
+      kind: "text" as const,
+    };
+
+  const blankDraft = () => {
+    const d: Record<string, string> = {};
+    for (const c of columns) d[c] = "";
+    return d;
+  };
+
+  const commitDraft = () => {
+    const next = columns.map((c) => draft[c]?.trim() || "-");
+    if (editing !== null) {
+      setRows((prev) => prev.map((r, i) => (i === editing ? next : r)));
+      setEditing(null);
+    } else {
+      setRows((prev) => [...prev, next]);
+    }
+    setDraft(blankDraft());
+    setOpenNew(false);
+  };
+
+  const startEdit = (idx: number) => {
+    const row = rows[idx];
+    const d: Record<string, string> = {};
+    columns.forEach((c, i) => {
+      d[c] = row[i] === "-" ? "" : row[i];
+    });
+    setDraft(d);
+    setEditing(idx);
+    setOpenNew(true);
+  };
+
+  const startNew = () => {
+    setEditing(null);
+    setDraft(blankDraft());
+    setOpenNew(true);
+  };
+
+  const singular = panel.label.endsWith("s")
+    ? panel.label.slice(0, -1)
+    : panel.label;
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="border-b bg-muted/30">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-lg">{panel.label}</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">{panel.summary}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              className="shrink-0 border-0 text-white"
+              style={{ backgroundColor: accent }}
+            >
+              Listing
+            </Badge>
+            <button
+              type="button"
+              onClick={() =>
+                openNew && editing === null ? setOpenNew(false) : startNew()
+              }
+              className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+              style={{ backgroundColor: accent }}
+            >
+              {openNew && editing === null ? "Close" : `New ${singular}`}
+            </button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 p-0">
+        {openNew && (
+          <div className="border-b border-border bg-muted/15 px-6 py-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <p className="text-sm font-medium">
+                {editing !== null ? `Edit ${singular}` : `New ${singular}`}
+              </p>
+              <span className="text-xs text-muted-foreground">
+                Collapsible form - mock only
+              </span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {columns.map((c) => {
+                const f = fieldForCol(c);
+                return (
+                  <div
+                    key={c}
+                    className={f.kind === "textarea" ? "sm:col-span-2" : undefined}
+                  >
+                    <FieldMock
+                      {...f}
+                      value={draft[c] ?? ""}
+                      onChange={(v) => setDraft((d) => ({ ...d, [c]: v }))}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={commitDraft}
+                className="rounded-md px-4 py-2 text-sm font-medium text-white"
+                style={{ backgroundColor: accent }}
+              >
+                {editing !== null ? "Update row" : "Add to table"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenNew(false);
+                  setEditing(null);
+                  setDraft(blankDraft());
+                }}
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="overflow-x-auto px-2 pb-4 pt-2">
+          <table className="w-full min-w-[520px] border-collapse text-left text-sm">
+            <thead>
+              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                {columns.map((c) => (
+                  <th key={c} className="px-4 py-2.5 font-medium">
+                    {c}
+                  </th>
+                ))}
+                <th className="px-4 py-2.5 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, ri) => (
+                <tr
+                  key={ri}
+                  className="border-b border-border/70 transition-colors hover:bg-muted/30"
+                >
+                  {columns.map((c, ci) => (
+                    <td key={c} className="px-4 py-3 align-top text-foreground">
+                      <span className="line-clamp-3 whitespace-pre-wrap">
+                        {row[ci] ?? "-"}
+                      </span>
+                    </td>
+                  ))}
+                  <td className="px-4 py-3 text-right align-top">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(ri)}
+                      className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={columns.length + 1}
+                    className="px-4 py-8 text-center text-muted-foreground"
+                  >
+                    No {panel.label.toLowerCase()} yet - use New to add the first row.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {panel.links && panel.links.length > 0 && (
+          <div className="flex flex-wrap gap-2 border-t border-border px-6 py-3">
+            {panel.links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+              >
+                Open {l.label}{' →'}
+              </Link>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function FormPanel({
+  panel,
+  title,
+  accent,
+  subTabs,
+  setChildId,
+  tabLabel,
+}: {
+  panel: ZoneTab;
+  title: string;
+  accent: string;
+  subTabs: ZoneTab[] | null;
+  setChildId: (id: string) => void;
+  tabLabel: string;
+}) {
+  return (
+    <Card className="lg:col-span-3 overflow-hidden">
+      <CardHeader className="border-b bg-muted/30">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-lg">{title}</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">{panel.summary}</p>
+          </div>
+          <Badge
+            className="shrink-0 border-0 text-white"
+            style={{ backgroundColor: accent }}
+          >
+            Configure
+          </Badge>
+        </div>
+        {subTabs && subTabs.length > 0 && (
+          <div
+            role="tablist"
+            aria-label={`${tabLabel} sub-elements`}
+            className="mt-4 flex flex-wrap gap-1"
+          >
+            {subTabs.map((c) => {
+              const on = c.id === panel.id;
+              return (
+                <button
+                  key={c.id}
+                  role="tab"
+                  type="button"
+                  aria-selected={on}
+                  onClick={() => setChildId(c.id)}
+                  className={cn(
+                    "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                    on
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                  )}
+                  style={
+                    on ? { boxShadow: `inset 0 -2px 0 ${accent}` } : undefined
+                  }
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </CardHeader>
+      <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
+        {panel.fields.map((f) => (
+          <div
+            key={f.label}
+            className={f.kind === "textarea" ? "sm:col-span-2" : undefined}
+          >
+            <FieldMock {...f} />
+          </div>
+        ))}
+        {panel.links && panel.links.length > 0 && (
+          <div className="sm:col-span-2 flex flex-wrap gap-2">
+            {panel.links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+              >
+                Open {l.label}{' →'}
+              </Link>
+            ))}
+          </div>
+        )}
+        <div className="sm:col-span-2 flex flex-wrap gap-2 pt-2">
+          <button
+            type="button"
+            className="rounded-md px-4 py-2 text-sm font-medium text-white"
+            style={{ backgroundColor: accent }}
+          >
+            Save draft
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+          >
+            Reset
+          </button>
+          <span className="self-center text-xs text-muted-foreground">
+            Mock only - no persistence yet
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -89,6 +493,9 @@ function TabPanel({
       fields: tab.fields,
       relations: tab.relations,
       links: tab.links,
+      presentation: tab.presentation,
+      listColumns: tab.listColumns,
+      sampleRows: tab.sampleRows,
     }),
     [tab]
   );
@@ -114,27 +521,17 @@ function TabPanel({
       ? `${tab.label} · ${panel.label}`
       : tab.label;
 
+  const presentation = panel.presentation ?? "form";
+
   return (
     <div className="grid gap-4 lg:grid-cols-5">
-      <Card className="lg:col-span-3 overflow-hidden">
-        <CardHeader className="border-b bg-muted/30">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-lg">{title}</CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">{panel.summary}</p>
-            </div>
-            <Badge
-              className="shrink-0 border-0 text-white"
-              style={{ backgroundColor: accent }}
-            >
-              Configure
-            </Badge>
-          </div>
+      {presentation === "listing" ? (
+        <div className="space-y-3 lg:col-span-3">
           {subTabs && subTabs.length > 0 && (
             <div
               role="tablist"
               aria-label={`${tab.label} sub-elements`}
-              className="mt-4 flex flex-wrap gap-1"
+              className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/20 p-1"
             >
               {subTabs.map((c) => {
                 const on = c.id === panel.id;
@@ -161,79 +558,21 @@ function TabPanel({
               })}
             </div>
           )}
-        </CardHeader>
-        <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
-          {panel.fields.map((f) => (
-            <div
-              key={f.label}
-              className={f.kind === "textarea" ? "sm:col-span-2" : undefined}
-            >
-              <FieldMock {...f} />
-            </div>
-          ))}
-          {panel.links && panel.links.length > 0 && (
-            <div className="sm:col-span-2 flex flex-wrap gap-2">
-              {panel.links.map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
-                >
-                  Open {l.label} →
-                </Link>
-              ))}
-            </div>
-          )}
-          <div className="sm:col-span-2 flex flex-wrap gap-2 pt-2">
-            <button
-              type="button"
-              className="rounded-md px-4 py-2 text-sm font-medium text-white"
-              style={{ backgroundColor: accent }}
-            >
-              Save draft
-            </button>
-            <button
-              type="button"
-              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
-            >
-              Reset
-            </button>
-            <span className="self-center text-xs text-muted-foreground">
-              Mock only — no persistence yet
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+          <ListingPanel panel={panel} accent={accent} />
+        </div>
+      ) : (
+        <FormPanel
+          panel={panel}
+          title={title}
+          accent={accent}
+          subTabs={subTabs}
+          setChildId={setChildId}
+          tabLabel={tab.label}
+        />
+      )}
 
       <div className="flex flex-col gap-4 lg:col-span-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Relationships</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Connect this element across zones (keystone ERD pattern).
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {panel.relations.map((r) => (
-              <div
-                key={r.label + r.zone}
-                className="rounded-lg border border-border bg-muted/20 p-3"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium">{r.label}</span>
-                  <Badge variant="secondary" className="font-normal">
-                    {r.zone}
-                  </Badge>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{r.hint}</p>
-              </div>
-            ))}
-            {panel.relations.length === 0 && (
-              <p className="text-sm text-muted-foreground">No relations defined yet.</p>
-            )}
-          </CardContent>
-        </Card>
-
+        <RelationsCard relations={panel.relations} />
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Zone map</CardTitle>
@@ -244,7 +583,8 @@ function TabPanel({
               twin: this tabbed surface.
             </p>
             <p className="text-xs">
-              Brand: {theme.brand.name}. Spec: docs/specs/MISSION_CONTROL_ZONE_ERD_I5.6.md
+              Brand: {theme.brand.name}. Pattern:
+              docs/specs/ZONE_CONFIG_UI_PATTERN_I5.6.md
             </p>
           </CardContent>
         </Card>
@@ -288,51 +628,49 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
             className="rounded-md px-3 py-1.5 font-medium text-white"
             style={{ backgroundColor: config.accent }}
           >
-            {config.tabs.length} elements
+            {config.title}
           </span>
         </div>
       </div>
 
       <div
-        className="rounded-xl border border-border p-1 shadow-sm"
-        style={{
-          background: `linear-gradient(135deg, ${config.accentSoft}, transparent)`,
-        }}
+        role="tablist"
+        aria-label={`${config.title} elements`}
+        className="flex flex-wrap gap-1 border-b border-border pb-px"
       >
-        <div
-          role="tablist"
-          aria-label={`${config.title} elements`}
-          className="flex flex-wrap gap-1"
-        >
-          {config.tabs.map((t) => {
-            const on = t.id === tab?.id;
-            return (
-              <button
-                key={t.id}
-                role="tab"
-                type="button"
-                aria-selected={on}
-                onClick={() => setActive(t.id)}
-                className={cn(
-                  "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  on
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
-                )}
-                style={
-                  on ? { boxShadow: `inset 0 -2px 0 ${config.accent}` } : undefined
-                }
-              >
-                {t.label}
-                {t.children && t.children.length > 0 ? (
-                  <span className="ml-1 text-[10px] opacity-70">
-                    ({t.children.length})
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
+        {config.tabs.map((t) => {
+          const on = t.id === tab.id;
+          return (
+            <button
+              key={t.id}
+              role="tab"
+              type="button"
+              aria-selected={on}
+              onClick={() => setActive(t.id)}
+              className={cn(
+                "-mb-px rounded-t-md border border-transparent px-3 py-2 text-sm font-medium transition-colors",
+                on
+                  ? "border-border border-b-background bg-background text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+              style={
+                on
+                  ? {
+                      borderBottomColor: "var(--background)",
+                      boxShadow: `inset 0 2px 0 ${config.accent}`,
+                    }
+                  : undefined
+              }
+            >
+              {t.label}
+              {t.children && t.children.length > 0 ? (
+                <span className="ml-1 text-xs text-muted-foreground">
+                  ({t.children.length + 1})
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
 
       {tab && <TabPanel key={tab.id} tab={tab} accent={config.accent} />}

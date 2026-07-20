@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   return NextResponse.json({
     status: 'ok',
-    version: '0.7.26',
+    version: '0.7.27',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   });

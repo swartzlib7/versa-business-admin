@@ -112,6 +112,12 @@ export const organizationZone: ZoneConfig = {
       id: "communications",
       label: "Communications",
       summary: "Internal and external messaging faculty.",
+      presentation: "listing",
+      listColumns: ["Display name", "Channels"],
+      sampleRows: [
+        ["Comms desk", "Email, voice"],
+        ["Social desk", "LinkedIn, X"],
+      ],
       fields: [
         { label: "Display name", placeholder: "Communications" },
         { label: "Channels", placeholder: "Email, voice, social..." },
@@ -126,9 +132,14 @@ export const organizationZone: ZoneConfig = {
       id: "dissemination",
       label: "Dissemination",
       summary: "Distribution of products, content, and outcomes.",
+      presentation: "listing",
+      listColumns: ["Display name", "Channels"],
+      sampleRows: [
+        ["Publishing queue", "Web, PDF"],
+      ],
       fields: [
         { label: "Display name", placeholder: "Dissemination" },
-        { label: "Primary channels", placeholder: "Web, partners, retail..." },
+        { label: "Channels", placeholder: "Web, partners, retail..." },
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
@@ -140,8 +151,14 @@ export const organizationZone: ZoneConfig = {
       id: "treasury",
       label: "Treasury",
       summary: "Financial control and commercial terms.",
+      presentation: "listing",
+      listColumns: ["Display name", "Focus"],
+      sampleRows: [
+        ["Treasury", "Cash & billing"],
+      ],
       fields: [
         { label: "Display name", placeholder: "Treasury" },
+        { label: "Focus", placeholder: "Cash, billing, AR/AP..." },
         { label: "Currency default", placeholder: "USD" },
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
@@ -154,6 +171,11 @@ export const organizationZone: ZoneConfig = {
       id: "production",
       label: "Production",
       summary: "Making and delivering work product — owns Product and Service.",
+      presentation: "listing",
+      listColumns: ["Display name", "Capacity notes"],
+      sampleRows: [
+        ["Production", "Beta capacity reserved"],
+      ],
       fields: [
         { label: "Display name", placeholder: "Production" },
         { label: "Capacity notes", placeholder: "...", kind: "textarea" },
@@ -168,6 +190,12 @@ export const organizationZone: ZoneConfig = {
           label: "Product",
           summary:
             "Device, manufactured item, or computer file — operating nucleus. Owned by Production (moved from Environment).",
+          presentation: "listing",
+          listColumns: ["Product name", "Kind"],
+          sampleRows: [
+            ["Versa AGi Mission Control", "software"],
+            ["Trophy SKU-12", "manufactured"],
+          ],
           fields: [
             { label: "Product name", placeholder: "Versa AGi Mission Control" },
             {
@@ -188,6 +216,12 @@ export const organizationZone: ZoneConfig = {
           id: "service",
           label: "Service",
           summary: "Faculty for results — e.g. Analysis & Design. Nested under Production (I5.6.6).",
+          presentation: "listing",
+          listColumns: ["Service name", "Status"],
+          sampleRows: [
+            ["Analysis & Design", "connected"],
+            ["Managed ops", "active"],
+          ],
           fields: [
             { label: "Service name", placeholder: "Analysis & Design" },
             {
@@ -210,6 +244,11 @@ export const organizationZone: ZoneConfig = {
       id: "qualification",
       label: "Qualification",
       summary: "Quality, compliance, and qualification processes.",
+      presentation: "listing",
+      listColumns: ["Display name", "Standards"],
+      sampleRows: [
+        ["Qualification", "ISO internal"],
+      ],
       fields: [
         { label: "Display name", placeholder: "Qualification" },
         { label: "Standards", placeholder: "ISO, internal..." },
@@ -227,7 +266,7 @@ export const collaborationZone: ZoneConfig = {
   id: "collaboration",
   title: "Collaboration",
   subtitle:
-    "Parties the organization works with. Integrations are handled under Vendor.",
+    "Parties the organization works with. Listing tables + collapsible New forms. Integrations nest under Vendor.",
   accent: collabAccent,
   accentSoft: soft(collabAccent),
   tabs: [
@@ -235,6 +274,13 @@ export const collaborationZone: ZoneConfig = {
       id: "vendor",
       label: "Vendor",
       summary: "Service provider — external supplier. Integrations nest here (I5.6.6).",
+      presentation: "listing",
+      listColumns: ["Legal name", "Category", "Status"],
+      sampleRows: [
+        ["Cloudflare", "Cloud / CDN", "connected"],
+        ["AWS", "Cloud / infra", "active"],
+        ["Local print shop", "Materials", "standby"],
+      ],
       fields: [
         { label: "Legal name", placeholder: "Vendor Co." },
         { label: "Category", placeholder: "Cloud, materials, freelancers..." },
@@ -259,6 +305,13 @@ export const collaborationZone: ZoneConfig = {
           label: "Integrations",
           summary:
             "Technical and commercial integrations with this vendor (moved from Product menu).",
+          presentation: "listing",
+          listColumns: ["Integration name", "Kind", "Status"],
+          sampleRows: [
+            ["Stripe billing", "api", "connected"],
+            ["ShipStation", "webhook", "active"],
+            ["Nightly SFTP export", "sftp", "standby"],
+          ],
           fields: [
             { label: "Integration name", placeholder: "Stripe billing" },
             {
@@ -287,6 +340,12 @@ export const collaborationZone: ZoneConfig = {
       id: "customer",
       label: "Customer",
       summary: "Person or business that receives products or services.",
+      presentation: "listing",
+      listColumns: ["Display name", "Kind", "Tier"],
+      sampleRows: [
+        ["Acme Ltd", "business", "priority"],
+        ["Jordan Lee", "person", "standard"],
+      ],
       fields: [
         { label: "Display name", placeholder: "Acme Ltd" },
         {
@@ -310,6 +369,12 @@ export const collaborationZone: ZoneConfig = {
       id: "partner",
       label: "Partner",
       summary: "Business or investor in a collaborative relationship.",
+      presentation: "listing",
+      listColumns: ["Name", "Kind"],
+      sampleRows: [
+        ["Northwind Ventures", "investor"],
+        ["Regional Chamber", "association"],
+      ],
       fields: [
         { label: "Name", placeholder: "Partner name" },
         {
@@ -332,6 +397,12 @@ export const collaborationZone: ZoneConfig = {
       id: "branch",
       label: "Branch",
       summary: "Subsidiary — subordinate operating unit of the organization.",
+      presentation: "listing",
+      listColumns: ["Branch name", "Code"],
+      sampleRows: [
+        ["Southeast hub", "BR-SE"],
+        ["Remote ops", "BR-RMT"],
+      ],
       fields: [
         { label: "Branch name", placeholder: "Region / unit" },
         { label: "Code", placeholder: "BR-01" },
@@ -352,7 +423,7 @@ export const environmentZone: ZoneConfig = {
   id: "environment",
   title: "Environment",
   subtitle:
-    "Context of work — places, time, and knowledge. Product lives under Organization → Production.",
+    "Context of work - places, time, and knowledge. Listing pattern throughout. Product lives under Organization / Production.",
   accent: envAccent,
   accentSoft: soft(envAccent),
   tabs: [
@@ -360,6 +431,13 @@ export const environmentZone: ZoneConfig = {
       id: "locations",
       label: "Locations",
       summary: "Global address book of business locations and places.",
+      presentation: "listing",
+      listColumns: ["Label", "Address", "Country"],
+      sampleRows: [
+        ["HQ Tampa", "100 Main St, Tampa", "US"],
+        ["Warehouse A", "40 Industrial Blvd", "US"],
+        ["Client site - Miami", "On-site", "US"],
+      ],
       fields: [
         { label: "Label", placeholder: "HQ, Warehouse..." },
         { label: "Address", placeholder: "Street, city, region" },
@@ -377,6 +455,12 @@ export const environmentZone: ZoneConfig = {
       id: "events",
       label: "Events",
       summary: "Planned activity — future or past.",
+      presentation: "listing",
+      listColumns: ["Title", "Kind"],
+      sampleRows: [
+        ["Beta launch review", "meeting"],
+        ["Customer onboarding", "launch"],
+      ],
       fields: [
         { label: "Title", placeholder: "Launch workshop" },
         {
@@ -398,6 +482,12 @@ export const environmentZone: ZoneConfig = {
       id: "knowledge",
       label: "Knowledge",
       summary: "Documents, recordings, photos, policies, research.",
+      presentation: "listing",
+      listColumns: ["Title", "Asset type"],
+      sampleRows: [
+        ["Zone ERD I5.6", "document"],
+        ["Onboarding handbook", "policy"],
+      ],
       fields: [
         { label: "Title", placeholder: "Policy name" },
         {
@@ -419,6 +509,12 @@ export const environmentZone: ZoneConfig = {
       id: "schedules",
       label: "Schedules",
       summary: "When an event, activity, or task occurs.",
+      presentation: "listing",
+      listColumns: ["Label", "Timezone"],
+      sampleRows: [
+        ["Weekly ops sync", "America/New_York"],
+        ["Nightly backup window", "America/New_York"],
+      ],
       fields: [
         { label: "Label", placeholder: "Q3 sprint cadence" },
         { label: "Timezone", placeholder: "America/New_York" },

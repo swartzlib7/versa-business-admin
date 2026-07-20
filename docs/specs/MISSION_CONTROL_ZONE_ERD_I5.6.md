@@ -33,6 +33,8 @@ This is a **conceptual ERD** (product model), not a locked SQL schema. Storage t
 > **I5.6.7 hub:** Product sphere is a member of the **Organization / Executive zone** in the 3D model — toggled with the Executive legend control (not a free-floating nucleus outside zones).
 >
 > **I5.6.9 IA:** Nested zone config tabs always expose a **parent self/default** sub-tab first (same label as parent) so Executive and Production keep their own UI alongside children.
+>
+> **I5.6.10 UI:** Entity tabs use **listing** (table + collapsible New/Edit form). Executive remains **form** pending a dedicated design. See `ZONE_CONFIG_UI_PATTERN_I5.6.md`.
 
 ---
 
