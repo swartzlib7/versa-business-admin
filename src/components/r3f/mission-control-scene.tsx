@@ -658,7 +658,7 @@ function SceneContent({
   zoneVisible: { organization: boolean; collaboration: boolean; environment: boolean };
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  // I5.6.12: collab CB Y-orbit ±x; VP X-spin +π/2; env KS Y-orbit ±z; EL Z-spin Location up / Events down @ 2w
+  // I5.6.12: collab CB Y-orbit ±x; VP X-spin +π/2; env KS Y-orbit ±z; EL Z-spin Location up / Events down @ 2w; phase −π/2 (I5.6.23)
   const collabHorizRef = useRef<THREE.Group>(null);
   const collabVpRef = useRef<THREE.Group>(null);
   const envKsRef = useRef<THREE.Group>(null);
@@ -681,10 +681,10 @@ function SceneContent({
     if (envKsRef.current) {
       envKsRef.current.rotation.y = -t * wEnv;
     }
-    // Events + Locations: Z-spin (XY plane) — Location up-around / Events down-around; +π/2 start phase (I5.6.14).
-    // Prior X-spin left rest positions on the rotation axis so nodes looked static.
+    // Events + Locations: Z-spin (XY plane) — Location up-around / Events down-around.
+    // I5.6.14: +π/2 start; I5.6.23: −π (half turn behind) so EL clear KS pairs (Location↔Schedules, Events↔Knowledge).
     if (envElRef.current) {
-      envElRef.current.rotation.z = t * wEnv + Math.PI / 2; // I5.6.14: +¼ turn start phase (Stephen)
+      envElRef.current.rotation.z = t * wEnv - Math.PI / 2; // was +π/2; half rotation behind
     }
   });
 
