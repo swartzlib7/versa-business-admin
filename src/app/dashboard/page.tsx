@@ -18,6 +18,8 @@ export default function DashboardPage() {
   const [expanded, setExpanded] = useState(false);
   const [showAxes, setShowAxes] = useState(false); // I5.6.3 hide axes by default
   const [showRings, setShowRings] = useState(true);
+  const [showZoneColors, setShowZoneColors] = useState(true);
+  const [showFloor, setShowFloor] = useState(true);
   const [animSpeed, setAnimSpeed] = useState(1);
   const [ringGap, setRingGap] = useState(1);
   const [sphereScale, setSphereScale] = useState(1);
@@ -85,8 +87,8 @@ export default function DashboardPage() {
   ).length;
 
   return (
-    <AppShell>
-      <div className="space-y-6">
+    <AppShell fillViewport>
+      <div className="flex min-h-[750px] min-w-[800px] w-full flex-1 flex-col gap-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Mission Control</h1>
@@ -152,7 +154,7 @@ export default function DashboardPage() {
         </div>
 
         {/* 3D Scene — inline (hidden chrome when fullscreen so one canvas owns the view) */}
-        <Card className={expanded ? "invisible h-0 overflow-hidden p-0 border-0 shadow-none" : undefined}>
+        <Card className={expanded ? "invisible h-0 overflow-hidden p-0 border-0 shadow-none" : "flex min-h-0 flex-1 flex-col"}>
           <CardHeader>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <CardTitle>Mission Control Hub</CardTitle>
@@ -171,6 +173,20 @@ export default function DashboardPage() {
                   onClick={() => setShowRings((v) => !v)}
                 >
                   {showRings ? "Hide rings" : "Show rings"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowZoneColors((v) => !v)}
+                >
+                  {showZoneColors ? "Hide zone colors" : "Show zone colors"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFloor((v) => !v)}
+                >
+                  {showFloor ? "Hide grid floor" : "Show grid floor"}
                 </Button>
                 <Button variant="outline" size="sm" onClick={cycleSpeed}>
                   Speed {animSpeed === 0 ? "off" : animSpeed + "x"}
@@ -192,15 +208,20 @@ export default function DashboardPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex min-h-0 flex-1 flex-col pt-0">
             {!expanded && (
               <MissionControlScene
+                className="min-h-[750px] h-[min(75vh,900px)] flex-1"
                 onNodeClick={handleNodeClick}
                 focusedNodeId={focusedNodeId}
                 expanded={false}
                 showAxes={showAxes}
                 showRings={showRings}
                 onShowRingsChange={setShowRings}
+                showZoneColors={showZoneColors}
+                onShowZoneColorsChange={setShowZoneColors}
+                showFloor={showFloor}
+                onShowFloorChange={setShowFloor}
                 showCanvasChrome={false}
                 animSpeed={animSpeed}
                 onAnimSpeedChange={setAnimSpeed}
@@ -239,6 +260,20 @@ export default function DashboardPage() {
                 >
                   {showRings ? "Hide rings" : "Show rings"}
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowZoneColors((v) => !v)}
+                >
+                  {showZoneColors ? "Hide zone colors" : "Show zone colors"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFloor((v) => !v)}
+                >
+                  {showFloor ? "Hide grid floor" : "Show grid floor"}
+                </Button>
                 <Button variant="outline" size="sm" onClick={cycleSpeed}>
                   Speed {animSpeed === 0 ? "off" : animSpeed + "x"}
                 </Button>
@@ -275,6 +310,10 @@ export default function DashboardPage() {
                 showAxes={showAxes}
                 showRings={showRings}
                 onShowRingsChange={setShowRings}
+                showZoneColors={showZoneColors}
+                onShowZoneColorsChange={setShowZoneColors}
+                showFloor={showFloor}
+                onShowFloorChange={setShowFloor}
                 showCanvasChrome={false}
                 animSpeed={animSpeed}
                 onAnimSpeedChange={setAnimSpeed}
@@ -303,71 +342,6 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        {/* Recent Tasks + System Information */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Tasks</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {tasks.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4 text-center">
-                  No tasks yet. Create one to get started.
-                </p>
-              ) : (
-                <ul className="space-y-2">
-                  {tasks.slice(0, 5).map((task) => (
-                    <li
-                      key={task.id}
-                      className="flex items-center justify-between text-sm"
-                    >
-                      <span className="truncate">{task.title}</span>
-                      <Badge
-                        variant={
-                          task.status === "done"
-                            ? "default"
-                            : task.status === "in_progress"
-                            ? "secondary"
-                            : task.status === "blocked"
-                            ? "destructive"
-                            : "outline"
-                        }
-                        className="ml-2 shrink-0"
-                      >
-                        {task.status.replace("_", " ")}
-                      </Badge>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>System Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 text-sm text-muted-foreground">
-                <p>
-                  This is <strong>business Mission Control</strong> — not Versa AGi agitop.
-                  It manages the business operating graph: Organization, Collaboration,
-                  and Environmental zones.
-                </p>
-                <p>
-                  <strong>Agents</strong> appear only as users with type{" "}
-                  <code className="text-xs bg-muted px-1 py-0.5 rounded">agent</code>.
-                  Agent operations, fleet management, and host system monitoring live in
-                  agitop — the Versa AGi internal operator console.
-                </p>
-                <p>
-                  <strong>agitop Organization</strong> may be disabled when using this
-                  product&apos;s Organization model. Migrating data from agitop Organization
-                  into this product is a future path — not current scope.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </AppShell>
   );

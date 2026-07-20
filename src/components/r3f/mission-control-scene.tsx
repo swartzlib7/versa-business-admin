@@ -56,6 +56,12 @@ interface MissionControlSceneProps {
   /** Sphere size multiplier (1 = default). */
   sphereScale?: number;
   onSphereScaleChange?: (v: number) => void;
+  /** I5.6.22 — show zone shell / ring tint colors (default true). */
+  showZoneColors?: boolean;
+  onShowZoneColorsChange?: (show: boolean) => void;
+  /** I5.6.22 — show ground gridHelper plane (default true). */
+  showFloor?: boolean;
+  onShowFloorChange?: (show: boolean) => void;
   /**
    * I5.6.16 — controlled zone visibility (org / collab / env).
    * When set, overrides internal legend state (zone pages show active zone only).
@@ -327,43 +333,43 @@ function ExecutiveZoneGlow({
   serviceY,
   onLabelClick,
   selected = false,
+  showShell = true,
 }: {
   orgRadius: number;
   serviceY: number;
   /** Only the Executive label is tappable (I5.5.9). */
   onLabelClick?: (e: ThreeEvent<MouseEvent>) => void;
-  /** I5.6.21 — selection on Executive label, not the product sphere. */
+  /** I5.6.21/22 — selection on Executive label (brackets only; no font/outline change). */
   selected?: boolean;
+  /** I5.6.22 — zone color shell */
+  showShell?: boolean;
 }) {
   const r = orgRadius * 1.15;
-  // I5.6.21 — single label (removed duplicate "Organization Zone"; ring mid-label covers zone name)
+  // I5.6.21 — single label (removed duplicate "Organization Zone")
   const labelY = serviceY * 0.5;
-  const labelColor = selected
-    ? "#fca5a5"
-    : theme.scene.executiveColor;
-  // Brackets + underline treatment when selected (Stephen I5.6.21)
+  // I5.6.22 — brackets only; keep same font size/color as unselected
   const labelText = selected ? "[ Executive ]" : "Executive";
 
   return (
     <group>
+      {showShell && (
       <Sphere args={[r, 48, 48]}>
         <meshBasicMaterial
           color={theme.scene.executiveGlow ?? theme.scene.executiveColor}
           transparent
-          opacity={selected ? 0.14 : 0.09}
+          opacity={0.09}
           side={THREE.DoubleSide}
           depthWrite={false}
         />
       </Sphere>
+      )}
       <Billboard position={[0, labelY, 0]}>
         <Text
-          fontSize={selected ? 0.24 : 0.22}
-          color={labelColor}
+          fontSize={0.22}
+          color={theme.scene.executiveColor}
           anchorX="center"
           anchorY="middle"
-          fillOpacity={1}
-          outlineWidth={selected ? 0.012 : 0}
-          outlineColor={selected ? theme.scene.executiveColor : undefined}
+          fillOpacity={0.95}
           onClick={onLabelClick}
           onPointerOver={(e) => {
             e.stopPropagation();
@@ -376,20 +382,6 @@ function ExecutiveZoneGlow({
           {labelText}
         </Text>
       </Billboard>
-      {/* I5.6.21 — underline bar under Executive when selected */}
-      {selected && (
-        <Billboard position={[0, labelY - 0.2, 0]}>
-          <Text
-            fontSize={0.12}
-            color={labelColor}
-            anchorX="center"
-            anchorY="middle"
-            fillOpacity={0.95}
-          >
-            ———
-          </Text>
-        </Billboard>
-      )}
     </group>
   );
 }
@@ -648,6 +640,7 @@ function SceneContent({
   palette,
   showAxes,
   showRings,
+  showZoneColors,
   animSpeed,
   ringGap,
   zoneVisible,
@@ -659,6 +652,7 @@ function SceneContent({
   palette: ScenePalette;
   showAxes: boolean;
   showRings: boolean;
+  showZoneColors: boolean;
   animSpeed: number;
   ringGap: number;
   zoneVisible: { organization: boolean; collaboration: boolean; environment: boolean };
@@ -801,14 +795,15 @@ function SceneContent({
             serviceY={serviceY}
             onLabelClick={handleClick(executiveNode)}
             selected={focusedNodeId === "executive"}
+            showShell={showZoneColors}
           />
         )}
 
-        {zoneVisible.collaboration && (
+        {zoneVisible.collaboration && showZoneColors && (
           <CollaborationZoneCloud collabRadius={radii[2]} />
         )}
 
-        {zoneVisible.environment && (
+        {zoneVisible.environment && showZoneColors && (
           <EnvironmentZoneCloud
             envRadius={radii[3]}
             animate={animSpeed > 0}
@@ -822,13 +817,13 @@ function SceneContent({
               <group key={"zone-static-" + z.ring}>
                 <ZoneCircles
                   radius={radii[z.ring]}
-                  color={z.color}
+                  color={showZoneColors ? z.color : palette.labelColor}
                   opacity={palette.ringGuideOpacity}
                 />
                 <ZoneMidLabel
                   midRadius={z.midRadius}
                   label={z.label}
-                  color={z.color}
+                  color={showZoneColors ? z.color : palette.labelColor}
                 />
               </group>
             ))}
@@ -1030,6 +1025,10 @@ export function MissionControlScene({
   onRingGapChange,
   sphereScale: sphereScaleProp,
   onSphereScaleChange,
+  showZoneColors: showZoneColorsProp,
+  onShowZoneColorsChange,
+  showFloor: showFloorProp,
+  onShowFloorChange,
   zoneVisible: zoneVisibleProp,
   showLegend = true,
   showViewGizmo = true,
@@ -1044,6 +1043,8 @@ export function MissionControlScene({
   const [internalSpeed, setInternalSpeed] = useState(1);
   const [internalGap, setInternalGap] = useState(1);
   const [internalSphere, setInternalSphere] = useState(1);
+  const [internalZoneColors, setInternalZoneColors] = useState(true);
+  const [internalFloor, setInternalFloor] = useState(true);
   // I5.6.5 — legend toggles show/hide each zone (overridden when zoneVisible prop set)
   const [internalZoneVisible, setInternalZoneVisible] = useState({
     organization: true,
@@ -1060,6 +1061,8 @@ export function MissionControlScene({
   const animSpeed = animSpeedProp ?? internalSpeed;
   const ringGap = ringGapProp ?? internalGap;
   const sphereScale = sphereScaleProp ?? internalSphere;
+  const showZoneColors = showZoneColorsProp ?? internalZoneColors;
+  const showFloor = showFloorProp ?? internalFloor;
   const controlsRef = useRef<any>(null);
   const [camTel, setCamTel] = useState<CameraTelemetry | null>(null);
   const onCamTel = useCallback((t: CameraTelemetry) => setCamTel(t), []);
@@ -1139,6 +1142,16 @@ export function MissionControlScene({
     onShowRingsChange?.(next);
   };
 
+  const setShowZoneColors = (next: boolean) => {
+    if (showZoneColorsProp === undefined) setInternalZoneColors(next);
+    onShowZoneColorsChange?.(next);
+  };
+
+  const setShowFloor = (next: boolean) => {
+    if (showFloorProp === undefined) setInternalFloor(next);
+    onShowFloorChange?.(next);
+  };
+
   const cycleSpeed = () => {
     const steps = ANIM_SPEED_STEPS;
     const i = steps.indexOf(animSpeed);
@@ -1213,6 +1226,7 @@ export function MissionControlScene({
           palette={palette}
           showAxes={showAxes}
           showRings={showRings}
+          showZoneColors={showZoneColors}
           animSpeed={animSpeed}
           ringGap={ringGap}
           zoneVisible={zoneVisible}
@@ -1236,10 +1250,12 @@ export function MissionControlScene({
         />
         <OrbitPivotLock controlsRef={controlsRef} target={DEFAULT_CAM_TARGET} />
         <CameraTelemetryReporter controlsRef={controlsRef} onUpdate={onCamTel} />
-        <gridHelper
-          args={[AXIS_STEP * 8, 32, palette.gridMain, palette.gridSub]}
-          position={[0, -AXIS_STEP * 3.2, 0]}
-        />
+        {showFloor && (
+          <gridHelper
+            args={[AXIS_STEP * 8, 32, palette.gridMain, palette.gridSub]}
+            position={[0, -AXIS_STEP * 3.2, 0]}
+          />
+        )}
       </Canvas>
 
       {/* Canvas chrome — omit when parent Mission Control already has controls (I5.5.8) */}
@@ -1258,6 +1274,20 @@ export function MissionControlScene({
             className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
           >
             {showRings ? "Hide rings" : "Show rings"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowZoneColors(!showZoneColors)}
+            className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+          >
+            {showZoneColors ? "Hide zone colors" : "Show zone colors"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowFloor(!showFloor)}
+            className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+          >
+            {showFloor ? "Hide grid floor" : "Show grid floor"}
           </button>
           <button
             type="button"

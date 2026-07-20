@@ -52,11 +52,16 @@ export function Header() {
         </Badge>
         {session && (
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => router.push("/users")}
+              className="flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring px-1.5 py-1"
+              title="Open profile"
+            >
               <UserIcon className="h-4 w-4" />
               <span className="font-medium">{session.name}</span>
               <Badge variant="secondary" className="text-xs">{session.role}</Badge>
-            </div>
+            </button>
             <Button
               variant="ghost"
               size="sm"
