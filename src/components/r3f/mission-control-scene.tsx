@@ -627,10 +627,10 @@ function SceneContent({
     if (envKsRef.current) {
       envKsRef.current.rotation.y = -t * wEnv;
     }
-    // Events + Locations: Z-spin (XY plane) — Location (+x) up-and-around; Events (-x) down-and-around (I5.6.12).
+    // Events + Locations: Z-spin (XY plane) — Location up-around / Events down-around; +π/2 start phase (I5.6.14).
     // Prior X-spin left rest positions on the rotation axis so nodes looked static.
     if (envElRef.current) {
-      envElRef.current.rotation.z = t * wEnv;
+      envElRef.current.rotation.z = t * wEnv + Math.PI / 2; // I5.6.14: +¼ turn start phase (Stephen)
     }
   });
 
