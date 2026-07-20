@@ -286,56 +286,31 @@ function CenterProductNode({
   );
 }
 
+/** I5.6.8 — single static red translucent shell (no dual red/blue pulse). */
 function ExecutiveZoneGlow({
   orgRadius,
-  collabRadius,
   serviceY,
   onLabelClick,
 }: {
-  /** Inner pulsing glow — organization zone. */
   orgRadius: number;
-  /** Outer static shell — reaches collaboration ring (I5.5.9). */
-  collabRadius: number;
   serviceY: number;
   /** Only the Executive label is tappable (I5.5.9). */
   onLabelClick?: (e: ThreeEvent<MouseEvent>) => void;
 }) {
-  const glowRef = useRef<THREE.Mesh>(null);
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    if (glowRef.current) {
-      glowRef.current.scale.setScalar(1 + Math.sin(t * 1.2) * 0.03);
-      (glowRef.current.material as THREE.MeshBasicMaterial).opacity =
-        0.07 + Math.sin(t * 1.2) * 0.025;
-    }
-  });
-  const innerR = orgRadius * 1.15;
-  const outerR = collabRadius * 1.02;
+  const r = orgRadius * 1.15;
   const labelY = serviceY * 0.5;
 
   return (
     <group>
-      {/* Inner pulse — visual only, not a hit target */}
-      <Sphere ref={glowRef} args={[innerR, 48, 48]}>
+      <Sphere args={[r, 48, 48]}>
         <meshBasicMaterial
-          color={theme.scene.executiveGlow}
+          color={theme.scene.executiveGlow ?? theme.scene.executiveColor}
           transparent
-          opacity={0.08}
+          opacity={0.09}
           side={THREE.DoubleSide}
           depthWrite={false}
         />
       </Sphere>
-      {/* Outer shell on collab ring — blue (I5.5.11); inner stays red */}
-      <Sphere args={[outerR, 48, 48]}>
-        <meshBasicMaterial
-          color={theme.scene.organizationColor}
-          transparent
-          opacity={0.035}
-          side={THREE.DoubleSide}
-          depthWrite={false}
-        />
-      </Sphere>
-      {/* Executive label — sole tap target for Executive focus */}
       <Billboard position={[0, labelY + 0.14, 0]}>
         <Text
           fontSize={0.22}
@@ -367,6 +342,22 @@ function ExecutiveZoneGlow({
         </Text>
       </Billboard>
     </group>
+  );
+}
+
+/** I5.6.8 — collaboration zone shell independent of Executive (was wrongly the outer blue of org glow). */
+function CollaborationZoneCloud({ collabRadius }: { collabRadius: number }) {
+  const r = collabRadius * 1.02;
+  return (
+    <Sphere args={[r, 48, 48]}>
+      <meshBasicMaterial
+        color={theme.scene.collaborationColor}
+        transparent
+        opacity={0.055}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
+    </Sphere>
   );
 }
 
@@ -613,7 +604,7 @@ function SceneContent({
   zoneVisible: { organization: boolean; collaboration: boolean; environment: boolean };
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  // I5.6.2/5: collab CB Y-orbit ±x; VP X-spin +π/2; env KS ±z + EL ±x all Y-orbit @ 2w
+  // I5.6.8: collab CB Y-orbit ±x; VP X-spin +π/2; env KS Y-orbit ±z; EL X-spin (perp) @ 2w
   const collabHorizRef = useRef<THREE.Group>(null);
   const collabVpRef = useRef<THREE.Group>(null);
   const envKsRef = useRef<THREE.Group>(null);
@@ -632,13 +623,14 @@ function SceneContent({
     if (collabVpRef.current) {
       collabVpRef.current.rotation.x = -t * w + Math.PI / 2;
     }
-    // Knowledge + Schedules: horizontal Y — rest ±z
+    // Knowledge + Schedules: horizontal Y — rest ±z (XZ plane)
     if (envKsRef.current) {
       envKsRef.current.rotation.y = -t * wEnv;
     }
-    // Events + Locations: horizontal Y — rest Event −x / Location +x (I5.6.5)
+    // Events + Locations: perpendicular X-spin (YZ plane) — restores independent orbit (I5.6.8)
+    // Rest still Event −x / Location +x from fixtures; X-spin takes them off the KS plane.
     if (envElRef.current) {
-      envElRef.current.rotation.y = -t * wEnv;
+      envElRef.current.rotation.x = t * wEnv;
     }
   });
 
@@ -746,12 +738,13 @@ function SceneContent({
         {zoneVisible.organization && (
           <ExecutiveZoneGlow
             orgRadius={radii[1]}
-            collabRadius={
-              zoneVisible.collaboration ? radii[2] : radii[1] * 1.15
-            }
             serviceY={serviceY}
             onLabelClick={handleClick(executiveNode)}
           />
+        )}
+
+        {zoneVisible.collaboration && (
+          <CollaborationZoneCloud collabRadius={radii[2]} />
         )}
 
         {zoneVisible.environment && (
@@ -805,7 +798,7 @@ function SceneContent({
         </>
       )}
 
-      {/* Env: KS ±z + EL Event−x/Location+x — all horizontal Y @ 2× (I5.6.5) */}
+      {/* Env: KS Y-orbit ±z; EL X-spin Event−x/Location+x @ 2× (I5.6.8 restore perp) */}
       {zoneVisible.environment && (
         <>
           <group ref={envKsRef}>{envKsNodes.map((n) => renderNode(n))}</group>
