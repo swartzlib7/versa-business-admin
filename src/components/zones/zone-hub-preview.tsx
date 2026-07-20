@@ -32,16 +32,19 @@ const ZONES: {
 ];
 
 /**
- * I5.6.13 — compact ring glyph for zone pages.
+ * I5.6.13/15 — compact ring glyph for zone pages.
  * Concentric rings (org / collab / env); active zone filled + stronger stroke.
- * Sits above the "3D hub" control in the zone header.
+ * I5.6.15: sits LEFT of title / 3D hub in the zone header (more real estate).
  */
 export function ZoneHubPreview({
   active,
   className = "",
+  size = 88,
 }: {
   active: ZoneHubId;
   className?: string;
+  /** SVG pixel size (default 88 — left column has room). */
+  size?: number;
 }) {
   const activeMeta = ZONES.find((z) => z.id === active)!;
 
@@ -52,8 +55,8 @@ export function ZoneHubPreview({
     >
       <svg
         viewBox="0 0 100 100"
-        width={72}
-        height={72}
+        width={size}
+        height={size}
         className="shrink-0"
         role="img"
         aria-label={`${activeMeta.label} zone rings preview`}

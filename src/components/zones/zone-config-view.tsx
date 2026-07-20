@@ -623,38 +623,38 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: config.accent }}
-              aria-hidden
-            />
-            <Badge variant="outline" className="font-normal">
-              Zone config · mock
-            </Badge>
+      {/* I5.6.15 — Stephen: top region two columns; left = rings + title, right = 3D hub + zone btn */}
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-center">
+        <div className="grid grid-cols-[auto_1fr] items-center gap-4 sm:gap-5">
+          <ZoneHubPreview active={config.id} size={88} />
+          <div className="min-w-0 space-y-2">
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: config.accent }}
+                aria-hidden
+              />
+              <Badge variant="outline" className="font-normal">
+                Zone config · mock
+              </Badge>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight">{config.title}</h1>
+            <p className="max-w-2xl text-muted-foreground">{config.subtitle}</p>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">{config.title}</h1>
-          <p className="max-w-2xl text-muted-foreground">{config.subtitle}</p>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          {/* I5.6.13 — compact rings above 3D hub; active zone filled */}
-          <ZoneHubPreview active={config.id} />
-          <div className="flex flex-wrap justify-end gap-2 text-sm">
-            <Link
-              href="/dashboard"
-              className="rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              3D hub
-            </Link>
-            <span
-              className="rounded-md px-3 py-1.5 font-medium text-white"
-              style={{ backgroundColor: config.accent }}
-            >
-              {config.title}
-            </span>
-          </div>
+        <div className="flex flex-wrap items-center gap-2 text-sm lg:justify-end">
+          <Link
+            href="/dashboard"
+            className="rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            3D hub
+          </Link>
+          <span
+            className="rounded-md px-3 py-1.5 font-medium text-white"
+            style={{ backgroundColor: config.accent }}
+          >
+            {config.title}
+          </span>
         </div>
       </div>
 
