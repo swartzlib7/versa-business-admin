@@ -582,8 +582,8 @@ function SceneContent({
   ringGap: number;
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  // I5.5.16: collab Customer/Branch +Y; Vendor/Partner rest bottom/top on YZ ring;
-  // VP X-spin opposite of I5.5.15; KS Y; EL X; zone colors
+  // I5.6.2: collab CB Y-orbit on ±x; VP X-spin on YZ with +π/2 phase so pairs
+  // never meet at poles (env KS±z / EL±y already quarter-offset by rest axes).
   const collabHorizRef = useRef<THREE.Group>(null);
   const collabVpRef = useRef<THREE.Group>(null);
   const envKsRef = useRef<THREE.Group>(null);
@@ -592,14 +592,14 @@ function SceneContent({
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     const w = 0.05 * animSpeed;
-    // Customer + Branch: horizontal orbit (Y) — ring in XZ plane
+    // Customer + Branch: horizontal orbit (Y) — ring in XZ plane; rest ±x
     if (collabHorizRef.current) {
       collabHorizRef.current.rotation.y = t * w;
     }
-    // Vendor + Partner: perpendicular vertical ring (X) — YZ plane
-    // Rest: Vendor -y bottom, Partner +y top; spin opposite of I5.5.15 (+x)
+    // Vendor + Partner: perpendicular X-spin; +π/2 phase => effective rest ±z
+    // so paths never coincide with CB at the Y=0 poles (I5.6.2)
     if (collabVpRef.current) {
-      collabVpRef.current.rotation.x = -t * w;
+      collabVpRef.current.rotation.x = -t * w + Math.PI / 2;
     }
     // Knowledge + Schedules: horizontal orbit (Y) — ring in XZ plane
     if (envKsRef.current) {

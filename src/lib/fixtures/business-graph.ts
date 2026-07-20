@@ -176,7 +176,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     axis: '+y',
   },
 
-  // Collaboration — zone 2. I5.5.16: Vendor -y bottom / Partner +y top rest; perp X-spin opposite dir; Customer/Branch on X (Y-spin)
+  // Collaboration — zone 2. I5.6.2: CB ±x Y-orbit; VP fixture ±y but +π/2 X-phase => effective ±z rest so greens never coincide
   {
     id: 'vendor',
     label: 'Vendor',
