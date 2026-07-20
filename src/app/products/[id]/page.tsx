@@ -11,42 +11,49 @@ import {
   editFieldsFromCatalog,
 } from "@/lib/catalog/layout-to-fields";
 import { theme } from "@/lib/theme";
-import { projects, type ProjectFixture } from "@/lib/fixtures/projects";
+import { products, type Product } from "@/lib/fixtures/products";
 
-type LocalRow = ProjectFixture & Record<string, unknown>;
+type LocalRow = Product & Record<string, unknown>;
+
+function featuresToText(features: unknown): string {
+  if (Array.isArray(features)) return (features as string[]).join("\n");
+  return String(features ?? "");
+}
+
+function textToFeatures(text: string): string[] {
+  return text
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 function toCatalogValues(r: LocalRow): Record<string, string> {
   return {
     name: String(r.name ?? ""),
-    status: String(r.status ?? "active"),
-    priority: String(r.priority ?? "normal"),
-    owner_name: String(r.ownerName ?? ""),
-    start_date: String(r.startDate ?? ""),
-    target_date: String(r.targetDate ?? ""),
-    task_count: String(r.taskCount ?? "0"),
+    tagline: String(r.tagline ?? ""),
+    category: String(r.category ?? "Packages"),
+    status: String(r.status ?? "available"),
     description: String(r.description ?? ""),
+    features: featuresToText(r.features),
   };
 }
-
 
 function applyDraft(row: LocalRow, draft: Record<string, string>): LocalRow {
   return {
     ...row,
     name: draft.name || row.name,
+    tagline: draft.tagline || row.tagline,
     description: draft.description || row.description,
-    status: (draft.status as ProjectFixture["status"]) || row.status,
-    ownerName: draft.owner_name || row.ownerName,
-    priority: (draft.priority as ProjectFixture["priority"]) || row.priority,
-    startDate: draft.start_date || row.startDate,
-    targetDate: draft.target_date || row.targetDate,
-    taskCount: Number(draft.task_count || row.taskCount) || 0,
+    category: draft.category || row.category,
+    status: (draft.status as Product["status"]) || row.status,
+    features: textToFeatures(draft.features || ""),
   };
 }
 
-export default function ProjectsDetailPage() {
+export default function ProductsDetailPage() {
   const params = useParams();
   const id = String(params?.id ?? "");
-  const seed = projects.find((r) => r.id === id);
+  const seed = products.find((r) => r.id === id);
 
   const [row, setRow] = useState<LocalRow | null>(
     () => (seed ? ({ ...seed } as LocalRow) : null),
@@ -55,16 +62,16 @@ export default function ProjectsDetailPage() {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
 
-  const detail = useMemo(() => detailSectionsFromCatalog("project"), []);
-  const edit = useMemo(() => editFieldsFromCatalog("project"), []);
+  const detail = useMemo(() => detailSectionsFromCatalog("product"), []);
+  const edit = useMemo(() => editFieldsFromCatalog("product"), []);
 
   if (!row) {
     return (
       <AppShell>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">Project not found in fixtures.</p>
-          <Link href="/projects" className="text-sm underline">
-            Back to Projects
+          <p className="text-sm text-muted-foreground">Product not found in fixtures.</p>
+          <Link href="/products" className="text-sm underline">
+            Back to Products
           </Link>
         </div>
       </AppShell>
@@ -95,16 +102,16 @@ export default function ProjectsDetailPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <Link
-              href="/projects"
+              href="/products"
               className="text-xs text-muted-foreground underline-offset-4 hover:underline"
             >
-              ← Projects
+              ← Products
             </Link>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              {values.name || values.title || row.id}
+              {values.name || row.id}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              ERD-D layout-driven detail/edit · object "project"
+              ERD-D layout-driven detail/edit · object "product"
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -164,4 +171,3 @@ export default function ProjectsDetailPage() {
     </AppShell>
   );
 }
-

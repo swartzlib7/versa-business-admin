@@ -28,6 +28,8 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   getCell: (row: T, key: string) => string;
   /** Optional display formatter (defaults to getCell) */
   formatCell?: (row: T, key: string, raw: string) => string;
+  /** Optional rich cell renderer (wins over formatCell when provided) */
+  renderCell?: (row: T, key: string, raw: string) => ReactNode;
   /** Called when user adds a mock/local row (optional persistence later) */
   onAdd?: (draft: Record<string, string>) => void;
   onUpdate?: (id: string, draft: Record<string, string>) => void;
@@ -147,14 +149,16 @@ export function EntityListing<T extends Record<string, unknown>>({
   getRowId,
   getCell,
   formatCell,
+  renderCell,
   onAdd,
   onUpdate,
   emptyLabel,
   headerExtra,
   badgeLabel = "Listing",
 }: EntityListingProps<T>) {
-  const displayCell = (row: T, key: string) => {
+  const displayCell = (row: T, key: string): ReactNode => {
     const raw = getCell(row, key);
+    if (renderCell) return renderCell(row, key, raw);
     return formatCell ? formatCell(row, key, raw) : raw;
   };
   const columns = useMemo(

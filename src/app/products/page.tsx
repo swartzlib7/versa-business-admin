@@ -5,37 +5,45 @@ import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { EntityListing } from "@/components/listing/entity-listing";
 import { theme } from "@/lib/theme";
-import { tasks, type TaskFixture } from "@/lib/fixtures/tasks";
+import { products, type Product } from "@/lib/fixtures/products";
 import {
   listingFieldsFromCatalog,
   resolvePicklistLabel,
 } from "@/lib/catalog/layout-to-fields";
 import type { ListingField } from "@/components/listing/entity-listing";
 
-type LocalRow = TaskFixture & { _local?: boolean } & Record<string, unknown>;
+type LocalRow = Product & { _local?: boolean } & Record<string, unknown>;
+
+function featuresToText(features: unknown): string {
+  if (Array.isArray(features)) return (features as string[]).join("\n");
+  return String(features ?? "");
+}
+
+function textToFeatures(text: string): string[] {
+  return text
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 function toCatalogValues(r: LocalRow): Record<string, string> {
   return {
-    title: String(r.title ?? ""),
-    status: String(r.status ?? "planned"),
-    priority: String(r.priority ?? "normal"),
-    project_name: String(r.projectName ?? ""),
-    assignee_name: String(r.assigneeName ?? ""),
-    due_date: String(r.dueDate ?? ""),
+    name: String(r.name ?? ""),
+    tagline: String(r.tagline ?? ""),
+    category: String(r.category ?? "Packages"),
+    status: String(r.status ?? "available"),
     description: String(r.description ?? ""),
+    features: featuresToText(r.features),
   };
 }
 
-export default function TasksPage() {
+export default function ProductsPage() {
   const [rows, setRows] = useState<LocalRow[]>(() =>
-    tasks.map((r) => ({ ...r }) as LocalRow),
+    products.map((r) => ({ ...r }) as LocalRow),
   );
   const [note, setNote] = useState("");
 
-  const catalogFields = useMemo(
-    () => listingFieldsFromCatalog("task"),
-    [],
-  );
+  const catalogFields = useMemo(() => listingFieldsFromCatalog("product"), []);
 
   const fields: ListingField[] = useMemo(
     () =>
@@ -58,13 +66,11 @@ export default function TasksPage() {
   const renderCell = (row: LocalRow, key: string, raw: string) => {
     const meta = catalogFields.find((f) => f.key === key);
     const text =
-      meta?.kind === "select" && raw
-        ? resolvePicklistLabel(meta, raw)
-        : raw;
-    if (key === "title" && row.id) {
+      meta?.kind === "select" && raw ? resolvePicklistLabel(meta, raw) : raw;
+    if (key === "name" && row.id) {
       return (
         <Link
-          href={`/tasks/${row.id}`}
+          href={`/products/${row.id}`}
           className="font-medium text-foreground underline-offset-4 hover:underline"
         >
           {text || "—"}
@@ -75,21 +81,15 @@ export default function TasksPage() {
   };
 
   const onAdd = (draft: Record<string, string>) => {
-    const id = `local-task-${Date.now()}`;
-    const now = new Date().toISOString();
+    const id = `local-prod-${Date.now()}`;
     const next: LocalRow = {
       id,
-      title: draft.title || "New task",
+      name: draft.name || "New product",
+      tagline: draft.tagline || "",
       description: draft.description || "",
-      status: (draft.status as TaskFixture["status"]) || "planned",
-      priority: (draft.priority as TaskFixture["priority"]) || "normal",
-      projectId: "",
-      projectName: draft.project_name || "",
-      assigneeUserId: "",
-      assigneeName: draft.assignee_name || "",
-      dueDate: draft.due_date || "",
-      createdAt: now,
-      updatedAt: now,
+      category: draft.category || "Packages",
+      status: (draft.status as Product["status"]) || "available",
+      features: textToFeatures(draft.features || ""),
       _local: true,
     };
     setRows((prev) => [...prev, next]);
@@ -97,20 +97,17 @@ export default function TasksPage() {
   };
 
   const onUpdate = (id: string, draft: Record<string, string>) => {
-    const now = new Date().toISOString();
     setRows((prev) =>
       prev.map((r) =>
         r.id === id
           ? {
               ...r,
-              title: draft.title || r.title,
+              name: draft.name || r.name,
+              tagline: draft.tagline || r.tagline,
               description: draft.description || r.description,
-              status: (draft.status as TaskFixture["status"]) || r.status,
-              priority: (draft.priority as TaskFixture["priority"]) || r.priority,
-              projectName: draft.project_name || r.projectName,
-              assigneeName: draft.assignee_name || r.assigneeName,
-              dueDate: draft.due_date || r.dueDate,
-              updatedAt: now,
+              category: draft.category || r.category,
+              status: (draft.status as Product["status"]) || r.status,
+              features: textToFeatures(draft.features || ""),
             }
           : r,
       ),
@@ -123,7 +120,7 @@ export default function TasksPage() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Tasks</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               ERD-D layout-driven list — catalog fields + EntityListing (same pattern as Users).
             </p>
@@ -143,7 +140,7 @@ export default function TasksPage() {
         )}
 
         <EntityListing<LocalRow>
-          title="Tasks"
+          title="Products"
           summary="Fixture data · catalog list layout · inline New/Edit"
           accent={theme.colors.brand}
           fields={fields}
@@ -155,7 +152,7 @@ export default function TasksPage() {
           onUpdate={onUpdate}
           headerExtra={
             <span className="text-xs text-muted-foreground">
-              {rows.length} task{rows.length === 1 ? "" : "s"}
+              {rows.length} product{rows.length === 1 ? "" : "s"}
             </span>
           }
         />

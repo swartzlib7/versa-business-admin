@@ -6,7 +6,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | I5.6 Zone ERD + backend menu tabbed config + User-pilot baseline ERD |
-| **Status** | Finish wrap — BASELINE+ERD-B+C+UI-Z on beta; ERD-D optional; await Stephen wrap review before webdev |
+| **Status** | ERD-D shipped (Project/Task/Product catalog+pages); finish wrap — await Stephen review before webdev |
 | **Last verified against code** | 2026-07-20 (hub I5.6.28 beta `1f9de1a` / v0.7.45; ERD docs only for persistence) |
 | **Primary code** | `mission-control-scene` hub; zone routes `/organization` `/collaboration` `/environment`; users admin |
 | **Task** | #176 |
@@ -265,7 +265,7 @@ erDiagram
 | HUB-UI | I5.6.22 visual notes → UI dial | Notes applied or N/A | ✅ closed N/A 2026-07-20 |
 | ERD-B | Stub value_set / field_definition / layout_definition | Fixtures or tables readable by app | ✅ fixtures `src/lib/fixtures/catalog.ts` |
 | ERD-C | User pilot layout-driven view/edit + picklists | Demo on beta | ✅ layout-driven /users + /users/[id] |
-| ERD-D | Roll pattern to Project/Task/Product | Same pattern | ⬜ after C |
+| ERD-D | Roll pattern to Project/Task/Product | Same pattern | ✅ catalog+list/detail |
 | UI-Z | Zone listing pattern parity (non-Executive) | Matches ZONE pattern | ✅ shared EntityListing |
 | DOC-S | Point handoffs/checklists at this state doc | No parallel live ERD specs | 🔧 this cycle |
 
@@ -289,6 +289,7 @@ erDiagram
 
 | Date | Change | Items |
 |------|--------|-------|
+| 2026-07-20 | ERD-D roll User pattern to Project/Task/Product | catalog value sets/fields/layouts + /projects /tasks /products list+detail; sidebar nav |
 | 2026-07-20 | UI-Z zone ListingPanel → shared EntityListing (parity with Users) | zone-config-view + entity-listing hoist InlineForm |
 | 2026-07-20 | ERD-C User pilot: catalog-driven listing + detail/edit layouts; finish-before-webdev per Stephen | /users, /users/[id], layout-to-fields, LayoutDrivenForm |
 | 2026-07-20 | ERD-B catalog stubs shipped (`src/lib/fixtures/catalog.ts`) | value_set, field_definition, layout_definition for User |

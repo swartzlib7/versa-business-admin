@@ -1,140 +1,166 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import type { Task } from "@/lib/data";
+import { Card, CardContent } from "@/components/ui/card";
+import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
+import {
+  detailSectionsFromCatalog,
+  editFieldsFromCatalog,
+} from "@/lib/catalog/layout-to-fields";
+import { theme } from "@/lib/theme";
+import { tasks, type TaskFixture } from "@/lib/fixtures/tasks";
 
-const statusVariant = (status: string) => {
-  switch (status) {
-    case "done": return "default" as const;
-    case "in_progress": return "secondary" as const;
-    case "blocked": return "destructive" as const;
-    default: return "outline" as const;
-  }
-};
+type LocalRow = TaskFixture & Record<string, unknown>;
 
-const priorityVariant = (priority: string) => {
-  switch (priority) {
-    case "urgent": return "destructive" as const;
-    case "high": return "default" as const;
-    case "normal": return "secondary" as const;
-    case "low": return "outline" as const;
-    default: return "outline" as const;
-  }
-};
+function toCatalogValues(r: LocalRow): Record<string, string> {
+  return {
+    title: String(r.title ?? ""),
+    status: String(r.status ?? "planned"),
+    priority: String(r.priority ?? "normal"),
+    project_name: String(r.projectName ?? ""),
+    assignee_name: String(r.assigneeName ?? ""),
+    due_date: String(r.dueDate ?? ""),
+    description: String(r.description ?? ""),
+  };
+}
 
-export default function TaskDetailPage() {
+
+function applyDraft(row: LocalRow, draft: Record<string, string>): LocalRow {
+  return {
+    ...row,
+    title: draft.title || row.title,
+    description: draft.description || row.description,
+    status: (draft.status as TaskFixture["status"]) || row.status,
+    priority: (draft.priority as TaskFixture["priority"]) || row.priority,
+    projectName: draft.project_name || row.projectName,
+    assigneeName: draft.assignee_name || row.assigneeName,
+    dueDate: draft.due_date || row.dueDate,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export default function TasksDetailPage() {
   const params = useParams();
-  const id = params.id as string;
-  const [task, setTask] = useState<Task | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const id = String(params?.id ?? "");
+  const seed = tasks.find((r) => r.id === id);
 
-  useEffect(() => {
-    fetch(`/api/tasks/${id}`)
-      .then((r) => {
-        if (r.status === 401) {
-          window.location.href = "/login";
-          return null;
-        }
-        if (r.status === 404) {
-          setError("Task not found.");
-          setLoading(false);
-          return null;
-        }
-        return r.json();
-      })
-      .then((json) => {
-        if (json) {
-          setTask(json.data);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        setError("Failed to load task.");
-        setLoading(false);
-      });
-  }, [id]);
+  const [row, setRow] = useState<LocalRow | null>(
+    () => (seed ? ({ ...seed } as LocalRow) : null),
+  );
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [note, setNote] = useState("");
 
-  if (loading) {
-    return (
-      <AppShell>
-        <Card>
-          <CardContent className="flex items-center justify-center py-12">
-            <p className="text-sm text-muted-foreground">Loading task…</p>
-          </CardContent>
-        </Card>
-      </AppShell>
-    );
-  }
+  const detail = useMemo(() => detailSectionsFromCatalog("task"), []);
+  const edit = useMemo(() => editFieldsFromCatalog("task"), []);
 
-  if (error || !task) {
+  if (!row) {
     return (
       <AppShell>
         <div className="space-y-4">
-          <Link href="/tasks" className="text-sm text-muted-foreground hover:underline">&larr; Back to tasks</Link>
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-sm font-medium text-destructive">{error ?? "Task not found."}</p>
-            </CardContent>
-          </Card>
+          <p className="text-sm text-muted-foreground">Task not found in fixtures.</p>
+          <Link href="/tasks" className="text-sm underline">
+            Back to Tasks
+          </Link>
         </div>
       </AppShell>
     );
   }
+
+  const values = toCatalogValues(row);
+
+  const startEdit = () => {
+    setDraft({ ...values });
+    setEditing(true);
+  };
+
+  const cancel = () => {
+    setEditing(false);
+    setDraft({});
+  };
+
+  const save = () => {
+    setRow((prev) => (prev ? applyDraft(prev, draft) : prev));
+    setEditing(false);
+    setNote("Updated in this session (mock) — catalog layout; fixtures are not persisted.");
+  };
 
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <Link href="/tasks" className="text-sm text-muted-foreground hover:underline">&larr; Back to tasks</Link>
-          <h1 className="mt-2 text-2xl font-bold tracking-tight">{task.title}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge variant={statusVariant(task.status)}>{task.status.replace("_", " ")}</Badge>
-            <Badge variant={priorityVariant(task.priority)}>{task.priority}</Badge>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <Link
+              href="/tasks"
+              className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+            >
+              ← Tasks
+            </Link>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+              {values.name || values.title || row.id}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              ERD-D layout-driven detail/edit · object "task"
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {!editing ? (
+              <button
+                type="button"
+                onClick={startEdit}
+                className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                style={{ backgroundColor: theme.colors.brand }}
+              >
+                Edit
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={save}
+                  className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                  style={{ backgroundColor: theme.colors.brand }}
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={cancel}
+                  className="rounded-md border border-border px-3 py-1.5 text-sm"
+                >
+                  Cancel
+                </button>
+              </>
+            )}
           </div>
         </div>
 
+        {note && (
+          <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+            {note}
+          </p>
+        )}
+
         <Card>
-          <CardHeader>
-            <CardTitle>Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <p className="text-sm font-medium">Description</p>
-              <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <div>
-                <p className="text-sm font-medium">Project</p>
-                <Link href={`/projects/${task.projectId}`} className="mt-1 block text-sm text-foreground hover:underline">
-                  {task.projectName}
-                </Link>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Assignee</p>
-                <p className="mt-1 text-sm text-muted-foreground">{task.assigneeName}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Due Date</p>
-                <p className="mt-1 text-sm text-muted-foreground">{new Date(task.dueDate).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Created</p>
-                <p className="mt-1 text-sm text-muted-foreground">{new Date(task.createdAt).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium">Updated</p>
-                <p className="mt-1 text-sm text-muted-foreground">{new Date(task.updatedAt).toLocaleDateString()}</p>
-              </div>
-            </div>
+          <CardContent className="p-4 sm:p-6">
+            <LayoutDrivenForm
+              sections={editing ? edit.sections : detail.sections}
+              values={editing ? draft : values}
+              onChange={
+                editing
+                  ? (key, value) => setDraft((d) => ({ ...d, [key]: value }))
+                  : undefined
+              }
+              readOnly={!editing}
+              accent={theme.colors.brand}
+            />
           </CardContent>
         </Card>
       </div>
     </AppShell>
   );
 }
+
