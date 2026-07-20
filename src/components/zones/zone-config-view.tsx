@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { theme } from "@/lib/theme";
 import { MissionControlScene } from "@/components/r3f/mission-control-scene";
+import { EntityListing, type ListingField } from "@/components/listing/entity-listing";
 
 /**
  * I5.6.10 zone config UI pattern (Stephen):
@@ -143,7 +144,9 @@ function RelationsCard({
   );
 }
 
-/** I5.6.11 - table + New + row-inline collapsible editor (not top-of-page). */
+/** I5.6.11 — zone entity tabs use shared EntityListing (parity with Users). */
+type ZoneListRow = { id: string; cells: Record<string, string> };
+
 function ListingPanel({
   panel,
   accent,
@@ -151,243 +154,89 @@ function ListingPanel({
   panel: ZoneTab;
   accent: string;
 }) {
-  const columns =
-    panel.listColumns && panel.listColumns.length > 0
-      ? panel.listColumns
-      : panel.fields.slice(0, 4).map((f) => f.label);
+  const columns = useMemo(() => {
+    if (panel.listColumns && panel.listColumns.length > 0) {
+      return panel.listColumns;
+    }
+    return panel.fields.slice(0, 4).map((f) => f.label);
+  }, [panel.listColumns, panel.fields]);
 
-  const seed: string[][] =
-    panel.sampleRows && panel.sampleRows.length > 0
-      ? panel.sampleRows.map((r) => [...r])
-      : [
-          columns.map((_, i) => (i === 0 ? `Sample ${panel.label} A` : "-")),
-          columns.map((_, i) => (i === 0 ? `Sample ${panel.label} B` : "-")),
-        ];
+  const fields: ListingField[] = useMemo(() => {
+    const colSet = new Set(columns);
+    const fromFields: ListingField[] = panel.fields.map((f) => ({
+      key: f.label,
+      label: f.label,
+      kind: f.kind ?? "text",
+      options: f.options,
+      column: colSet.has(f.label),
+    }));
+    for (const c of columns) {
+      if (!fromFields.some((f) => f.key === c)) {
+        fromFields.unshift({ key: c, label: c, kind: "text", column: true });
+      }
+    }
+    const ordered: ListingField[] = [];
+    for (const c of columns) {
+      const f = fromFields.find((x) => x.key === c);
+      if (f) ordered.push({ ...f, column: true });
+    }
+    for (const f of fromFields) {
+      if (!columns.includes(f.key)) ordered.push({ ...f, column: false });
+    }
+    return ordered;
+  }, [panel.fields, columns]);
 
-  const [rows, setRows] = useState<string[][]>(seed);
-  /** null = closed; "new" = insert form after header; number = edit that row inline */
-  const [editor, setEditor] = useState<null | "new" | number>(null);
-  const [draft, setDraft] = useState<Record<string, string>>({});
+  const seedRows: ZoneListRow[] = useMemo(() => {
+    const seed: string[][] =
+      panel.sampleRows && panel.sampleRows.length > 0
+        ? panel.sampleRows.map((r) => [...r])
+        : [
+            columns.map((_, i) => (i === 0 ? `Sample ${panel.label} A` : "-")),
+            columns.map((_, i) => (i === 0 ? `Sample ${panel.label} B` : "-")),
+          ];
+    return seed.map((cells, idx) => {
+      const rec: Record<string, string> = {};
+      columns.forEach((c, i) => {
+        rec[c] = cells[i] === "-" ? "" : (cells[i] ?? "");
+      });
+      return { id: `${panel.id}-row-${idx}`, cells: rec };
+    });
+  }, [panel.id, panel.sampleRows, panel.label, columns]);
+
+  const [rows, setRows] = useState<ZoneListRow[]>(seedRows);
 
   useEffect(() => {
-    setRows(seed);
-    setEditor(null);
-    setDraft({});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panel.id]);
+    setRows(seedRows);
+  }, [seedRows]);
 
-  const fieldForCol = (col: string) =>
-    panel.fields.find((f) => f.label === col) ?? {
-      label: col,
-      placeholder: col,
-      kind: "text" as const,
-    };
+  const getCell = (row: ZoneListRow, key: string) => row.cells[key] ?? "";
 
-  const blankDraft = () => {
-    const d: Record<string, string> = {};
-    for (const c of columns) d[c] = "";
-    // also include non-column fields for fuller forms
-    for (const f of panel.fields) {
-      if (!(f.label in d)) d[f.label] = "";
-    }
-    return d;
+  const onAdd = (draft: Record<string, string>) => {
+    setRows((prev) => [
+      ...prev,
+      { id: `${panel.id}-row-${Date.now()}`, cells: { ...draft } },
+    ]);
   };
 
-  const commitDraft = () => {
-    const next = columns.map((c) => draft[c]?.trim() || "-");
-    if (typeof editor === "number") {
-      setRows((prev) => prev.map((r, i) => (i === editor ? next : r)));
-    } else {
-      setRows((prev) => [...prev, next]);
-    }
-    setDraft(blankDraft());
-    setEditor(null);
+  const onUpdate = (id: string, draft: Record<string, string>) => {
+    setRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, cells: { ...draft } } : r)),
+    );
   };
-
-  const startEdit = (idx: number) => {
-    if (editor === idx) {
-      setEditor(null);
-      return;
-    }
-    const row = rows[idx];
-    const d = blankDraft();
-    columns.forEach((c, i) => {
-      d[c] = row[i] === "-" ? "" : row[i];
-    });
-    setDraft(d);
-    setEditor(idx);
-  };
-
-  const startNew = () => {
-    if (editor === "new") {
-      setEditor(null);
-      return;
-    }
-    setDraft(blankDraft());
-    setEditor("new");
-  };
-
-  const cancel = () => {
-    setEditor(null);
-    setDraft(blankDraft());
-  };
-
-  const singular = panel.label.endsWith("s")
-    ? panel.label.slice(0, -1)
-    : panel.label;
-
-  const formFields =
-    panel.fields.length > 0
-      ? panel.fields
-      : columns.map((c) => fieldForCol(c));
-
-  const InlineForm = ({
-    heading,
-  }: {
-    heading: string;
-  }) => (
-    <div
-      className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6"
-      style={{ boxShadow: `inset 3px 0 0 ${accent}` }}
-    >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-medium">{heading}</p>
-        <span className="text-xs text-muted-foreground">
-          Inline row editor - mock only
-        </span>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {formFields.map((f) => (
-          <div
-            key={f.label}
-            className={f.kind === "textarea" ? "sm:col-span-2" : undefined}
-          >
-            <FieldMock
-              {...f}
-              value={draft[f.label] ?? ""}
-              onChange={(v) => setDraft((d) => ({ ...d, [f.label]: v }))}
-            />
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={commitDraft}
-          className="rounded-md px-4 py-2 text-sm font-medium text-white"
-          style={{ backgroundColor: accent }}
-        >
-          {typeof editor === "number" ? "Update row" : "Add to table"}
-        </button>
-        <button
-          type="button"
-          onClick={cancel}
-          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="border-b bg-muted/30">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle className="text-lg">{panel.label}</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">{panel.summary}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge
-              className="shrink-0 border-0 text-white"
-              style={{ backgroundColor: accent }}
-            >
-              Listing
-            </Badge>
-            <button
-              type="button"
-              onClick={startNew}
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
-              style={{ backgroundColor: accent }}
-            >
-              {editor === "new" ? "Close" : `New ${singular}`}
-            </button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-0 p-0">
-        {editor === "new" && (
-          <InlineForm heading={`New ${singular}`} />
-        )}
-
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[520px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-                {columns.map((c) => (
-                  <th key={c} className="px-4 py-2.5 font-medium">
-                    {c}
-                  </th>
-                ))}
-                <th className="px-4 py-2.5 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, ri) => (
-                <Fragment key={ri}>
-                  <tr
-                    className="border-b border-border/70 transition-colors hover:bg-muted/30"
-                  >
-                    {columns.map((c, ci) => (
-                      <td key={c} className="px-4 py-3 align-top text-foreground">
-                        <span className="line-clamp-3 whitespace-pre-wrap">
-                          {row[ci] ?? "-"}
-                        </span>
-                      </td>
-                    ))}
-                    <td className="px-4 py-3 text-right align-top">
-                      <button
-                        type="button"
-                        onClick={() => startEdit(ri)}
-                        className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
-                        style={
-                          editor === ri
-                            ? {
-                                borderColor: accent,
-                                color: accent,
-                              }
-                            : undefined
-                        }
-                      >
-                        {editor === ri ? "Close" : "Edit"}
-                      </button>
-                    </td>
-                  </tr>
-                  {editor === ri && (
-                    <tr key={`edit-${ri}`} className="border-b border-border">
-                      <td colSpan={columns.length + 1} className="p-0">
-                        <InlineForm heading={`Edit ${singular}`} />
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
-              {rows.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={columns.length + 1}
-                    className="px-4 py-8 text-center text-muted-foreground"
-                  >
-                    No {panel.label.toLowerCase()} yet - use New to add the first row.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
+    <EntityListing<ZoneListRow>
+      title={panel.label}
+      summary={panel.summary}
+      accent={accent}
+      fields={fields}
+      rows={rows}
+      getRowId={(r) => r.id}
+      getCell={getCell}
+      onAdd={onAdd}
+      onUpdate={onUpdate}
+      emptyLabel={`No ${panel.label.toLowerCase()} yet — use New to add the first row.`}
+    />
   );
 }
 

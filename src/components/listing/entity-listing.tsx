@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, Fragment, type ReactNode } from "react";
+import { useEffect, useMemo, useState, Fragment, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,8 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   onUpdate?: (id: string, draft: Record<string, string>) => void;
   emptyLabel?: string;
   headerExtra?: ReactNode;
+  /** Optional badge text (default Listing) */
+  badgeLabel?: string;
 };
 
 function FieldInput({
@@ -72,8 +74,69 @@ function FieldInput({
   );
 }
 
+function InlineForm({
+  heading,
+  fields,
+  draft,
+  setDraft,
+  accent,
+  onCommit,
+  onCancel,
+  commitLabel,
+}: {
+  heading: string;
+  fields: ListingField[];
+  draft: Record<string, string>;
+  setDraft: Dispatch<SetStateAction<Record<string, string>>>;
+  accent: string;
+  onCommit: () => void;
+  onCancel: () => void;
+  commitLabel: string;
+}) {
+  return (
+    <div
+      className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6"
+      style={{ boxShadow: `inset 3px 0 0 ${accent}` }}
+    >
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-medium">{heading}</p>
+        <span className="text-xs text-muted-foreground">Inline row editor</span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {fields.map((f) => (
+          <div key={f.key} className={f.kind === "textarea" ? "sm:col-span-2" : undefined}>
+            <FieldInput
+              field={f}
+              value={draft[f.key] ?? ""}
+              onChange={(v) => setDraft((d) => ({ ...d, [f.key]: v }))}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onCommit}
+          className="rounded-md px-4 py-2 text-sm font-medium text-white"
+          style={{ backgroundColor: accent }}
+        >
+          {commitLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /**
  * I5.6.10/11 listing pattern: table + New under header + Edit expands INLINE on row.
+ * Shared by Users pilot and zone config entity tabs.
  */
 export function EntityListing<T extends Record<string, unknown>>({
   title,
@@ -88,6 +151,7 @@ export function EntityListing<T extends Record<string, unknown>>({
   onUpdate,
   emptyLabel,
   headerExtra,
+  badgeLabel = "Listing",
 }: EntityListingProps<T>) {
   const displayCell = (row: T, key: string) => {
     const raw = getCell(row, key);
@@ -95,7 +159,7 @@ export function EntityListing<T extends Record<string, unknown>>({
   };
   const columns = useMemo(
     () => fields.filter((f) => f.column !== false),
-    [fields]
+    [fields],
   );
 
   const [editor, setEditor] = useState<null | "new" | string>(null);
@@ -150,46 +214,6 @@ export function EntityListing<T extends Record<string, unknown>>({
 
   const singular = title.endsWith("s") ? title.slice(0, -1) : title;
 
-  const InlineForm = ({ heading }: { heading: string }) => (
-    <div
-      className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6"
-      style={{ boxShadow: `inset 3px 0 0 ${accent}` }}
-    >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-medium">{heading}</p>
-        <span className="text-xs text-muted-foreground">Inline row editor</span>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {fields.map((f) => (
-          <div key={f.key} className={f.kind === "textarea" ? "sm:col-span-2" : undefined}>
-            <FieldInput
-              field={f}
-              value={draft[f.key] ?? ""}
-              onChange={(v) => setDraft((d) => ({ ...d, [f.key]: v }))}
-            />
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={commit}
-          className="rounded-md px-4 py-2 text-sm font-medium text-white"
-          style={{ backgroundColor: accent }}
-        >
-          {editor === "new" ? "Add to table" : "Update row"}
-        </button>
-        <button
-          type="button"
-          onClick={cancel}
-          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <Card className="overflow-hidden">
       <CardHeader className="border-b bg-muted/30">
@@ -199,23 +223,40 @@ export function EntityListing<T extends Record<string, unknown>>({
             <p className="mt-1 text-sm text-muted-foreground">{summary}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {headerExtra}
-            <Badge className="shrink-0 border-0 text-white" style={{ backgroundColor: accent }}>
-              Listing
-            </Badge>
-            <button
-              type="button"
-              onClick={startNew}
-              className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+            <Badge
+              className="shrink-0 border-0 text-white"
               style={{ backgroundColor: accent }}
             >
-              {editor === "new" ? "Close" : `New ${singular}`}
-            </button>
+              {badgeLabel}
+            </Badge>
+            {headerExtra}
+            {(onAdd || onUpdate) && (
+              <button
+                type="button"
+                onClick={startNew}
+                className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                style={{ backgroundColor: accent }}
+              >
+                {editor === "new" ? "Close" : `New ${singular}`}
+              </button>
+            )}
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        {editor === "new" && <InlineForm heading={`New ${singular}`} />}
+      <CardContent className="space-y-0 p-0">
+        {editor === "new" && (
+          <InlineForm
+            heading={`New ${singular}`}
+            fields={fields}
+            draft={draft}
+            setDraft={setDraft}
+            accent={accent}
+            onCommit={commit}
+            onCancel={cancel}
+            commitLabel="Add to table"
+          />
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-left text-sm">
             <thead>
@@ -225,7 +266,9 @@ export function EntityListing<T extends Record<string, unknown>>({
                     {c.label}
                   </th>
                 ))}
-                <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+                {(onAdd || onUpdate) && (
+                  <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -235,31 +278,45 @@ export function EntityListing<T extends Record<string, unknown>>({
                   <Fragment key={id}>
                     <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
                       {columns.map((c) => (
-                        <td key={c.key} className="px-4 py-3 align-top">
+                        <td key={c.key} className="px-4 py-3 align-top text-foreground">
                           <span className="line-clamp-3 whitespace-pre-wrap">
-                            {getCell(row, c.key) || "-"}
+                            {displayCell(row, c.key) || "—"}
                           </span>
                         </td>
                       ))}
-                      <td className="px-4 py-3 text-right align-top">
-                        <button
-                          type="button"
-                          onClick={() => startEdit(row)}
-                          className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
-                          style={
-                            editor === id
-                              ? { borderColor: accent, color: accent }
-                              : undefined
-                          }
-                        >
-                          {editor === id ? "Close" : "Edit"}
-                        </button>
-                      </td>
+                      {(onAdd || onUpdate) && (
+                        <td className="px-4 py-3 text-right align-top">
+                          <button
+                            type="button"
+                            onClick={() => startEdit(row)}
+                            className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                            style={
+                              editor === id
+                                ? { borderColor: accent, color: accent }
+                                : undefined
+                            }
+                          >
+                            {editor === id ? "Close" : "Edit"}
+                          </button>
+                        </td>
+                      )}
                     </tr>
                     {editor === id && (
                       <tr className="border-b border-border">
-                        <td colSpan={columns.length + 1} className="p-0">
-                          <InlineForm heading={`Edit ${singular}`} />
+                        <td
+                          colSpan={columns.length + (onAdd || onUpdate ? 1 : 0)}
+                          className="p-0"
+                        >
+                          <InlineForm
+                            heading={`Edit ${singular}`}
+                            fields={fields}
+                            draft={draft}
+                            setDraft={setDraft}
+                            accent={accent}
+                            onCommit={commit}
+                            onCancel={cancel}
+                            commitLabel="Update row"
+                          />
                         </td>
                       </tr>
                     )}
@@ -269,10 +326,11 @@ export function EntityListing<T extends Record<string, unknown>>({
               {rows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={columns.length + 1}
+                    colSpan={columns.length + (onAdd || onUpdate ? 1 : 0)}
                     className="px-4 py-8 text-center text-muted-foreground"
                   >
-                    {emptyLabel ?? `No ${title.toLowerCase()} yet - use New to add the first row.`}
+                    {emptyLabel ??
+                      `No ${title.toLowerCase()} yet — use New to add the first row.`}
                   </td>
                 </tr>
               )}
