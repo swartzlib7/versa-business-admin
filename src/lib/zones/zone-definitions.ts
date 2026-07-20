@@ -48,6 +48,12 @@ export const organizationZone: ZoneConfig = {
           id: "policy",
           label: "Policy",
           summary: "Governing policies and executive directives for the organization.",
+          presentation: "listing",
+          listColumns: ["Policy title", "Scope", "Owner"],
+          sampleRows: [
+            ["Operating charter", "organization", "Stephen"],
+            ["Data handling", "compliance", "Ops"],
+          ],
           fields: [
             { label: "Policy title", placeholder: "Operating policy name" },
             {
@@ -68,6 +74,12 @@ export const organizationZone: ZoneConfig = {
           id: "projects",
           label: "Projects",
           summary: "Strategic and delivery projects owned by Executive.",
+          presentation: "listing",
+          listColumns: ["Project name", "Status", "Owner"],
+          sampleRows: [
+            ["Mission Control beta", "active", "Stephen"],
+            ["Wave accounting", "planned", "Finance"],
+          ],
           fields: [
             { label: "Project name", placeholder: "Mission Control beta" },
             {
@@ -83,12 +95,17 @@ export const organizationZone: ZoneConfig = {
             { zone: "Organization", label: "Tasks", hint: "Work breakdown under this project." },
             { zone: "Collaboration", label: "External parties", hint: "Customers or partners involved." },
           ],
-          links: [{ href: "/projects", label: "Projects list" }],
         },
         {
           id: "tasks",
           label: "Tasks",
           summary: "Executable work items under Executive projects.",
+          presentation: "listing",
+          listColumns: ["Task title", "Status", "Assignee"],
+          sampleRows: [
+            ["Ship I5.6.11", "in_progress", "COA"],
+            ["Review hub visuals", "waiting", "Stephen"],
+          ],
           fields: [
             { label: "Task title", placeholder: "Ship I5.6.6" },
             {
@@ -104,7 +121,6 @@ export const organizationZone: ZoneConfig = {
             { zone: "Organization", label: "Parent project", hint: "Project this task belongs to." },
             { zone: "Environment", label: "Schedule", hint: "When the task is due." },
           ],
-          links: [{ href: "/tasks", label: "Tasks list" }],
         },
       ],
     },
@@ -332,7 +348,6 @@ export const collaborationZone: ZoneConfig = {
             { zone: "Collaboration", label: "Vendor", hint: "Parent vendor this integration belongs to." },
             { zone: "Organization", label: "Owning faculty", hint: "Production / Treasury / Service." },
           ],
-          links: [{ href: "/integrations", label: "Integrations list" }],
         },
       ],
     },

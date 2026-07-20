@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,8 +11,8 @@ import { theme } from "@/lib/theme";
  * I5.6.10 zone config UI pattern (Stephen):
  * - Nested parents synthesize a self/default sub-tab first (I5.6.9).
  * - Entity surfaces use presentation "listing": polished table + New/Edit,
- *   collapsible inline form (not modal) that appends a mock row on Add.
- * - Executive tree stays presentation "form" until Stephen designs it.
+ *   collapsible form INLINE on the row (Edit) or under header (New) - not modal.
+ * - Executive Policy/Projects/Tasks use listing; Executive self may stay form.
  * Spec: docs/specs/ZONE_CONFIG_UI_PATTERN_I5.6.md
  */
 
@@ -142,7 +142,7 @@ function RelationsCard({
   );
 }
 
-/** I5.6.10 - table + New collapsible form + row Edit (mock, client-only). */
+/** I5.6.11 - table + New + row-inline collapsible editor (not top-of-page). */
 function ListingPanel({
   panel,
   accent,
@@ -164,15 +164,14 @@ function ListingPanel({
         ];
 
   const [rows, setRows] = useState<string[][]>(seed);
-  const [openNew, setOpenNew] = useState(false);
+  /** null = closed; "new" = insert form after header; number = edit that row inline */
+  const [editor, setEditor] = useState<null | "new" | number>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
-  const [editing, setEditing] = useState<number | null>(null);
 
   useEffect(() => {
     setRows(seed);
-    setOpenNew(false);
+    setEditor(null);
     setDraft({});
-    setEditing(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel.id]);
 
@@ -186,41 +185,109 @@ function ListingPanel({
   const blankDraft = () => {
     const d: Record<string, string> = {};
     for (const c of columns) d[c] = "";
+    // also include non-column fields for fuller forms
+    for (const f of panel.fields) {
+      if (!(f.label in d)) d[f.label] = "";
+    }
     return d;
   };
 
   const commitDraft = () => {
     const next = columns.map((c) => draft[c]?.trim() || "-");
-    if (editing !== null) {
-      setRows((prev) => prev.map((r, i) => (i === editing ? next : r)));
-      setEditing(null);
+    if (typeof editor === "number") {
+      setRows((prev) => prev.map((r, i) => (i === editor ? next : r)));
     } else {
       setRows((prev) => [...prev, next]);
     }
     setDraft(blankDraft());
-    setOpenNew(false);
+    setEditor(null);
   };
 
   const startEdit = (idx: number) => {
+    if (editor === idx) {
+      setEditor(null);
+      return;
+    }
     const row = rows[idx];
-    const d: Record<string, string> = {};
+    const d = blankDraft();
     columns.forEach((c, i) => {
       d[c] = row[i] === "-" ? "" : row[i];
     });
     setDraft(d);
-    setEditing(idx);
-    setOpenNew(true);
+    setEditor(idx);
   };
 
   const startNew = () => {
-    setEditing(null);
+    if (editor === "new") {
+      setEditor(null);
+      return;
+    }
     setDraft(blankDraft());
-    setOpenNew(true);
+    setEditor("new");
+  };
+
+  const cancel = () => {
+    setEditor(null);
+    setDraft(blankDraft());
   };
 
   const singular = panel.label.endsWith("s")
     ? panel.label.slice(0, -1)
     : panel.label;
+
+  const formFields =
+    panel.fields.length > 0
+      ? panel.fields
+      : columns.map((c) => fieldForCol(c));
+
+  const InlineForm = ({
+    heading,
+  }: {
+    heading: string;
+  }) => (
+    <div
+      className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6"
+      style={{ boxShadow: `inset 3px 0 0 ${accent}` }}
+    >
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-medium">{heading}</p>
+        <span className="text-xs text-muted-foreground">
+          Inline row editor - mock only
+        </span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {formFields.map((f) => (
+          <div
+            key={f.label}
+            className={f.kind === "textarea" ? "sm:col-span-2" : undefined}
+          >
+            <FieldMock
+              {...f}
+              value={draft[f.label] ?? ""}
+              onChange={(v) => setDraft((d) => ({ ...d, [f.label]: v }))}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={commitDraft}
+          className="rounded-md px-4 py-2 text-sm font-medium text-white"
+          style={{ backgroundColor: accent }}
+        >
+          {typeof editor === "number" ? "Update row" : "Add to table"}
+        </button>
+        <button
+          type="button"
+          onClick={cancel}
+          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <Card className="overflow-hidden">
@@ -239,70 +306,21 @@ function ListingPanel({
             </Badge>
             <button
               type="button"
-              onClick={() =>
-                openNew && editing === null ? setOpenNew(false) : startNew()
-              }
+              onClick={startNew}
               className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
               style={{ backgroundColor: accent }}
             >
-              {openNew && editing === null ? "Close" : `New ${singular}`}
+              {editor === "new" ? "Close" : `New ${singular}`}
             </button>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4 p-0">
-        {openNew && (
-          <div className="border-b border-border bg-muted/15 px-6 py-4">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <p className="text-sm font-medium">
-                {editing !== null ? `Edit ${singular}` : `New ${singular}`}
-              </p>
-              <span className="text-xs text-muted-foreground">
-                Collapsible form - mock only
-              </span>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {columns.map((c) => {
-                const f = fieldForCol(c);
-                return (
-                  <div
-                    key={c}
-                    className={f.kind === "textarea" ? "sm:col-span-2" : undefined}
-                  >
-                    <FieldMock
-                      {...f}
-                      value={draft[c] ?? ""}
-                      onChange={(v) => setDraft((d) => ({ ...d, [c]: v }))}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={commitDraft}
-                className="rounded-md px-4 py-2 text-sm font-medium text-white"
-                style={{ backgroundColor: accent }}
-              >
-                {editing !== null ? "Update row" : "Add to table"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setOpenNew(false);
-                  setEditing(null);
-                  setDraft(blankDraft());
-                }}
-                className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+      <CardContent className="space-y-0 p-0">
+        {editor === "new" && (
+          <InlineForm heading={`New ${singular}`} />
         )}
 
-        <div className="overflow-x-auto px-2 pb-4 pt-2">
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
@@ -316,27 +334,43 @@ function ListingPanel({
             </thead>
             <tbody>
               {rows.map((row, ri) => (
-                <tr
-                  key={ri}
-                  className="border-b border-border/70 transition-colors hover:bg-muted/30"
-                >
-                  {columns.map((c, ci) => (
-                    <td key={c} className="px-4 py-3 align-top text-foreground">
-                      <span className="line-clamp-3 whitespace-pre-wrap">
-                        {row[ci] ?? "-"}
-                      </span>
+                <Fragment key={ri}>
+                  <tr
+                    className="border-b border-border/70 transition-colors hover:bg-muted/30"
+                  >
+                    {columns.map((c, ci) => (
+                      <td key={c} className="px-4 py-3 align-top text-foreground">
+                        <span className="line-clamp-3 whitespace-pre-wrap">
+                          {row[ci] ?? "-"}
+                        </span>
+                      </td>
+                    ))}
+                    <td className="px-4 py-3 text-right align-top">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(ri)}
+                        className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                        style={
+                          editor === ri
+                            ? {
+                                borderColor: accent,
+                                color: accent,
+                              }
+                            : undefined
+                        }
+                      >
+                        {editor === ri ? "Close" : "Edit"}
+                      </button>
                     </td>
-                  ))}
-                  <td className="px-4 py-3 text-right align-top">
-                    <button
-                      type="button"
-                      onClick={() => startEdit(ri)}
-                      className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
-                    >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
+                  </tr>
+                  {editor === ri && (
+                    <tr key={`edit-${ri}`} className="border-b border-border">
+                      <td colSpan={columns.length + 1} className="p-0">
+                        <InlineForm heading={`Edit ${singular}`} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
               {rows.length === 0 && (
                 <tr>
@@ -351,20 +385,6 @@ function ListingPanel({
             </tbody>
           </table>
         </div>
-
-        {panel.links && panel.links.length > 0 && (
-          <div className="flex flex-wrap gap-2 border-t border-border px-6 py-3">
-            {panel.links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
-              >
-                Open {l.label}{' →'}
-              </Link>
-            ))}
-          </div>
-        )}
       </CardContent>
     </Card>
   );

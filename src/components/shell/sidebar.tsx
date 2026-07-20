@@ -13,6 +13,7 @@ import {
   Building2,
   Handshake,
   Globe2,
+  BookOpen,
 } from "lucide-react";
 
 interface NavItem {
@@ -41,6 +42,7 @@ const navEntries: NavEntry[] = [
   { href: "/organization", label: "Organization", icon: Building2 },
   { href: "/collaboration", label: "Collaboration", icon: Handshake },
   { href: "/environment", label: "Environment", icon: Globe2 },
+  { href: "/glossary", label: "Glossary", icon: BookOpen },
   { href: "/users", label: "Users", icon: Users },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -128,9 +130,18 @@ export function Sidebar() {
                                 "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
                                 isActive
-                                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                  ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
                                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                               )}
+                              style={
+                                isActive
+                                  ? {
+                                      boxShadow: `inset 3px 0 0 ${theme.colors.brand}`,
+                                      backgroundColor: `${theme.colors.brand}22`,
+                                      color: theme.colors.brand,
+                                    }
+                                  : undefined
+                              }
                             >
                               <child.icon className="h-3.5 w-3.5" aria-hidden="true" />
                               {child.label}
@@ -158,9 +169,18 @@ export function Sidebar() {
                     "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar",
                     isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground shadow-sm"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                   )}
+                  style={
+                    isActive
+                      ? {
+                          boxShadow: `inset 3px 0 0 ${theme.colors.brand}`,
+                          backgroundColor: `${theme.colors.brand}22`,
+                          color: theme.colors.brand,
+                        }
+                      : undefined
+                  }
                 >
                   <entry.icon className="h-4 w-4" aria-hidden="true" />
                   {entry.label}
@@ -172,7 +192,7 @@ export function Sidebar() {
       </nav>
       <div className="border-t border-sidebar-border px-4 py-3">
         <p className="text-xs text-sidebar-foreground/50">
-          {theme.brand.name} v0.7.0
+          {theme.brand.name} v0.7.28
         </p>
       </div>
     </aside>
