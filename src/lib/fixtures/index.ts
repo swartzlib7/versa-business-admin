@@ -25,3 +25,18 @@ export {
   type GraphPosition,
   type AxisSlot,
 } from './business-graph';
+export {
+  valueSets,
+  valueSetItems,
+  fieldDefinitions,
+  layoutDefinitions,
+  getValueSetByApiName,
+  listValueSetItems,
+  listFieldDefinitions,
+  getDefaultLayout,
+  type ValueSet,
+  type ValueSetItem,
+  type FieldDefinition,
+  type LayoutDefinition,
+  type CatalogDataType,
+} from './catalog';

@@ -6,7 +6,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | I5.6 Zone ERD + backend menu tabbed config + User-pilot baseline ERD |
-| **Status** | In progress — ERD plan approved; **hub visual notes CLOSED 2026-07-20**; baseline lock next (Party model confirmed simple) |
+| **Status** | In progress — **BASELINE LOCKED 2026-07-20** (Stephen); hub visuals closed; ERD-B next |
 | **Last verified against code** | 2026-07-20 (hub I5.6.28 beta `1f9de1a` / v0.7.45; ERD docs only for persistence) |
 | **Primary code** | `mission-control-scene` hub; zone routes `/organization` `/collaboration` `/environment`; users admin |
 | **Task** | #176 |
@@ -102,7 +102,7 @@
 | User | Department | assigned_to | M:N (or single FK interim) |
 | User | Party | may_represent | M:N optional |
 
-### 1.4 Baseline persistence (Stephen-locked 2026-07-20)
+### 1.4 Baseline persistence (**BASELINE LOCKED** 2026-07-20 by Stephen)
 
 | Decision | Value |
 |----------|--------|
@@ -126,6 +126,9 @@
 - **Department:** id, organization_id, code, name, `data`  
 - **Project / Task:** org/project FKs, status, owner/assignee, priority, dates, `data`  
 - **Party:** organization_id, party_kind (vendor|customer|partner|branch), name, status, `data` — no party↔party edges  
+
+**Party purpose (locked):** Mission’s record of who the business works *with* (Collaboration zone). Not the host Versa AGi Organization table. One table + `party_kind` avoids four near-identical tables. `organization_id` = owning enterprise has this party. No party↔party edges at baseline.
+
 - **Location / Event / KnowledgeAsset / Schedule:** organization_id, core labels/timestamps, `data`; M:N junctions preferred over JSON id arrays  
 - **Product / Service / Integration / Policy:** id + org/parent FKs + name/status + `data`
 
@@ -147,12 +150,12 @@ Record JSON stores picklist **api codes**; UI resolves labels from catalog.
 
 | Step | Deliverable | Gate |
 |------|-------------|------|
-| **A** | Baseline ERD signed | Stephen — **plan approved 2026-07-20**; formal lock of this state doc |
+| **A** | Baseline ERD signed | **LOCKED 2026-07-20** — Organization + Party(party_kind); host AGi org not shared |
 | **B** | Stub catalog fixtures/tables | After A |
 | **C** | User pilot: core + data JSON + layout-driven view/edit + 1–2 picklists | After B |
 | **D** | Roll pattern to Project/Task/Product/… | After C |
 
-**Non-goals until A locked:** custom-field admin polish, dynamic DDL, multi-object layout builders.
+**Non-goals for B–C (baseline locked):** custom-field admin polish, dynamic DDL, multi-object layout builders. Host AGi Organization table is **not** shared with Mission Party.
 
 ### 1.5 Zone config UI pattern
 
@@ -184,7 +187,7 @@ Mission Control needs one conceptual ERD (zones + entities + relationships) and 
 |------|-------|----------|
 | 3D hub zones/entities | Implemented through I5.6.28 on **beta** | Matches keystone + I5.6 IA with accepted hub tweaks |
 | Zone tabbed mocks | Present on org/collab/env routes | Listing pattern documented; Executive form lag OK |
-| Baseline ERD | Draft `BASELINE_…I5.6.23` content folded here | **Plan approved**; open items §4 still optional |
+| Baseline ERD | Folded baseline content | **LOCKED 2026-07-20**; A1–A4 optional defaults apply |
 | Catalog / User pilot layout | Not built | Blocked on formal baseline lock (Step A) |
 | Storage tech | Undecided (JSON-in-DB for flexible attrs **locked**) | Postgres JSONB vs fixture files open |
 
@@ -241,9 +244,10 @@ erDiagram
 ## 3. Target State
 
 - Single living state doc (this file) is ERD + UI + persistence SoT.
-- Step A locked with any open-item answers.
-- Steps B–C: User pilot on core + JSON + layout-driven forms.
-- Hub visuals fully accepted; I5.6.22 notes applied if any.
+- Step A **LOCKED 2026-07-20** (Stephen go-ahead; Party purpose confirmed; host org not shared).
+- Steps B–C: catalog stubs then User pilot on core + JSON + layout-driven forms.
+- Hub visuals closed; I5.6.22 N/A unless reopened.
+- Defaults A1–A4: single department_id; native status/role v1; fixtures/JSON first; /users + /users/[id].
 - Zone config UIs align with listing pattern across entities.
 
 ---
@@ -252,14 +256,14 @@ erDiagram
 
 | ID | Work item | Acceptance | Status |
 |----|-----------|------------|--------|
-| ERD-A | Stephen formal lock of baseline (this doc §1.4) | Explicit lock or edits applied | 🟡 plan approved; lock pending open items |
-| ERD-A1 | Optional: single department_id vs M:N only | Decision recorded here | ⬜ |
-| ERD-A2 | Optional: status/role native enum vs value_set v1 | Decision recorded | ⬜ |
-| ERD-A3 | Fixture/JSON on beta first vs Postgres JSONB | Decision recorded | ⬜ |
-| ERD-A4 | Profile route `/users` vs `/users/[id]` vs `/profile` | Decision recorded | ⬜ |
-| HUB-V | Final visual on I5.6.28 restored EL orbit | Stephen OK or tweak | 🟡 waiting |
-| HUB-UI | I5.6.22 visual notes → UI dial | Notes applied or N/A | 🟡 waiting |
-| ERD-B | Stub value_set / field_definition / layout_definition | Fixtures or tables readable by app | ⬜ after A |
+| ERD-A | Stephen formal lock of baseline (this doc §1.4) | Explicit lock or edits applied | ✅ LOCKED 2026-07-20 |
+| ERD-A1 | Optional: single department_id vs M:N only | Decision recorded here | ✅ default: single department_id v1 |
+| ERD-A2 | Optional: status/role native enum vs value_set v1 | Decision recorded | ✅ default: native columns v1 |
+| ERD-A3 | Fixture/JSON on beta first vs Postgres JSONB | Decision recorded | ✅ default: fixtures/JSON first |
+| ERD-A4 | Profile route `/users` vs `/users/[id]` vs `/profile` | Decision recorded | ✅ default: /users + /users/[id] |
+| HUB-V | Final visual on I5.6.28 restored EL orbit | Stephen OK or tweak | ✅ closed 2026-07-20 |
+| HUB-UI | I5.6.22 visual notes → UI dial | Notes applied or N/A | ✅ closed N/A 2026-07-20 |
+| ERD-B | Stub value_set / field_definition / layout_definition | Fixtures or tables readable by app | ✅ fixtures `src/lib/fixtures/catalog.ts` |
 | ERD-C | User pilot layout-driven view/edit + picklists | Demo on beta | ⬜ after B |
 | ERD-D | Roll pattern to Project/Task/Product | Same pattern | ⬜ after C |
 | UI-Z | Zone listing pattern parity (non-Executive) | Matches ZONE pattern | 🔧 partial |
@@ -271,6 +275,7 @@ erDiagram
 
 | Date | Scenario | Result | Follow-up |
 |------|----------|--------|-----------|
+| 2026-07-20 | Stephen locked baseline; Party purpose clarified; host org not shared with parties | Proceed ERD-B |
 | 2026-07-20 | Stephen: hub visual notes DONE — no further hub polish unless reopened |
 | 2026-07-20 | COA: baseline Party(party_kind) matches single-table+type spirit — recommend lock; await explicit word |
 | 2026-07-20 | Stephen: ERD plan looks great, approved; revisit I5 draft; need statefold | Acked; statefold created; I5 keystone/zone/baseline/UI folded | Await formal lock + hub visual |
@@ -284,6 +289,8 @@ erDiagram
 
 | Date | Change | Items |
 |------|--------|-------|
+| 2026-07-20 | ERD-B catalog stubs shipped (`src/lib/fixtures/catalog.ts`) | value_set, field_definition, layout_definition for User |
+| 2026-07-20 | BASELINE LOCKED — Party model confirmed; A1–A4 defaults; ERD-B start | Stephen voice go-ahead |
 | 2026-07-20 | Hub visuals closed per Stephen; Party simplicity recommendation sent; baseline still awaiting explicit lock |
 | 2026-07-20 | Statefold created; Stephen ERD plan approval recorded | Folded keystone + zone ERD + baseline I5.6.23 + UI pattern; archive copies under `__archive/` |
 | 2026-07-20 | Prior baseline draft authored (I5.6.23) | User pilot, JSON-in-DB, layout + value_set stubs |
