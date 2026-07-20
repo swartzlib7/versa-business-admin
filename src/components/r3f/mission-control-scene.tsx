@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+
 import { useRef, useMemo, useCallback, useState, useEffect } from "react";
 import { Canvas, useFrame, ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Sphere, Line, Text, Billboard } from "@react-three/drei";
@@ -54,6 +56,23 @@ interface MissionControlSceneProps {
   /** Sphere size multiplier (1 = default). */
   sphereScale?: number;
   onSphereScaleChange?: (v: number) => void;
+  /**
+   * I5.6.16 — controlled zone visibility (org / collab / env).
+   * When set, overrides internal legend state (zone pages show active zone only).
+   */
+  zoneVisible?: {
+    organization: boolean;
+    collaboration: boolean;
+    environment: boolean;
+  };
+  /** Show bottom-left zone legend toggles (default true). */
+  showLegend?: boolean;
+  /** Show top-right view gizmo Front/Left/Angle (default true). */
+  showViewGizmo?: boolean;
+  /** Show bottom-right camera telemetry readout (default true). */
+  showCameraTelemetry?: boolean;
+  /** Optional className on outer scene wrapper. */
+  className?: string;
 }
 
 // --- Theme helpers ---
@@ -895,6 +914,11 @@ export function MissionControlScene({
   onRingGapChange,
   sphereScale: sphereScaleProp,
   onSphereScaleChange,
+  zoneVisible: zoneVisibleProp,
+  showLegend = true,
+  showViewGizmo = true,
+  showCameraTelemetry = true,
+  className,
 }: MissionControlSceneProps) {
   const dark = useDarkMode();
   const palette = getPalette(dark);
@@ -903,14 +927,16 @@ export function MissionControlScene({
   const [internalSpeed, setInternalSpeed] = useState(1);
   const [internalGap, setInternalGap] = useState(1);
   const [internalSphere, setInternalSphere] = useState(1);
-  // I5.6.5 — legend toggles show/hide each zone
-  const [zoneVisible, setZoneVisible] = useState({
+  // I5.6.5 — legend toggles show/hide each zone (overridden when zoneVisible prop set)
+  const [internalZoneVisible, setInternalZoneVisible] = useState({
     organization: true,
     collaboration: true,
     environment: true,
   });
-  const toggleZone = (key: keyof typeof zoneVisible) => {
-    setZoneVisible((prev) => ({ ...prev, [key]: !prev[key] }));
+  const zoneVisible = zoneVisibleProp ?? internalZoneVisible;
+  const toggleZone = (key: keyof typeof internalZoneVisible) => {
+    if (zoneVisibleProp) return; // controlled — no internal toggle
+    setInternalZoneVisible((prev) => ({ ...prev, [key]: !prev[key] }));
   };
   const showAxes = showAxesProp ?? internalAxes;
   const showRings = showRingsProp ?? internalRings;
@@ -1024,9 +1050,13 @@ export function MissionControlScene({
 
   // When used inside a parent fullscreen shell, fill the parent (h-full).
   // When standalone expanded, cover the viewport.
-  const containerClass = expanded
-    ? "relative h-full w-full min-h-[500px] overflow-hidden"
-    : "relative h-[500px] w-full rounded-lg border border-border overflow-hidden transition-colors";
+  // I5.6.16: className lets zone pages fill a column (h-full) without fixed 500px.
+  const containerClass = cn(
+    expanded
+      ? "relative h-full w-full min-h-[500px] overflow-hidden"
+      : "relative h-[500px] w-full rounded-lg border border-border overflow-hidden transition-colors",
+    className
+  );
 
   return (
     <div
@@ -1112,6 +1142,7 @@ export function MissionControlScene({
       )}
 
       {/* I5.5.13 view gizmo — top right */}
+      {showViewGizmo && (
       <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5 rounded-md border border-border bg-background/90 p-1.5 shadow-sm backdrop-blur">
         <span className="px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
           View
@@ -1141,9 +1172,10 @@ export function MissionControlScene({
           Angle
         </button>
       </div>
-
+      )}
 
       {/* I5.6.1 camera / zoom readout - for Stephen to capture default view */}
+      {showCameraTelemetry && (
       <div className="absolute bottom-3 right-3 z-20 max-w-[min(100%,20rem)] rounded-md border border-border bg-background/90 px-3 py-2 font-mono text-[10px] leading-relaxed shadow-sm backdrop-blur">
         <div className="mb-1 flex items-center justify-between gap-2">
           <span className="text-[10px] font-sans font-semibold uppercase tracking-wide text-muted-foreground">
@@ -1186,8 +1218,10 @@ export function MissionControlScene({
           <div className="text-muted-foreground">Waiting for camera...</div>
         )}
       </div>
+      )}
 
       {/* Legend — I5.6.5: clickable show/hide per zone */}
+      {showLegend && (
       <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-2 rounded-md border border-border bg-background/85 px-2 py-2 text-xs shadow-sm backdrop-blur">
         <button
           type="button"
@@ -1270,6 +1304,7 @@ export function MissionControlScene({
           </span>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { theme } from "@/lib/theme";
-import { ZoneHubPreview } from "@/components/zones/zone-hub-preview";
+import { MissionControlScene } from "@/components/r3f/mission-control-scene";
 
 /**
  * I5.6.10 zone config UI pattern (Stephen):
@@ -501,9 +501,11 @@ function FormPanel({
 function TabPanel({
   tab,
   accent,
+  zoneId,
 }: {
   tab: ZoneTab;
   accent: string;
+  zoneId: ZoneConfig["id"];
 }) {
   /** I5.6.9 - parent keeps a default/self sub-tab (same label) so nesting does not drop the parent UI. */
   const selfPanel: ZoneTab = useMemo(
@@ -592,23 +594,33 @@ function TabPanel({
         />
       )}
 
-      <div className="flex flex-col gap-4 lg:col-span-2">
-        <RelationsCard relations={panel.relations} />
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Zone map</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>
-              Spatial twin: Mission Control 3D hub on the dashboard. Operational
-              twin: this tabbed surface.
-            </p>
-            <p className="text-xs">
-              Brand: {theme.brand.name}. Pattern:
-              docs/specs/ZONE_CONFIG_UI_PATTERN_I5.6.md
-            </p>
-          </CardContent>
-        </Card>
+      {/* I5.6.16 — Stephen: drop Relationships + Zone map; embed real 3D hub, active zone only */}
+      <div className="flex min-h-[420px] flex-col lg:col-span-2">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Spatial twin · {zoneId} only
+          </p>
+          <span className="text-[10px] text-muted-foreground">Default view · no controls</span>
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border">
+          <MissionControlScene
+            showCanvasChrome={false}
+            showLegend={false}
+            showViewGizmo={false}
+            showCameraTelemetry={false}
+            showAxes={false}
+            showRings={true}
+            animSpeed={1}
+            ringGap={1}
+            sphereScale={1}
+            className="!h-full !min-h-[400px] !rounded-none !border-0"
+            zoneVisible={{
+              organization: zoneId === "organization",
+              collaboration: zoneId === "collaboration",
+              environment: zoneId === "environment",
+            }}
+          />
+        </div>
       </div>
     </div>
   );
@@ -623,31 +635,27 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
 
   return (
     <div className="space-y-6">
-      {/* I5.6.15 — Stephen: top region two columns; left = rings + title, right = 3D hub + zone btn */}
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-center">
-        <div className="grid grid-cols-[auto_1fr] items-center gap-4 sm:gap-5">
-          <ZoneHubPreview active={config.id} size={88} />
-          <div className="min-w-0 space-y-2">
-            <div className="flex items-center gap-2">
-              <span
-                className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: config.accent }}
-                aria-hidden
-              />
-              <Badge variant="outline" className="font-normal">
-                Zone config · mock
-              </Badge>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight">{config.title}</h1>
-            <p className="max-w-2xl text-muted-foreground">{config.subtitle}</p>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-block h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: config.accent }}
+              aria-hidden
+            />
+            <Badge variant="outline" className="font-normal">
+              Zone config · mock
+            </Badge>
           </div>
+          <h1 className="text-2xl font-bold tracking-tight">{config.title}</h1>
+          <p className="max-w-2xl text-muted-foreground">{config.subtitle}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-sm lg:justify-end">
+        <div className="flex flex-wrap gap-2 text-sm">
           <Link
             href="/dashboard"
             className="rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            3D hub
+            Full 3D hub
           </Link>
           <span
             className="rounded-md px-3 py-1.5 font-medium text-white"
@@ -698,7 +706,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
         })}
       </div>
 
-      {tab && <TabPanel key={tab.id} tab={tab} accent={config.accent} />}
+      {tab && <TabPanel key={tab.id} tab={tab} accent={config.accent} zoneId={config.id} />}
     </div>
   );
 }

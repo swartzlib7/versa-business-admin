@@ -208,3 +208,4 @@ erDiagram
 
 | 0.3 | 2026-07-19 | I5.6.6: Production←Product+Service; Executive←Policy+Projects+Tasks; Vendor←Integrations; Product off Environment |
 | 1.0 | 2026-07-19 | I5.6.13: Glossary in AppShell content area; zone pages compact rings preview above 3D hub |
+| 1.1 | 2026-07-20 | I5.6.16: Undo top rings graphic; remove Relationships/Zone map; embed MissionControlScene active-zone-only in right column |
