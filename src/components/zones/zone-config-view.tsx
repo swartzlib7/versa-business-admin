@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -407,7 +407,7 @@ function FormPanel({
   tabLabel: string;
 }) {
   return (
-    <Card className="lg:col-span-3 overflow-hidden">
+    <Card className="overflow-hidden">
       <CardHeader className="border-b bg-muted/30">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -501,11 +501,13 @@ function FormPanel({
 function TabPanel({
   tab,
   accent,
-  zoneId,
+  childId,
+  setChildId,
 }: {
   tab: ZoneTab;
   accent: string;
-  zoneId: ZoneConfig["id"];
+  childId: string;
+  setChildId: (id: string) => void;
 }) {
   /** I5.6.9 - parent keeps a default/self sub-tab (same label) so nesting does not drop the parent UI. */
   const selfPanel: ZoneTab = useMemo(
@@ -528,11 +530,6 @@ function TabPanel({
     return [selfPanel, ...tab.children];
   }, [tab.children, selfPanel]);
 
-  const [childId, setChildId] = useState(tab.id);
-  useEffect(() => {
-    setChildId(tab.id);
-  }, [tab.id]);
-
   const activeChild = useMemo(() => {
     if (!subTabs?.length) return null;
     return subTabs.find((c) => c.id === childId) ?? subTabs[0];
@@ -546,95 +543,131 @@ function TabPanel({
 
   const presentation = panel.presentation ?? "form";
 
-  return (
-    <div className="grid gap-4 lg:grid-cols-5">
-      {presentation === "listing" ? (
-        <div className="space-y-3 lg:col-span-3">
-          {subTabs && subTabs.length > 0 && (
-            <div
-              role="tablist"
-              aria-label={`${tab.label} sub-elements`}
-              className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/20 p-1"
-            >
-              {subTabs.map((c) => {
-                const on = c.id === panel.id;
-                return (
-                  <button
-                    key={c.id}
-                    role="tab"
-                    type="button"
-                    aria-selected={on}
-                    onClick={() => setChildId(c.id)}
-                    className={cn(
-                      "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                      on
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
-                    )}
-                    style={
-                      on ? { boxShadow: `inset 0 -2px 0 ${accent}` } : undefined
-                    }
-                  >
-                    {c.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          <ListingPanel panel={panel} accent={accent} />
-        </div>
-      ) : (
-        <FormPanel
-          panel={panel}
-          title={title}
-          accent={accent}
-          subTabs={subTabs}
-          setChildId={setChildId}
-          tabLabel={tab.label}
-        />
-      )}
-
-      {/* I5.6.16/17 — embed active-zone hub; taller window + per-zone camera fit */}
-      <div className="flex min-h-[630px] flex-col lg:col-span-2">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Spatial twin · {zoneId} only
-          </p>
-          <span className="text-[10px] text-muted-foreground">
-            Framed to zone · no controls
-          </span>
-        </div>
-        <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border">
-          <MissionControlScene
-            showCanvasChrome={false}
-            showLegend={false}
-            showViewGizmo={false}
-            showCameraTelemetry={false}
-            showAxes={false}
-            showRings={true}
-            animSpeed={1}
-            ringGap={1}
-            sphereScale={1}
-            cameraFitZone={zoneId}
-            className="!h-full !min-h-[600px] !rounded-none !border-0"
-            zoneVisible={{
-              organization: zoneId === "organization",
-              collaboration: zoneId === "collaboration",
-              environment: zoneId === "environment",
-            }}
-          />
-        </div>
+  // I5.6.19 — content only (spatial twin lifted to ZoneConfigView so it does not remount on tab change)
+  if (presentation === "listing") {
+    return (
+      <div className="space-y-3">
+        {subTabs && subTabs.length > 0 && (
+          <div
+            role="tablist"
+            aria-label={`${tab.label} sub-elements`}
+            className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/20 p-1"
+          >
+            {subTabs.map((c) => {
+              const on = c.id === panel.id;
+              return (
+                <button
+                  key={c.id}
+                  role="tab"
+                  type="button"
+                  aria-selected={on}
+                  onClick={() => setChildId(c.id)}
+                  className={cn(
+                    "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                    on
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                  )}
+                  style={
+                    on ? { boxShadow: `inset 0 -2px 0 ${accent}` } : undefined
+                  }
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <ListingPanel panel={panel} accent={accent} />
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <FormPanel
+      panel={panel}
+      title={title}
+      accent={accent}
+      subTabs={subTabs}
+      setChildId={setChildId}
+      tabLabel={tab.label}
+    />
   );
+}
+
+/** Map 3D hub node id → top-level tab + optional nested child (I5.6.19). */
+function resolveNodeToTab(
+  nodeId: string,
+  config: ZoneConfig
+): { tabId: string; childId: string } | null {
+  // Product hub-center sphere → Production · Product when that nest exists
+  if (nodeId === "product") {
+    const prod = config.tabs.find((t) => t.id === "production");
+    if (prod?.children?.some((c) => c.id === "product")) {
+      return { tabId: "production", childId: "product" };
+    }
+  }
+
+  for (const t of config.tabs) {
+    if (t.id === nodeId) {
+      return { tabId: t.id, childId: t.id };
+    }
+    if (t.children?.length) {
+      for (const c of t.children) {
+        if (c.id === nodeId) {
+          return { tabId: t.id, childId: c.id };
+        }
+      }
+    }
+  }
+
+  return null;
 }
 
 export function ZoneConfigView({ config }: { config: ZoneConfig }) {
   const [active, setActive] = useState(config.tabs[0]?.id ?? "");
+  const [childId, setChildId] = useState(config.tabs[0]?.id ?? "");
+  /** When true, next active change should not reset childId (sphere selected nested). */
+  const skipChildResetRef = useRef(false);
+
   const tab = useMemo(
     () => config.tabs.find((t) => t.id === active) ?? config.tabs[0],
     [active, config.tabs]
   );
+
+  // Reset nested child to parent self-tab when top-level tab changes via tab bar
+  useEffect(() => {
+    if (skipChildResetRef.current) {
+      skipChildResetRef.current = false;
+      return;
+    }
+    setChildId(active);
+  }, [active]);
+
+  const focusedNodeId = useMemo(() => {
+    if (childId) return childId;
+    return active || null;
+  }, [active, childId]);
+
+  const selectTab = useCallback((tabId: string) => {
+    skipChildResetRef.current = false;
+    setActive(tabId);
+  }, []);
+
+  const handleNodeClick = useCallback(
+    (node: { id: string }) => {
+      const resolved = resolveNodeToTab(node.id, config);
+      if (!resolved) return;
+      skipChildResetRef.current = true;
+      setActive(resolved.tabId);
+      setChildId(resolved.childId);
+    },
+    [config]
+  );
+
+  // I5.6.19 — static twins on collab/env; org keeps gentle motion
+  const twinAnimSpeed =
+    config.id === "organization" ? 1 : 0;
 
   return (
     <div className="space-y-6">
@@ -675,14 +708,14 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
         className="flex flex-wrap gap-1 border-b border-border pb-px"
       >
         {config.tabs.map((t) => {
-          const on = t.id === tab.id;
+          const on = t.id === tab?.id;
           return (
             <button
               key={t.id}
               role="tab"
               type="button"
               aria-selected={on}
-              onClick={() => setActive(t.id)}
+              onClick={() => selectTab(t.id)}
               className={cn(
                 "-mb-px rounded-t-md border border-transparent px-3 py-2 text-sm font-medium transition-colors",
                 on
@@ -709,7 +742,52 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
         })}
       </div>
 
-      {tab && <TabPanel key={tab.id} tab={tab} accent={config.accent} zoneId={config.id} />}
+      {/* I5.6.19 — twin outside tab key so Canvas does not reload on tab change */}
+      <div className="grid gap-4 lg:grid-cols-5">
+        <div className="min-w-0 lg:col-span-3">
+          {tab && (
+            <TabPanel
+              tab={tab}
+              accent={config.accent}
+              childId={childId}
+              setChildId={setChildId}
+            />
+          )}
+        </div>
+
+        <div className="flex min-h-[630px] flex-col lg:col-span-2">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Spatial twin · {config.id} only
+            </p>
+            <span className="text-[10px] text-muted-foreground">
+              {twinAnimSpeed === 0 ? "Static · click spheres" : "Live · click spheres"}
+            </span>
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border">
+            <MissionControlScene
+              showCanvasChrome={false}
+              showLegend={false}
+              showViewGizmo={false}
+              showCameraTelemetry={false}
+              showAxes={false}
+              showRings={true}
+              animSpeed={twinAnimSpeed}
+              ringGap={1}
+              sphereScale={1}
+              cameraFitZone={config.id}
+              focusedNodeId={focusedNodeId}
+              onNodeClick={handleNodeClick}
+              className="!h-full !min-h-[600px] !rounded-none !border-0"
+              zoneVisible={{
+                organization: config.id === "organization",
+                collaboration: config.id === "collaboration",
+                environment: config.id === "environment",
+              }}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -287,7 +287,17 @@ function CenterProductNode({
 
   return (
     <group position={position}>
-      <Sphere ref={meshRef} args={[size, 32, 32]} onClick={onClick}>
+      <Sphere
+        ref={meshRef}
+        args={[size, 32, 32]}
+        onClick={onClick}
+        onPointerOver={() => {
+          if (onClick) document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = "auto";
+        }}
+      >
         <meshStandardMaterial
           color={theme.scene.hubColor}
           emissive={theme.scene.hubColor}
@@ -387,15 +397,20 @@ function CollaborationZoneCloud({ collabRadius }: { collabRadius: number }) {
 }
 
 /** I5.6.5 — gray cloud shell for Environment zone (matches org/collab cloud treatment). */
-function EnvironmentZoneCloud({ envRadius }: { envRadius: number }) {
+function EnvironmentZoneCloud({
+  envRadius,
+  animate = true,
+}: {
+  envRadius: number;
+  animate?: boolean;
+}) {
   const glowRef = useRef<THREE.Mesh>(null);
   useFrame((state) => {
+    if (!animate || !glowRef.current) return;
     const t = state.clock.getElapsedTime();
-    if (glowRef.current) {
-      glowRef.current.scale.setScalar(1 + Math.sin(t * 0.9) * 0.02);
-      (glowRef.current.material as THREE.MeshBasicMaterial).opacity =
-        0.045 + Math.sin(t * 0.9) * 0.015;
-    }
+    glowRef.current.scale.setScalar(1 + Math.sin(t * 0.9) * 0.02);
+    (glowRef.current.material as THREE.MeshBasicMaterial).opacity =
+      0.045 + Math.sin(t * 0.9) * 0.015;
   });
   const r = envRadius * 1.02;
   return (
@@ -488,6 +503,12 @@ function ZoneNode({
         ref={meshRef}
         args={[focused ? node.size * 1.35 : node.size, 24, 24]}
         onClick={onClick}
+        onPointerOver={() => {
+          if (onClick) document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          document.body.style.cursor = "auto";
+        }}
       >
         <meshStandardMaterial
           color={node.color}
@@ -773,7 +794,10 @@ function SceneContent({
         )}
 
         {zoneVisible.environment && (
-          <EnvironmentZoneCloud envRadius={radii[3]} />
+          <EnvironmentZoneCloud
+            envRadius={radii[3]}
+            animate={animSpeed > 0}
+          />
         )}
 
         {showRings &&
