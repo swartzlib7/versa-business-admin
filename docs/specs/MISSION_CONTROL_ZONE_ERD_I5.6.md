@@ -207,3 +207,4 @@ erDiagram
 | 2026-07-19 | I5.6.0 basic ERD + tab map from Stephen next-stage brief after I5.5.16 visual accept |
 
 | 0.3 | 2026-07-19 | I5.6.6: Production←Product+Service; Executive←Policy+Projects+Tasks; Vendor←Integrations; Product off Environment |
+| 1.0 | 2026-07-19 | I5.6.13: Glossary in AppShell content area; zone pages compact rings preview above 3D hub |

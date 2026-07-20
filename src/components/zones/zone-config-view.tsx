@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { theme } from "@/lib/theme";
+import { ZoneHubPreview } from "@/components/zones/zone-hub-preview";
 
 /**
  * I5.6.10 zone config UI pattern (Stephen):
@@ -637,19 +638,23 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
           <h1 className="text-2xl font-bold tracking-tight">{config.title}</h1>
           <p className="max-w-2xl text-muted-foreground">{config.subtitle}</p>
         </div>
-        <div className="flex flex-wrap gap-2 text-sm">
-          <Link
-            href="/dashboard"
-            className="rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            3D hub
-          </Link>
-          <span
-            className="rounded-md px-3 py-1.5 font-medium text-white"
-            style={{ backgroundColor: config.accent }}
-          >
-            {config.title}
-          </span>
+        <div className="flex flex-col items-end gap-2">
+          {/* I5.6.13 — compact rings above 3D hub; active zone filled */}
+          <ZoneHubPreview active={config.id} />
+          <div className="flex flex-wrap justify-end gap-2 text-sm">
+            <Link
+              href="/dashboard"
+              className="rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              3D hub
+            </Link>
+            <span
+              className="rounded-md px-3 py-1.5 font-medium text-white"
+              style={{ backgroundColor: config.accent }}
+            >
+              {config.title}
+            </span>
+          </div>
         </div>
       </div>
 

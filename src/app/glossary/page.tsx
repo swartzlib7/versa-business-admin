@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { AppShell } from "@/components/shell/app-shell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { theme } from "@/lib/theme";
@@ -151,6 +152,7 @@ const groups = Array.from(new Set(TERMS.map((t) => t.group)));
 
 export default function GlossaryPage() {
   return (
+    <AppShell>
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
@@ -205,5 +207,6 @@ export default function GlossaryPage() {
         docs/specs/ZONE_CONFIG_UI_PATTERN_I5.6.md.
       </p>
     </div>
+    </AppShell>
   );
 }
