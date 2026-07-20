@@ -73,6 +73,12 @@ interface MissionControlSceneProps {
   showCameraTelemetry?: boolean;
   /** Optional className on outer scene wrapper. */
   className?: string;
+  /**
+   * I5.6.17 — frame camera so the active zone nearly fills viewport height.
+   * organization/collaboration: ~50px top/bottom margin (fill ~0.85).
+   * environment: slightly tighter (half remaining edge gap).
+   */
+  cameraFitZone?: "organization" | "collaboration" | "environment";
 }
 
 // --- Theme helpers ---
@@ -839,6 +845,49 @@ const DEFAULT_CAM_FOV = 50;
 /** Anim speed cycle: off, 1, 5, 10, 15, 20 (I5.6.3) */
 const ANIM_SPEED_STEPS = [0, 1, 5, 10, 15, 20];
 
+/**
+ * I5.6.17 — per-zone framing for zone-page embeds.
+ * Uses zone ring radius (glow/cloud bulk) + vertical FOV fill factor.
+ * Org/Collab: nearly fill height (~50px margin on ~600px → fill 0.85).
+ * Env: already close — half remaining gap → fill ~0.92.
+ */
+const ZONE_CAMERA_FIT: Record<
+  "organization" | "collaboration" | "environment",
+  { radius: number; fill: number }
+> = {
+  organization: { radius: ZONE_RADII[1], fill: 0.85 },
+  collaboration: { radius: ZONE_RADII[2], fill: 0.85 },
+  environment: { radius: ZONE_RADII[3], fill: 0.92 },
+};
+
+function fitDistanceForZone(
+  zone: "organization" | "collaboration" | "environment",
+  fovDeg = DEFAULT_CAM_FOV
+): number {
+  const { radius, fill } = ZONE_CAMERA_FIT[zone];
+  const halfFov = ((fovDeg * Math.PI) / 180) / 2;
+  const targetHalf = halfFov * fill;
+  const dist = radius / Math.tan(targetHalf);
+  // Keep within orbit range (allow slightly under default min for small org sphere)
+  return Math.min(CAM_MAX_DIST, Math.max(3.5, dist));
+}
+
+function fitCameraPosition(
+  zone: "organization" | "collaboration" | "environment"
+): [number, number, number] {
+  const dist = fitDistanceForZone(zone);
+  const base = new THREE.Vector3(
+    DEFAULT_CAM_POS[0],
+    DEFAULT_CAM_POS[1],
+    DEFAULT_CAM_POS[2]
+  );
+  if (base.lengthSq() < 1e-6) {
+    return [0, dist * 0.35, dist];
+  }
+  base.normalize().multiplyScalar(dist);
+  return [base.x, base.y, base.z];
+}
+
 export type CameraTelemetry = {
   pos: [number, number, number];
   target: [number, number, number];
@@ -919,6 +968,7 @@ export function MissionControlScene({
   showViewGizmo = true,
   showCameraTelemetry = true,
   className,
+  cameraFitZone,
 }: MissionControlSceneProps) {
   const dark = useDarkMode();
   const palette = getPalette(dark);
@@ -976,16 +1026,17 @@ export function MissionControlScene({
   };
 
   // Apply Stephen default camera once OrbitControls mounts (I5.6.3)
+  // I5.6.3 default view; I5.6.17 optional per-zone fit for embeds
   useEffect(() => {
-    const id = requestAnimationFrame(() => {
+    const apply = () => {
       const controls = controlsRef.current;
-      if (!controls) return;
+      if (!controls) return false;
       const cam = controls.object as THREE.PerspectiveCamera;
-      cam.position.set(
-        DEFAULT_CAM_POS[0],
-        DEFAULT_CAM_POS[1],
-        DEFAULT_CAM_POS[2]
-      );
+      if (!cam) return false;
+      const pos = cameraFitZone
+        ? fitCameraPosition(cameraFitZone)
+        : DEFAULT_CAM_POS;
+      cam.position.set(pos[0], pos[1], pos[2]);
       cam.fov = DEFAULT_CAM_FOV;
       cam.updateProjectionMatrix();
       controls.target.set(
@@ -993,10 +1044,23 @@ export function MissionControlScene({
         DEFAULT_CAM_TARGET[1],
         DEFAULT_CAM_TARGET[2]
       );
+      // Allow closer orbit when framing small org zone
+      if (cameraFitZone === "organization") {
+        controls.minDistance = 3.5;
+      }
       controls.update();
-    });
-    return () => cancelAnimationFrame(id);
-  }, []);
+      return true;
+    };
+    let frames = 0;
+    let raf = 0;
+    const tick = () => {
+      frames += 1;
+      if (apply() || frames > 30) return;
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [cameraFitZone]);
 
   const setShowAxes = (next: boolean) => {
     if (showAxesProp === undefined) setInternalAxes(next);
@@ -1065,7 +1129,9 @@ export function MissionControlScene({
     >
       <Canvas
         camera={{
-          position: DEFAULT_CAM_POS,
+          position: cameraFitZone
+            ? fitCameraPosition(cameraFitZone)
+            : DEFAULT_CAM_POS,
           fov: DEFAULT_CAM_FOV,
         }}
         gl={{ antialias: true, alpha: true }}

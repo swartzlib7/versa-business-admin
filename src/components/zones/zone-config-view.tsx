@@ -594,13 +594,15 @@ function TabPanel({
         />
       )}
 
-      {/* I5.6.16 — Stephen: drop Relationships + Zone map; embed real 3D hub, active zone only */}
-      <div className="flex min-h-[420px] flex-col lg:col-span-2">
+      {/* I5.6.16/17 — embed active-zone hub; taller window + per-zone camera fit */}
+      <div className="flex min-h-[630px] flex-col lg:col-span-2">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Spatial twin · {zoneId} only
           </p>
-          <span className="text-[10px] text-muted-foreground">Default view · no controls</span>
+          <span className="text-[10px] text-muted-foreground">
+            Framed to zone · no controls
+          </span>
         </div>
         <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border">
           <MissionControlScene
@@ -613,7 +615,8 @@ function TabPanel({
             animSpeed={1}
             ringGap={1}
             sphereScale={1}
-            className="!h-full !min-h-[400px] !rounded-none !border-0"
+            cameraFitZone={zoneId}
+            className="!h-full !min-h-[600px] !rounded-none !border-0"
             zoneVisible={{
               organization: zoneId === "organization",
               collaboration: zoneId === "collaboration",
