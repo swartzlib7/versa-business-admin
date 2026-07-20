@@ -370,6 +370,31 @@ function ExecutiveZoneGlow({
   );
 }
 
+/** I5.6.5 — gray cloud shell for Environment zone (matches org/collab cloud treatment). */
+function EnvironmentZoneCloud({ envRadius }: { envRadius: number }) {
+  const glowRef = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (glowRef.current) {
+      glowRef.current.scale.setScalar(1 + Math.sin(t * 0.9) * 0.02);
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity =
+        0.045 + Math.sin(t * 0.9) * 0.015;
+    }
+  });
+  const r = envRadius * 1.02;
+  return (
+    <Sphere ref={glowRef} args={[r, 48, 48]}>
+      <meshBasicMaterial
+        color="#9ca3af"
+        transparent
+        opacity={0.05}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
+    </Sphere>
+  );
+}
+
 // --- Zone node ---
 
 /** Label that stays on top of the sphere in world-Y even when parent group spins (I5.5.11). */
@@ -574,6 +599,7 @@ function SceneContent({
   showRings,
   animSpeed,
   ringGap,
+  zoneVisible,
   onNodeClick,
 }: {
   nodes: SceneNode[];
@@ -584,10 +610,10 @@ function SceneContent({
   showRings: boolean;
   animSpeed: number;
   ringGap: number;
+  zoneVisible: { organization: boolean; collaboration: boolean; environment: boolean };
   onNodeClick?: (node: SceneNode) => void;
 }) {
-  // I5.6.2: collab CB Y-orbit on ±x; VP X-spin on YZ with +π/2 phase so pairs
-  // never meet at poles (env KS±z / EL±y already quarter-offset by rest axes).
+  // I5.6.2/5: collab CB Y-orbit ±x; VP X-spin +π/2; env KS ±z + EL ±x all Y-orbit @ 2w
   const collabHorizRef = useRef<THREE.Group>(null);
   const collabVpRef = useRef<THREE.Group>(null);
   const envKsRef = useRef<THREE.Group>(null);
@@ -603,17 +629,16 @@ function SceneContent({
       collabHorizRef.current.rotation.y = t * w;
     }
     // Vendor + Partner: perpendicular X-spin; +π/2 phase => effective rest ±z
-    // so paths never coincide with CB at the Y=0 poles (I5.6.2)
     if (collabVpRef.current) {
       collabVpRef.current.rotation.x = -t * w + Math.PI / 2;
     }
-    // Knowledge + Schedules: horizontal orbit (Y) — 2× collab rate
+    // Knowledge + Schedules: horizontal Y — rest ±z
     if (envKsRef.current) {
       envKsRef.current.rotation.y = -t * wEnv;
     }
-    // Events + Locations: vertical X-spin — 2× collab rate
+    // Events + Locations: horizontal Y — rest Event −x / Location +x (I5.6.5)
     if (envElRef.current) {
-      envElRef.current.rotation.x = t * wEnv;
+      envElRef.current.rotation.y = -t * wEnv;
     }
   });
 
@@ -706,33 +731,50 @@ function SceneContent({
     );
   };
 
+  const ringVisible = (ring: number) => {
+    if (ring === 1) return zoneVisible.organization;
+    if (ring === 2) return zoneVisible.collaboration;
+    if (ring === 3) return zoneVisible.environment;
+    return true;
+  };
+
   return (
     <>
       <group>
         {showAxes && <AxisGuides length={AXIS_STEP * 3.2 * ringGap} />}
 
-        <ExecutiveZoneGlow
-          orgRadius={radii[1]}
-          collabRadius={radii[2]}
-          serviceY={serviceY}
-          onLabelClick={handleClick(executiveNode)}
-        />
+        {zoneVisible.organization && (
+          <ExecutiveZoneGlow
+            orgRadius={radii[1]}
+            collabRadius={
+              zoneVisible.collaboration ? radii[2] : radii[1] * 1.15
+            }
+            serviceY={serviceY}
+            onLabelClick={handleClick(executiveNode)}
+          />
+        )}
+
+        {zoneVisible.environment && (
+          <EnvironmentZoneCloud envRadius={radii[3]} />
+        )}
 
         {showRings &&
-          zoneMeta.map((z) => (
-            <group key={"zone-static-" + z.ring}>
-              <ZoneCircles
-                radius={radii[z.ring]}
-                color={z.color}
-                opacity={palette.ringGuideOpacity}
-              />
-              <ZoneMidLabel
-                midRadius={z.midRadius}
-                label={z.label}
-                color={z.color}
-              />
-            </group>
-          ))}
+          zoneMeta
+            .filter((z) => ringVisible(z.ring))
+            .map((z) => (
+              <group key={"zone-static-" + z.ring}>
+                <ZoneCircles
+                  radius={radii[z.ring]}
+                  color={z.color}
+                  opacity={palette.ringGuideOpacity}
+                />
+                <ZoneMidLabel
+                  midRadius={z.midRadius}
+                  label={z.label}
+                  color={z.color}
+                />
+              </group>
+            ))}
 
         <CenterProductNode
           position={centerPos}
@@ -744,20 +786,28 @@ function SceneContent({
           onClick={handleClick(centerNode)}
         />
 
-        {orgNodes.map((n) => renderNode(n))}
+        {zoneVisible.organization && orgNodes.map((n) => renderNode(n))}
       </group>
 
       {/* Collab: Customer/Branch horizontal Y; Vendor/Partner perp X (I5.5.15) */}
-      <group ref={collabHorizRef}>
-        {collabHorizNodes.map((n) => renderNode(n))}
-      </group>
-      <group ref={collabVpRef}>
-        {collabVpNodes.map((n) => renderNode(n))}
-      </group>
+      {zoneVisible.collaboration && (
+        <>
+          <group ref={collabHorizRef}>
+            {collabHorizNodes.map((n) => renderNode(n))}
+          </group>
+          <group ref={collabVpRef}>
+            {collabVpNodes.map((n) => renderNode(n))}
+          </group>
+        </>
+      )}
 
-      {/* KS: horizontal Y orbit; EL: perpendicular vertical X (I5.5.12) */}
-      <group ref={envKsRef}>{envKsNodes.map((n) => renderNode(n))}</group>
-      <group ref={envElRef}>{envElNodes.map((n) => renderNode(n))}</group>
+      {/* Env: KS ±z + EL Event−x/Location+x — all horizontal Y @ 2× (I5.6.5) */}
+      {zoneVisible.environment && (
+        <>
+          <group ref={envKsRef}>{envKsNodes.map((n) => renderNode(n))}</group>
+          <group ref={envElRef}>{envElNodes.map((n) => renderNode(n))}</group>
+        </>
+      )}
     </>
   );
 }
@@ -856,6 +906,15 @@ export function MissionControlScene({
   const [internalSpeed, setInternalSpeed] = useState(1);
   const [internalGap, setInternalGap] = useState(1);
   const [internalSphere, setInternalSphere] = useState(1);
+  // I5.6.5 — legend toggles show/hide each zone
+  const [zoneVisible, setZoneVisible] = useState({
+    organization: true,
+    collaboration: true,
+    environment: true,
+  });
+  const toggleZone = (key: keyof typeof zoneVisible) => {
+    setZoneVisible((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
   const showAxes = showAxesProp ?? internalAxes;
   const showRings = showRingsProp ?? internalRings;
   const animSpeed = animSpeedProp ?? internalSpeed;
@@ -996,6 +1055,7 @@ export function MissionControlScene({
           showRings={showRings}
           animSpeed={animSpeed}
           ringGap={ringGap}
+          zoneVisible={zoneVisible}
           onNodeClick={onNodeClick}
         />
         <OrbitControls
@@ -1130,9 +1190,24 @@ export function MissionControlScene({
         )}
       </div>
 
-      {/* Legend — I5.5.14: Executive split red/blue; no Product/Service; three zones only */}
-      <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-3 rounded-md border border-border bg-background/85 px-3 py-2 text-xs shadow-sm backdrop-blur">
-        <span className="flex items-center gap-1.5">
+      {/* Legend — I5.6.5: clickable show/hide per zone */}
+      <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-2 rounded-md border border-border bg-background/85 px-2 py-2 text-xs shadow-sm backdrop-blur">
+        <button
+          type="button"
+          onClick={() => toggleZone("organization")}
+          className={
+            "flex items-center gap-1.5 rounded-md border px-2 py-1 transition-opacity hover:bg-muted " +
+            (zoneVisible.organization
+              ? "border-border opacity-100"
+              : "border-dashed border-muted-foreground/40 opacity-45")
+          }
+          title={
+            zoneVisible.organization
+              ? "Hide Organization zone"
+              : "Show Organization zone"
+          }
+          aria-pressed={zoneVisible.organization}
+        >
           <span
             className="h-3 w-3 shrink-0 rounded-full"
             style={{
@@ -1143,20 +1218,55 @@ export function MissionControlScene({
                 theme.scene.hubColor +
                 " 50%)",
             }}
-            title="Executive org zone — red / blue"
           />
           Executive
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.collaborationColor }} />
+        </button>
+        <button
+          type="button"
+          onClick={() => toggleZone("collaboration")}
+          className={
+            "flex items-center gap-1.5 rounded-md border px-2 py-1 transition-opacity hover:bg-muted " +
+            (zoneVisible.collaboration
+              ? "border-border opacity-100"
+              : "border-dashed border-muted-foreground/40 opacity-45")
+          }
+          title={
+            zoneVisible.collaboration
+              ? "Hide Collaboration zone"
+              : "Show Collaboration zone"
+          }
+          aria-pressed={zoneVisible.collaboration}
+        >
+          <span
+            className="h-3 w-3 rounded-full"
+            style={{ backgroundColor: theme.scene.collaborationColor }}
+          />
           Collaboration
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: theme.scene.environmentalColor }} />
+        </button>
+        <button
+          type="button"
+          onClick={() => toggleZone("environment")}
+          className={
+            "flex items-center gap-1.5 rounded-md border px-2 py-1 transition-opacity hover:bg-muted " +
+            (zoneVisible.environment
+              ? "border-border opacity-100"
+              : "border-dashed border-muted-foreground/40 opacity-45")
+          }
+          title={
+            zoneVisible.environment
+              ? "Hide Environment zone"
+              : "Show Environment zone"
+          }
+          aria-pressed={zoneVisible.environment}
+        >
+          <span
+            className="h-3 w-3 rounded-full"
+            style={{ backgroundColor: theme.scene.environmentalColor }}
+          />
           Environment
-        </span>
+        </button>
         {showAxes && (
-          <span className="flex items-center gap-2 text-muted-foreground">
+          <span className="flex items-center gap-2 px-1 text-muted-foreground">
             <span className="text-[#ef4444]">X</span>
             <span className="text-[#22c55e]">Y</span>
             <span className="text-[#3b82f6]">Z</span>

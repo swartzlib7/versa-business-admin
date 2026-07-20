@@ -214,7 +214,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     axis: '-x',
   },
 
-  // Environmental — zone 3 (Events top / Locations bottom)
+  // Environmental — zone 3. I5.6.5: Event left (−x next to Branch), Location right (+x next to Customer)
   {
     id: 'locations',
     label: 'Locations',
@@ -222,7 +222,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 3,
     description: 'Global address book of business locations and places.',
     status: 'connected',
-    axis: '-y',
+    axis: '+x',
   },
   {
     id: 'events',
@@ -231,7 +231,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     ring: 3,
     description: 'Past or future planned activities and milestones.',
     status: 'active',
-    axis: '+y',
+    axis: '-x',
   },
   {
     id: 'knowledge',
