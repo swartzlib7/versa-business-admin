@@ -756,7 +756,70 @@ function SceneContent({
   );
 }
 
+// --- Camera telemetry (I5.6.1) - live pos / target / zoom for default-view capture ---
+
+const CAM_MIN_DIST = 5;
+const CAM_MAX_DIST = 28;
+
+export type CameraTelemetry = {
+  pos: [number, number, number];
+  target: [number, number, number];
+  /** Distance from camera to orbit target (= zoom proxy for OrbitControls) */
+  distance: number;
+  minDistance: number;
+  maxDistance: number;
+  /** 0 at furthest (maxDistance), 1 at nearest (minDistance) */
+  zoomNorm: number;
+  fov: number;
+};
+
+function CameraTelemetryReporter({
+  controlsRef,
+  onUpdate,
+}: {
+  controlsRef: React.RefObject<any>;
+  onUpdate: (t: CameraTelemetry) => void;
+}) {
+  const last = useRef(0);
+  useFrame(() => {
+    const now = performance.now();
+    if (now - last.current < 100) return;
+    last.current = now;
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const cam = controls.object as THREE.PerspectiveCamera;
+    if (!cam) return;
+    const target = controls.target as THREE.Vector3;
+    const dist = cam.position.distanceTo(target);
+    const span = CAM_MAX_DIST - CAM_MIN_DIST;
+    const zoomNorm = span > 0 ? (CAM_MAX_DIST - dist) / span : 0;
+    onUpdate({
+      pos: [
+        round3(cam.position.x),
+        round3(cam.position.y),
+        round3(cam.position.z),
+      ],
+      target: [round3(target.x), round3(target.y), round3(target.z)],
+      distance: round3(dist),
+      minDistance: CAM_MIN_DIST,
+      maxDistance: CAM_MAX_DIST,
+      zoomNorm: round3(Math.min(1, Math.max(0, zoomNorm))),
+      fov: round3(cam.fov),
+    });
+  });
+  return null;
+}
+
+function round3(n: number) {
+  return Math.round(n * 1000) / 1000;
+}
+
+function fmtVec(v: [number, number, number]) {
+  return v.map((n) => n.toFixed(3)).join(", ");
+}
+
 // --- Main component ---
+
 
 export function MissionControlScene({
   onNodeClick,
@@ -787,6 +850,8 @@ export function MissionControlScene({
   const ringGap = ringGapProp ?? internalGap;
   const sphereScale = sphereScaleProp ?? internalSphere;
   const controlsRef = useRef<any>(null);
+  const [camTel, setCamTel] = useState<CameraTelemetry | null>(null);
+  const onCamTel = useCallback((t: CameraTelemetry) => setCamTel(t), []);
 
   /** I5.5.13 view gizmo presets: Front, Left, Top-left-front angled */
   const setCameraView = (view: "front" | "left" | "tlf") => {
@@ -895,10 +960,11 @@ export function MissionControlScene({
           ref={controlsRef}
           enableDamping
           dampingFactor={0.1}
-          minDistance={5}
-          maxDistance={28}
+          minDistance={CAM_MIN_DIST}
+          maxDistance={CAM_MAX_DIST}
           autoRotate={false}
         />
+        <CameraTelemetryReporter controlsRef={controlsRef} onUpdate={onCamTel} />
         <gridHelper
           args={[AXIS_STEP * 8, 32, palette.gridMain, palette.gridSub]}
           position={[0, -AXIS_STEP * 3.2, 0]}
@@ -975,6 +1041,51 @@ export function MissionControlScene({
         >
           Angle
         </button>
+      </div>
+
+
+      {/* I5.6.1 camera / zoom readout - for Stephen to capture default view */}
+      <div className="absolute bottom-3 right-3 z-20 max-w-[min(100%,20rem)] rounded-md border border-border bg-background/90 px-3 py-2 font-mono text-[10px] leading-relaxed shadow-sm backdrop-blur">
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <span className="text-[10px] font-sans font-semibold uppercase tracking-wide text-muted-foreground">
+            Camera
+          </span>
+          <span className="font-sans text-[10px] text-muted-foreground">
+            live - default capture
+          </span>
+        </div>
+        {camTel ? (
+          <div className="space-y-0.5 text-foreground">
+            <div>
+              <span className="text-muted-foreground">pos </span>
+              {fmtVec(camTel.pos)}
+            </div>
+            <div>
+              <span className="text-muted-foreground">lookAt </span>
+              {fmtVec(camTel.target)}
+            </div>
+            <div>
+              <span className="text-muted-foreground">dist </span>
+              {camTel.distance.toFixed(3)}
+              <span className="text-muted-foreground">
+                {" "}
+                (zoom {camTel.zoomNorm.toFixed(3)} - 0=far 1=near)
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">range </span>
+              min {camTel.minDistance.toFixed(1)} - max {camTel.maxDistance.toFixed(1)}
+              <span className="text-muted-foreground"> - fov </span>
+              {camTel.fov.toFixed(1)}
+            </div>
+            <div className="pt-1 font-sans text-[9px] text-muted-foreground">
+              Furthest zoom = max dist {camTel.maxDistance}; nearest = min dist{" "}
+              {camTel.minDistance}. Rotate/zoom then read pos + dist for default.
+            </div>
+          </div>
+        ) : (
+          <div className="text-muted-foreground">Waiting for camera...</div>
+        )}
       </div>
 
       {/* Legend — I5.5.14: Executive split red/blue; no Product/Service; three zones only */}
