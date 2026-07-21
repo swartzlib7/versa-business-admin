@@ -267,7 +267,8 @@ erDiagram
 | ERD-C | User pilot layout-driven view/edit + picklists | Demo on beta | ✅ layout-driven /users + /users/[id] |
 | ERD-D | Roll pattern to Project/Task/Product | Same pattern | ✅ catalog+list/detail |
 | UI-Z | Zone listing pattern parity (non-Executive) | Matches ZONE pattern | ✅ shared EntityListing |
-| DOC-S | Point handoffs/checklists at this state doc | No parallel live ERD specs | 🔧 this cycle |
+| DOC-S | Point handoffs/checklists at this state doc | No parallel live ERD specs | done 2026-07-20 |
+| DB-CUT | DB cutover checklist (fixture to Postgres) | Living checklist drafted, Stephen review | [state_db_cutover_checklist.md](state_db_cutover_checklist.md) -- awaiting Phase 0 sign-off |
 
 ---
 
