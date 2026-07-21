@@ -7,7 +7,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Fixture to Postgres JSONB cutover plan |
-| **Status** | Phase 0 approved (Stephen 2026-07-21) / Phase 1 in progress |
+| **Status** | Phase 0 approved (Stephen 2026-07-21) / Phase 1 scaffold complete + Vagrant runtime path |
 | **Last verified against code** | 2026-07-21 (agent/web-dev @ 45e3cfa, package 0.7.45) |
 | **Primary code** | src/lib/data/adapter.ts, src/lib/fixtures/*, src/app/api/** |
 | **Task** | #182 |
@@ -332,7 +332,7 @@ DB_POOL_SIZE=10
 
 | Environment | Database | Data source | Purpose |
 |---|---|---|---|
-| **Local dev** | Docker Postgres or embedded (see 5.3) | fixture (default) to postgres (when testing) | Development + cutover testing |
+| **Local dev** | Vagrant Postgres on knowledgebase box (see 5.3) | fixture (default) to postgres (when testing) | Development + cutover testing |
 | **Staging** | Managed Postgres (Neon/Supabase/RDS) | postgres | Pre-production validation |
 | **Production** | Managed Postgres | postgres | Live (after Phase 4 sign-off) |
 
@@ -471,15 +471,15 @@ Binary checks Stephen/COA can sign:
 ### Phase 0 -- Checklist approval
 - [x] Stephen reviews this checklist and approves (or requests edits)
 - [x] ORM choice approved (Drizzle recommended)
-- [x] Local Postgres approach approved (Docker recommended)
+- [x] Local Postgres approach approved (Vagrant knowledgebase box — Stephen 2026-07-21)
 
 ### Phase 1 -- Scaffold + migrate empty
-- [ ] Postgres running locally (Docker or approved method) — **BLOCKED: Docker socket permission denied for agent user**
+- [x] Postgres running locally (Vagrant knowledgebase box, port 5432 forwarded) — migrate + health verified 2026-07-21
 - [x] Drizzle schema file (src/lib/db/schema.ts) matches section 3 sketch
-- [x] drizzle-kit generate creates migration SQL (12 tables) — migrate pending Docker/Postgres access
+- [x] drizzle-kit generate creates migration SQL (12 tables) — migrate applied successfully 2026-07-21
 - [x] /api/health reports DB connectivity status
 - [x] DATA_SOURCE=fixture still works -- app unchanged when DB is down (build passes clean)
-- [x] Empty DB returns empty lists for users (skeleton returns []); other methods throw NOT_IMPLEMENTED — pending DB for full verification
+- [x] Empty DB returns empty lists for users (skeleton returns []); other methods throw NOT_IMPLEMENTED — DB verified 2026-07-21
 
 ### Phase 2 -- Seed + read path (User pilot)
 - [ ] Seed script runs successfully -- all fixture data in DB
@@ -522,19 +522,19 @@ Binary checks Stephen/COA can sign:
 | R3 | **Session store** -- current sessions are base64-encoded JSON in a cookie (no server-side store). Scaling writes (Phase 3) may need server-side session invalidation. | Cannot revoke sessions; no session list. | **LOCKED:** Phase 1-2 keep current httpOnly cookie as-is. Phase 3 later: sign cookie payload (still cookie). No JWT, no sessions table unless later need revoke/list. |
 | R4 | **Version triple drift** -- package.json (0.7.45), /api/health (0.7.45), /api index (0.4.0). Cutover may warrant a version bump. | Confusion about which version is the version. | Document in API contract (API-2). Do not silently align. **Needs Stephen decision on API series bump.** |
 | R5 | **Deprecating /api/agents*** -- deprecated alias still served. Cutover is a natural removal point but may break existing integrations. | Breaking change if removed without notice. | **LOCKED (Phase 4):** Remove /api/agents* (no deprecated alias). Schema must NOT invent an agents table. Removal is Phase 4 deliverable, not Phase 1. |
-| R6 | **Postgres on host** -- installing Postgres or Docker on the host requires Stephen's approval. | Blocks Phase 1. | Present options (Docker, Neon, Supabase) and let Stephen choose. Do not install without explicit go. |
+| R6 | **Postgres on host** -- resolved: Vagrant knowledgebase box chosen (Stephen 2026-07-21). No host Docker needed. | Resolved. | Postgres 14 installed inside Vagrant VM, host port 5432 forwarded. Script: `scripts/vagrant-postgres.sh`. |
 | R7 | **JSONB query performance** -- flexible attrs in data JSONB may need GIN indexes for production-scale queries. | Slow queries on custom fields. | Add GIN index on data column per entity. Document as Phase 2+ optimization. |
 | R8 | **Transaction boundaries** -- fixture adapter has no transactions. DB adapter needs transactional writes for multi-table operations (e.g., create user + assign to department). | Partial writes on failure. | Use Drizzle transaction wrappers in adapter write methods. |
 
 ### Open questions for Stephen
 
 1. **ORM approval** -- Drizzle (recommended) or Prisma? Or raw SQL driver (postgres-js only)?
-2. **Postgres hosting** -- Docker on host, Neon, Supabase, or RDS? (Phase 1 blocker)
+2. **Postgres hosting** -- RESOLVED: Vagrant knowledgebase box (Stephen 2026-07-21). Supabase later = same Drizzle, different DATABASE_URL.
 3. **Session strategy** -- Keep cookie-based base64, move to signed JWT, or add server-side sessions table? (Phase 3)
 4. **Agents fixture fate** -- Merge into users with data JSONB for extra fields, or keep a separate agents view/table? (Phase 4)
 5. **API version bump** -- Align /api index version to 0.5/0.8 with cutover, or keep 0.4.0 capability label? (API-2)
 6. **/api/agents* removal timeline** -- Remove in Phase 4, or keep as deprecated alias longer? (API-5)
-7. **Docker on host** -- Is Docker available/approved for local Postgres, or should we use a managed service?
+7. **Docker on host** -- RESOLVED: Docker NOT used. Vagrant knowledgebase box chosen instead (Stephen 2026-07-21).
 
 ---
 
@@ -612,3 +612,4 @@ Binary checks Stephen/COA can sign:
 | 2026-07-21 | Initial draft created -- DB cutover checklist (slice authorized by Stephen via COA) |
 | 2026-07-21 | Phase 0 SIGNED by Stephen. Locked decisions: Drizzle ORM; Supabase later / local plain PG Docker; cookie sessions P1-2; agents=users (no agents table); API version bump with cutover; /api/agents* removal is Phase 4. |
 | 2026-07-21 | Phase 1 scaffold complete: drizzle-orm + postgres-js + drizzle-kit installed; schema.ts (12 tables matching section 3); client.ts (pool + healthCheck); postgres-adapter.ts skeleton (NOT_IMPLEMENTED + empty returns for users); docker-postgres.sh script; .env.example; health route updated; drizzle-kit generate produces 0000_fuzzy_nehzno.sql. Build passes clean. Docker socket permission denied — migrate pending. |
+| 2026-07-21 | **Runtime path pivot (Stephen):** Docker retired — Vagrant knowledgebase box chosen for local Postgres. docker-postgres.sh archived as docker-postgres.sh.archived. New script: scripts/vagrant-postgres.sh (start/stop/status/migrate/health). Knowledgebase Vagrantfile updated: port 5432 forwarded. Postgres 14 installed + configured on VM. drizzle-kit migrate applied successfully — 12 tables created. DB health verified from host (21ms latency). Build passes clean. .env.example + package.json scripts updated. No Phase 2. |
