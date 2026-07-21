@@ -444,19 +444,11 @@ function TabPanel({
   );
 }
 
-/** Map 3D hub node id → top-level tab + optional nested child (I5.6.19). */
+/** Map 3D hub node id to tab + optional nested child (I5.6.19 / I5.6 board). Executive=center sphere; no Service/Product hub mapping. */
 function resolveNodeToTab(
   nodeId: string,
   config: ZoneConfig
 ): { tabId: string; childId: string } | null {
-  // Product hub-center sphere → Production · Product when that nest exists
-  if (nodeId === "product") {
-    const prod = config.tabs.find((t) => t.id === "production");
-    if (prod?.children?.some((c) => c.id === "product")) {
-      return { tabId: "production", childId: "product" };
-    }
-  }
-
   for (const t of config.tabs) {
     if (t.id === nodeId) {
       return { tabId: t.id, childId: t.id };

@@ -111,8 +111,8 @@ function getPalette(dark: boolean): ScenePalette {
 }
 
 function getNodeColor(type: BusinessGraphNode["type"], id?: string): string {
-  // I5.5.5: Product (center) + Service use hub executive blue
-  if (id === HUB_CENTER_ID || id === "service") return theme.scene.hubColor;
+  // I5.6 board: Executive (center) uses hub blue; Public and other org spheres use org colors
+  if (id === HUB_CENTER_ID) return theme.scene.hubColor;
   switch (type) {
     case "organization": return theme.scene.organizationColor;
     case "collaboration": return theme.scene.collaborationColor;
@@ -265,9 +265,9 @@ function ZoneCircles({
   );
 }
 
-// --- Center Product node (I5.5.6) ---
+// --- Center Executive node (I5.6 board) ---
 
-function CenterProductNode({
+function CenterExecutiveNode({
   position,
   pulse,
   palette,
@@ -320,35 +320,24 @@ function CenterProductNode({
           anchorY="middle"
           maxWidth={2.5}
         >
-          Product
+          Executive
         </Text>
       </Billboard>
     </group>
   );
 }
 
-/** I5.6.8 — single static red translucent shell (no dual red/blue pulse). */
+/** I5.6.8 — single static red translucent shell (no dual red/blue pulse). No clickable floating label (I5.6 board). */
 function ExecutiveZoneGlow({
   orgRadius,
-  serviceY,
-  onLabelClick,
-  selected = false,
   showShell = true,
 }: {
   orgRadius: number;
-  serviceY: number;
-  /** Only the Executive label is tappable (I5.5.9). */
-  onLabelClick?: (e: ThreeEvent<MouseEvent>) => void;
-  /** I5.6.21/22 — selection on Executive label (brackets only; no font/outline change). */
-  selected?: boolean;
   /** I5.6.22 — zone color shell */
   showShell?: boolean;
 }) {
   const r = orgRadius * 1.15;
-  // I5.6.21 — single label (removed duplicate "Organization Zone")
-  const labelY = serviceY * 0.5;
-  // I5.6.22 — brackets only; keep same font size/color as unselected
-  const labelText = selected ? "[ Executive ]" : "Executive";
+  // I5.6 board: Executive is a center sphere (CenterExecutiveNode). No floating clickable label.
 
   return (
     <group>
@@ -363,25 +352,6 @@ function ExecutiveZoneGlow({
         />
       </Sphere>
       )}
-      <Billboard position={[0, labelY, 0]}>
-        <Text
-          fontSize={0.22}
-          color={theme.scene.executiveColor}
-          anchorX="center"
-          anchorY="middle"
-          fillOpacity={0.95}
-          onClick={onLabelClick}
-          onPointerOver={(e) => {
-            e.stopPropagation();
-            document.body.style.cursor = "pointer";
-          }}
-          onPointerOut={() => {
-            document.body.style.cursor = "auto";
-          }}
-        >
-          {labelText}
-        </Text>
-      </Billboard>
     </group>
   );
 }
@@ -703,22 +673,6 @@ function SceneContent({
   const centerPos = positions.get(HUB_CENTER_ID)!;
   const radii = zoneRadii(ringGap);
 
-  const executiveNode: SceneNode = useMemo(
-    () => ({
-      id: "executive",
-      label: "Executive",
-      type: "organization",
-      ring: 1,
-      description:
-        "Business executive function - collective name for the organization zone.",
-      status: "active",
-      pos: [0, 0, 0],
-      color: theme.scene.executiveColor,
-      size: centerNode.size,
-    }),
-    [centerNode.size]
-  );
-
   const orgNodes = nodes.filter(
     (n) => n.id !== HUB_CENTER_ID && n.ring === 1
   );
@@ -734,9 +688,6 @@ function SceneContent({
   const envElNodes = nodes.filter(
     (n) => n.id === "events" || n.id === "locations"
   );
-
-  const servicePos = positions.get("service");
-  const serviceY = servicePos ? servicePos[1] : radii[1];
 
   // I5.5.12/13: zone ring colors + labels midway between rings; Environment (not Environment)
   const zoneMeta: {
@@ -795,9 +746,6 @@ function SceneContent({
         {zoneVisible.organization && (
           <ExecutiveZoneGlow
             orgRadius={radii[1]}
-            serviceY={serviceY}
-            onLabelClick={handleClick(executiveNode)}
-            selected={focusedNodeId === "executive"}
             showShell={showZoneColors}
           />
         )}
@@ -831,10 +779,10 @@ function SceneContent({
               </group>
             ))}
 
-        {/* I5.6.7: Product is part of Executive/Organization zone — hide with zone toggle */}
+        {/* I5.6 board: Executive center sphere + org departments; hide with zone toggle */}
         {zoneVisible.organization && (
           <>
-            <CenterProductNode
+            <CenterExecutiveNode
               position={centerPos}
               pulse={focusedNodeId === HUB_CENTER_ID}
               palette={palette}
@@ -870,7 +818,7 @@ function SceneContent({
 }
 
 
-/** I5.6.20 — keep orbit pivot locked on product sphere center (origin).
+/** I5.6.20 — keep orbit pivot locked on executive sphere center (origin).
  *  Standard OrbitControls pan moves target with the camera, which shifts the
  *  rotation point and makes the model look distorted. After each controls
  *  update we snap target back to the product center so RMB pan trucks the
@@ -1425,7 +1373,7 @@ export function MissionControlScene({
                 " 50%)",
             }}
           />
-          Executive
+          Organization
         </button>
         <button
           type="button"

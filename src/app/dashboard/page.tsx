@@ -60,19 +60,7 @@ export default function DashboardPage() {
   }, []);
 
   const focusedNode = focusedNodeId
-    ? focusedNodeId === "executive"
-      ? {
-          id: "executive",
-          label: "Executive",
-          type: "organization" as const,
-          ring: 1,
-          description:
-            "Business executive function — collective name for the organization zone. Parent path for Projects and Tasks.",
-          status: "active" as const,
-          axis: "origin" as const,
-          position: [0, 0, 0] as [number, number, number],
-        }
-      : businessGraphNodes.find((n) => n.id === focusedNodeId)
+    ? businessGraphNodes.find((n) => n.id === focusedNodeId) ?? null
     : null;
 
   const activeProjects = projects.filter((p) => p.status === "active").length;

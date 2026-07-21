@@ -1,12 +1,12 @@
 // Business graph fixture for the 3D Mission Control hub visualization.
-// Keystone ERD v1.1 + I5.5.5 layout semantics:
-//   Center = Product (hub blue) — operating nucleus; Integrations under Product
-//   "Executive" = collective name for the organization zone (glow), not a sphere
-//   Zone 1 = Organization (departments + Service above center)
+// I5.6 org-board (Stephen 2026-07-21):
+//   Center = Executive (hub blue) — sphere at origin
+//   Executive is a real center sphere (not a floating clickable label)
+//   Zone 1 = Organization (Public +y; no Service/Product hub spheres)
 //   Zone 2 = Collaboration (parties) — greens unchanged
 //   Zone 3 = Environmental (context) — Events top / Locations bottom
 // Placement: spheres on axis planes; distance = ZONE_RADII[ring].
-// Source of truth: docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md (v1.1)
+// Source of truth: docs/design/spec/state/state_i5_6_zone_erd.md
 
 export type GraphNodeType = 'organization' | 'collaboration' | 'environmental';
 
@@ -20,7 +20,7 @@ export interface BusinessGraphNode {
   id: string;
   label: string;
   type: GraphNodeType;
-  ring: number; // 0 = center (Product), 1 = organization, 2 = collaboration, 3 = environmental
+  ring: number; // 0 = center (Executive), 1 = organization, 2 = collaboration, 3 = environmental
   description: string;
   status: 'connected' | 'active' | 'standby';
   /** Preferred half-axis for layout. */
@@ -49,14 +49,14 @@ export const RING_RADII = ZONE_RADII;
 
 /** Suggested sphere radii (world units). */
 export const SPHERE_RADIUS = {
-  center: 0.28,  // I5.5.6: same size as other blue spheres (Service)
+  center: 0.28,  // same size as other org spheres
   organization: 0.28,
   collaboration: 0.26,
   environmental: 0.24,
 } as const;
 
-/** Hub center node id (I5.5.5 — Product replaces Executive sphere). */
-export const HUB_CENTER_ID = 'product' as const;
+/** Hub center node id (I5.6 board — Executive sphere at origin). */
+export const HUB_CENTER_ID = 'executive' as const;
 
 function axisPosition(axis: AxisSlot, ring: number): GraphPosition {
   if (axis === 'origin' || ring === 0) return [0, 0, 0];
@@ -108,19 +108,19 @@ function layoutByAxis(
 }
 
 const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
-  // Center — Product (I5.5.5). Not environmental orange; rendered hub blue in scene.
+  // Center — Executive sphere (I5.6 board). Hub blue in scene.
   {
-    id: 'product',
-    label: 'Product',
+    id: 'executive',
+    label: 'Executive',
     type: 'organization',
     ring: 0,
     description:
-      'Device, manufactured item, or computer file. Operating nucleus of the graph. Integrations live under Product.',
+      'Business executive function — center sphere of the Organization zone. Owns Policy, Projects, and Tasks in zone config.',
     status: 'active',
     axis: 'origin',
   },
 
-  // Organization — zone 1 (inner). Service fills empty spot above center (+Y).
+  // Organization — zone 1 (inner). Public at top (+Y). Service/Product nest under Production.
   {
     id: 'communications',
     label: 'Communications',
@@ -153,7 +153,7 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     label: 'Production',
     type: 'organization',
     ring: 1,
-    description: 'Production scheduling, delivery tracking, and operations.',
+    description: 'Making and delivering work product. Owns Product and Service as nested objects (not separate hub spheres).',
     status: 'connected',
     axis: '+z',
   },
@@ -167,11 +167,12 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     axis: '-y',
   },
   {
-    id: 'service',
-    label: 'Service',
+    id: 'public',
+    label: 'Public',
     type: 'organization',
     ring: 1,
-    description: 'Faculty for results — e.g. Analysis & Design services. Organization zone (above center).',
+    description:
+      'Public-facing faculty at the top of the Organization sphere — brand, presence, and outward voice. Distinct from Collaboration Customer.',
     status: 'connected',
     axis: '+y',
   },

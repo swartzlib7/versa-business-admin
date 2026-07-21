@@ -37,8 +37,8 @@ function isGroup(entry: NavEntry): entry is NavGroup {
   return "children" in entry;
 }
 
-// I5.6.6: zone menus own IA — Executive (Policy/Projects/Tasks) under Organization,
-// Production (Product/Service) under Organization, Integrations under Collaboration→Vendor.
+// I5.6.6 + board: zone menus own IA — Executive (Policy/Projects/Tasks), Public, Production (Product/Service nested),
+// Integrations under Collaboration→Vendor. Hub spheres exclude Service/Product.
 // Legacy /projects /tasks /integrations routes remain; linked from zone config panels.
 const navEntries: NavEntry[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

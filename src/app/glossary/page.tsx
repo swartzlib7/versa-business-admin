@@ -56,7 +56,7 @@ const INITIAL_ENTRIES: GlossaryEntry[] = [
     sectionId: "zones",
     name: "Organization",
     definition:
-      "Center circle of internal faculties: Executive, Communications, Dissemination, Treasury, Production, Qualification.",
+      "Center circle of internal faculties: Executive (center sphere), Public (top), Communications, Dissemination, Treasury, Production, Qualification. Service and Product nest under Production — not hub spheres.",
   },
   {
     id: "e-collab-zone",
@@ -70,14 +70,21 @@ const INITIAL_ENTRIES: GlossaryEntry[] = [
     sectionId: "zones",
     name: "Environment",
     definition:
-      "Context of work: Locations, Events, Knowledge, Schedules. Product and Service live under Organization / Production (I5.6).",
+      "Context of work: Locations, Events, Knowledge, Schedules. Product and Service live under Organization / Production (not Environment; not hub spheres).",
   },
   {
     id: "e-executive",
     sectionId: "organization",
     name: "Executive",
     definition:
-      "Business executive function. Owns Policy, Projects, and Tasks as nested elements; parent self-tab keeps executive defaults.",
+      "Center Organization sphere (hub). Owns Policy, Projects, and Tasks as nested elements; parent self-tab keeps executive defaults. Not a floating clickable label.",
+  },
+  {
+    id: "e-public",
+    sectionId: "organization",
+    name: "Public",
+    definition:
+      "Organization faculty at the top of the sphere — brand, presence, and outward voice. Distinct from Collaboration Customer.",
   },
   {
     id: "e-policy",
@@ -108,13 +115,13 @@ const INITIAL_ENTRIES: GlossaryEntry[] = [
     sectionId: "organization",
     name: "Product",
     definition:
-      "Device, manufactured item, or computer file — operating nucleus. Owned by Production (moved from Environment in I5.6).",
+      "Device, manufactured item, or computer file. Owned by Production as a nested object — not a hub sphere (I5.6 board).",
   },
   {
     id: "e-service",
     sectionId: "organization",
     name: "Service",
-    definition: "Faculty for results (e.g. Analysis & Design). Nested under Production.",
+    definition: "Faculty for results (e.g. Analysis & Design). Nested under Production — not a hub sphere (I5.6 board).",
   },
   {
     id: "e-comms",

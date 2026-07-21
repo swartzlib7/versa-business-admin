@@ -6,8 +6,8 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | I5.6 Zone ERD + backend menu tabbed config + User-pilot baseline ERD |
-| **Status** | I5.6 UI wrap COMPLETE (Stephen 2026-07-20). ERD-D on beta 7fc2cb1. Web-dev formal clone + DeepSeek V4 Pro. Awaiting implementer brief execution. |
-| **Last verified against code** | 2026-07-20 (hub I5.6.28 beta `1f9de1a` / v0.7.45; ERD docs only for persistence) |
+| **Status** | I5.6 UI wrap COMPLETE. Org-board 2026-07-21: Executive center sphere, Public top, Service+Product not hub spheres; Object Label Name. Phase 1 DB on Vagrant path. |
+| **Last verified against code** | 2026-07-21 (org-board hub + zone IA; ERD state) |
 | **Primary code** | `mission-control-scene` hub; zone routes `/organization` `/collaboration` `/environment`; users admin |
 | **Task** | #176 |
 
@@ -39,18 +39,21 @@
 | Second | **Collaboration** | Parties the org works *with* | `/collaboration` | Collab green |
 | Third | **Environment** | Where / when / what is known | `/environment` | Env orange |
 
-**Brand:** hub identity **`Versa AGi`** (not Northstar Works). Organization = center circle; prefer flat label on circle edge. Hub nucleus behavior follows accepted I5.6 hub line (on-ring + side rest for EL; see Results).
+**Brand:** hub identity **`Versa AGi`** (not Northstar Works). Organization = inner ring; **Executive** = center sphere (hub blue). Hub nucleus behavior follows accepted I5.6 hub line (on-ring + side rest for EL; see Results) plus 2026-07-21 board deltas.
 
 #### Organization departments (spheres)
 
-| Node | Position (Stephen) |
-|------|--------------------|
-| Executive | Center among org spheres |
-| Communications | Left of center |
-| Dissemination | Right of center |
-| Treasury | Back |
-| Production | Front |
-| Qualification | Bottom |
+| Node | Position (Stephen 2026-07-21 board) |
+|------|-------------------------------------|
+| **Executive** | **Center sphere** (hub blue) — real sphere, **not** a floating clickable label |
+| **Public** | **Top** (+Y) — was Service; Public ≠ Collaboration Customer |
+| Communications | Left of center (−X) |
+| Dissemination | Right of center (+X) |
+| Treasury | Back (−Z) |
+| Production | Front (+Z) — **owns Product + Service as nested objects** (not hub spheres) |
+| Qualification | Bottom (−Y) |
+
+**Removed from hub (2026-07-21):** Service sphere, Product center/sphere, clickable Executive label, Service/Product hub→tab click shortcuts. Product and Service remain Production children in zone config only.
 
 #### Collaboration parties
 
@@ -72,10 +75,12 @@
 
 **I5.6.6 IA ownership (locked in product):**
 
-- **Production** owns Product + Service (Product is **not** an Environment tab; hub Product sphere is Organization/Executive zone member — I5.6.7).
-- **Executive** owns Policy, Projects, Tasks.
+- **Production** owns Product + Service as **nested zone-config objects only** (not Environment tabs; **not** hub spheres — I5.6 board 2026-07-21).
+- **Executive** is the **center hub sphere** and owns Policy, Projects, Tasks in zone config.
+- **Public** is the top Organization sphere (distinct from Collaboration Customer).
 - **Vendor** owns Integrations.
 - Nested zone tabs always expose **parent self/default** sub-tab first (I5.6.9).
+- **Object Labels:** support a **Name** field on objects; Organization zone proper names are the canonical Name values (and may be used as Name).
 
 ### 1.3 Relationship policy (I5.6.4)
 
@@ -168,7 +173,8 @@ Record JSON stores picklist **api codes**; UI resolves labels from catalog.
 
 - Expand toggle → lightbox fuller-screen (not F11).
 - Labels billboard to camera.
-- Legend toggles zone visibility; Product with Executive legend.
+- Legend toggles zone visibility (Organization / Collaboration / Environment).
+- Hub center = Executive sphere; no clickable floating Executive label; no Service/Product hub spheres.
 - EL side rest: Events +x / Locations −x, phase 0 static; on-ring with KS (I5.6.26 accepted direction).
 - I5.6.27 anim phase offset **rejected** (intersections); I5.6.28 restored plain orbit.
 - **Hub visual notes CLOSED 2026-07-20** (Stephen): treat I5.6.22 / I5.6.28 line as done unless he reopens.
@@ -291,6 +297,7 @@ erDiagram
 | Date | Change | Items |
 |------|--------|-------|
 | 2026-07-20 | I5.6 UI wrap complete + Web-dev formal setup | Stephen wrap; web-dev own clone agent/web-dev @ 7fc2cb1; model deepseek/deepseek-v4-pro; duties+brief under docs/handoff/ |
+| 2026-07-21 | Org-board: Executive center sphere; Public +Y; drop Service/Product hub spheres + clickable Executive label; Object Label Name | Stephen voice brief; COA on beta |
 | 2026-07-20 | ERD-D roll User pattern to Project/Task/Product | catalog value sets/fields/layouts + /projects /tasks /products list+detail; sidebar nav |
 | 2026-07-20 | UI-Z zone ListingPanel → shared EntityListing (parity with Users) | zone-config-view + entity-listing hoist InlineForm |
 | 2026-07-20 | ERD-C User pilot: catalog-driven listing + detail/edit layouts; finish-before-webdev per Stephen | /users, /users/[id], layout-to-fields, LayoutDrivenForm |

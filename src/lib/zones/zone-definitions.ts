@@ -10,17 +10,21 @@ function soft(hex: string, alpha = "22") {
   return hex;
 }
 
-/** I5.6.6 — IA restructure per Stephen:
+/** I5.6.6 + I5.6 board (2026-07-21) IA per Stephen:
+ *  Org spheres: Executive (center), Public (+y), Communications, Dissemination,
+ *    Treasury, Production, Qualification. Service+Product are NOT hub spheres.
  *  Org Executive: self + Policy, Projects, Tasks
- *  Org Production: self + Product + Service
+ *  Org Production: self + Product + Service (nested objects)
+ *  Org Public: top-of-sphere faculty (distinct from Collaboration Customer)
  *  Env: no Product tab
  *  Collab Vendor: self + Integrations (parent self-tab via ZoneConfigView)
+ *  Object Labels: every faculty/object exposes Name (proper name = Name).
  */
 export const organizationZone: ZoneConfig = {
   id: "organization",
   title: "Organization",
   subtitle:
-    "Internal faculties. Executive (self + Policy/Projects/Tasks). Production (self + Product/Service).",
+    "Internal faculties. Executive center sphere. Public top. Production owns Product/Service (not hub spheres).",
   accent: orgAccent,
   accentSoft: soft(orgAccent),
   tabs: [
@@ -29,7 +33,7 @@ export const organizationZone: ZoneConfig = {
       label: "Executive",
       summary: "Business executive function — default executive data, plus policy, projects, and tasks.",
       fields: [
-        { label: "Display name", placeholder: "Executive" },
+        { label: "Name", placeholder: "Executive" },
         { label: "Lead", placeholder: "Name or user" },
         {
           label: "Status",
@@ -125,17 +129,41 @@ export const organizationZone: ZoneConfig = {
       ],
     },
     {
+      id: "public",
+      label: "Public",
+      summary: "Public-facing faculty at the top of the Organization sphere — brand, presence, outward voice. Distinct from Collaboration Customer.",
+      presentation: "listing",
+      listColumns: ["Name", "Status"],
+      sampleRows: [
+        ["Public", "active"],
+      ],
+      fields: [
+        { label: "Name", placeholder: "Public" },
+        {
+          label: "Status",
+          placeholder: "Select status",
+          kind: "select",
+          options: ["active", "standby", "connected"],
+        },
+        { label: "Mandate", placeholder: "Outward voice and brand presence...", kind: "textarea" },
+      ],
+      relations: [
+        { zone: "Collaboration", label: "Audience parties", hint: "Customers and partners who see the public face." },
+        { zone: "Environment", label: "Public knowledge", hint: "Published materials and brand assets." },
+      ],
+    },
+    {
       id: "communications",
       label: "Communications",
       summary: "Internal and external messaging faculty.",
       presentation: "listing",
-      listColumns: ["Display name", "Channels"],
+      listColumns: ["Name", "Channels"],
       sampleRows: [
         ["Comms desk", "Email, voice"],
         ["Social desk", "LinkedIn, X"],
       ],
       fields: [
-        { label: "Display name", placeholder: "Communications" },
+        { label: "Name", placeholder: "Communications" },
         { label: "Channels", placeholder: "Email, voice, social..." },
         { label: "Notes", placeholder: "Operating notes...", kind: "textarea" },
       ],
@@ -149,12 +177,12 @@ export const organizationZone: ZoneConfig = {
       label: "Dissemination",
       summary: "Distribution of products, content, and outcomes.",
       presentation: "listing",
-      listColumns: ["Display name", "Channels"],
+      listColumns: ["Name", "Channels"],
       sampleRows: [
         ["Publishing queue", "Web, PDF"],
       ],
       fields: [
-        { label: "Display name", placeholder: "Dissemination" },
+        { label: "Name", placeholder: "Dissemination" },
         { label: "Channels", placeholder: "Web, partners, retail..." },
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
@@ -168,12 +196,12 @@ export const organizationZone: ZoneConfig = {
       label: "Treasury",
       summary: "Financial control and commercial terms.",
       presentation: "listing",
-      listColumns: ["Display name", "Focus"],
+      listColumns: ["Name", "Focus"],
       sampleRows: [
         ["Treasury", "Cash & billing"],
       ],
       fields: [
-        { label: "Display name", placeholder: "Treasury" },
+        { label: "Name", placeholder: "Treasury" },
         { label: "Focus", placeholder: "Cash, billing, AR/AP..." },
         { label: "Currency default", placeholder: "USD" },
         { label: "Notes", placeholder: "...", kind: "textarea" },
@@ -188,12 +216,12 @@ export const organizationZone: ZoneConfig = {
       label: "Production",
       summary: "Making and delivering work product — owns Product and Service.",
       presentation: "listing",
-      listColumns: ["Display name", "Capacity notes"],
+      listColumns: ["Name", "Capacity notes"],
       sampleRows: [
         ["Production", "Beta capacity reserved"],
       ],
       fields: [
-        { label: "Display name", placeholder: "Production" },
+        { label: "Name", placeholder: "Production" },
         { label: "Capacity notes", placeholder: "...", kind: "textarea" },
       ],
       relations: [
@@ -207,13 +235,13 @@ export const organizationZone: ZoneConfig = {
           summary:
             "Device, manufactured item, or computer file — operating nucleus. Owned by Production (moved from Environment).",
           presentation: "listing",
-          listColumns: ["Product name", "Kind"],
+          listColumns: ["Name", "Kind"],
           sampleRows: [
             ["Versa AGi Mission Control", "software"],
             ["Trophy SKU-12", "manufactured"],
           ],
           fields: [
-            { label: "Product name", placeholder: "Versa AGi Mission Control" },
+            { label: "Name", placeholder: "Versa AGi Mission Control" },
             {
               label: "Kind",
               placeholder: "Select kind",
@@ -233,13 +261,13 @@ export const organizationZone: ZoneConfig = {
           label: "Service",
           summary: "Faculty for results — e.g. Analysis & Design. Nested under Production (I5.6.6).",
           presentation: "listing",
-          listColumns: ["Service name", "Status"],
+          listColumns: ["Name", "Status"],
           sampleRows: [
             ["Analysis & Design", "connected"],
             ["Managed ops", "active"],
           ],
           fields: [
-            { label: "Service name", placeholder: "Analysis & Design" },
+            { label: "Name", placeholder: "Analysis & Design" },
             {
               label: "Status",
               placeholder: "Select status",
@@ -261,12 +289,12 @@ export const organizationZone: ZoneConfig = {
       label: "Qualification",
       summary: "Quality, compliance, and qualification processes.",
       presentation: "listing",
-      listColumns: ["Display name", "Standards"],
+      listColumns: ["Name", "Standards"],
       sampleRows: [
         ["Qualification", "ISO internal"],
       ],
       fields: [
-        { label: "Display name", placeholder: "Qualification" },
+        { label: "Name", placeholder: "Qualification" },
         { label: "Standards", placeholder: "ISO, internal..." },
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
@@ -356,13 +384,13 @@ export const collaborationZone: ZoneConfig = {
       label: "Customer",
       summary: "Person or business that receives products or services.",
       presentation: "listing",
-      listColumns: ["Display name", "Kind", "Tier"],
+      listColumns: ["Name", "Kind", "Tier"],
       sampleRows: [
         ["Acme Ltd", "business", "priority"],
         ["Jordan Lee", "person", "standard"],
       ],
       fields: [
-        { label: "Display name", placeholder: "Acme Ltd" },
+        { label: "Name", placeholder: "Acme Ltd" },
         {
           label: "Kind",
           placeholder: "Select kind",
