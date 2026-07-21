@@ -42,6 +42,8 @@ export interface DataAdapter {
   listSupportTickets(): Promise<SupportTicket[]>;
   listMetrics(): Promise<Metric[]>;
   listKnowledgeArticles(): Promise<KnowledgeArticle[]>;
+  // Phase 1: DB health check
+  healthCheck(): Promise<{ connected: boolean; latencyMs?: number; error?: string }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -202,7 +204,38 @@ export const fixtureAdapter: DataAdapter = {
   async listKnowledgeArticles() {
     return knowledgeArticleFixtures;
   },
+
+  async healthCheck() {
+    // Fixtures are always "connected" — no DB dependency.
+    return { connected: true, latencyMs: 0 };
+  },
 };
 
-// Default adapter used by all routes. Swap for a real host adapter later.
-export const adapter: DataAdapter = fixtureAdapter;
+// ---------------------------------------------------------------------------
+// DATA_SOURCE switch — fixture (default) or postgres (Phase 1 skeleton).
+// When DATA_SOURCE=postgres, the postgresAdapter skeleton is used.
+// All postgresAdapter methods throw NOT_IMPLEMENTED except healthCheck.
+// The app must not crash when DB is down — fixture remains the fallback.
+// ---------------------------------------------------------------------------
+
+// When DATA_SOURCE=postgres, the postgresAdapter skeleton is used.
+// All postgresAdapter methods throw NOT_IMPLEMENTED except healthCheck.
+// The app must not crash when DB is down — fixture remains the fallback.
+// ---------------------------------------------------------------------------
+
+// Use a getter so the postgres adapter is only imported when needed.
+// Next.js bundling: dynamic import would be ideal but adapter is used
+// synchronously in route handlers. We use a conditional re-export pattern.
+import { postgresAdapter } from '../db/postgres-adapter';
+
+function createAdapter(): DataAdapter {
+  const dataSource = process.env.DATA_SOURCE ?? 'fixture';
+
+  if (dataSource === 'postgres') {
+    return postgresAdapter;
+  }
+
+  return fixtureAdapter;
+}
+
+export const adapter: DataAdapter = createAdapter();
