@@ -115,13 +115,13 @@ case "${1:-status}" in
     echo "Pinging Postgres at $DATABASE_URL ..."
     cd /home/agi-web-dev/workspace/versa-admin-system
     DATABASE_URL="$DATABASE_URL" DATA_SOURCE=postgres node -e "
-      const postgres = require(\x27postgres\x27);
+      const postgres = require('postgres');
       const sql = postgres(process.env.DATABASE_URL);
-      sql\x60SELECT 1\x60.then(() => {
-        console.log(\x27DB HEALTHY: connected OK\x27);
+      sql\`SELECT 1\`.then(() => {
+        console.log('DB HEALTHY: connected OK');
         return sql.end();
       }).catch((e) => {
-        console.error(\x27DB UNHEALTHY:\x27, e.message);
+        console.error('DB UNHEALTHY:', e.message);
         process.exit(1);
       });
     "
