@@ -8,11 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "bash scripts/vagrant-postgres.sh migrate",
     "db:studio": "drizzle-kit studio",
-    "db:start": "bash scripts/docker-postgres.sh start",
-    "db:stop": "bash scripts/docker-postgres.sh stop",
-    "db:status": "bash scripts/docker-postgres.sh status"
+    "db:start": "bash scripts/vagrant-postgres.sh start",
+    "db:stop": "bash scripts/vagrant-postgres.sh stop",
+    "db:status": "bash scripts/vagrant-postgres.sh status",
+    "db:health": "bash scripts/vagrant-postgres.sh health"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
