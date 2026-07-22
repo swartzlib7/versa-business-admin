@@ -93,7 +93,8 @@ Policy can be a **typed** or **record_type** later; not blocking.
 
 | ID | Work | Who | Depends |
 |----|------|-----|---------|
-| **32a** | Nav de-dupe + Qualification Records + this plan + state/WBS | **COA** (this cycle) | — |
+| **32a** | Nav de-dupe + Qualification Records + this plan + state/WBS | **COA** shipped ada18f3 | — |
+| **32b** | Catalog schema API for agents (read objects/fields/layouts + POST extend field) | **COA** | 32a |
 | **32b** | Zone listings: clarify Projects/Tasks/Products only under Executive/Production; deep-link buttons; copy pass | COA or web-dev | 32a |
 | **32c** | `record_type` fixture module + ZoneConfigView reads types for faculty Records (dynamic columns/sample) | COA plan → web-dev impl | 32a |
 | **32d** | Dynamic extra tabs from types with `show_as_tab` | web-dev | 32c |
@@ -113,7 +114,15 @@ Phase 2 DB seed/read **remains gated** on Stephen’s explicit go. Redesign does
 
 ---
 
-## 7. Acceptance (32a)
+## 7. Acceptance
+
+### 32b (catalog API)
+- [x] GET /api/catalog (+ objects, fields, layouts, value-sets)
+- [x] GET object schema bundle
+- [x] POST /api/catalog/fields (admin extend, fixture-local)
+- [x] API index lists catalog endpoints
+
+### 32a
 - [x] No Projects/Tasks/Products on main sidebar.
 - [x] Qualification has Records child.
 - [x] Written verdict + plan in `docs/coa/`.

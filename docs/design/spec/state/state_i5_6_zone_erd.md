@@ -362,3 +362,6 @@ Spatial twin on zone config pages is optional chrome (drawer + persistence). Doe
 
 **Dynamic records:** Faculty Records become config-driven types over time. **Projects & Tasks stay first-class tables** (FK/perf) — catalog layouts may still drive their forms. Full plan: `docs/coa/I5_6_32_DYNAMIC_RECORDS_REDESIGN.md`.
 
+## I5.6.32b — Catalog schema API (2026-07-22)
+
+Agents/UI can **read** object schema via authenticated `/api/catalog` (objects, fields, layouts, value-sets) and **extend** with `POST /api/catalog/fields` (admin; fixture-local until catalog tables persist). Typed cores remain first-class; faculty record types registered in object registry for 32c.

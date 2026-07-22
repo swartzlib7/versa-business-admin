@@ -1,7 +1,8 @@
 /**
- * ERD-B catalog stubs (baseline locked 2026-07-20).
+ * ERD-B catalog stubs (baseline locked 2026-07-20) + I5.6.32b agent schema API.
  * Definitions only — values live on entity `data` JSON later (User pilot ERD-C; ERD-D Project/Task/Product).
- * Not yet exposed via HTTP API; import from fixtures for layout-driven UI work.
+ * HTTP: GET/POST under /api/catalog (auth). Custom field extensions are session-local on fixtures
+ * until Phase 2+ persists catalog tables.
  */
 
 export type CatalogDataType =
@@ -1057,18 +1058,139 @@ export const layoutDefinitions: LayoutDefinition[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Object registry (typed cores + faculty record types) — I5.6.32b
+// ---------------------------------------------------------------------------
+
+export type ObjectCoreKind = 'typed_table' | 'faculty_record' | 'catalog_only';
+
+export interface ObjectDefinition {
+  api_name: string;
+  label: string;
+  description: string;
+  core_kind: ObjectCoreKind;
+  /** REST collection for instance data when typed_table; null for definition-only. */
+  instance_collection: string | null;
+  extensible: boolean;
+  faculty?: string;
+}
+
+/** Baseline objects agents can discover. Faculty record types seeded for 32c path. */
+export const objectDefinitions: ObjectDefinition[] = [
+  {
+    api_name: 'user',
+    label: 'User',
+    description: 'Human or agent identity (agents ARE users with type=agent).',
+    core_kind: 'typed_table',
+    instance_collection: '/api/users',
+    extensible: true,
+  },
+  {
+    api_name: 'project',
+    label: 'Project',
+    description: 'Strategic/delivery project (first-class table; not generic EAV).',
+    core_kind: 'typed_table',
+    instance_collection: '/api/projects',
+    extensible: true,
+  },
+  {
+    api_name: 'task',
+    label: 'Task',
+    description: 'Work item under a project (first-class FK to project).',
+    core_kind: 'typed_table',
+    instance_collection: '/api/tasks',
+    extensible: true,
+  },
+  {
+    api_name: 'product',
+    label: 'Product',
+    description: 'Product offering owned by Production faculty.',
+    core_kind: 'typed_table',
+    instance_collection: '/api/public/products',
+    extensible: true,
+  },
+  {
+    api_name: 'qualification_item',
+    label: 'Qualification record',
+    description: 'Faculty Records type under Qualification (config-driven path).',
+    core_kind: 'faculty_record',
+    instance_collection: null,
+    extensible: true,
+    faculty: 'qualification',
+  },
+  {
+    api_name: 'public_item',
+    label: 'Public record',
+    description: 'Faculty Records type under Public.',
+    core_kind: 'faculty_record',
+    instance_collection: null,
+    extensible: true,
+    faculty: 'public',
+  },
+  {
+    api_name: 'comms_item',
+    label: 'Communications record',
+    description: 'Faculty Records type under Communications.',
+    core_kind: 'faculty_record',
+    instance_collection: null,
+    extensible: true,
+    faculty: 'communications',
+  },
+  {
+    api_name: 'dissemination_item',
+    label: 'Dissemination record',
+    description: 'Faculty Records type under Dissemination.',
+    core_kind: 'faculty_record',
+    instance_collection: null,
+    extensible: true,
+    faculty: 'dissemination',
+  },
+  {
+    api_name: 'treasury_item',
+    label: 'Treasury record',
+    description: 'Faculty Records type under Treasury.',
+    core_kind: 'faculty_record',
+    instance_collection: null,
+    extensible: true,
+    faculty: 'treasury',
+  },
+];
+
+// Mutable copies for in-process custom field extensions (fixture mode).
+let mutableFieldDefinitions: FieldDefinition[] = [...fieldDefinitions];
+let mutableValueSets: ValueSet[] = [...valueSets];
+let mutableValueSetItems: ValueSetItem[] = [...valueSetItems];
+let mutableLayoutDefinitions: LayoutDefinition[] = [...layoutDefinitions];
+let mutableObjectDefinitions: ObjectDefinition[] = [...objectDefinitions];
+
+export function resetCatalog(): void {
+  mutableFieldDefinitions = [...fieldDefinitions];
+  mutableValueSets = [...valueSets];
+  mutableValueSetItems = [...valueSetItems];
+  mutableLayoutDefinitions = [...layoutDefinitions];
+  mutableObjectDefinitions = [...objectDefinitions];
+}
+
+export function listObjects(): ObjectDefinition[] {
+  return [...mutableObjectDefinitions].sort((a, b) => a.api_name.localeCompare(b.api_name));
+}
+
+export function getObject(apiName: string): ObjectDefinition | undefined {
+  return mutableObjectDefinitions.find((o) => o.api_name === apiName);
+}
+
 export function getValueSetByApiName(apiName: string): ValueSet | undefined {
-  return valueSets.find((v) => v.api_name === apiName);
+  return mutableValueSets.find((v) => v.api_name === apiName);
 }
 
 export function listValueSetItems(valueSetId: string): ValueSetItem[] {
-  return valueSetItems
+  return mutableValueSetItems
     .filter((i) => i.value_set_id === valueSetId && i.active)
     .sort((a, b) => a.sort_order - b.sort_order);
 }
 
 export function listFieldDefinitions(objectApiName: string): FieldDefinition[] {
-  return fieldDefinitions
+  return mutableFieldDefinitions
     .filter((f) => f.object_api_name === objectApiName && f.active)
     .sort((a, b) => a.sort_order - b.sort_order);
 }
@@ -1077,10 +1199,185 @@ export function getDefaultLayout(
   objectApiName: string,
   layoutType: LayoutDefinition['layout_type'],
 ): LayoutDefinition | undefined {
-  return layoutDefinitions.find(
+  return mutableLayoutDefinitions.find(
     (l) =>
       l.object_api_name === objectApiName &&
       l.layout_type === layoutType &&
       l.is_default,
   );
+}
+
+export function listAllFieldDefinitions(objectApiName?: string): FieldDefinition[] {
+  let rows = mutableFieldDefinitions.filter((f) => f.active);
+  if (objectApiName) rows = rows.filter((f) => f.object_api_name === objectApiName);
+  return rows.sort((a, b) => a.sort_order - b.sort_order || a.api_name.localeCompare(b.api_name));
+}
+
+export function listAllLayouts(
+  objectApiName?: string,
+  layoutType?: LayoutDefinition['layout_type'],
+): LayoutDefinition[] {
+  let rows = [...mutableLayoutDefinitions];
+  if (objectApiName) rows = rows.filter((l) => l.object_api_name === objectApiName);
+  if (layoutType) rows = rows.filter((l) => l.layout_type === layoutType);
+  return rows;
+}
+
+export function listAllValueSets(): ValueSet[] {
+  return [...mutableValueSets].sort((a, b) => a.api_name.localeCompare(b.api_name));
+}
+
+export function getValueSetByApiNameLive(apiName: string): ValueSet | undefined {
+  return getValueSetByApiName(apiName);
+}
+
+export function listValueSetItemsLive(valueSetId: string): ValueSetItem[] {
+  return listValueSetItems(valueSetId);
+}
+
+export function getObjectSchema(objectApiName: string) {
+  const object = getObject(objectApiName);
+  if (!object) return null;
+  const fields = listAllFieldDefinitions(objectApiName);
+  const layouts = listAllLayouts(objectApiName);
+  const valueSetNames = [
+    ...new Set(fields.map((f) => f.value_set_api_name).filter(Boolean) as string[]),
+  ];
+  const value_sets = valueSetNames.map((name) => {
+    const vs = getValueSetByApiName(name);
+    if (!vs) return { api_name: name, items: [] as ValueSetItem[] };
+    return { ...vs, items: listValueSetItems(vs.id) };
+  });
+  return { object, fields, layouts, value_sets };
+}
+
+const ALLOWED_DATA_TYPES: CatalogDataType[] = [
+  'text',
+  'long_text',
+  'number',
+  'boolean',
+  'date',
+  'datetime',
+  'picklist',
+  'multipicklist',
+  'lookup',
+  'email',
+  'url',
+  'phone',
+  'currency',
+];
+
+export interface ExtendFieldInput {
+  object_api_name: string;
+  api_name: string;
+  label: string;
+  data_type: CatalogDataType;
+  is_required?: boolean;
+  default_value?: string | null;
+  value_set_api_name?: string | null;
+  lookup_object_api_name?: string | null;
+}
+
+export type ExtendFieldResult =
+  | { ok: true; field: FieldDefinition }
+  | { ok: false; code: string; message: string };
+
+/** Agent/admin extension: add a non-system field definition (fixture-local until DB catalog). */
+export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResult {
+  const object = getObject(input.object_api_name);
+  if (!object) {
+    return {
+      ok: false,
+      code: 'UNKNOWN_OBJECT',
+      message: `Unknown object_api_name '${input.object_api_name}'. GET /api/catalog/objects for the registry.`,
+    };
+  }
+  if (!object.extensible) {
+    return {
+      ok: false,
+      code: 'NOT_EXTENSIBLE',
+      message: `Object '${input.object_api_name}' is not extensible.`,
+    };
+  }
+  const apiName = (input.api_name || '').trim();
+  if (!/^[a-z][a-z0-9_]*$/.test(apiName)) {
+    return {
+      ok: false,
+      code: 'INVALID_API_NAME',
+      message: 'api_name must be snake_case starting with a letter (e.g. custom_score).',
+    };
+  }
+  if (apiName.startsWith('system_') || apiName === 'id') {
+    return {
+      ok: false,
+      code: 'RESERVED_API_NAME',
+      message: 'That api_name is reserved.',
+    };
+  }
+  if (!ALLOWED_DATA_TYPES.includes(input.data_type)) {
+    return {
+      ok: false,
+      code: 'INVALID_DATA_TYPE',
+      message: `data_type must be one of: ${ALLOWED_DATA_TYPES.join(', ')}`,
+    };
+  }
+  if (
+    (input.data_type === 'picklist' || input.data_type === 'multipicklist') &&
+    !input.value_set_api_name
+  ) {
+    return {
+      ok: false,
+      code: 'VALUE_SET_REQUIRED',
+      message: 'picklist/multipicklist fields require value_set_api_name.',
+    };
+  }
+  if (input.value_set_api_name && !getValueSetByApiName(input.value_set_api_name)) {
+    return {
+      ok: false,
+      code: 'UNKNOWN_VALUE_SET',
+      message: `Unknown value_set_api_name '${input.value_set_api_name}'.`,
+    };
+  }
+  if (input.data_type === 'lookup' && !input.lookup_object_api_name) {
+    return {
+      ok: false,
+      code: 'LOOKUP_REQUIRED',
+      message: 'lookup fields require lookup_object_api_name.',
+    };
+  }
+  if (input.lookup_object_api_name && !getObject(input.lookup_object_api_name)) {
+    return {
+      ok: false,
+      code: 'UNKNOWN_LOOKUP_OBJECT',
+      message: `Unknown lookup_object_api_name '${input.lookup_object_api_name}'.`,
+    };
+  }
+  const exists = mutableFieldDefinitions.some(
+    (f) => f.object_api_name === input.object_api_name && f.api_name === apiName,
+  );
+  if (exists) {
+    return {
+      ok: false,
+      code: 'FIELD_EXISTS',
+      message: `Field '${apiName}' already exists on '${input.object_api_name}'.`,
+    };
+  }
+  const siblings = mutableFieldDefinitions.filter((f) => f.object_api_name === input.object_api_name);
+  const nextOrder = siblings.reduce((m, f) => Math.max(m, f.sort_order), 0) + 10;
+  const field: FieldDefinition = {
+    id: `fld-ext-${input.object_api_name}-${apiName}`,
+    object_api_name: input.object_api_name,
+    api_name: apiName,
+    label: (input.label || apiName).trim(),
+    data_type: input.data_type,
+    is_system: false,
+    is_required: Boolean(input.is_required),
+    default_value: input.default_value ?? null,
+    value_set_api_name: input.value_set_api_name ?? null,
+    lookup_object_api_name: input.lookup_object_api_name ?? null,
+    sort_order: nextOrder,
+    active: true,
+  };
+  mutableFieldDefinitions.push(field);
+  return { ok: true, field };
 }

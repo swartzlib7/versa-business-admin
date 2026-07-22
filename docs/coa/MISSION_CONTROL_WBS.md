@@ -42,6 +42,7 @@ When COA says **“Phase 2”** without other context, it means **Track B — DB
 | Hub spheres static + 3D (I5.6.31) | **Shipped** @ `30f9d2d` | animSpeed default 0; directional lighting + metal/roughness + rim shells |
 | I5.6.32a menu + Qual Records | **Shipped** | Sidebar drops Projects/Tasks/Products; Qualification + Records; routes kept for deep link |
 | I5.6.32 dynamic records plan | **Plan locked** | `docs/coa/I5_6_32_DYNAMIC_RECORDS_REDESIGN.md` — keep Projects/Tasks first-class; config-driven faculty Records |
+| I5.6.32b catalog schema API | **Shipped** | `/api/catalog` read + POST fields extend; agents discover schema |
 | Shortcuts / favorites nav | Backlog | Stephen: revisit later |
 | Visual confirm | **Received** | Hub looked good 2026-07-22 |
 
