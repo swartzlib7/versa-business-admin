@@ -295,7 +295,7 @@ function CenterExecutiveNode({
     <group position={position}>
       <Sphere
         ref={meshRef}
-        args={[size, 32, 32]}
+        args={[size, 48, 48]}
         onClick={onClick}
         onPointerOver={() => {
           if (onClick) document.body.style.cursor = "pointer";
@@ -307,9 +307,18 @@ function CenterExecutiveNode({
         <meshStandardMaterial
           color={theme.scene.hubColor}
           emissive={theme.scene.hubColor}
-          emissiveIntensity={pulse ? 1.0 : 0.6}
-          roughness={0.2}
-          metalness={0.4}
+          emissiveIntensity={pulse ? 0.55 : 0.22}
+          roughness={0.22}
+          metalness={0.62}
+        />
+      </Sphere>
+      <Sphere args={[size * 1.1, 32, 32]}>
+        <meshBasicMaterial
+          color={theme.scene.hubColor}
+          transparent
+          opacity={0.12}
+          side={THREE.BackSide}
+          depthWrite={false}
         />
       </Sphere>
       <Billboard position={[0, size + 0.35, 0]}>
@@ -477,7 +486,7 @@ function ZoneNode({
     <group position={position}>
       <Sphere
         ref={meshRef}
-        args={[focused ? node.size * 1.35 : node.size, 24, 24]}
+        args={[focused ? node.size * 1.35 : node.size, 48, 48]}
         onClick={onClick}
         onPointerOver={() => {
           if (onClick) document.body.style.cursor = "pointer";
@@ -489,9 +498,21 @@ function ZoneNode({
         <meshStandardMaterial
           color={node.color}
           emissive={node.color}
-          emissiveIntensity={focused ? 0.9 : 0.35}
-          roughness={0.3}
-          metalness={0.2}
+          emissiveIntensity={focused ? 0.45 : 0.12}
+          roughness={0.28}
+          metalness={0.55}
+        />
+      </Sphere>
+      {/* I5.6.31 — soft rim / volume so spheres read 3D, not flat dots */}
+      <Sphere
+        args={[focused ? node.size * 1.42 : node.size * 1.08, 32, 32]}
+      >
+        <meshBasicMaterial
+          color={node.color}
+          transparent
+          opacity={focused ? 0.16 : 0.1}
+          side={THREE.BackSide}
+          depthWrite={false}
         />
       </Sphere>
       {!hideLabel && (
@@ -991,7 +1012,7 @@ export function MissionControlScene({
   const palette = getPalette(dark);
   const [internalAxes, setInternalAxes] = useState(false); // I5.6.3 hide axes by default
   const [internalRings, setInternalRings] = useState(true);
-  const [internalSpeed, setInternalSpeed] = useState(1);
+  const [internalSpeed, setInternalSpeed] = useState(0); // I5.6.31 — static by default
   const [internalGap, setInternalGap] = useState(1);
   const [internalSphere, setInternalSphere] = useState(1);
   const [internalZoneColors, setInternalZoneColors] = useState(true);
@@ -1167,9 +1188,12 @@ export function MissionControlScene({
         }}
         gl={{ antialias: true, alpha: true }}
       >
-        <ambientLight intensity={palette.ambientIntensity} />
-        <pointLight position={[10, 10, 10]} intensity={palette.pointLightIntensity} />
-        <pointLight position={[-10, -5, -10]} intensity={0.4} color={theme.scene.hubColor} />
+        <ambientLight intensity={palette.ambientIntensity * 0.85} />
+        {/* I5.6.31 — directional key/fill for sphere shading (less flat dots) */}
+        <directionalLight position={[6, 10, 4]} intensity={1.15} />
+        <directionalLight position={[-5, 3, -6]} intensity={0.35} color={theme.scene.hubColor} />
+        <pointLight position={[10, 10, 10]} intensity={palette.pointLightIntensity * 0.7} />
+        <pointLight position={[-10, -5, -10]} intensity={0.25} color={theme.scene.hubColor} />
         <SceneContent
           nodes={nodes}
           positions={positions}

@@ -2,6 +2,7 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -511,6 +512,34 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
   const twinAnimSpeed =
     config.id === "organization" ? 1 : 0;
 
+  // I5.6.31 — hideable spatial twin drawer; persist per zone; content expands when closed
+  const twinStorageKey = `mc.spatialTwinOpen.${config.id}`;
+  const [twinOpen, setTwinOpen] = useState(true);
+  const [twinHydrated, setTwinHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(twinStorageKey);
+      if (raw === "0") setTwinOpen(false);
+      else if (raw === "1") setTwinOpen(true);
+    } catch {
+      /* ignore */
+    }
+    setTwinHydrated(true);
+  }, [twinStorageKey]);
+
+  const setTwinOpenPersist = useCallback(
+    (open: boolean) => {
+      setTwinOpen(open);
+      try {
+        localStorage.setItem(twinStorageKey, open ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+    },
+    [twinStorageKey]
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -535,6 +564,21 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
           >
             Full 3D hub
           </Link>
+          <button
+            type="button"
+            onClick={() => setTwinOpenPersist(!twinOpen)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-pressed={twinOpen}
+            aria-controls={`spatial-twin-drawer-${config.id}`}
+            title={twinOpen ? "Hide spatial twin" : "Show spatial twin"}
+          >
+            {twinOpen ? (
+              <PanelRightClose className="h-4 w-4" aria-hidden />
+            ) : (
+              <PanelRightOpen className="h-4 w-4" aria-hidden />
+            )}
+            {twinOpen ? "Hide twin" : "Show twin"}
+          </button>
           <span
             className="rounded-md px-3 py-1.5 font-medium text-white"
             style={{ backgroundColor: config.accent }}
@@ -584,9 +628,19 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
         })}
       </div>
 
-      {/* I5.6.19 — twin outside tab key so Canvas does not reload on tab change */}
-      <div className="grid gap-4 lg:grid-cols-5">
-        <div className="min-w-0 lg:col-span-3">
+      {/* I5.6.31 — twin in collapsible drawer; main column grows when closed */}
+      <div
+        className={cn(
+          "grid gap-4 transition-[grid-template-columns] duration-300 ease-in-out",
+          twinOpen ? "lg:grid-cols-5" : "lg:grid-cols-1"
+        )}
+      >
+        <div
+          className={cn(
+            "min-w-0 transition-all duration-300",
+            twinOpen ? "lg:col-span-3" : "lg:col-span-1"
+          )}
+        >
           {tab && (
             <TabPanel
               tab={tab}
@@ -597,38 +651,56 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
           )}
         </div>
 
-        <div className="flex min-h-[630px] flex-col lg:col-span-2">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Spatial twin · {config.id} only
-            </p>
-            <span className="text-[10px] text-muted-foreground">
-              {twinAnimSpeed === 0 ? "Static · click spheres" : "Live · click spheres"}
-            </span>
+        {twinOpen && (
+          <div
+            id={`spatial-twin-drawer-${config.id}`}
+            className="flex min-h-[630px] flex-col lg:col-span-2"
+            data-hydrated={twinHydrated ? "1" : "0"}
+          >
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Spatial twin · {config.id} only
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground">
+                  {twinAnimSpeed === 0
+                    ? "Static · click spheres"
+                    : "Live · click spheres"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setTwinOpenPersist(false)}
+                  className="rounded-md border border-border px-2 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  aria-label="Hide spatial twin drawer"
+                >
+                  Hide
+                </button>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border">
+              <MissionControlScene
+                showCanvasChrome={false}
+                showLegend={false}
+                showViewGizmo={false}
+                showCameraTelemetry={false}
+                showAxes={false}
+                showRings={true}
+                animSpeed={twinAnimSpeed}
+                ringGap={1}
+                sphereScale={1}
+                cameraFitZone={config.id}
+                focusedNodeId={focusedNodeId}
+                onNodeClick={handleNodeClick}
+                className="!h-full !min-h-[600px] !rounded-none !border-0"
+                zoneVisible={{
+                  organization: config.id === "organization",
+                  collaboration: config.id === "collaboration",
+                  environment: config.id === "environment",
+                }}
+              />
+            </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border">
-            <MissionControlScene
-              showCanvasChrome={false}
-              showLegend={false}
-              showViewGizmo={false}
-              showCameraTelemetry={false}
-              showAxes={false}
-              showRings={true}
-              animSpeed={twinAnimSpeed}
-              ringGap={1}
-              sphereScale={1}
-              cameraFitZone={config.id}
-              focusedNodeId={focusedNodeId}
-              onNodeClick={handleNodeClick}
-              className="!h-full !min-h-[600px] !rounded-none !border-0"
-              zoneVisible={{
-                organization: config.id === "organization",
-                collaboration: config.id === "collaboration",
-                environment: config.id === "environment",
-              }}
-            />
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

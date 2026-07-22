@@ -44,7 +44,8 @@ Spatial node positions, orbit rules, and zone tab ownership live in **`state_i5_
 
 ## 2. Current State
 - Hybrid 2D + R3F shell shipped through I5.6 hub line (package 0.7.45).
-- Zone routes embed active-zone hub.
+- Zone routes embed active-zone hub with **hideable spatial twin drawer** (I5.6.31).
+- Hub spheres **static by default** with improved 3D shading (I5.6.31).
 - Early LAYOUT_PROPOSAL was already marked superseded; content folded for single living home.
 
 ## 3. Target State
@@ -67,4 +68,21 @@ Spatial node positions, orbit rules, and zone tab ownership live in **`state_i5_
 | Date | Change |
 |------|--------|
 | 2026-07-20 | I5.6.30 docs: state_layout_mission_ui created |
+
+## I5.6.31 — Spatial twin drawer + hub sphere defaults (2026-07-22)
+
+**Stephen request:** On Organization / Collaboration (Calibration) / Environment zone menus, put the right-side spatial twin in a hideable drawer; remember last open/closed; when hidden, main content uses the full width. Hub spheres: not animated by default; more 3D shading (less flat moving dots).
+
+**Behavior:**
+- Zone pages (`ZoneConfigView`): toggle **Hide twin / Show twin** (header) + Hide on drawer chrome; state key `mc.spatialTwinOpen.{organization|collaboration|environment}` in `localStorage`.
+- Open: `lg:grid-cols-5` (content 3 / twin 2). Closed: single column — forms/lists expand.
+- Hub (`/dashboard` + scene internal default): `animSpeed` starts at **0** (Speed control still cycles 0→1→5…).
+- Sphere look: higher metalness, lower emissive wash, directional key/fill lights, BackSide rim shells, 48-seg meshes.
+
+**Code:** `zone-config-view.tsx`, `mission-control-scene.tsx`, `dashboard/page.tsx`.
+
+### Change log
+| Date | Change |
+|------|--------|
+| 2026-07-22 | I5.6.31 shipped on beta — drawer + static/3D spheres |
 

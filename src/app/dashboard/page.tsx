@@ -20,7 +20,7 @@ export default function DashboardPage() {
   const [showRings, setShowRings] = useState(true);
   const [showZoneColors, setShowZoneColors] = useState(true);
   const [showFloor, setShowFloor] = useState(true);
-  const [animSpeed, setAnimSpeed] = useState(1);
+  const [animSpeed, setAnimSpeed] = useState(0); // I5.6.31 — spheres static by default
   const [ringGap, setRingGap] = useState(1);
   const [sphereScale, setSphereScale] = useState(1);
 

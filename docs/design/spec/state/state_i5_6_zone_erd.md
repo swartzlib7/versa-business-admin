@@ -349,3 +349,7 @@ erDiagram
 | Users | as-is (`/users`) |
 | Dashboard | as-is |
 | Active Agents / Agent Status | **removed** (agitop only) |
+
+## I5.6.31 — Twin drawer (zone chrome, not ERD)
+
+Spatial twin on zone config pages is optional chrome (drawer + persistence). Does not change zone graph, tabs, or records IA. See `state_layout_mission_ui.md`.

@@ -3,7 +3,7 @@
 > **Owner:** Versa (COA) with Stephen  
 > **Product:** versa-admin-system (Mission Control) · Project #26 · Game #109  
 > **Purpose:** One easy table view of where we are and what “Phase N” means.  
-> **Last updated:** 2026-07-22 14:45 EDT  
+> **Last updated:** 2026-07-22 15:05 EDT  
 > **How to use:** Scan the **At a glance** table first. Detail lives in the linked state docs — this file is the map, not a second source of truth for ERD/UI.
 
 ---
@@ -12,7 +12,7 @@
 
 | Track | What it is | Status now | Waiting on |
 |-------|------------|------------|------------|
-| **A. Hub / org-board UI** | 3D Mission Control spheres + zone tabs | **Done for current deltas** @ `2dc9b41` | Stephen: quick visual confirm when home |
+| **A. Hub / org-board UI** | 3D Mission Control spheres + zone tabs | **I5.6.31 in progress** (twin drawer + static/3D spheres) after hub OK @ `7ebcc7e` | Stephen: review drawer + sphere look on :3100 |
 | **B. DB cutover** | Move data from fixtures → Postgres (Drizzle) | **Phase 1 complete**; Phase 2 held | Stephen: explicit **go** for Phase 2 only |
 | **C. Broader Mission** | API writes, more zones, polish, production | Later phases | After B Phase 2–4 |
 
@@ -37,7 +37,10 @@ When COA says **“Phase 2”** without other context, it means **Track B — DB
 | I5.6 UI wrap | Complete | Public v1 preserved; beta carries work |
 | Org-board deltas (2026-07-21) | Shipped `2dc9b41` | Executive = center sphere; Public at top (+Y); Service & Product **not** hub spheres (nested under Production); no clickable Executive label; Object Label **Name** |
 | Spec go-to file | `docs/design/spec/state/state_i5_6_zone_erd.md` | Sole living board/ERD/IA doc |
-| Visual confirm | **Open** | Stephen when free — hard-refresh Mission Control hub |
+| Org zone Configuration IA | Shipped `7ebcc7e` | Production=Configuration; faculties Config+list where agreed; list schemas TBD (#183) |
+| Spatial twin drawer (I5.6.31) | **Shipped this cycle** | Hideable right twin on Org/Collab/Env; localStorage per zone; main content expands when hidden |
+| Hub spheres static + 3D (I5.6.31) | **Shipped this cycle** | animSpeed default 0; directional lighting + metal/roughness + rim shells |
+| Visual confirm | **Received** | Hub looked good 2026-07-22 |
 
 **Not the go-to for board layout:** `state_db_cutover_checklist.md`, `state_api_contract.md`, archive under `state/__archive/`.
 
