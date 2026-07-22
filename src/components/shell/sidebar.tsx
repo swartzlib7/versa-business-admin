@@ -14,9 +14,6 @@ import {
   Handshake,
   Globe2,
   BookOpen,
-  FolderKanban,
-  ListTodo,
-  Package,
 } from "lucide-react";
 
 interface NavItem {
@@ -37,9 +34,11 @@ function isGroup(entry: NavEntry): entry is NavGroup {
   return "children" in entry;
 }
 
-// I5.6.6 + board: zone menus own IA — Executive (Policy/Projects/Tasks), Public, Production (Product/Service nested),
+// I5.6.6 + board + I5.6.32 (Stephen 2026-07-22): zone menus own IA.
+// Executive owns Policy/Projects/Tasks; Production owns Product/Service.
+// Main nav must NOT duplicate Projects/Tasks/Products — those routes stay for deep links
+// and zone panels; shortcuts/favorites are a later item.
 // Integrations under Collaboration→Vendor. Hub spheres exclude Service/Product.
-// Legacy /projects /tasks /integrations routes remain; linked from zone config panels.
 const navEntries: NavEntry[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/organization", label: "Organization", icon: Building2 },
@@ -47,9 +46,6 @@ const navEntries: NavEntry[] = [
   { href: "/environment", label: "Environment", icon: Globe2 },
   { href: "/glossary", label: "Glossary", icon: BookOpen },
   { href: "/users", label: "Users", icon: Users },
-  { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/tasks", label: "Tasks", icon: ListTodo },
-  { href: "/products", label: "Products", icon: Package },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

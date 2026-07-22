@@ -353,3 +353,12 @@ erDiagram
 ## I5.6.31 — Twin drawer (zone chrome, not ERD)
 
 Spatial twin on zone config pages is optional chrome (drawer + persistence). Does not change zone graph, tabs, or records IA. See `state_layout_mission_ui.md`.
+
+## I5.6.32 — Menu IA + dynamic records direction (2026-07-22)
+
+**Nav:** Projects, Tasks, Products removed from main sidebar (zone-owned under Executive / Production). Routes retained for deep links. Shortcuts later.
+
+**Qualification:** Configuration + Records (parity with Public/Comms/Dissemination/Treasury).
+
+**Dynamic records:** Faculty Records become config-driven types over time. **Projects & Tasks stay first-class tables** (FK/perf) — catalog layouts may still drive their forms. Full plan: `docs/coa/I5_6_32_DYNAMIC_RECORDS_REDESIGN.md`.
+

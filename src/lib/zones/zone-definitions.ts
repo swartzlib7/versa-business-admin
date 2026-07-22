@@ -10,13 +10,13 @@ function soft(hex: string, alpha = "22") {
   return hex;
 }
 
-/** I5.6.6 + I5.6 board (2026-07-21/22) IA per Stephen:
+/** I5.6.6 + I5.6 board (2026-07-21/22) + I5.6.32 IA per Stephen:
  *  Org spheres: Executive (center), Public (+y), Communications, Dissemination,
  *    Treasury, Production, Qualification. Service+Product are NOT hub spheres.
- *  Org Executive: Configuration (form) + Policy, Projects, Tasks lists
+ *  Org Executive: Configuration (form) + Policy, Projects, Tasks lists (first-class objects)
  *  Org Production: Configuration (form, NOT production listing) + Product + Service lists
- *  Org Public / Communications / Dissemination / Treasury: need Configuration + list (list defs TBD)
- *  Org Qualification: Configuration (list contents TBD)
+ *  Org Public / Communications / Dissemination / Treasury / Qualification: Configuration + Records
+ *  Main nav: no duplicate Projects/Tasks/Products (zone-owned). Dynamic record_types: see I5_6_32 plan.
  *  Org Public: top-of-sphere faculty (distinct from Collaboration Customer)
  *  Env: no Product tab
  *  Collab Vendor: self + Integrations (parent self-tab via ZoneConfigView)
@@ -368,8 +368,9 @@ export const organizationZone: ZoneConfig = {
     {
       id: "qualification",
       label: "Qualification",
-      summary: "Quality, compliance, and qualification — Configuration section (record list TBD next).",
-      // I5.6 board 2026-07-22: Configuration only until Stephen defines list contents.
+      summary:
+        "Quality, compliance, and qualification — Configuration plus Records (same pattern as Public/Comms/Dissemination/Treasury).",
+      // I5.6.32: Records section added; exact record-type columns still baseline placeholders.
       fields: [
         { label: "Name", placeholder: "Qualification" },
         { label: "Standards", placeholder: "ISO, internal..." },
@@ -378,6 +379,40 @@ export const organizationZone: ZoneConfig = {
       relations: [
         { zone: "Environment", label: "Policies & knowledge", hint: "Standards documentation." },
         { zone: "Collaboration", label: "Auditors / partners", hint: "External qualification parties." },
+      ],
+      children: [
+        {
+          id: "qualification-records",
+          label: "Records",
+          summary:
+            "Qualification records (audits, certifications, compliance items). Exact types become config-driven later.",
+          presentation: "listing",
+          listColumns: ["Name", "Type", "Status"],
+          sampleRows: [
+            ["ISO 9001 readiness", "certification", "in-progress"],
+            ["Vendor QA checklist", "audit", "active"],
+          ],
+          fields: [
+            { label: "Name", placeholder: "Record name" },
+            {
+              label: "Type",
+              placeholder: "Select type",
+              kind: "select",
+              options: ["certification", "audit", "compliance", "other"],
+            },
+            {
+              label: "Status",
+              placeholder: "Select status",
+              kind: "select",
+              options: ["planned", "in-progress", "active", "expired"],
+            },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Environment", label: "Evidence / knowledge", hint: "Supporting documents." },
+            { zone: "Collaboration", label: "Auditor / partner", hint: "External party on this record." },
+          ],
+        },
       ],
     },
   ],

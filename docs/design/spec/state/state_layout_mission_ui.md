@@ -86,3 +86,7 @@ Spatial node positions, orbit rules, and zone tab ownership live in **`state_i5_
 |------|--------|
 | 2026-07-22 | I5.6.31 shipped on beta — drawer + static/3D spheres |
 
+## I5.6.32a — Main nav de-dupe (2026-07-22)
+
+Sidebar top-level **Projects / Tasks / Products** removed. Access via Organization zone (Executive / Production). Deep-link routes remain. Favorites/shortcuts deferred.
+
