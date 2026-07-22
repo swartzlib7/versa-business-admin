@@ -3,7 +3,7 @@
 > **Owner:** Versa (COA) with Stephen  
 > **Product:** versa-admin-system (Mission Control) · Project #26 · Game #109  
 > **Purpose:** One easy table view of where we are and what “Phase N” means.  
-> **Last updated:** 2026-07-21 21:55 EDT  
+> **Last updated:** 2026-07-22 14:25 EDT  
 > **How to use:** Scan the **At a glance** table first. Detail lives in the linked state docs — this file is the map, not a second source of truth for ERD/UI.
 
 ---
@@ -15,6 +15,16 @@
 | **A. Hub / org-board UI** | 3D Mission Control spheres + zone tabs | **Done for current deltas** @ `2dc9b41` | Stephen: quick visual confirm when home |
 | **B. DB cutover** | Move data from fixtures → Postgres (Drizzle) | **Phase 1 complete**; Phase 2 held | Stephen: explicit **go** for Phase 2 only |
 | **C. Broader Mission** | API writes, more zones, polish, production | Later phases | After B Phase 2–4 |
+
+### Canonical preview (how to open the app)
+
+| Item | Value |
+|------|-------|
+| **URL** | http://localhost:3100 |
+| **Who runs it** | COA smoke from **beta** (next start -p 3100) |
+| **Who builds the code** | Web-dev on agent/web-dev; COA merges/mirrors to beta |
+| **Do not use** | :3000 (nothing listening), :3101 (stale old build), random orphan dev ports |
+| **What you see today** | Hub/org-board deltas + fixture data (Phase 2 DB read not on until your go) |
 
 When COA says **“Phase 2”** without other context, it means **Track B — DB cutover Phase 2** (seed data + read User pilot from Postgres). It is **not** a phase of the whole company or of hub visuals.
 
