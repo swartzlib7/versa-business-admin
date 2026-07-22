@@ -3,7 +3,7 @@
 > **Owner:** Versa (COA) with Stephen  
 > **Product:** versa-admin-system (Mission Control) · Project #26 · Game #109  
 > **Purpose:** One easy table view of where we are and what “Phase N” means.  
-> **Last updated:** 2026-07-22 14:25 EDT  
+> **Last updated:** 2026-07-22 14:45 EDT  
 > **How to use:** Scan the **At a glance** table first. Detail lives in the linked state docs — this file is the map, not a second source of truth for ERD/UI.
 
 ---
@@ -118,8 +118,9 @@ When COA says **“Phase 2”** without other context, it means **Track B — DB
 ## Open asks (Stephen)
 
 1. **Hub visual confirm** — org-board @ `2dc9b41` (when home).  
-2. **Phase 2 go or hold** — seed + User read pilot only (Track B).  
-3. Optional: tell COA if this WBS layout should change (more/less detail, different sections).
+2. **Phase 2 go or hold** — seed + User read pilot only (Track B).
+3. **Org list definitions** — what rows mean under Public / Communications / Dissemination / Treasury / Qualification.  
+4. Optional: tell COA if this WBS layout should change (more/less detail, different sections).
 
 ---
 

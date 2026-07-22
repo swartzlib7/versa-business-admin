@@ -10,11 +10,13 @@ function soft(hex: string, alpha = "22") {
   return hex;
 }
 
-/** I5.6.6 + I5.6 board (2026-07-21) IA per Stephen:
+/** I5.6.6 + I5.6 board (2026-07-21/22) IA per Stephen:
  *  Org spheres: Executive (center), Public (+y), Communications, Dissemination,
  *    Treasury, Production, Qualification. Service+Product are NOT hub spheres.
- *  Org Executive: self + Policy, Projects, Tasks
- *  Org Production: self + Product + Service (nested objects)
+ *  Org Executive: Configuration (form) + Policy, Projects, Tasks lists
+ *  Org Production: Configuration (form, NOT production listing) + Product + Service lists
+ *  Org Public / Communications / Dissemination / Treasury: need Configuration + list (list defs TBD)
+ *  Org Qualification: Configuration (list contents TBD)
  *  Org Public: top-of-sphere faculty (distinct from Collaboration Customer)
  *  Env: no Product tab
  *  Collab Vendor: self + Integrations (parent self-tab via ZoneConfigView)
@@ -131,12 +133,8 @@ export const organizationZone: ZoneConfig = {
     {
       id: "public",
       label: "Public",
-      summary: "Public-facing faculty at the top of the Organization sphere — brand, presence, outward voice. Distinct from Collaboration Customer.",
-      presentation: "listing",
-      listColumns: ["Name", "Status"],
-      sampleRows: [
-        ["Public", "active"],
-      ],
+      summary: "Public-facing faculty - Configuration plus a record list (list definition TBD).",
+      // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Public" },
         {
@@ -151,17 +149,38 @@ export const organizationZone: ZoneConfig = {
         { zone: "Collaboration", label: "Audience parties", hint: "Customers and partners who see the public face." },
         { zone: "Environment", label: "Public knowledge", hint: "Published materials and brand assets." },
       ],
+      children: [
+        {
+          id: "public-records",
+          label: "Records",
+          summary: "Record list under Public (exact list definition TBD with Stephen).",
+          presentation: "listing",
+          listColumns: ["Name", "Status"],
+          sampleRows: [
+        ["Public", "active"],
+      ],
+          fields: [
+        { label: "Name", placeholder: "Public" },
+        {
+          label: "Status",
+          placeholder: "Select status",
+          kind: "select",
+          options: ["active", "standby", "connected"],
+        },
+        { label: "Mandate", placeholder: "Outward voice and brand presence...", kind: "textarea" },
+      ],
+          relations: [
+        { zone: "Collaboration", label: "Audience parties", hint: "Customers and partners who see the public face." },
+        { zone: "Environment", label: "Public knowledge", hint: "Published materials and brand assets." },
+      ],
+        },
+      ],
     },
     {
       id: "communications",
       label: "Communications",
-      summary: "Internal and external messaging faculty.",
-      presentation: "listing",
-      listColumns: ["Name", "Channels"],
-      sampleRows: [
-        ["Comms desk", "Email, voice"],
-        ["Social desk", "LinkedIn, X"],
-      ],
+      summary: "Internal and external communications - Configuration plus a record list (list definition TBD).",
+      // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Communications" },
         { label: "Channels", placeholder: "Email, voice, social..." },
@@ -171,16 +190,34 @@ export const organizationZone: ZoneConfig = {
         { zone: "Collaboration", label: "Audiences", hint: "Customers, partners, vendors as message targets." },
         { zone: "Environment", label: "Campaign knowledge", hint: "Templates and brand assets in Knowledge." },
       ],
+      children: [
+        {
+          id: "communications-records",
+          label: "Records",
+          summary: "Record list under Communications (exact list definition TBD with Stephen).",
+          presentation: "listing",
+          listColumns: ["Name", "Channels"],
+          sampleRows: [
+        ["Comms desk", "Email, voice"],
+        ["Social desk", "LinkedIn, X"],
+      ],
+          fields: [
+        { label: "Name", placeholder: "Communications" },
+        { label: "Channels", placeholder: "Email, voice, social..." },
+        { label: "Notes", placeholder: "Operating notes...", kind: "textarea" },
+      ],
+          relations: [
+        { zone: "Collaboration", label: "Audiences", hint: "Customers, partners, vendors as message targets." },
+        { zone: "Environment", label: "Campaign knowledge", hint: "Templates and brand assets in Knowledge." },
+      ],
+        },
+      ],
     },
     {
       id: "dissemination",
       label: "Dissemination",
-      summary: "Distribution of products, content, and outcomes.",
-      presentation: "listing",
-      listColumns: ["Name", "Channels"],
-      sampleRows: [
-        ["Publishing queue", "Web, PDF"],
-      ],
+      summary: "Outbound distribution and publishing - Configuration plus a record list (list definition TBD).",
+      // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Dissemination" },
         { label: "Channels", placeholder: "Web, partners, retail..." },
@@ -190,16 +227,33 @@ export const organizationZone: ZoneConfig = {
         { zone: "Organization", label: "Products", hint: "What Production owns is disseminated here." },
         { zone: "Collaboration", label: "Distribution partners", hint: "Partner and vendor channels." },
       ],
+      children: [
+        {
+          id: "dissemination-records",
+          label: "Records",
+          summary: "Record list under Dissemination (exact list definition TBD with Stephen).",
+          presentation: "listing",
+          listColumns: ["Name", "Channels"],
+          sampleRows: [
+        ["Publishing queue", "Web, PDF"],
+      ],
+          fields: [
+        { label: "Name", placeholder: "Dissemination" },
+        { label: "Channels", placeholder: "Web, partners, retail..." },
+        { label: "Notes", placeholder: "...", kind: "textarea" },
+      ],
+          relations: [
+        { zone: "Organization", label: "Products", hint: "What Production owns is disseminated here." },
+        { zone: "Collaboration", label: "Distribution partners", hint: "Partner and vendor channels." },
+      ],
+        },
+      ],
     },
     {
       id: "treasury",
       label: "Treasury",
-      summary: "Financial control and commercial terms.",
-      presentation: "listing",
-      listColumns: ["Name", "Focus"],
-      sampleRows: [
-        ["Treasury", "Cash & billing"],
-      ],
+      summary: "Cash, billing, AR/AP - Configuration in addition to the record list (list definition TBD).",
+      // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Treasury" },
         { label: "Focus", placeholder: "Cash, billing, AR/AP..." },
@@ -210,19 +264,46 @@ export const organizationZone: ZoneConfig = {
         { zone: "Collaboration", label: "Billing parties", hint: "Customers and vendors for AR/AP." },
         { zone: "Organization", label: "Priced offerings", hint: "Product and service rate cards under Production." },
       ],
+      children: [
+        {
+          id: "treasury-records",
+          label: "Records",
+          summary: "Record list under Treasury (exact list definition TBD with Stephen).",
+          presentation: "listing",
+          listColumns: ["Name", "Focus"],
+          sampleRows: [
+        ["Treasury", "Cash & billing"],
+      ],
+          fields: [
+        { label: "Name", placeholder: "Treasury" },
+        { label: "Focus", placeholder: "Cash, billing, AR/AP..." },
+        { label: "Currency default", placeholder: "USD" },
+        { label: "Notes", placeholder: "...", kind: "textarea" },
+      ],
+          relations: [
+        { zone: "Collaboration", label: "Billing parties", hint: "Customers and vendors for AR/AP." },
+        { zone: "Organization", label: "Priced offerings", hint: "Product and service rate cards under Production." },
+      ],
+        },
+      ],
     },
     {
       id: "production",
       label: "Production",
-      summary: "Making and delivering work product — owns Product and Service.",
-      presentation: "listing",
-      listColumns: ["Name", "Capacity notes"],
-      sampleRows: [
-        ["Production", "Beta capacity reserved"],
-      ],
+      summary:
+        "Making and delivering work product — Configuration (like Executive), not a production records list. Owns Product and Service.",
+      // I5.6 board 2026-07-22: parent = Configuration form (not listing). Product/Service remain nested lists.
       fields: [
         { label: "Name", placeholder: "Production" },
+        { label: "Lead", placeholder: "Name or user" },
+        {
+          label: "Status",
+          placeholder: "Select status",
+          kind: "select",
+          options: ["active", "standby", "connected"],
+        },
         { label: "Capacity notes", placeholder: "...", kind: "textarea" },
+        { label: "Mandate", placeholder: "How production is run...", kind: "textarea" },
       ],
       relations: [
         { zone: "Environment", label: "Schedules & locations", hint: "When and where production runs." },
@@ -287,12 +368,8 @@ export const organizationZone: ZoneConfig = {
     {
       id: "qualification",
       label: "Qualification",
-      summary: "Quality, compliance, and qualification processes.",
-      presentation: "listing",
-      listColumns: ["Name", "Standards"],
-      sampleRows: [
-        ["Qualification", "ISO internal"],
-      ],
+      summary: "Quality, compliance, and qualification — Configuration section (record list TBD next).",
+      // I5.6 board 2026-07-22: Configuration only until Stephen defines list contents.
       fields: [
         { label: "Name", placeholder: "Qualification" },
         { label: "Standards", placeholder: "ISO, internal..." },

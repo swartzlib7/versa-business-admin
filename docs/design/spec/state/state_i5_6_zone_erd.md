@@ -6,7 +6,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | I5.6 Zone ERD + backend menu tabbed config + User-pilot baseline ERD |
-| **Status** | I5.6 UI wrap COMPLETE. Org-board 2026-07-21: Executive center sphere, Public top, Service+Product not hub spheres; Object Label Name. Phase 1 DB on Vagrant path. |
+| **Status** | I5.6 UI wrap COMPLETE. Org-board hub 2026-07-21. Zone config IA 2026-07-22: Production=Configuration (not list); Public/Comms/Dissemination/Treasury=Config+list; Qualification=Config (lists TBD). Phase 1 DB done; Phase 2 held. |
 | **Last verified against code** | 2026-07-21 (org-board hub + zone IA; ERD state) |
 | **Primary code** | `mission-control-scene` hub; zone routes `/organization` `/collaboration` `/environment`; users admin |
 | **Task** | #176 |
@@ -165,8 +165,20 @@ Record JSON stores picklist **api codes**; UI resolves labels from catalog.
 ### 1.5 Zone config UI pattern
 
 - Backend menu entries for three zones; each opens tabbed config (tabs = elements).
-- Entity tabs: **listing table + collapsible New/Edit** (I5.6.10). Executive may remain form until dedicated design.
-- Nested parents (Executive, Production, Vendor): first sub-tab = parent self/default.
+- Entity tabs: **listing table + collapsible New/Edit** (I5.6.10).
+- Nested parents (Executive, Production, Vendor): first sub-tab = parent **Configuration** (form), not a records list for the parent itself.
+- **Organization faculty config vs list (Stephen 2026-07-22):**
+
+| Faculty | Configuration (form, like Executive) | Record list |
+|---------|--------------------------------------|-------------|
+| Executive | Yes (default) | Policy, Projects, Tasks (nested) |
+| Production | Yes (default) — **not** a production listing | Product, Service (nested) |
+| Public | Yes | Yes (contents TBD) |
+| Communications | Yes | Yes (contents TBD) |
+| Dissemination | Yes | Yes (contents TBD) |
+| Treasury | Yes | Yes (in addition to list; contents TBD) |
+| Qualification | Yes | List TBD next pass |
+
 - Header username → `/users` until User layout pilot ships profile surface.
 
 ### 1.6 3D hub interaction (keystone + accepted I5.6 line)
@@ -297,6 +309,7 @@ erDiagram
 | Date | Change | Items |
 |------|--------|-------|
 | 2026-07-20 | I5.6 UI wrap complete + Web-dev formal setup | Stephen wrap; web-dev own clone agent/web-dev @ 7fc2cb1; model deepseek/deepseek-v4-pro; duties+brief under docs/handoff/ |
+| 2026-07-22 | Org zone config IA: Production→Configuration; Public/Comms/Dissemination/Treasury Config+list; Qualification Config; list defs TBD | Stephen voice; COA zone-definitions + state |
 | 2026-07-21 | Org-board: Executive center sphere; Public +Y; drop Service/Product hub spheres + clickable Executive label; Object Label Name | Stephen voice brief; COA on beta |
 | 2026-07-20 | ERD-D roll User pattern to Project/Task/Product | catalog value sets/fields/layouts + /projects /tasks /products list+detail; sidebar nav |
 | 2026-07-20 | UI-Z zone ListingPanel → shared EntityListing (parity with Users) | zone-config-view + entity-listing hoist InlineForm |

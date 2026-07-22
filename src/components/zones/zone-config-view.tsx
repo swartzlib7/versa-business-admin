@@ -11,10 +11,10 @@ import { EntityListing, type ListingField } from "@/components/listing/entity-li
 
 /**
  * I5.6.10 zone config UI pattern (Stephen):
- * - Nested parents synthesize a self/default sub-tab first (I5.6.9).
+ * - Nested parents synthesize a Configuration sub-tab first (I5.6.9 / 2026-07-22).
  * - Entity surfaces use presentation "listing": polished table + New/Edit,
  *   collapsible form INLINE on the row (Edit) or under header (New) - not modal.
- * - Executive Policy/Projects/Tasks use listing; Executive self may stay form.
+ * - Nested lists (Policy/Projects/Tasks, Product/Service, Records) use listing; parent Configuration is form.
  * Spec: docs/specs/ZONE_CONFIG_UI_PATTERN_I5.6.md
  */
 
@@ -358,18 +358,19 @@ function TabPanel({
   childId: string;
   setChildId: (id: string) => void;
 }) {
-  /** I5.6.9 - parent keeps a default/self sub-tab (same label) so nesting does not drop the parent UI. */
+  /** I5.6.9 / board 2026-07-22 - parent default sub-tab is Configuration (form), not a parent records list. */
   const selfPanel: ZoneTab = useMemo(
     () => ({
       id: tab.id,
-      label: tab.label,
+      label: "Configuration",
       summary: tab.summary,
       fields: tab.fields,
       relations: tab.relations,
       links: tab.links,
-      presentation: tab.presentation,
-      listColumns: tab.listColumns,
-      sampleRows: tab.sampleRows,
+      // Parent self is always configuration form; listings live on children.
+      presentation: undefined,
+      listColumns: undefined,
+      sampleRows: undefined,
     }),
     [tab]
   );
