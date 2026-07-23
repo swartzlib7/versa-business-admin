@@ -15,15 +15,87 @@ import { Separator } from "@/components/ui/separator";
 import { theme } from "@/lib/theme";
 import { RecordsEditor } from "@/components/settings/records-editor";
 import { cn } from "@/lib/utils";
+import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
+import { Moon, Sun, Compass } from "lucide-react";
 
-type SettingsTab = "records" | "branding" | "system" | "glossary";
+type SettingsTab = "records" | "branding" | "appearance" | "system";
 
 const TABS: { id: SettingsTab; label: string; hint: string }[] = [
   { id: "records", label: "Records Editor", hint: "Types, fields, picklists" },
   { id: "branding", label: "Branding", hint: "Name and colors" },
+  { id: "appearance", label: "Appearance", hint: "Light, dark, Architect" },
   { id: "system", label: "System", hint: "Runtime and product boundary" },
-  { id: "glossary", label: "Glossary", hint: "Terms and definitions" },
 ];
+
+const THEME_OPTIONS: {
+  id: UiTheme;
+  label: string;
+  blurb: string;
+  icon: typeof Sun;
+}[] = [
+  {
+    id: "light",
+    label: "Light",
+    blurb: "Clean daylight surfaces for long reading sessions.",
+    icon: Sun,
+  },
+  {
+    id: "dark",
+    label: "Dark",
+    blurb: "Low-glare mission night mode.",
+    icon: Moon,
+  },
+  {
+    id: "architect",
+    label: "Architect",
+    blurb: "Ink, copper, and parchment — a craft identity for builders.",
+    icon: Compass,
+  },
+];
+
+function AppearancePanel() {
+  const { theme: uiTheme, setTheme } = useUiTheme();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Appearance</CardTitle>
+        <CardDescription>
+          Choose how Mission Control looks. Your selection is remembered on this
+          device and survives navigation (including Glossary on the side menu).
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {THEME_OPTIONS.map((opt) => {
+            const Icon = opt.icon;
+            const active = uiTheme === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setTheme(opt.id)}
+                className={cn(
+                  "rounded-lg border p-4 text-left transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 ring-2 ring-primary/40"
+                    : "border-border bg-card hover:bg-muted/60",
+                )}
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <Icon className="h-4 w-4 text-primary" />
+                  <span className="font-semibold">{opt.label}</span>
+                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {opt.blurb}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<SettingsTab>("records");
@@ -74,7 +146,9 @@ export default function SettingsPage() {
               <div
                 className={cn(
                   "text-[11px]",
-                  tab === t.id ? "text-primary-foreground/80" : "text-muted-foreground",
+                  tab === t.id
+                    ? "text-primary-foreground/80"
+                    : "text-muted-foreground",
                 )}
               >
                 {t.hint}
@@ -95,8 +169,8 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle>Branding</CardTitle>
                 <CardDescription>
-                  Customize how your mission control appears. Changes are previewed
-                  live and saved for this session.
+                  Customize how your mission control appears. Changes are
+                  previewed live and saved for this session.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -110,78 +184,61 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Short Name</label>
-                    <Input
-                      value={brandName.slice(0, 3).toUpperCase()}
-                      readOnly
-                      className="font-mono text-muted-foreground"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Auto-derived from brand name
-                    </p>
+                    <label className="text-sm font-medium">Brand Color</label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={brandColor}
+                        onChange={(e) => setBrandColor(e.target.value)}
+                        className="h-10 w-14 cursor-pointer p-1"
+                      />
+                      <Input
+                        value={brandColor}
+                        onChange={(e) => setBrandColor(e.target.value)}
+                        placeholder="#6366f1"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Primary Color</label>
+                <div
+                  className="rounded-lg border p-4"
+                  style={{ borderColor: brandColor }}
+                >
+                  <div className="mb-1 text-xs text-muted-foreground">
+                    Preview
+                  </div>
                   <div className="flex items-center gap-3">
                     <div
-                      className="h-8 w-8 rounded-md border shadow-sm shrink-0"
+                      className="flex h-10 w-10 items-center justify-center rounded-md text-sm font-bold text-white"
                       style={{ backgroundColor: brandColor }}
-                    />
-                    <Input
-                      value={brandColor}
-                      onChange={(e) => setBrandColor(e.target.value)}
-                      placeholder="#6366f1"
-                      className="font-mono"
-                    />
+                    >
+                      {brandName.slice(0, 2).toUpperCase() || "VA"}
+                    </div>
+                    <div>
+                      <div className="font-semibold">{brandName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Mission Control
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <Separator />
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Preview</label>
-                  <div className="rounded-lg border p-4 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="flex h-10 w-10 items-center justify-center rounded-md text-sm font-bold text-white"
-                        style={{ backgroundColor: brandColor }}
-                      >
-                        {brandName.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold">{brandName}</p>
-                        <p className="text-xs text-muted-foreground">Sidebar badge preview</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <div
-                        className="h-6 rounded px-3 text-xs font-medium flex items-center text-white"
-                        style={{ backgroundColor: brandColor }}
-                      >
-                        Active
-                      </div>
-                      <div
-                        className="h-6 rounded px-3 text-xs font-medium flex items-center border"
-                        style={{ borderColor: brandColor, color: brandColor }}
-                      >
-                        Outline
-                      </div>
-                    </div>
-                  </div>
-                </div>
                 <div className="flex gap-2">
-                  <Button onClick={handleSave} size="sm">
-                    {saved ? "Saved!" : "Save Changes"}
+                  <Button onClick={handleSave}>
+                    {saved ? "Saved" : "Save changes"}
                   </Button>
-                  <Button onClick={handleReset} variant="outline" size="sm">
-                    Reset to Defaults
+                  <Button variant="outline" onClick={handleReset}>
+                    Reset
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  These are session-local previews. In production, customers will
-                  configure branding via environment variables or a setup wizard.
-                </p>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {tab === "appearance" && (
+          <div role="tabpanel">
+            <AppearancePanel />
           </div>
         )}
 
@@ -190,69 +247,20 @@ export default function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>System</CardTitle>
-                <CardDescription>System-level configuration.</CardDescription>
+                <CardDescription>
+                  Runtime boundary for this Mission Control instance.
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">API Base URL</label>
-                  <Input defaultValue="/api" readOnly className="font-mono" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Version</label>
-                  <Input defaultValue="0.7.48" readOnly className="font-mono" />
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>System Information</CardTitle>
-                <CardDescription>Product boundary - Mission Control vs agitop</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 text-sm text-muted-foreground">
-                  <p>
-                    This application is <strong>business Mission Control</strong> - not
-                    Versa AGi agitop. It manages the business operating graph across three
-                    zones: Organization (departments), Collaboration (parties), and
-                    Environmental (context of work).
-                  </p>
-                  <p>
-                    <strong>Agents</strong> appear only as users with type{" "}
-                    <code className="text-xs bg-muted px-1 py-0.5 rounded">agent</code> or{" "}
-                    <code className="text-xs bg-muted px-1 py-0.5 rounded">human</code>.
-                    Agent operations, fleet management, and host system monitoring live in
-                    agitop - the Versa AGi internal operator console.
-                  </p>
-                  <p>
-                    <strong>agitop Organization</strong> may be disabled when a customer uses
-                    this product Organization model. Migrating data from agitop
-                    Organization into this product is a future path - not current scope.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {tab === "glossary" && (
-          <div role="tabpanel">
-            <Card>
-              <CardHeader>
-                <CardTitle>Glossary of Terms</CardTitle>
-                <CardDescription>Zone, party, and UI pattern definitions</CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground space-y-3">
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <p>
-                  Full glossary lives on its own menu page so definitions stay easy to find
-                  while configuring Mission Control. Use this tab as the Settings entry point.
+                  Glossary lives on the side menu so theme and navigation stay
+                  stable. Product and integration configuration remain under
+                  their own zones.
                 </p>
-                <a
-                  href="/glossary"
-                  className="inline-flex rounded-md px-3 py-1.5 text-sm font-medium text-white"
-                  style={{ backgroundColor: "var(--brand, #2563eb)" }}
-                >
-                  Open Glossary
-                </a>
+                <p>
+                  Data source and database cutover are controlled by environment
+                  configuration — not from this panel.
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -261,4 +269,3 @@ export default function SettingsPage() {
     </AppShell>
   );
 }
-

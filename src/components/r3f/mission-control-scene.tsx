@@ -89,25 +89,37 @@ interface MissionControlSceneProps {
 
 // --- Theme helpers ---
 
-type ScenePalette = typeof theme.scene.dark | typeof theme.scene.light;
+type ScenePalette =
+  | typeof theme.scene.dark
+  | typeof theme.scene.light
+  | typeof theme.scene.architect;
 
-function useDarkMode(): boolean {
-  const [dark, setDark] = useState(true);
+type SceneMode = "light" | "dark" | "architect";
+
+function useSceneMode(): SceneMode {
+  const [mode, setMode] = useState<SceneMode>("dark");
   useEffect(() => {
-    const check = () => setDark(document.documentElement.classList.contains("dark"));
+    const check = () => {
+      const root = document.documentElement;
+      if (root.classList.contains("architect")) setMode("architect");
+      else if (root.classList.contains("dark")) setMode("dark");
+      else setMode("light");
+    };
     check();
     const observer = new MutationObserver(check);
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["class"],
+      attributeFilter: ["class", "data-theme"],
     });
     return () => observer.disconnect();
   }, []);
-  return dark;
+  return mode;
 }
 
-function getPalette(dark: boolean): ScenePalette {
-  return dark ? theme.scene.dark : theme.scene.light;
+function getPalette(mode: SceneMode): ScenePalette {
+  if (mode === "architect") return theme.scene.architect;
+  if (mode === "dark") return theme.scene.dark;
+  return theme.scene.light;
 }
 
 function getNodeColor(type: BusinessGraphNode["type"], id?: string): string {
@@ -1008,8 +1020,8 @@ export function MissionControlScene({
   className,
   cameraFitZone,
 }: MissionControlSceneProps) {
-  const dark = useDarkMode();
-  const palette = getPalette(dark);
+  const sceneMode = useSceneMode();
+  const palette = getPalette(sceneMode);
   const [internalAxes, setInternalAxes] = useState(false); // I5.6.3 hide axes by default
   const [internalRings, setInternalRings] = useState(true);
   const [internalSpeed, setInternalSpeed] = useState(0); // I5.6.31 — static by default

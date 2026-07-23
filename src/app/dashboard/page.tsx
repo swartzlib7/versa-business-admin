@@ -1,11 +1,12 @@
 "use client";
 
+import { useUiTheme } from "@/components/shell/theme-provider";
 import { useState, useCallback, useEffect } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sun, Moon, Maximize2, Minimize2, X } from "lucide-react";
+import { Sun, Moon, Compass, Maximize2, Minimize2, X } from "lucide-react";
 import {
   MissionControlScene,
   type SceneNode,
@@ -13,8 +14,9 @@ import {
 import { projects, tasks, integrations, businessGraphNodes } from "@/lib/fixtures";
 
 export default function DashboardPage() {
+  const { theme: uiTheme, cycleTheme } = useUiTheme();
+  const darkMode = uiTheme !== "light";
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
-  const [darkMode, setDarkMode] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [showAxes, setShowAxes] = useState(false); // I5.6.3 hide axes by default
   const [showRings, setShowRings] = useState(true);
@@ -40,19 +42,9 @@ export default function DashboardPage() {
     setSphereScale(steps[(i >= 0 ? i + 1 : 1) % steps.length]);
   };
 
-  useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
-    setDarkMode(isDark);
-  }, []);
-
+  
   const toggleTheme = () => {
-    const next = !darkMode;
-    setDarkMode(next);
-    if (next) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    cycleTheme();
   };
 
   const handleNodeClick = useCallback((node: SceneNode) => {
@@ -84,8 +76,14 @@ export default function DashboardPage() {
               Versa AGi — Organization, Collaboration, and Environmental zones.
             </p>
           </div>
-          <Button variant="outline" size="icon" onClick={toggleTheme}>
-            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          <Button variant="outline" size="icon" onClick={toggleTheme} title={`Theme: ${uiTheme}`}>
+            {uiTheme === "light" ? (
+              <Sun className="h-5 w-5" />
+            ) : uiTheme === "architect" ? (
+              <Compass className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
           </Button>
         </div>
 

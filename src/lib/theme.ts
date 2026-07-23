@@ -67,6 +67,20 @@ export const theme = {
       ambientIntensity: 0.7,
       pointLightIntensity: 1.0,
     },
+    // Architect — ink / copper craft scene
+    architect: {
+      background: '#1a1410',
+      gridMain: '#6b5344',
+      gridSub: '#3d2e24',
+      ringGuideColor: '#c4a574',
+      ringGuideOpacity: 0.45,
+      secondaryLinkColor: '#d4a574',
+      secondaryLinkOpacity: 0.55,
+      primaryLinkOpacity: 0.6,
+      labelColor: '#e8d5b5',
+      ambientIntensity: 0.35,
+      pointLightIntensity: 0.9,
+    },
   },
 } as const;
 

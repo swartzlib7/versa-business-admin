@@ -3,6 +3,7 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant architect (&:is(.architect *));
 
 @theme inline {
   --color-background: var(--background);
@@ -115,6 +116,49 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+
+/* Architect — deliberate craft identity: deep ink + warm copper + parchment */
+.architect {
+  --background: oklch(0.16 0.02 55);
+  --foreground: oklch(0.93 0.02 85);
+  --card: oklch(0.20 0.025 55);
+  --card-foreground: oklch(0.93 0.02 85);
+  --popover: oklch(0.18 0.022 55);
+  --popover-foreground: oklch(0.93 0.02 85);
+  --primary: oklch(0.72 0.12 55);
+  --primary-foreground: oklch(0.18 0.03 55);
+  --secondary: oklch(0.26 0.03 250);
+  --secondary-foreground: oklch(0.92 0.02 85);
+  --muted: oklch(0.24 0.02 55);
+  --muted-foreground: oklch(0.72 0.03 75);
+  --accent: oklch(0.28 0.04 250);
+  --accent-foreground: oklch(0.94 0.02 85);
+  --destructive: oklch(0.62 0.18 25);
+  --border: oklch(0.72 0.08 55 / 22%);
+  --input: oklch(0.72 0.08 55 / 18%);
+  --ring: oklch(0.72 0.12 55);
+  --chart-1: oklch(0.72 0.12 55);
+  --chart-2: oklch(0.65 0.08 250);
+  --chart-3: oklch(0.70 0.10 145);
+  --chart-4: oklch(0.75 0.08 85);
+  --chart-5: oklch(0.55 0.06 30);
+  --sidebar: oklch(0.14 0.025 55);
+  --sidebar-foreground: oklch(0.92 0.02 85);
+  --sidebar-primary: oklch(0.72 0.12 55);
+  --sidebar-primary-foreground: oklch(0.16 0.03 55);
+  --sidebar-accent: oklch(0.22 0.03 55);
+  --sidebar-accent-foreground: oklch(0.93 0.02 85);
+  --sidebar-border: oklch(0.72 0.08 55 / 18%);
+  --sidebar-ring: oklch(0.72 0.12 55);
+}
+
+.architect body {
+  background-image:
+    radial-gradient(ellipse 120% 80% at 10% -10%, oklch(0.35 0.06 55 / 18%), transparent 55%),
+    radial-gradient(ellipse 90% 60% at 100% 0%, oklch(0.30 0.05 250 / 14%), transparent 50%);
+  background-attachment: fixed;
 }
 
 @layer base {
