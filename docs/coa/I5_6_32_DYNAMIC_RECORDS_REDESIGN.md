@@ -96,7 +96,7 @@ Policy can be a **typed** or **record_type** later; not blocking.
 | **32a** | Nav de-dupe + Qualification Records + this plan + state/WBS | **COA** shipped ada18f3 | — |
 | **32b** | Catalog schema API for agents (read objects/fields/layouts + POST extend field) | **COA** | 32a |
 | **32b** | Zone listings: clarify Projects/Tasks/Products only under Executive/Production; deep-link buttons; copy pass | COA or web-dev | 32a |
-| **32c** | `record_type` fixture module + ZoneConfigView reads types for faculty Records (dynamic columns/sample) | COA plan → web-dev impl | 32a |
+| **32c** | **Record Type Editor** — full definition `docs/coa/I5_6_32c_RECORD_TYPE_EDITOR.md`; then fixtures + API + tabs + editor UI | COA define → review → build | 32a/32b |
 | **32d** | Dynamic extra tabs from types with `show_as_tab` | web-dev | 32c |
 | **32e** | Optional: catalog layouts for Policy / Project / Task / Product zone panels (reuse User layout engine) | web-dev | 32c, ERD-D |
 | **32f** | Shortcuts/favorites nav | later | Stephen revisit |
@@ -133,3 +133,11 @@ Phase 2 DB seed/read **remains gated** on Stephen’s explicit go. Redesign does
 
 ## 8. Message to implementers (web-dev)
 Pull `beta` after 32a lands. Do **not** start generic Project/Task tables. Next likely assignable slice: **32c** record_type fixtures + wire faculty Records from config (COA will task explicitly).
+
+---
+
+## 9. Record Type Editor (Stephen 2026-07-22 evening)
+
+Authoritative definition for review: **`docs/coa/I5_6_32c_RECORD_TYPE_EDITOR.md`**.
+
+Supersedes the thinner “32c fixtures only” note: editor drives types/fields/structure → dynamic tabs on Org faculties, Collaboration elements, and Environment; baked-ins unchanged.
