@@ -7,8 +7,8 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Fixture to Postgres JSONB cutover plan |
-| **Status** | Phase 0 approved (Stephen 2026-07-21) / Phase 1 scaffold complete + Vagrant runtime path |
-| **Last verified against code** | 2026-07-21 (agent/web-dev @ 45e3cfa, package 0.7.45) |
+| **Status** | Phase 0-1 done; **Phase 2 User pilot** (2026-07-23): seed + listUsers/getUser + bcrypt login; hybrid adapter; DATA_SOURCE=postgres on beta |
+| **Last verified against code** | 2026-07-23 (beta Phase 2 pilot, package 0.7.48) |
 | **Primary code** | src/lib/data/adapter.ts, src/lib/fixtures/*, src/app/api/** |
 | **Task** | #182 |
 | **Parent state doc** | state_i5_6_zone_erd.md (section 1.4 persistence, section 4 backlog) |

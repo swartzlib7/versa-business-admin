@@ -229,13 +229,20 @@ export const fixtureAdapter: DataAdapter = {
 import { postgresAdapter } from '../db/postgres-adapter';
 
 function createAdapter(): DataAdapter {
-  const dataSource = process.env.DATA_SOURCE ?? 'fixture';
+  const dataSource = process.env.DATA_SOURCE ?? "fixture";
 
-  if (dataSource === 'postgres') {
-    return postgresAdapter;
+  if (dataSource !== "postgres") {
+    return fixtureAdapter;
   }
 
-  return fixtureAdapter;
+  // Phase 2 pilot: User read + health from Postgres; everything else stays fixture
+  // so public pages and hub keep working. Flip remaining resources in later phases.
+  return {
+    ...fixtureAdapter,
+    listUsers: (type?: string) => postgresAdapter.listUsers(type),
+    getUser: (id: string) => postgresAdapter.getUser(id),
+    healthCheck: () => postgresAdapter.healthCheck(),
+  };
 }
 
 export const adapter: DataAdapter = createAdapter();

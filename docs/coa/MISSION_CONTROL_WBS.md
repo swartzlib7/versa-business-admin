@@ -3,7 +3,7 @@
 > **Owner:** Versa (COA) with Stephen  
 > **Product:** versa-admin-system (Mission Control) · Project #26 · Game #109  
 > **Purpose:** One easy table view of where we are and what “Phase N” means.  
-> **Last updated:** 2026-07-22 15:50 EDT  
+> **Last updated:** 2026-07-23 02:45 EDT  
 > **How to use:** Scan the **At a glance** table first. Detail lives in the linked state docs — this file is the map, not a second source of truth for ERD/UI.
 
 ---
@@ -12,8 +12,8 @@
 
 | Track | What it is | Status now | Waiting on |
 |-------|------------|------------|------------|
-| **A. Hub / org-board UI** | 3D + zone IA + dynamic records direction | **I5.6.32a** nav/Qual Records + plan; I5.6.31 spheres/drawer shipped | Stephen: ack dynamic-records verdict + review :3100 |
-| **B. DB cutover** | Move data from fixtures → Postgres (Drizzle) | **Phase 1 complete**; Phase 2 held | Stephen: explicit **go** for Phase 2 only |
+| **A. Hub / org-board UI** | 3D + zone IA + Records Editor | **I5.6.32c+** Settings section tabs; sample Public/Treasury fixture types removed; Records Editor nested sections | Stephen: preview Settings tabs + empty faculty Records |
+| **B. DB cutover** | Move data from fixtures → Postgres (Drizzle) | **Phase 0–2**: seed script + User list/get + bcrypt login; hybrid adapter (Users from PG, rest fixture) | Phase 3 writes still gated |
 | **C. Broader Mission** | API writes, more zones, polish, production | Later phases | After B Phase 2–4 |
 
 ### Canonical preview (how to open the app)
@@ -24,7 +24,7 @@
 | **Who runs it** | COA smoke from **beta** (next start -p 3100) |
 | **Who builds the code** | Web-dev on agent/web-dev; COA merges/mirrors to beta |
 | **Do not use** | :3000 (nothing listening), :3101 (stale old build), random orphan dev ports |
-| **What you see today** | Hub/org-board deltas + fixture data (Phase 2 DB read not on until your go) |
+| **What you see today** | Settings tabs + Records Editor; Users can come from Postgres when DATA_SOURCE=postgres; hub still mostly fixture |
 
 When COA says **“Phase 2”** without other context, it means **Track B — DB cutover Phase 2** (seed data + read User pilot from Postgres). It is **not** a phase of the whole company or of hub visuals.
 

@@ -1,5 +1,9 @@
-import { NextResponse } from 'next/server';
-import { verifyCredentials, createSessionToken, createSessionCookieHeader } from '@/lib/auth';
+import { NextResponse } from "next/server";
+import {
+  verifyCredentialsAsync,
+  createSessionToken,
+  createSessionCookieHeader,
+} from "@/lib/auth";
 
 export async function POST(request: Request) {
   let body: { email?: string; password?: string };
@@ -7,29 +11,29 @@ export async function POST(request: Request) {
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: { code: 'BAD_REQUEST', message: 'Request body must be valid JSON.' } },
+      { error: { code: "BAD_REQUEST", message: "Request body must be valid JSON." } },
       { status: 400 },
     );
   }
 
   if (!body.email || !body.password) {
     return NextResponse.json(
-      { error: { code: 'VALIDATION_ERROR', message: 'Email and password are required.' } },
+      { error: { code: "VALIDATION_ERROR", message: "Email and password are required." } },
       { status: 400 },
     );
   }
 
-  const user = verifyCredentials(body.email, body.password);
+  const user = await verifyCredentialsAsync(body.email, body.password);
   if (!user) {
     return NextResponse.json(
-      { error: { code: 'UNAUTHORIZED', message: 'Invalid email or password.' } },
+      { error: { code: "UNAUTHORIZED", message: "Invalid email or password." } },
       { status: 401 },
     );
   }
 
   const token = createSessionToken(user);
   const headers = new Headers();
-  headers.append('Set-Cookie', createSessionCookieHeader(token));
+  headers.append("Set-Cookie", createSessionCookieHeader(token));
 
   return NextResponse.json(
     {

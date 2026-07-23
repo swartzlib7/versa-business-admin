@@ -15,7 +15,7 @@ function soft(hex: string, alpha = "22") {
  *    Treasury, Production, Qualification. Service+Product are NOT hub spheres.
  *  Org Executive: Configuration (form) + Policy, Projects, Tasks lists (first-class objects)
  *  Org Production: Configuration (form, NOT production listing) + Product + Service lists
- *  Org Public / Communications / Dissemination / Treasury / Qualification: Configuration + Records
+ *  Org Public / Communications / Dissemination / Treasury / Qualification: Configuration (named record tabs via Records Editor only)
  *  Main nav: no duplicate Projects/Tasks/Products (zone-owned). Dynamic record_types: see I5_6_32 plan.
  *  Org Public: top-of-sphere faculty (distinct from Collaboration Customer)
  *  Env: no Product tab
@@ -133,7 +133,7 @@ export const organizationZone: ZoneConfig = {
     {
       id: "public",
       label: "Public",
-      summary: "Public-facing faculty - Configuration plus a record list (list definition TBD).",
+      summary: "Public-facing faculty - Configuration. Named record tabs come from Settings - Records Editor.",
       // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Public" },
@@ -149,37 +149,12 @@ export const organizationZone: ZoneConfig = {
         { zone: "Collaboration", label: "Audience parties", hint: "Customers and partners who see the public face." },
         { zone: "Environment", label: "Public knowledge", hint: "Published materials and brand assets." },
       ],
-      children: [
-        {
-          id: "public-records",
-          label: "Records",
-          summary: "Record list under Public (exact list definition TBD with Stephen).",
-          presentation: "listing",
-          listColumns: ["Name", "Status"],
-          sampleRows: [
-        ["Public", "active"],
-      ],
-          fields: [
-        { label: "Name", placeholder: "Public" },
-        {
-          label: "Status",
-          placeholder: "Select status",
-          kind: "select",
-          options: ["active", "standby", "connected"],
-        },
-        { label: "Mandate", placeholder: "Outward voice and brand presence...", kind: "textarea" },
-      ],
-          relations: [
-        { zone: "Collaboration", label: "Audience parties", hint: "Customers and partners who see the public face." },
-        { zone: "Environment", label: "Public knowledge", hint: "Published materials and brand assets." },
-      ],
-        },
-      ],
+      children: [],
     },
     {
       id: "communications",
       label: "Communications",
-      summary: "Internal and external communications - Configuration plus a record list (list definition TBD).",
+      summary: "Internal and external communications - Configuration. Named record tabs come from Records Editor.",
       // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Communications" },
@@ -190,33 +165,12 @@ export const organizationZone: ZoneConfig = {
         { zone: "Collaboration", label: "Audiences", hint: "Customers, partners, vendors as message targets." },
         { zone: "Environment", label: "Campaign knowledge", hint: "Templates and brand assets in Knowledge." },
       ],
-      children: [
-        {
-          id: "communications-records",
-          label: "Records",
-          summary: "Record list under Communications (exact list definition TBD with Stephen).",
-          presentation: "listing",
-          listColumns: ["Name", "Channels"],
-          sampleRows: [
-        ["Comms desk", "Email, voice"],
-        ["Social desk", "LinkedIn, X"],
-      ],
-          fields: [
-        { label: "Name", placeholder: "Communications" },
-        { label: "Channels", placeholder: "Email, voice, social..." },
-        { label: "Notes", placeholder: "Operating notes...", kind: "textarea" },
-      ],
-          relations: [
-        { zone: "Collaboration", label: "Audiences", hint: "Customers, partners, vendors as message targets." },
-        { zone: "Environment", label: "Campaign knowledge", hint: "Templates and brand assets in Knowledge." },
-      ],
-        },
-      ],
+      children: [],
     },
     {
       id: "dissemination",
       label: "Dissemination",
-      summary: "Outbound distribution and publishing - Configuration plus a record list (list definition TBD).",
+      summary: "Outbound distribution and publishing - Configuration. Named record tabs come from Records Editor.",
       // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Dissemination" },
@@ -227,32 +181,12 @@ export const organizationZone: ZoneConfig = {
         { zone: "Organization", label: "Products", hint: "What Production owns is disseminated here." },
         { zone: "Collaboration", label: "Distribution partners", hint: "Partner and vendor channels." },
       ],
-      children: [
-        {
-          id: "dissemination-records",
-          label: "Records",
-          summary: "Record list under Dissemination (exact list definition TBD with Stephen).",
-          presentation: "listing",
-          listColumns: ["Name", "Channels"],
-          sampleRows: [
-        ["Publishing queue", "Web, PDF"],
-      ],
-          fields: [
-        { label: "Name", placeholder: "Dissemination" },
-        { label: "Channels", placeholder: "Web, partners, retail..." },
-        { label: "Notes", placeholder: "...", kind: "textarea" },
-      ],
-          relations: [
-        { zone: "Organization", label: "Products", hint: "What Production owns is disseminated here." },
-        { zone: "Collaboration", label: "Distribution partners", hint: "Partner and vendor channels." },
-      ],
-        },
-      ],
+      children: [],
     },
     {
       id: "treasury",
       label: "Treasury",
-      summary: "Cash, billing, AR/AP - Configuration in addition to the record list (list definition TBD).",
+      summary: "Cash, billing, AR/AP - Configuration. Named record tabs come from Records Editor.",
       // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Treasury" },
@@ -264,28 +198,7 @@ export const organizationZone: ZoneConfig = {
         { zone: "Collaboration", label: "Billing parties", hint: "Customers and vendors for AR/AP." },
         { zone: "Organization", label: "Priced offerings", hint: "Product and service rate cards under Production." },
       ],
-      children: [
-        {
-          id: "treasury-records",
-          label: "Records",
-          summary: "Record list under Treasury (exact list definition TBD with Stephen).",
-          presentation: "listing",
-          listColumns: ["Name", "Focus"],
-          sampleRows: [
-        ["Treasury", "Cash & billing"],
-      ],
-          fields: [
-        { label: "Name", placeholder: "Treasury" },
-        { label: "Focus", placeholder: "Cash, billing, AR/AP..." },
-        { label: "Currency default", placeholder: "USD" },
-        { label: "Notes", placeholder: "...", kind: "textarea" },
-      ],
-          relations: [
-        { zone: "Collaboration", label: "Billing parties", hint: "Customers and vendors for AR/AP." },
-        { zone: "Organization", label: "Priced offerings", hint: "Product and service rate cards under Production." },
-      ],
-        },
-      ],
+      children: [],
     },
     {
       id: "production",
@@ -369,7 +282,7 @@ export const organizationZone: ZoneConfig = {
       id: "qualification",
       label: "Qualification",
       summary:
-        "Quality, compliance, and qualification — Configuration plus Records (same pattern as Public/Comms/Dissemination/Treasury).",
+        "Quality, compliance, and qualification - Configuration. Named record tabs come from Records Editor.",
       // I5.6.32: Records section added; exact record-type columns still baseline placeholders.
       fields: [
         { label: "Name", placeholder: "Qualification" },
@@ -380,40 +293,7 @@ export const organizationZone: ZoneConfig = {
         { zone: "Environment", label: "Policies & knowledge", hint: "Standards documentation." },
         { zone: "Collaboration", label: "Auditors / partners", hint: "External qualification parties." },
       ],
-      children: [
-        {
-          id: "qualification-records",
-          label: "Records",
-          summary:
-            "Qualification records (audits, certifications, compliance items). Exact types become config-driven later.",
-          presentation: "listing",
-          listColumns: ["Name", "Type", "Status"],
-          sampleRows: [
-            ["ISO 9001 readiness", "certification", "in-progress"],
-            ["Vendor QA checklist", "audit", "active"],
-          ],
-          fields: [
-            { label: "Name", placeholder: "Record name" },
-            {
-              label: "Type",
-              placeholder: "Select type",
-              kind: "select",
-              options: ["certification", "audit", "compliance", "other"],
-            },
-            {
-              label: "Status",
-              placeholder: "Select status",
-              kind: "select",
-              options: ["planned", "in-progress", "active", "expired"],
-            },
-            { label: "Notes", placeholder: "...", kind: "textarea" },
-          ],
-          relations: [
-            { zone: "Environment", label: "Evidence / knowledge", hint: "Supporting documents." },
-            { zone: "Collaboration", label: "Auditor / partner", hint: "External party on this record." },
-          ],
-        },
-      ],
+      children: [],
     },
   ],
 };

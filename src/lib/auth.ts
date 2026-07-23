@@ -1,15 +1,16 @@
-// Auth library for I5 skeleton.
-// Fixture-backed session management using httpOnly cookies.
-// When a real backend is connected, swap verifyCredentials + createSession
-// with real JWT/OAuth + DB lookups.
+// Auth library for I5 / Phase 2.
+// Fixture-backed by default; when DATA_SOURCE=postgres, verify against DB password_hash.
 
 import { users as userFixtures } from "@/lib/fixtures/users";
 import type { Session, User } from "@/lib/data";
+import bcrypt from "bcryptjs";
+import { getDb } from "@/lib/db/client";
+import { users as usersTable, departments as departmentsTable } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 const SESSION_COOKIE = "versa_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
-// Simple base64 encoding for the session token (not secure crypto — fixture only).
 function encodeSession(session: Session): string {
   return Buffer.from(JSON.stringify(session)).toString("base64");
 }
@@ -23,14 +24,76 @@ function decodeSession(token: string): Session | null {
   }
 }
 
+function stripFixturePassword(user: (typeof userFixtures)[number]): User {
+  const { password: _pw, ...rest } = user;
+  return rest;
+}
+
+async function verifyCredentialsPostgres(
+  email: string,
+  password: string,
+): Promise<User | null> {
+  const db = getDb();
+  const all = await db
+    .select({
+      user: usersTable,
+      deptName: departmentsTable.name,
+    })
+    .from(usersTable)
+    .leftJoin(
+      departmentsTable,
+      eq(usersTable.departmentId, departmentsTable.id),
+    );
+  const row = all.find(
+    (r) => r.user.email.toLowerCase() === email.toLowerCase(),
+  );
+  if (!row || row.user.status !== "active" || !row.user.passwordHash) {
+    return null;
+  }
+  const ok = bcrypt.compareSync(password, row.user.passwordHash);
+  if (!ok) return null;
+  const data = (row.user.data ?? {}) as Record<string, unknown>;
+  return {
+    id: row.user.id,
+    name: row.user.name,
+    email: row.user.email,
+    role: row.user.role as User["role"],
+    type: row.user.type as User["type"],
+    department:
+      row.deptName ||
+      (typeof data.department === "string" ? data.department : ""),
+    department_id: row.user.departmentId ?? undefined,
+    bio: typeof data.bio === "string" ? data.bio : "",
+    status: row.user.status as User["status"],
+    data,
+  };
+}
+
 export function verifyCredentials(email: string, password: string): User | null {
+  // Sync fixture path (default).
+  if ((process.env.DATA_SOURCE ?? "fixture") === "postgres") {
+    // Login route is async-capable via Promise — keep sync API for fixture,
+    // and expose async helper for postgres callers.
+    throw new Error(
+      "verifyCredentials is fixture-only; use verifyCredentialsAsync when DATA_SOURCE=postgres",
+    );
+  }
   const user = userFixtures.find(
-    (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password,
+    (u) =>
+      u.email.toLowerCase() === email.toLowerCase() && u.password === password,
   );
   if (!user || user.status !== "active") return null;
-  // Strip password before returning
-  const { password: _pw, ...userWithoutPw } = user;
-  return userWithoutPw;
+  return stripFixturePassword(user);
+}
+
+export async function verifyCredentialsAsync(
+  email: string,
+  password: string,
+): Promise<User | null> {
+  if ((process.env.DATA_SOURCE ?? "fixture") === "postgres") {
+    return verifyCredentialsPostgres(email, password);
+  }
+  return verifyCredentials(email, password);
 }
 
 export function createSessionToken(user: User): string {
@@ -72,7 +135,6 @@ export function createClearSessionCookieHeader(): string {
   return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
 }
 
-// RBAC helpers
 export function isAdmin(session: Session | null): boolean {
   return session?.role === "admin";
 }

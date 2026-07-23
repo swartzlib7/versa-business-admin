@@ -1061,19 +1061,7 @@ export const layoutDefinitions: LayoutDefinition[] = [
 
 // Faculty / dynamic record baseline fields (I5.6.32c)
 const facultyRecordFieldSeed: FieldDefinition[] = [
-  { id: 'fld-public-item-name', object_api_name: 'public_item', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fld-public-item-status', object_api_name: 'public_item', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'user_status', lookup_object_api_name: null, sort_order: 20, active: true },
-  { id: 'fld-public-item-mandate', object_api_name: 'public_item', api_name: 'mandate', label: 'Mandate', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
-  { id: 'fld-comms-item-name', object_api_name: 'comms_item', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fld-comms-item-channels', object_api_name: 'comms_item', api_name: 'channels', label: 'Channels', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
-  { id: 'fld-dissemination-item-name', object_api_name: 'dissemination_item', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fld-dissemination-item-channels', object_api_name: 'dissemination_item', api_name: 'channels', label: 'Channels', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
-  { id: 'fld-treasury-item-name', object_api_name: 'treasury_item', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fld-treasury-item-kind', object_api_name: 'treasury_item', api_name: 'kind', label: 'Kind', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
-  { id: 'fld-treasury-item-status', object_api_name: 'treasury_item', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'user_status', lookup_object_api_name: null, sort_order: 30, active: true },
-  { id: 'fld-qualification-item-name', object_api_name: 'qualification_item', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fld-qualification-item-kind', object_api_name: 'qualification_item', api_name: 'kind', label: 'Kind', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
-  { id: 'fld-qualification-item-status', object_api_name: 'qualification_item', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'user_status', lookup_object_api_name: null, sort_order: 30, active: true },
+  // Placeholder faculty record fields removed 2026-07-23 (Stephen).
 ];
 
 // ---------------------------------------------------------------------------
@@ -1127,52 +1115,7 @@ export const objectDefinitions: ObjectDefinition[] = [
     instance_collection: '/api/public/products',
     extensible: true,
   },
-  {
-    api_name: 'qualification_item',
-    label: 'Qualification record',
-    description: 'Faculty Records type under Qualification (config-driven path).',
-    core_kind: 'faculty_record',
-    instance_collection: null,
-    extensible: true,
-    faculty: 'qualification',
-  },
-  {
-    api_name: 'public_item',
-    label: 'Public record',
-    description: 'Faculty Records type under Public.',
-    core_kind: 'faculty_record',
-    instance_collection: null,
-    extensible: true,
-    faculty: 'public',
-  },
-  {
-    api_name: 'comms_item',
-    label: 'Communications record',
-    description: 'Faculty Records type under Communications.',
-    core_kind: 'faculty_record',
-    instance_collection: null,
-    extensible: true,
-    faculty: 'communications',
-  },
-  {
-    api_name: 'dissemination_item',
-    label: 'Dissemination record',
-    description: 'Faculty Records type under Dissemination.',
-    core_kind: 'faculty_record',
-    instance_collection: null,
-    extensible: true,
-    faculty: 'dissemination',
-  },
-  {
-    api_name: 'treasury_item',
-    label: 'Treasury record',
-    description: 'Faculty Records type under Treasury.',
-    core_kind: 'faculty_record',
-    instance_collection: null,
-    extensible: true,
-    faculty: 'treasury',
-  },
-];
+          ];
 
 // Mutable copies for in-process custom field extensions (fixture mode).
 let mutableFieldDefinitions: FieldDefinition[] = [...fieldDefinitions, ...facultyRecordFieldSeed];
