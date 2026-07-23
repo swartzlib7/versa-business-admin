@@ -1,6 +1,8 @@
 "use client";
 
 import { AppShell } from "@/components/shell/app-shell";
+import { theme } from "@/lib/theme";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { integrations } from "@/lib/fixtures";
@@ -9,12 +11,12 @@ export default function IntegrationsPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Integrations</h1>
-          <p className="text-muted-foreground">
-            Connected systems and services for this workspace.
-          </p>
-        </div>
+        <PageHeader
+          title="Integrations"
+          subtitle="Connected systems and exchange endpoints."
+          badge="Integrations"
+          accent={theme.colors.brand}
+        />
 
         {integrations.length === 0 ? (
           <Card>

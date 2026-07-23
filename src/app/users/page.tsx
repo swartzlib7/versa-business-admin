@@ -6,6 +6,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { EntityListing } from "@/components/listing/entity-listing";
 import { theme } from "@/lib/theme";
+import { PageHeader } from "@/components/ui/page-header";
 import type { User } from "@/lib/data";
 import { listingFieldsFromCatalog } from "@/lib/catalog/layout-to-fields";
 import { resolvePicklistLabel } from "@/lib/catalog/layout-to-fields";
@@ -146,12 +147,12 @@ export default function UsersPage() {
     <AppShell>
       <div className="space-y-6">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">Users</h1>
-          <p className="text-muted-foreground">
-            Layout-driven pilot (ERD-C): columns and form fields come from catalog
-            field_definition + layout_definition. Open a row detail for sectioned
-            view/edit.
-          </p>
+          <PageHeader
+          title="Users"
+          subtitle="People and agent accounts — layout-driven pilot from catalog field and layout definitions."
+          badge="Users"
+          accent={theme.colors.brand}
+        />
         </div>
 
         {loading ? (

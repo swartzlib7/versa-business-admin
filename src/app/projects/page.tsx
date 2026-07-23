@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { EntityListing } from "@/components/listing/entity-listing";
 import { theme } from "@/lib/theme";
+import { PageHeader } from "@/components/ui/page-header";
 import { projects, type ProjectFixture } from "@/lib/fixtures/projects";
 import {
   listingFieldsFromCatalog,
@@ -119,12 +120,12 @@ export default function ProjectsPage() {
     <AppShell>
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              ERD-D layout-driven list — catalog fields + EntityListing (same pattern as Users).
-            </p>
-          </div>
+          <PageHeader
+          title="Projects"
+          subtitle="Active and planned workstreams — catalog fields + EntityListing."
+          badge="Projects"
+          accent={theme.colors.brand}
+        />
           <Link
             href="/users"
             className="text-sm text-muted-foreground underline-offset-4 hover:underline"

@@ -2,10 +2,11 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { AppShell } from "@/components/shell/app-shell";
+import { theme } from "@/lib/theme";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { theme } from "@/lib/theme";
 
 /** I5.6.18 — glossary as data: sections + entries (listing + inline editor). */
 
@@ -499,12 +500,12 @@ export default function GlossaryPage() {
           <Badge variant="outline" className="font-normal">
             Reference · editable mock
           </Badge>
-          <h1 className="text-2xl font-bold tracking-tight">Glossary</h1>
-          <p className="max-w-2xl text-muted-foreground">
-            Sections group terms; each entry has a name (blue label) and
-            definition. Same listing pattern as zone config — New at top, Edit
-            expands inline on the row.
-          </p>
+          <PageHeader
+          title="Glossary"
+          subtitle="Sections group terms; each entry has a name and definition — same listing pattern as zone config."
+          badge="Glossary"
+          accent={theme.colors.brand}
+        />
         </div>
 
         {/* Sections listing */}

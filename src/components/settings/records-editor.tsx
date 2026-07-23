@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { SectionTabs } from "@/components/ui/section-tabs";
+import { theme } from "@/lib/theme";
 
 type Parent = { parent_kind: string; parent_api_name: string; label: string; baked_in_tabs: string[] };
 type RT = { api_name: string; label: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string };
@@ -100,40 +102,26 @@ export function RecordsEditor() {
   const currentParent = parents.find((p) => p.parent_kind + ":" + p.parent_api_name === selectedParent);
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight">Records Editor</h2>
-        <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
-          Customize zone entities including baked-in tabs. Use section tabs below so types,
-          fields, and picklists stay clearly grouped.
+      <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
+        <p className="text-sm text-muted-foreground max-w-3xl">
+          Customize zone entities including baked-in tabs. Types become named tabs under the
+          selected parent; fields and picklists extend those types.
         </p>
       </div>
       {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
       {status && <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">{status}</div>}
 
-      <div role="tablist" aria-label="Records Editor sections" className="flex flex-wrap gap-2 border-b pb-2">
-        {([
-          ["types", "Types", "Parents and named record types"],
-          ["fields", "Fields", "Extend selected type fields"],
-          ["picklists", "Picklists", "Value sets and options"],
-        ] as const).map(([id, label, hint]) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={section === id}
-            onClick={() => setSection(id)}
-            className={cn(
-              "rounded-md px-3 py-2 text-left text-sm transition-colors",
-              section === id
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted/50 text-foreground hover:bg-muted",
-            )}
-          >
-            <div className="font-medium">{label}</div>
-            <div className={cn("text-[11px]", section === id ? "text-primary-foreground/80" : "text-muted-foreground")}>{hint}</div>
-          </button>
-        ))}
-      </div>
+      <SectionTabs
+        ariaLabel="Records Editor sections"
+        value={section}
+        onChange={(id) => setSection(id as "types" | "fields" | "picklists")}
+        accent={theme.colors.brand}
+        items={[
+          { id: "types", label: "Types", hint: "Parents and named record types" },
+          { id: "fields", label: "Fields", hint: "Extend selected type fields" },
+          { id: "picklists", label: "Picklists", hint: "Value sets and options" },
+        ]}
+      />
 
       {section === "types" && (
         <div role="tabpanel" className="grid gap-6 lg:grid-cols-3">

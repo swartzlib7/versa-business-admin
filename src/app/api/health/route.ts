@@ -12,7 +12,7 @@ export async function GET() {
 
   return NextResponse.json({
     status: 'ok',
-    version: '0.7.49',
+    version: '0.7.50',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     database: dbStatus,

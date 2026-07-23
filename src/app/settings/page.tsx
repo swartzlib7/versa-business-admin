@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import {
   Card,
@@ -12,10 +12,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { theme } from "@/lib/theme";
 import { RecordsEditor } from "@/components/settings/records-editor";
 import { cn } from "@/lib/utils";
 import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
+import { SectionTabs } from "@/components/ui/section-tabs";
+import { PageHeader } from "@/components/ui/page-header";
 import { Moon, Sun, Compass } from "lucide-react";
 
 type SettingsTab = "records" | "branding" | "appearance" | "system";
@@ -53,47 +56,73 @@ const THEME_OPTIONS: {
   },
 ];
 
+function PanelShell({
+  title,
+  summary,
+  badge,
+  children,
+}: {
+  title: string;
+  summary: string;
+  badge?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader className="border-b bg-muted/30">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-lg">{title}</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">{summary}</p>
+          </div>
+          {badge ? (
+            <Badge className="shrink-0 border-0 bg-primary text-primary-foreground">
+              {badge}
+            </Badge>
+          ) : null}
+        </div>
+      </CardHeader>
+      <CardContent className="p-6">{children}</CardContent>
+    </Card>
+  );
+}
+
 function AppearancePanel() {
   const { theme: uiTheme, setTheme } = useUiTheme();
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Appearance</CardTitle>
-        <CardDescription>
-          Choose how Mission Control looks. Your selection is remembered on this
-          device and survives navigation (including Glossary on the side menu).
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {THEME_OPTIONS.map((opt) => {
-            const Icon = opt.icon;
-            const active = uiTheme === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => setTheme(opt.id)}
-                className={cn(
-                  "rounded-lg border p-4 text-left transition-colors",
-                  active
-                    ? "border-primary bg-primary/10 ring-2 ring-primary/40"
-                    : "border-border bg-card hover:bg-muted/60",
-                )}
-              >
-                <div className="mb-2 flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-primary" />
-                  <span className="font-semibold">{opt.label}</span>
-                </div>
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  {opt.blurb}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+    <PanelShell
+      title="Appearance"
+      summary="Choose how Mission Control looks. Selection is remembered on this device and survives navigation (including Glossary on the side menu)."
+      badge="Theme"
+    >
+      <div className="grid gap-3 sm:grid-cols-3">
+        {THEME_OPTIONS.map((opt) => {
+          const Icon = opt.icon;
+          const active = uiTheme === opt.id;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setTheme(opt.id)}
+              className={cn(
+                "rounded-lg border p-4 text-left transition-colors",
+                active
+                  ? "border-primary bg-primary/10 ring-2 ring-primary/40"
+                  : "border-border bg-card hover:bg-muted/60",
+              )}
+            >
+              <div className="mb-2 flex items-center gap-2">
+                <Icon className="h-4 w-4 text-primary" />
+                <span className="font-semibold">{opt.label}</span>
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {opt.blurb}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+    </PanelShell>
   );
 }
 
@@ -116,46 +145,20 @@ export default function SettingsPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-          <p className="text-muted-foreground">
-            White-label configuration, Records Editor, and system preferences.
-          </p>
-        </div>
+        <PageHeader
+          title="Settings"
+          subtitle="White-label configuration, Records Editor, and system preferences."
+          badge="Settings"
+          accent={theme.colors.brand}
+        />
 
-        <div
-          role="tablist"
-          aria-label="Settings sections"
-          className="flex flex-wrap gap-2 border-b pb-2"
-        >
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={tab === t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "rounded-md px-3 py-2 text-left text-sm transition-colors",
-                tab === t.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted/50 text-foreground hover:bg-muted",
-              )}
-            >
-              <div className="font-medium">{t.label}</div>
-              <div
-                className={cn(
-                  "text-[11px]",
-                  tab === t.id
-                    ? "text-primary-foreground/80"
-                    : "text-muted-foreground",
-                )}
-              >
-                {t.hint}
-              </div>
-            </button>
-          ))}
-        </div>
+        <SectionTabs
+          ariaLabel="Settings sections"
+          items={TABS}
+          value={tab}
+          onChange={(id) => setTab(id as SettingsTab)}
+          accent={theme.colors.brand}
+        />
 
         {tab === "records" && (
           <div role="tabpanel" className="space-y-4">
@@ -165,15 +168,12 @@ export default function SettingsPage() {
 
         {tab === "branding" && (
           <div role="tabpanel">
-            <Card>
-              <CardHeader>
-                <CardTitle>Branding</CardTitle>
-                <CardDescription>
-                  Customize how your mission control appears. Changes are
-                  previewed live and saved for this session.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <PanelShell
+              title="Branding"
+              summary="Customize how Mission Control appears. Changes are previewed live and saved for this session."
+              badge="Brand"
+            >
+              <div className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Brand Name</label>
@@ -231,8 +231,8 @@ export default function SettingsPage() {
                     Reset
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </PanelShell>
           </div>
         )}
 
@@ -244,14 +244,12 @@ export default function SettingsPage() {
 
         {tab === "system" && (
           <div role="tabpanel" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>System</CardTitle>
-                <CardDescription>
-                  Runtime boundary for this Mission Control instance.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <PanelShell
+              title="System"
+              summary="Runtime boundary for this Mission Control instance."
+              badge="Runtime"
+            >
+              <div className="space-y-3 text-sm text-muted-foreground">
                 <p>
                   Glossary lives on the side menu so theme and navigation stay
                   stable. Product and integration configuration remain under
@@ -261,8 +259,8 @@ export default function SettingsPage() {
                   Data source and database cutover are controlled by environment
                   configuration — not from this panel.
                 </p>
-              </CardContent>
-            </Card>
+              </div>
+            </PanelShell>
           </div>
         )}
       </div>
