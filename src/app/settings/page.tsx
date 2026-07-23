@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { theme } from "@/lib/theme";
+import { RecordsEditor } from "@/components/settings/records-editor";
 
 export default function SettingsPage() {
   const [brandName, setBrandName] = useState<string>(theme.brand.name);
@@ -39,6 +40,8 @@ export default function SettingsPage() {
             White-label configuration and system preferences.
           </p>
         </div>
+
+        <RecordsEditor />
 
         <Card>
           <CardHeader>

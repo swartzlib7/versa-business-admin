@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 import {
-  addValueSetItem,
-  getValueSetByApiNameLive,
-  listValueSetItemsLive,
-} from '@/lib/fixtures/catalog';
+  getRecordType,
+  updateRecordType,
+  type RecordStructure,
+} from '@/lib/fixtures/record-types';
+import { listAllFieldDefinitions, getObjectSchema } from '@/lib/fixtures/catalog';
 
 export async function GET(
   request: Request,
@@ -17,19 +18,26 @@ export async function GET(
       { status: 401 },
     );
   }
+
   const { apiName } = await context.params;
-  const vs = getValueSetByApiNameLive(apiName);
-  if (!vs) {
+  const type = getRecordType(apiName);
+  if (!type) {
     return NextResponse.json(
-      { error: { code: 'NOT_FOUND', message: `Unknown value set '${apiName}'.` } },
+      {
+        error: {
+          code: 'NOT_FOUND',
+          message: `Unknown record type '${apiName}'.`,
+        },
+      },
       { status: 404 },
     );
   }
-  const items = listValueSetItemsLive(vs.id);
-  return NextResponse.json({ data: { ...vs, items } });
+  const fields = listAllFieldDefinitions(type.object_api_name);
+  const schema = getObjectSchema(type.object_api_name);
+  return NextResponse.json({ data: { type, fields, schema } });
 }
 
-export async function POST(
+export async function PATCH(
   request: Request,
   context: { params: Promise<{ apiName: string }> },
 ) {
@@ -46,8 +54,9 @@ export async function POST(
       { status: 403 },
     );
   }
+
   const { apiName } = await context.params;
-  let body: { api_value?: string; label?: string; sort_order?: number };
+  let body: Record<string, unknown>;
   try {
     body = await request.json();
   } catch {
@@ -56,17 +65,16 @@ export async function POST(
       { status: 400 },
     );
   }
-  if (!body.api_value || !body.label) {
-    return NextResponse.json(
-      { error: { code: 'VALIDATION', message: 'Required: api_value, label.' } },
-      { status: 400 },
-    );
-  }
-  const result = addValueSetItem(apiName, {
-    api_value: body.api_value,
-    label: body.label,
-    sort_order: body.sort_order,
+
+  const result = updateRecordType(apiName, {
+    label: body.label != null ? String(body.label) : undefined,
+    description: body.description != null ? String(body.description) : undefined,
+    structure: body.structure as RecordStructure | undefined,
+    show_as_tab: body.show_as_tab as boolean | undefined,
+    sort_order: body.sort_order != null ? Number(body.sort_order) : undefined,
+    active: body.active as boolean | undefined,
   });
+
   if (!result.ok) {
     const status = result.code === 'NOT_FOUND' ? 404 : 400;
     return NextResponse.json(
@@ -74,11 +82,6 @@ export async function POST(
       { status },
     );
   }
-  return NextResponse.json(
-    {
-      data: { ...result.value_set, items: result.items },
-      meta: { persistence: 'fixture_process_memory' },
-    },
-    { status: 201 },
-  );
+
+  return NextResponse.json({ data: result.type });
 }

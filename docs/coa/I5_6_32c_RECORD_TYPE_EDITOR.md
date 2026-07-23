@@ -1,4 +1,4 @@
-# I5.6.32c — Record Type Editor (definition for review)
+# I5.6.32c — Records Editor (definition for review)
 
 > **Owner:** Versa (COA) · **Product:** Mission Control (project #26)  
 > **Source:** Stephen voice 2026-07-22 evening (site review + dynamic records direction)  
@@ -10,7 +10,7 @@
 
 ## 1. Intent (restated)
 
-We need a **Record Type Editor** so operators (and later agents) can declare **custom record types and fields under each data-model element**. Declared types become **additional tabs** (or named Records surfaces) on that element — not a single anonymous “Records” dump.
+We need a **Records Editor** so operators (and later agents) can declare **custom record types and fields under each data-model element**. Declared types become **additional tabs** (or named Records surfaces) on that element — not a single anonymous “Records” dump.
 
 **Outcome:** extend the operational data model dynamically without collapsing first-class cores (Projects, Tasks, Products, Policy, Services) into generic EAV.
 
@@ -20,13 +20,13 @@ We need a **Record Type Editor** so operators (and later agents) can declare **c
 
 | Term | Meaning |
 |------|---------|
-| **Record Type Editor** | Admin UI + API to create/edit **record types** and their **fields** (and structure mode). Preferred product name. |
+| **Records Editor** | Admin UI + API to create/edit **record types** and their **fields** (and structure mode). Preferred product name. |
 | **Record type** | A named kind of list/form under a parent element (e.g. `certification`, `public_mandate`). |
 | **Record** | One instance of a type (row / header / header+lines). |
 | **Baked-in object** | First-class model object with its own table/routes (Project, Task, Product, User, …). Not created via the editor. |
 | **Parent element** | Zone node that owns tabs: faculty (Executive, Public, …), collaboration party (Vendor, …), or Environment node. |
 
-Stephen also said “record editor” — we treat that as the same surface; **Record Type Editor** is the precise name (types + fields). Instance CRUD stays “Records” on the tab.
+Stephen also said “record editor” — we treat that as the same surface; **Records Editor** is the precise name (types + fields). Instance CRUD stays “Records” on the tab.
 
 ---
 
@@ -119,11 +119,11 @@ Same: main configuration + optional record-type tabs per environment node.
 
 ---
 
-## 6. Record Type Editor — product surface
+## 6. Records Editor — product surface
 
 ### 6.1 Entry points
 
-1. **Global admin:** Settings (or Executive tooling) → **Record Type Editor** — list all types, filter by parent.
+1. **Global admin:** Settings (or Executive tooling) → **Records Editor** — list all types, filter by parent.
 2. **Contextual:** On a parent element’s Configuration → “Manage record types” → same editor scoped to that parent.
 
 ### 6.2 Editor capabilities (v1)
@@ -142,7 +142,7 @@ Already shipped (read + field extend on known objects):
 - `GET /api/catalog`, `/objects`, `/objects/{name}`, `/fields`, `/layouts`, `/value-sets`
 - `POST /api/catalog/fields`
 
-**Add for Record Type Editor (build slice):**
+**Add for Records Editor (build slice):**
 
 | Method | Path | Purpose |
 |--------|------|---------|
@@ -173,7 +173,7 @@ Creating a record type **registers** an `object_api_name` in the object registry
 |-------|--------|------|
 | **32a** | Shipped | Nav de-dupe; Qual Records child; keep Projects/Tasks first-class |
 | **32b** | Shipped `df97fcf` | Agents read/extend schema via `/api/catalog` |
-| **32c** | **This definition** | Record Type Editor + type-driven tabs + baseline seeds |
+| **32c** | **This definition** | Records Editor + type-driven tabs + baseline seeds |
 | **32d** | After 32c build | Polish dynamic tabs / deep links |
 | **Phase 2 DB** | Gated | User pilot; records table can follow or ride along — **not** unblocked by this doc alone |
 
@@ -186,7 +186,7 @@ Creating a record type **registers** an `object_api_name` in the object registry
 | **32c.1** | Fixture `recordTypes[]` + baseline seeds; register in catalog object registry | COA or web-dev |
 | **32c.2** | API: record-types CRUD + wire object registry on create | COA or web-dev |
 | **32c.3** | ZoneConfigView: tabs from types; drop generic placeholder columns | web-dev |
-| **32c.4** | Record Type Editor UI (global + contextual entry) | web-dev |
+| **32c.4** | Records Editor UI (global + contextual entry) | web-dev |
 | **32c.5** | Instance fixture CRUD for list/header; header_lines shell | web-dev |
 | **32c.6** | Collaboration + Environment parents | web-dev |
 | **32c.7** | Docs/WBS/state; preview :3100 | COA |
@@ -205,7 +205,7 @@ Creating a record type **registers** an `object_api_name` in the object registry
 
 ## 11. Acceptance (definition)
 
-- [ ] Stephen confirms naming (**Record Type Editor**)
+- [ ] Stephen confirms naming (**Records Editor**)
 - [ ] Stephen confirms structure modes (`list` / `header` / `header_lines`)
 - [ ] Stephen confirms parent coverage (Org faculties + Collab + Environment)
 - [ ] Stephen confirms baked-ins stay fixed
@@ -225,4 +225,4 @@ Creating a record type **registers** an `object_api_name` in the object registry
 
 ## 13. One-screen summary
 
-**Record Type Editor** lets us attach named, fielded record types to any parent element. Each type can appear as its own tab. Structure is list, single header, or header+lines. Baked-in Executive/Production objects stay first-class. Catalog API (32b) is how agents read and extend the same definitions. Build starts after this doc is approved.
+**Records Editor** lets us attach named, fielded record types to any parent element. Each type can appear as its own tab. Structure is list, single header, or header+lines. Baked-in Executive/Production objects stay first-class. Catalog API (32b) is how agents read and extend the same definitions. Build starts after this doc is approved.

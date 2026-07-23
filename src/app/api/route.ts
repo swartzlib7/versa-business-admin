@@ -16,6 +16,8 @@ export async function GET() {
       catalogExtendField: 'POST /api/catalog/fields',
       catalogLayouts: '/api/catalog/layouts',
       catalogValueSets: '/api/catalog/value-sets',
+      catalogRecordTypes: '/api/catalog/record-types',
+      catalogRecordTypeDetail: '/api/catalog/record-types/{api_name}',
       publicBusiness: '/api/public/business',
       publicServices: '/api/public/services',
       publicProducts: '/api/public/products',

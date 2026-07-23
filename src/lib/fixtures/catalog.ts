@@ -1058,6 +1058,24 @@ export const layoutDefinitions: LayoutDefinition[] = [
   },
 ];
 
+
+// Faculty / dynamic record baseline fields (I5.6.32c)
+const facultyRecordFieldSeed: FieldDefinition[] = [
+  { id: 'fld-public-item-name', object_api_name: 'public_item', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-public-item-status', object_api_name: 'public_item', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'user_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-public-item-mandate', object_api_name: 'public_item', api_name: 'mandate', label: 'Mandate', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-comms-item-name', object_api_name: 'comms_item', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-comms-item-channels', object_api_name: 'comms_item', api_name: 'channels', label: 'Channels', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-dissemination-item-name', object_api_name: 'dissemination_item', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-dissemination-item-channels', object_api_name: 'dissemination_item', api_name: 'channels', label: 'Channels', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-treasury-item-name', object_api_name: 'treasury_item', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-treasury-item-kind', object_api_name: 'treasury_item', api_name: 'kind', label: 'Kind', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-treasury-item-status', object_api_name: 'treasury_item', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'user_status', lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-qualification-item-name', object_api_name: 'qualification_item', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-qualification-item-kind', object_api_name: 'qualification_item', api_name: 'kind', label: 'Kind', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-qualification-item-status', object_api_name: 'qualification_item', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'user_status', lookup_object_api_name: null, sort_order: 30, active: true },
+];
+
 // ---------------------------------------------------------------------------
 // Object registry (typed cores + faculty record types) — I5.6.32b
 // ---------------------------------------------------------------------------
@@ -1157,14 +1175,14 @@ export const objectDefinitions: ObjectDefinition[] = [
 ];
 
 // Mutable copies for in-process custom field extensions (fixture mode).
-let mutableFieldDefinitions: FieldDefinition[] = [...fieldDefinitions];
+let mutableFieldDefinitions: FieldDefinition[] = [...fieldDefinitions, ...facultyRecordFieldSeed];
 let mutableValueSets: ValueSet[] = [...valueSets];
 let mutableValueSetItems: ValueSetItem[] = [...valueSetItems];
 let mutableLayoutDefinitions: LayoutDefinition[] = [...layoutDefinitions];
 let mutableObjectDefinitions: ObjectDefinition[] = [...objectDefinitions];
 
 export function resetCatalog(): void {
-  mutableFieldDefinitions = [...fieldDefinitions];
+  mutableFieldDefinitions = [...fieldDefinitions, ...facultyRecordFieldSeed];
   mutableValueSets = [...valueSets];
   mutableValueSetItems = [...valueSetItems];
   mutableLayoutDefinitions = [...layoutDefinitions];
@@ -1380,4 +1398,105 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
   };
   mutableFieldDefinitions.push(field);
   return { ok: true, field };
+}
+
+// ---------------------------------------------------------------------------
+// Value set mutations (Records Editor picklist options) — I5.6.32c
+// ---------------------------------------------------------------------------
+
+export interface CreateValueSetInput {
+  api_name: string;
+  label: string;
+  description?: string;
+  items?: Array<{ api_value: string; label: string; sort_order?: number }>;
+}
+
+export type ValueSetMutResult =
+  | { ok: true; value_set: ValueSet; items: ValueSetItem[] }
+  | { ok: false; code: string; message: string };
+
+export function createValueSet(input: CreateValueSetInput): ValueSetMutResult {
+  const apiName = (input.api_name || '').trim();
+  if (!/^[a-z][a-z0-9_]*$/.test(apiName)) {
+    return {
+      ok: false,
+      code: 'INVALID_API_NAME',
+      message: 'api_name must be snake_case starting with a letter.',
+    };
+  }
+  if (mutableValueSets.some((v) => v.api_name === apiName)) {
+    return { ok: false, code: 'EXISTS', message: `Value set '${apiName}' already exists.` };
+  }
+  const vs: ValueSet = {
+    id: `vs-${apiName}`,
+    api_name: apiName,
+    label: (input.label || apiName).trim(),
+    description: (input.description || '').trim(),
+  };
+  mutableValueSets.push(vs);
+  const items: ValueSetItem[] = [];
+  for (const [i, it] of (input.items || []).entries()) {
+    const api_value = (it.api_value || '').trim();
+    if (!api_value) continue;
+    const item: ValueSetItem = {
+      id: `vsi-${apiName}-${api_value}`,
+      value_set_id: vs.id,
+      api_value,
+      label: (it.label || api_value).trim(),
+      sort_order: it.sort_order ?? (i + 1) * 10,
+      active: true,
+    };
+    mutableValueSetItems.push(item);
+    items.push(item);
+  }
+  return { ok: true, value_set: vs, items };
+}
+
+export function addValueSetItem(
+  valueSetApiName: string,
+  input: { api_value: string; label: string; sort_order?: number },
+): ValueSetMutResult {
+  const vs = getValueSetByApiName(valueSetApiName);
+  if (!vs) {
+    return { ok: false, code: 'NOT_FOUND', message: `Unknown value set '${valueSetApiName}'.` };
+  }
+  const api_value = (input.api_value || '').trim();
+  if (!api_value) {
+    return { ok: false, code: 'INVALID', message: 'api_value is required.' };
+  }
+  if (mutableValueSetItems.some((i) => i.value_set_id === vs.id && i.api_value === api_value)) {
+    return { ok: false, code: 'EXISTS', message: `Option '${api_value}' already exists.` };
+  }
+  const siblings = mutableValueSetItems.filter((i) => i.value_set_id === vs.id);
+  const item: ValueSetItem = {
+    id: `vsi-${vs.api_name}-${api_value}`,
+    value_set_id: vs.id,
+    api_value,
+    label: (input.label || api_value).trim(),
+    sort_order: input.sort_order ?? siblings.reduce((m, i) => Math.max(m, i.sort_order), 0) + 10,
+    active: true,
+  };
+  mutableValueSetItems.push(item);
+  return { ok: true, value_set: vs, items: listValueSetItems(vs.id) };
+}
+
+export function ensureObjectForRecordType(input: {
+  api_name: string;
+  label: string;
+  description?: string;
+  faculty?: string;
+}): ObjectDefinition {
+  const existing = getObject(input.api_name);
+  if (existing) return existing;
+  const obj: ObjectDefinition = {
+    api_name: input.api_name,
+    label: input.label,
+    description: input.description || `Record type ${input.api_name}`,
+    core_kind: 'faculty_record',
+    instance_collection: null,
+    extensible: true,
+    faculty: input.faculty,
+  };
+  mutableObjectDefinitions.push(obj);
+  return obj;
 }
