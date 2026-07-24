@@ -1,24 +1,12 @@
 import { NextResponse } from 'next/server';
-import { adapter } from '@/lib/data';
-import { getSessionFromRequest, isAuthenticated } from '@/lib/auth';
 
+// /api/agents is deprecated — agents are users with type=agent.
+// Use GET /api/users?type=agent instead.
 export async function GET(request: Request) {
-  // Protect: require authentication
-  const session = getSessionFromRequest(request);
-  if (!isAuthenticated(session)) {
-    return NextResponse.json(
-      { error: { code: 'UNAUTHORIZED', message: 'Authentication required.' } },
-      { status: 401 },
-    );
-  }
-
   const { searchParams } = new URL(request.url);
-  const statusFilter = searchParams.get('status');
-
-  const data = await adapter.listAgents(statusFilter ?? undefined);
-
-  return NextResponse.json({
-    data,
-    count: data.length,
-  });
+  const status = searchParams.get('status');
+  const target = new URL('/api/users', request.url);
+  target.searchParams.set('type', 'agent');
+  if (status) target.searchParams.set('status', status);
+  return NextResponse.redirect(target, { status: 308 });
 }

@@ -6,8 +6,8 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Product HTTP API (`/api/*`) |
-| **Status** | 🔧 In progress — fixture-backed spine; version string drift noted |
-| **Last verified against code** | 2026-07-20 (routes under `src/app/api/**`; package `0.7.45`) |
+| **Status** | Phase 0-4 done (0.7.52) — fixture + postgres hybrid; all reads/writes via adapter; /api/agents deprecated to redirect |
+| **Last verified against code** | 2026-07-24 (DB wrap slice; package `0.7.52`) |
 | **Primary code** | `src/app/api/**`, fixture adapters |
 | **Former doc** | `docs/api/API_CONTRACT.md` (stub → this file) |
 
@@ -43,9 +43,13 @@
 | POST `/api/auth/logout` | session | |
 | GET `/api/auth/session` | session | Session (contract historically said `/me` in target map — **implemented name is session**) |
 | GET `/api/users`, GET `/api/users/{id}` | session | `type`: human | agent |
-| GET `/api/agents`, GET `/api/agents/{id}` | session | **Deprecated** alias |
+| GET `/api/agents`, GET `/api/agents/{id}` | session | **Deprecated** — 308 redirect to `/api/users?type=agent` and `/api/users/{id}` |
 | GET `/api/projects`, GET `/api/projects/{id}` | session | Business projects |
+| POST `/api/projects` | admin | Create project (Phase 3, 0.7.52) |
+| PATCH `/api/projects/{id}` | admin | Update project — data JSONB merged (Phase 3, 0.7.52) |
 | GET `/api/tasks`, GET `/api/tasks/{id}` | session | Work items; filters status/projectId/priority/assignee/q |
+| POST `/api/tasks` | admin | Create task (Phase 3, 0.7.52) |
+| PATCH `/api/tasks/{id}` | admin or assignee | Update task — assignee can only change status (Phase 3, 0.7.52) |
 | GET `/api/integrations` | session | Optional seed; not spine MVP |
 | GET `/api/public/business` | open | |
 | GET `/api/public/services` | open | |
@@ -68,9 +72,9 @@
 | Label | Meaning |
 |-------|---------|
 | Contract doc series | Historically 0.2 → 0.3 → **0.4.0** (I6 work surfaces) |
-| Product package (`package.json`) | **0.7.45** (hub I5.6 line) |
+| Product package (`package.json`) | **0.7.52** (DB wrap slice) |
 | GET `/api` index `version` | Still **0.4.0** (API capability label — lag intentional until API bump) |
-| GET `/api/health` `version` | Tracks **package** `0.7.45` |
+| GET `/api/health` `version` | Tracks **package** `0.7.52` |
 
 Do not invent agent-fleet endpoints. Grow toward zone entities per `state_i5_6_zone_erd.md`.
 
@@ -98,6 +102,7 @@ Do not invent agent-fleet endpoints. Grow toward zone entities per `state_i5_6_z
 | ID | Item | Priority |
 |----|------|----------|
 | API-1 | Keep this doc in sync when routes change | ongoing |
+| API-3 | POST/PATCH /api/projects + /api/tasks write routes added (0.7.52) — admin RBAC; task assignee can update status only | done |
 | API-2 | Decide API series bump vs keep 0.4.0 capability label | Stephen/COA |
 | API-3 | Document write methods (POST/PATCH) when implemented | **done 2026-07-23** |
 | API-4 | Zone entity routes after ERD baseline lock | blocked on I5.6 baseline |

@@ -7,8 +7,8 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Fixture to Postgres JSONB cutover plan |
-| **Status** | Phase 0-1 done; **Phase 2 User pilot** (2026-07-23): seed + listUsers/getUser + bcrypt login; hybrid adapter; DATA_SOURCE=postgres on beta |
-| **Last verified against code** | 2026-07-23 (beta Phase 2 pilot, package 0.7.48) |
+| **Status** | Phase 0-4 done (2026-07-24): seed (org+dept+users+catalog+projects+tasks+products+integrations); all reads from Postgres; writes (users+projects+tasks); agents as users views; /api/agents deprecated to redirect; hybrid adapter; DATA_SOURCE=postgres on beta |
+| **Last verified against code** | 2026-07-24 (DB wrap slice, package 0.7.52) |
 | **Primary code** | src/lib/data/adapter.ts, src/lib/fixtures/*, src/app/api/** |
 | **Task** | #182 |
 | **Parent state doc** | state_i5_6_zone_erd.md (section 1.4 persistence, section 4 backlog) |
@@ -613,3 +613,53 @@ Binary checks Stephen/COA can sign:
 | 2026-07-21 | Phase 0 SIGNED by Stephen. Locked decisions: Drizzle ORM; Supabase later / local plain PG Docker; cookie sessions P1-2; agents=users (no agents table); API version bump with cutover; /api/agents* removal is Phase 4. |
 | 2026-07-21 | Phase 1 scaffold complete: drizzle-orm + postgres-js + drizzle-kit installed; schema.ts (12 tables matching section 3); client.ts (pool + healthCheck); postgres-adapter.ts skeleton (NOT_IMPLEMENTED + empty returns for users); docker-postgres.sh script; .env.example; health route updated; drizzle-kit generate produces 0000_fuzzy_nehzno.sql. Build passes clean. Docker socket permission denied — migrate pending. |
 | 2026-07-21 | **Runtime path pivot (Stephen):** Docker retired — Vagrant knowledgebase box chosen for local Postgres. docker-postgres.sh archived as docker-postgres.sh.archived. New script: scripts/vagrant-postgres.sh (start/stop/status/migrate/health). Knowledgebase Vagrantfile updated: port 5432 forwarded. Postgres 14 installed + configured on VM. drizzle-kit migrate applied successfully — 12 tables created. DB health verified from host (21ms latency). Build passes clean. .env.example + package.json scripts updated. No Phase 2. |
+
+---
+
+## Acceptance ticks — DB wrap slice (2026-07-24, 0.7.52)
+
+### A. Seed expansion
+- [x] Catalog: value_set, value_set_item (8 VS + 26 VSI seeded)
+- [x] Projects: 5 projects seeded with owner FK
+- [x] Tasks: 5 tasks seeded with project + assignee FKs
+- [x] Products: 4 products seeded with features in data JSONB
+- [x] Integrations: 5 integrations seeded with product_id where mappable
+- [x] Org + departments + users: preserved from Phase 2 seed
+
+### B. Postgres adapter reads (Phase 4)
+- [x] listProjects / getProject (with JOIN for ownerName + taskCount)
+- [x] listTasks / getTask (with JOINs for projectName + assigneeName; filters honored)
+- [x] listProducts
+- [x] listIntegrations
+- [x] listStaff (public projection from users + department)
+- [x] getBusinessProfile (organizations singleton)
+- [x] listAgents / getAgent (views over users WHERE type=agent)
+- [x] updateAgentStatus (maps to user status)
+
+### C. Hybrid adapter
+- [x] DATA_SOURCE=postgres routes all implemented methods through postgresAdapter
+- [x] Fixture default remains fully working with DB down
+
+### D. Write surface completion
+- [x] createProject / updateProject (POST /api/projects, PATCH /api/projects/[id]; admin only)
+- [x] createTask / updateTask (POST /api/tasks, PATCH /api/tasks/[id]; admin or assignee)
+- [x] PATCH merges data JSONB (not full replace)
+- [x] FK validation (projectId, ownerUserId, assigneeUserId)
+- [x] Catalog validation: practical bar — enum/value-set checks on status/priority fields; full field_definition walk is residual
+
+### E. Agents API cleanup
+- [x] /api/agents → 308 redirect to /api/users?type=agent
+- [x] /api/agents/[id] → 308 redirect to /api/users/[id]
+- [x] agents/[id]/page.tsx updated to call /api/users/[id]
+- [x] No separate agents table (agents ARE users with type=agent)
+
+### F. Docs + version
+- [x] Acceptance ticks updated in this file
+- [x] WBS Track B phase table updated
+- [x] API contract updated (state_api_contract.md)
+- [x] Version bumped to 0.7.52
+
+### G. Residuals (documented)
+- Field definition + layout definition seed: deferred (catalog API reads from fixtures; physical seed of field_definition/layout_definition tables is nice-to-have)
+- Full field_definition validation walk: practical enum checks implemented; exhaustive metadata engine is future work
+- Services, other-systems, support-tickets, metrics, knowledge-articles: remain fixture-backed (no DB tables in baseline ERD)

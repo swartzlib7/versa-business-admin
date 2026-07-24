@@ -44,7 +44,7 @@ export default function AgentDetailPage() {
   const fetchAgent = () => {
     setLoading(true);
     setError(null);
-    fetch(`/api/agents/${id}`)
+    fetch(`/api/users/${id}`)
       .then(async (r) => {
         const json = await r.json();
         if (!r.ok) {
@@ -70,7 +70,7 @@ export default function AgentDetailPage() {
     const next = NEXT_STATUS[agent.status] ?? "active";
     setPatching(true);
     try {
-      const r = await fetch(`/api/agents/${id}`, {
+      const r = await fetch(`/api/users/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: next }),

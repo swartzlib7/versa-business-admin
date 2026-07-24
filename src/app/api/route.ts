@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   return NextResponse.json({
     name: 'Business Workspace API',
-    version: '0.7.46',
+    version: '0.7.52',
     endpoints: {
       health: '/api/health',
       login: '/api/auth/login',
@@ -24,12 +24,18 @@ export async function GET() {
       publicStaff: '/api/public/staff',
       users: '/api/users',
       userDetail: '/api/users/{id}',
-      agents: '/api/agents (deprecated — use /api/users?type=agent)',
-      agentDetail: '/api/agents/{id} (deprecated)',
+      userCreate: 'POST /api/users (admin)',
+      userUpdate: 'PATCH /api/users/{id} (admin or self)',
+      agents: '/api/agents (deprecated — redirect to /api/users?type=agent)',
+      agentDetail: '/api/agents/{id} (deprecated — redirect to /api/users/{id})',
       projects: '/api/projects',
       projectDetail: '/api/projects/{id}',
+      projectCreate: 'POST /api/projects (admin)',
+      projectUpdate: 'PATCH /api/projects/{id} (admin)',
       tasks: '/api/tasks',
       taskDetail: '/api/tasks/{id}',
+      taskCreate: 'POST /api/tasks (admin)',
+      taskUpdate: 'PATCH /api/tasks/{id} (admin or assignee)',
       integrations: '/api/integrations',
     },
   });

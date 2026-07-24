@@ -3,7 +3,7 @@
 > **Owner:** Versa (COA) with Stephen  
 > **Product:** versa-admin-system (Mission Control) · Project #26 · Game #109  
 > **Purpose:** One easy table view of where we are and what “Phase N” means.  
-> **Last updated:** 2026-07-23 02:45 EDT  
+> **Last updated:** 2026-07-24 02:45 EDT  
 > **How to use:** Scan the **At a glance** table first. Detail lives in the linked state docs — this file is the map, not a second source of truth for ERD/UI.
 
 ---
@@ -13,7 +13,7 @@
 | Track | What it is | Status now | Waiting on |
 |-------|------------|------------|------------|
 | **A. Hub / org-board UI** | 3D + zone IA + Records Editor | **I5.6.32c+** Settings section tabs; sample Public/Treasury fixture types removed; Records Editor nested sections | Stephen: preview Settings tabs + empty faculty Records |
-| **B. DB cutover** | Move data from fixtures → Postgres (Drizzle) | **Phase 0–2**: seed script + User list/get + bcrypt login; hybrid adapter (Users from PG, rest fixture) | Phase 3 User writes authorized 2026-07-23 (POST/PATCH /api/users) |
+| **B. DB cutover** | Move data from fixtures → Postgres (Drizzle) | **Phase 0–4 done**: seed (all entities); all reads from PG; writes (users+projects+tasks); agents deprecated to redirect; 0.7.52 | COA review → Stephen full check |
 | **C. Broader Mission** | API writes, more zones, polish, production | Later phases | After B Phase 2–4 |
 
 ### Canonical preview (how to open the app)
@@ -63,8 +63,8 @@ When COA says **“Phase 2”** without other context, it means **Track B — DB
 | **0** | Decisions | ORM, hosting, agents-as-users, session, API agents removal timing | **Done** | Stephen signed 2026-07-21 |
 | **1** | Scaffold + empty migrate | Drizzle schema (~12 tables), client, Vagrant Postgres on knowledgebase box, migrate, `/api/health` DB ping | **Done** | Runtime path proven; origin `agent/web-dev` + beta |
 | **2** | Seed + **read** pilot | Seed script from fixtures; read **User** (+ org/dept/catalog/auth as needed) from Postgres when flag on | **Done** (User pilot) | Accepted; hybrid adapter live |
-| **3** | Writes | POST/PATCH via adapter (create/update users, projects, tasks, …) | **Partial** — User POST/PATCH shipped 0.7.51; projects/tasks writes + catalog validation in **DB wrap slice** (web-dev) | Stephen 2026-07-23 wrap-all-DB go |
-| **4** | Roll remaining reads + cleanup | Projects/tasks/products/integrations/staff; remove `/api/agents*` | **In progress** — web-dev DB wrap slice 2026-07-23 | After COA review → Stephen full check |
+| **3** | Writes | POST/PATCH via adapter (create/update users, projects, tasks, …) | **Done** — User POST/PATCH (0.7.51) + Project/Task POST/PATCH (0.7.52); FK validation + enum checks | COA review |
+| **4** | Roll remaining reads + cleanup | Projects/tasks/products/integrations/staff; remove `/api/agents*` | **Done** — all reads from PG; /api/agents 308 redirect to /api/users; 0.7.52 | COA review → Stephen full check |
 
 ### Phase 0 — locked decisions (summary)
 

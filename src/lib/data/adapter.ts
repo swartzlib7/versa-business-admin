@@ -48,6 +48,55 @@ export interface UpdateUserInput {
   data?: Record<string, unknown>;
 }
 
+
+/** Phase 3 — create project (admin only). */
+export interface CreateProjectInput {
+  name: string;
+  description?: string;
+  status?: Project['status'];
+  ownerUserId?: string;
+  priority?: Project['priority'];
+  startDate?: string | null;
+  targetDate?: string | null;
+  data?: Record<string, unknown>;
+}
+
+/** Phase 3 — partial update; data JSONB is merged, not replaced. */
+export interface UpdateProjectInput {
+  name?: string;
+  description?: string;
+  status?: Project['status'];
+  ownerUserId?: string;
+  priority?: Project['priority'];
+  startDate?: string | null;
+  targetDate?: string | null;
+  data?: Record<string, unknown>;
+}
+
+/** Phase 3 — create task (admin only). */
+export interface CreateTaskInput {
+  title: string;
+  description?: string;
+  status?: Task['status'];
+  priority?: Task['priority'];
+  projectId: string;
+  assigneeUserId?: string;
+  dueDate?: string | null;
+  data?: Record<string, unknown>;
+}
+
+/** Phase 3 — partial update; data JSONB is merged, not replaced. */
+export interface UpdateTaskInput {
+  title?: string;
+  description?: string;
+  status?: Task['status'];
+  priority?: Task['priority'];
+  projectId?: string;
+  assigneeUserId?: string;
+  dueDate?: string | null;
+  data?: Record<string, unknown>;
+}
+
 export interface DataAdapter {
   listAgents(status?: string): Promise<Agent[]>;
   getAgent(id: string): Promise<Agent | null>;
@@ -67,6 +116,11 @@ export interface DataAdapter {
   getUser(id: string): Promise<User | null>;
   createUser?(input: CreateUserInput): Promise<User>;
   updateUser?(id: string, input: UpdateUserInput): Promise<User | null>;
+  // Phase 3 — project + task writes
+  createProject?(input: CreateProjectInput): Promise<Project>;
+  updateProject?(id: string, input: UpdateProjectInput): Promise<Project | null>;
+  createTask?(input: CreateTaskInput): Promise<Task>;
+  updateTask?(id: string, input: UpdateTaskInput): Promise<Task | null>;
   // Mission Control facets (I5.3)
   listOtherSystems(): Promise<OtherSystem[]>;
   listSupportTickets(): Promise<SupportTicket[]>;
@@ -98,7 +152,7 @@ import { knowledgeArticles as knowledgeArticleFixtures } from '@/lib/fixtures/kn
 let mutableAgents: Agent[] = [...agentFixtures];
 let mutableProjects: Project[] = [...projectFixtures];
 let mutableTasks: Task[] = [...taskFixtures];
-let mutableUsers = userFixtures.map((u) => ({ ...u, data: u.data ? { ...u.data } : {} }));
+const mutableUsers = userFixtures.map((u) => ({ ...u, data: u.data ? { ...u.data } : {} }));
 
 export function resetAgents(): void {
   mutableAgents = [...agentFixtures];
@@ -300,6 +354,125 @@ export const fixtureAdapter: DataAdapter = {
     return user;
   },
 
+
+  async createProject(input: CreateProjectInput) {
+    const name = (input.name || '').trim();
+    if (!name) throw new Error('VALIDATION: name is required');
+    const status = input.status ?? 'active';
+    const priority = input.priority ?? 'normal';
+    if (!['active', 'paused', 'completed', 'archived'].includes(status)) throw new Error('VALIDATION: invalid status');
+    if (!['low', 'normal', 'high'].includes(priority)) throw new Error('VALIDATION: invalid priority');
+    const id = 'proj-' + Date.now().toString(36);
+    const project: Project = {
+      id,
+      name,
+      description: input.description ?? '',
+      status,
+      ownerUserId: input.ownerUserId ?? '',
+      ownerName: mutableUsers.find((u) => u.id === input.ownerUserId)?.name ?? '',
+      priority,
+      startDate: input.startDate ?? null,
+      targetDate: input.targetDate ?? null,
+      taskCount: 0,
+    };
+    mutableProjects.push(project);
+    return { ...project };
+  },
+
+  async updateProject(id: string, input: UpdateProjectInput) {
+    const idx = mutableProjects.findIndex((p) => p.id === id);
+    if (idx < 0) return null;
+    const cur = mutableProjects[idx];
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      if (!name) throw new Error('VALIDATION: name cannot be empty');
+      cur.name = name;
+    }
+    if (input.description !== undefined) cur.description = input.description;
+    if (input.status !== undefined) {
+      if (!['active', 'paused', 'completed', 'archived'].includes(input.status)) throw new Error('VALIDATION: invalid status');
+      cur.status = input.status;
+    }
+    if (input.priority !== undefined) {
+      if (!['low', 'normal', 'high'].includes(input.priority)) throw new Error('VALIDATION: invalid priority');
+      cur.priority = input.priority;
+    }
+    if (input.ownerUserId !== undefined) {
+      cur.ownerUserId = input.ownerUserId;
+      cur.ownerName = mutableUsers.find((u) => u.id === input.ownerUserId)?.name ?? '';
+    }
+    if (input.startDate !== undefined) cur.startDate = input.startDate;
+    if (input.targetDate !== undefined) cur.targetDate = input.targetDate;
+    mutableProjects[idx] = cur;
+    return { ...cur };
+  },
+
+  async createTask(input: CreateTaskInput) {
+    const title = (input.title || '').trim();
+    if (!title) throw new Error('VALIDATION: title is required');
+    if (!input.projectId) throw new Error('VALIDATION: projectId is required');
+    const status = input.status ?? 'planned';
+    const priority = input.priority ?? 'normal';
+    if (!['planned', 'in_progress', 'waiting', 'blocked', 'done'].includes(status)) throw new Error('VALIDATION: invalid status');
+    if (!['low', 'normal', 'high', 'urgent'].includes(priority)) throw new Error('VALIDATION: invalid priority');
+    const project = mutableProjects.find((p) => p.id === input.projectId);
+    if (!project) throw new Error('VALIDATION: projectId does not reference an existing project');
+    const id = 'task-' + Date.now().toString(36);
+    const now = new Date().toISOString();
+    const assignee = mutableUsers.find((u) => u.id === input.assigneeUserId);
+    const task: Task = {
+      id,
+      title,
+      description: input.description ?? '',
+      status,
+      priority,
+      projectId: input.projectId,
+      projectName: project.name,
+      assigneeUserId: input.assigneeUserId ?? '',
+      assigneeName: assignee?.name ?? '',
+      dueDate: input.dueDate ?? '',
+      createdAt: now,
+      updatedAt: now,
+    };
+    mutableTasks.push(task);
+    project.taskCount = mutableTasks.filter((t) => t.projectId === project.id).length;
+    return { ...task };
+  },
+
+  async updateTask(id: string, input: UpdateTaskInput) {
+    const idx = mutableTasks.findIndex((t) => t.id === id);
+    if (idx < 0) return null;
+    const cur = mutableTasks[idx];
+    if (input.title !== undefined) {
+      const title = input.title.trim();
+      if (!title) throw new Error('VALIDATION: title cannot be empty');
+      cur.title = title;
+    }
+    if (input.description !== undefined) cur.description = input.description;
+    if (input.status !== undefined) {
+      if (!['planned', 'in_progress', 'waiting', 'blocked', 'done'].includes(input.status)) throw new Error('VALIDATION: invalid status');
+      cur.status = input.status;
+    }
+    if (input.priority !== undefined) {
+      if (!['low', 'normal', 'high', 'urgent'].includes(input.priority)) throw new Error('VALIDATION: invalid priority');
+      cur.priority = input.priority;
+    }
+    if (input.projectId !== undefined) {
+      const project = mutableProjects.find((p) => p.id === input.projectId);
+      if (!project) throw new Error('VALIDATION: projectId does not reference an existing project');
+      cur.projectId = input.projectId;
+      cur.projectName = project.name;
+    }
+    if (input.assigneeUserId !== undefined) {
+      cur.assigneeUserId = input.assigneeUserId;
+      cur.assigneeName = mutableUsers.find((u) => u.id === input.assigneeUserId)?.name ?? '';
+    }
+    if (input.dueDate !== undefined) cur.dueDate = input.dueDate ?? '';
+    cur.updatedAt = new Date().toISOString();
+    mutableTasks[idx] = cur;
+    return { ...cur };
+  },
+
   // --- Mission Control facets (I5.3) ---
 
   async listOtherSystems() {
@@ -361,6 +534,32 @@ function createAdapter(): DataAdapter {
     updateUser: (id, input) => {
       if (!postgresAdapter.updateUser) throw new Error("updateUser not available");
       return postgresAdapter.updateUser(id, input);
+    },
+    listProjects: (filters?: ProjectFilters) => postgresAdapter.listProjects(filters),
+    getProject: (id: string) => postgresAdapter.getProject(id),
+    listTasks: (filters?: TaskFilters) => postgresAdapter.listTasks(filters),
+    getTask: (id: string) => postgresAdapter.getTask(id),
+    listProducts: () => postgresAdapter.listProducts(),
+    listIntegrations: (status?: string) => postgresAdapter.listIntegrations(status),
+    listStaff: () => postgresAdapter.listStaff(),
+    getBusinessProfile: () => postgresAdapter.getBusinessProfile(),
+    listAgents: (status?: string) => postgresAdapter.listAgents(status),
+    getAgent: (id: string) => postgresAdapter.getAgent(id),
+    createProject: (input) => {
+      if (!postgresAdapter.createProject) throw new Error('createProject not available');
+      return postgresAdapter.createProject(input);
+    },
+    updateProject: (id, input) => {
+      if (!postgresAdapter.updateProject) throw new Error('updateProject not available');
+      return postgresAdapter.updateProject(id, input);
+    },
+    createTask: (input) => {
+      if (!postgresAdapter.createTask) throw new Error('createTask not available');
+      return postgresAdapter.createTask(input);
+    },
+    updateTask: (id, input) => {
+      if (!postgresAdapter.updateTask) throw new Error('updateTask not available');
+      return postgresAdapter.updateTask(id, input);
     },
     healthCheck: () => postgresAdapter.healthCheck(),
   };
