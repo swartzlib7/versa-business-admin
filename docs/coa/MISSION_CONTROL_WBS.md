@@ -62,9 +62,9 @@ When COA says **“Phase 2”** without other context, it means **Track B — DB
 |-------|------|-----------------|--------|------|
 | **0** | Decisions | ORM, hosting, agents-as-users, session, API agents removal timing | **Done** | Stephen signed 2026-07-21 |
 | **1** | Scaffold + empty migrate | Drizzle schema (~12 tables), client, Vagrant Postgres on knowledgebase box, migrate, `/api/health` DB ping | **Done** | Runtime path proven; origin `agent/web-dev` + beta |
-| **2** | Seed + **read** pilot | Seed script from fixtures; read **User** (+ org/dept/catalog/auth as needed) from Postgres when flag on | **Not started** | **Needs your explicit go** |
-| **3** | Writes | POST/PATCH via adapter (create/update users, projects, tasks, …) | Not started | After Phase 2 accepted |
-| **4** | Roll remaining reads + cleanup | Projects/tasks/products/integrations/staff; remove `/api/agents*` | Not started | After Phase 3 accepted |
+| **2** | Seed + **read** pilot | Seed script from fixtures; read **User** (+ org/dept/catalog/auth as needed) from Postgres when flag on | **Done** (User pilot) | Accepted; hybrid adapter live |
+| **3** | Writes | POST/PATCH via adapter (create/update users, projects, tasks, …) | **Partial** — User POST/PATCH shipped 0.7.51; projects/tasks writes + catalog validation in **DB wrap slice** (web-dev) | Stephen 2026-07-23 wrap-all-DB go |
+| **4** | Roll remaining reads + cleanup | Projects/tasks/products/integrations/staff; remove `/api/agents*` | **In progress** — web-dev DB wrap slice 2026-07-23 | After COA review → Stephen full check |
 
 ### Phase 0 — locked decisions (summary)
 
