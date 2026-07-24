@@ -365,3 +365,17 @@ Spatial twin on zone config pages is optional chrome (drawer + persistence). Doe
 ## I5.6.32b — Catalog schema API (2026-07-22)
 
 Agents/UI can **read** object schema via authenticated `/api/catalog` (objects, fields, layouts, value-sets) and **extend** with `POST /api/catalog/fields` (admin; fixture-local until catalog tables persist). Typed cores remain first-class; faculty record types registered in object registry for 32c.
+
+
+## Twin + zone chrome — Stephen 2026-07-24 recovery
+
+| Rule | Contract |
+|------|----------|
+| Zone twin motion | **Static** (`animSpeed=0`) on Organization, Collaboration, Environment. Dashboard hub may keep Speed control default 0. |
+| Twin content | Active zone / focused element only (existing cameraFit + focusedNode). |
+| Zoom | Keep current per-zone camera fit — Stephen confirmed OK. |
+| Nested sub-tabs | If primary tab shows count badge, `SubTabBar` (Configuration + children) **must** be visible. |
+| Description once | Faculty/tab summary text once per view — no duplicate under sticky + inside FormPanel header. |
+
+Living layout chrome detail: `state_layout_mission_ui.md` § I5.6.35.
+

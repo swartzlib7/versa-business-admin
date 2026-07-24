@@ -100,3 +100,21 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 
 **Hold:** No new web-dev UI slices until Stephen picks recovery path. Full write-up: `docs/coa/UI_RECOVERY_REVIEW_2026-07-24.md`.
 
+
+## I5.6.35 — Stephen recovery path locked (2026-07-24 evening)
+
+**Stephen decisions (msg int_ac05a5e2ff384146):**
+1. **Twin:** relevant element/zone only; **no animation** on zone twins. Zoom levels OK as-is.
+2. **Duplicate sub-heading:** On Organization (and same layout pattern), summary/sub-heading must appear **once**. Remove the **top** duplicate; keep a single description. Apply as design pattern on all pages using this layout style (zone `ZoneConfigView`, and any PageHeader/section stack that repeats the same blurb).
+3. **Sub-tabs:** Primary tab badge e.g. Executive (4) implies nested sub-tabs **must be visible**. Restore if missing (regression vs I5.6.34 intent).
+4. **Process:** COA judges SE skill gaps + statefold need, reports to Stephen; **web-dev implements** the fixes from current work state.
+
+**Code targets:**
+- `zone-config-view.tsx`: `twinAnimSpeed = 0` all zones; TabPanel must not render `panel.summary` both above body **and** inside `FormPanel` CardHeader — one surface only (prefer single description in stable slot **or** in card header, not both; Stephen: drop the **first/top** instance).
+- `SubTabBar` must render whenever `tab.children?.length > 0` (badge count = children+1); verify not covered by sticky chrome / not gated incorrectly.
+- Pattern pages: Settings/Glossary/Users via `PageHeader` — audit for double description.
+
+**Statefold:** This section + zone ERD twin note are the contract. Handoff must cite them. No parallel spec files.
+
+**Branch:** `dev/ui-recovery-2026-07-24` (do not commit recovery fixes to beta until COA verify + Stephen OK).
+
