@@ -6,7 +6,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sun, Moon, Compass, Maximize2, Minimize2, X } from "lucide-react";
+import { Sun, Moon, Compass, Cloud, Maximize2, Minimize2, X } from "lucide-react";
 import {
   MissionControlScene,
   type SceneNode,
@@ -81,6 +81,8 @@ export default function DashboardPage() {
               <Sun className="h-5 w-5" />
             ) : uiTheme === "architect" ? (
               <Compass className="h-5 w-5" />
+            ) : uiTheme === "slate" ? (
+              <Cloud className="h-5 w-5" />
             ) : (
               <Moon className="h-5 w-5" />
             )}

@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 
-export type UiTheme = "light" | "dark" | "architect";
+export type UiTheme = "light" | "dark" | "architect" | "slate";
 
 const STORAGE_KEY = "versa-ui-theme";
 
@@ -25,16 +25,17 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 function applyThemeClass(theme: UiTheme) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
-  root.classList.remove("dark", "architect");
+  root.classList.remove("dark", "architect", "slate");
   if (theme === "dark") root.classList.add("dark");
   if (theme === "architect") root.classList.add("architect");
+  if (theme === "slate") root.classList.add("slate");
   root.dataset.theme = theme;
 }
 
 function readStoredTheme(): UiTheme {
   try {
     const v = localStorage.getItem(STORAGE_KEY);
-    if (v === "light" || v === "dark" || v === "architect") return v;
+    if (v === "light" || v === "dark" || v === "architect" || v === "slate") return v;
   } catch {
     /* ignore */
   }
@@ -43,13 +44,11 @@ function readStoredTheme(): UiTheme {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<UiTheme>("dark");
-  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const initial = readStoredTheme();
     setThemeState(initial);
     applyThemeClass(initial);
-    setReady(true);
   }, []);
 
   const setTheme = useCallback((t: UiTheme) => {
@@ -64,7 +63,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const cycleTheme = useCallback(() => {
     setThemeState((prev) => {
-      const order: UiTheme[] = ["light", "dark", "architect"];
+      const order: UiTheme[] = ["light", "dark", "slate", "architect"];
       const next = order[(order.indexOf(prev) + 1) % order.length];
       applyThemeClass(next);
       try {
@@ -80,16 +79,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     () => ({ theme, setTheme, cycleTheme }),
     [theme, setTheme, cycleTheme],
   );
-
-  if (!ready) {
-    return (
-      <ThemeContext.Provider value={value}>
-        <div className="min-h-full" style={{ visibility: "hidden" }}>
-          {children}
-        </div>
-      </ThemeContext.Provider>
-    );
-  }
 
   return (
     <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>

@@ -542,7 +542,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="sticky top-14 z-20 flex flex-col gap-4 bg-background/95 pb-3 pt-1 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <span
@@ -591,7 +591,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
       <div
         role="tablist"
         aria-label={`${config.title} elements`}
-        className="flex flex-wrap gap-1 border-b border-border pb-px"
+        className="sticky top-[5.5rem] z-20 flex flex-wrap gap-1 border-b border-border bg-background/95 pb-px backdrop-blur supports-[backdrop-filter]:bg-background/80"
       >
         {config.tabs.map((t) => {
           const on = t.id === tab?.id;

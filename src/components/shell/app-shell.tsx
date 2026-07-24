@@ -13,15 +13,15 @@ export function AppShell({
   fillViewport?: boolean;
 }) {
   return (
-    <div className={cn("flex", fillViewport ? "h-svh min-h-svh overflow-auto" : "min-h-screen")}>
+    <div className={cn("flex h-svh overflow-hidden", fillViewport ? "" : "")}>
       <div className="hidden lg:block">
         <Sidebar />
       </div>
-      <div className={cn("flex flex-1 flex-col lg:pl-56", fillViewport && "min-h-0 min-w-0")}>
+      <div className={cn("flex h-svh flex-1 flex-col lg:pl-56", fillViewport && "min-h-0 min-w-0")}>
         <Header />
         <main
           className={cn(
-            "flex-1 p-4 lg:p-6",
+            "flex-1 overflow-y-auto p-4 lg:p-6",
             fillViewport && "flex min-h-0 min-w-[800px] flex-col"
           )}
         >

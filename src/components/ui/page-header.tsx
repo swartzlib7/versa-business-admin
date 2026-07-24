@@ -22,7 +22,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-start justify-between gap-3",
+        "sticky top-14 z-20 flex flex-wrap items-start justify-between gap-3 bg-background/95 pb-3 pt-1 backdrop-blur supports-[backdrop-filter]:bg-background/80",
         className,
       )}
     >

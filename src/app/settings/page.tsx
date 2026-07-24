@@ -19,14 +19,14 @@ import { cn } from "@/lib/utils";
 import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
 import { SectionTabs } from "@/components/ui/section-tabs";
 import { PageHeader } from "@/components/ui/page-header";
-import { Moon, Sun, Compass } from "lucide-react";
+import { Moon, Sun, Compass, Cloud } from "lucide-react";
 
 type SettingsTab = "records" | "branding" | "appearance" | "system";
 
 const TABS: { id: SettingsTab; label: string; hint: string }[] = [
   { id: "records", label: "Records Editor", hint: "Types, fields, picklists" },
   { id: "branding", label: "Branding", hint: "Name and colors" },
-  { id: "appearance", label: "Appearance", hint: "Light, dark, Architect" },
+  { id: "appearance", label: "Appearance", hint: "Light, dark, Slate, Architect" },
   { id: "system", label: "System", hint: "Runtime and product boundary" },
 ];
 
@@ -47,6 +47,12 @@ const THEME_OPTIONS: {
     label: "Dark",
     blurb: "Low-glare mission night mode.",
     icon: Moon,
+  },
+  {
+    id: "slate",
+    label: "Slate",
+    blurb: "Elegant mid-gray — between dark and light, pure neutral tones.",
+    icon: Cloud,
   },
   {
     id: "architect",
@@ -95,7 +101,7 @@ function AppearancePanel() {
       summary="Choose how Mission Control looks. Selection is remembered on this device and survives navigation (including Glossary on the side menu)."
       badge="Theme"
     >
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {THEME_OPTIONS.map((opt) => {
           const Icon = opt.icon;
           const active = uiTheme === opt.id;

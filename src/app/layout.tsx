@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description: "Sample maker workspace — replace with your brand and production story",
 };
 
-const themeInitScript = `(function(){try{var t=localStorage.getItem('versa-ui-theme');if(t!=='light'&&t!=='dark'&&t!=='architect')t='dark';var r=document.documentElement;r.classList.remove('dark','architect');if(t==='dark')r.classList.add('dark');if(t==='architect')r.classList.add('architect');r.dataset.theme=t;}catch(e){}})();`;
+const themeInitScript = `(function(){try{var t=localStorage.getItem('versa-ui-theme');if(t!=='light'&&t!=='dark'&&t!=='architect'&&t!=='slate')t='dark';var r=document.documentElement;r.classList.remove('dark','architect','slate');if(t==='dark')r.classList.add('dark');if(t==='architect')r.classList.add('architect');if(t==='slate')r.classList.add('slate');r.dataset.theme=t;}catch(e){}})();`;
 
 export default function RootLayout({
   children,

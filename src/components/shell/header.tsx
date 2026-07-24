@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, LogOut, User as UserIcon, Sun, Moon, Compass } from "lucide-react";
+import { Menu, LogOut, User as UserIcon, Sun, Moon, Compass, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -13,12 +13,14 @@ import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
 function ThemeIcon({ theme }: { theme: UiTheme }) {
   if (theme === "light") return <Sun className="h-4 w-4" />;
   if (theme === "architect") return <Compass className="h-4 w-4" />;
+  if (theme === "slate") return <Cloud className="h-4 w-4" />;
   return <Moon className="h-4 w-4" />;
 }
 
 function themeLabel(theme: UiTheme): string {
   if (theme === "light") return "Light";
   if (theme === "architect") return "Architect";
+  if (theme === "slate") return "Slate";
   return "Dark";
 }
 
