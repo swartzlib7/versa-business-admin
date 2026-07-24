@@ -167,7 +167,7 @@ export default function SettingsPage() {
         )}
 
         {tab === "branding" && (
-          <div role="tabpanel">
+          <div role="tabpanel" className="space-y-4">
             <PanelShell
               title="Branding"
               summary="Customize how Mission Control appears. Changes are previewed live and saved for this session."
@@ -237,7 +237,7 @@ export default function SettingsPage() {
         )}
 
         {tab === "appearance" && (
-          <div role="tabpanel">
+          <div role="tabpanel" className="space-y-4">
             <AppearancePanel />
           </div>
         )}

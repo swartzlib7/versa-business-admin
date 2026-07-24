@@ -146,14 +146,12 @@ export default function UsersPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <div className="flex flex-col gap-2">
-          <PageHeader
+        <PageHeader
           title="Users"
           subtitle="People and agent accounts — layout-driven pilot from catalog field and layout definitions."
           badge="Users"
           accent={theme.colors.brand}
         />
-        </div>
 
         {loading ? (
           <Card>
@@ -223,7 +221,7 @@ export default function UsersPage() {
           </Card>
         )}
 
-        {note && <p className="text-xs text-muted-foreground">{note}</p>}
+        {note && <p className="pt-2 text-xs text-muted-foreground">{note}</p>}
       </div>
     </AppShell>
   );
