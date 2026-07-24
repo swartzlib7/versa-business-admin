@@ -90,3 +90,13 @@ Spatial node positions, orbit rules, and zone tab ownership live in **`state_i5_
 
 Sidebar top-level **Projects / Tasks / Products** removed. Access via Organization zone (Executive / Production). Deep-link routes remain. Favorites/shortcuts deferred.
 
+## I5.6.34+ UI recovery hold (2026-07-24)
+
+**Stephen:** Unhappy with UI after web-dev handoff; Twin inconsistent/animated across pages without request; zone layouts worse than earlier better state.
+
+**Branch:** `dev/ui-recovery-2026-07-24` (from beta 204b762) — full tip union verified (coa + web-dev + origin all in beta).
+
+**Twin fact:** `twinAnimSpeed = organization ? 1 : 0` since I5.6.19 (COA); I5.6.31 set dashboard static default but left org twin live. 0.7.54 did not change behavior.
+
+**Hold:** No new web-dev UI slices until Stephen picks recovery path. Full write-up: `docs/coa/UI_RECOVERY_REVIEW_2026-07-24.md`.
+
