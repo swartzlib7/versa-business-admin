@@ -1,11 +1,12 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+
 import { theme } from "@/lib/theme";
 import { MissionControlScene } from "@/components/r3f/mission-control-scene";
 import { EntityListing, type ListingField } from "@/components/listing/entity-listing";
@@ -17,6 +18,10 @@ import { EntityListing, type ListingField } from "@/components/listing/entity-li
  *   collapsible form INLINE on the row (Edit) or under header (New) - not modal.
  * - Nested lists (Policy/Projects/Tasks, Product/Service, Records) use listing; parent Configuration is form.
  * Spec: docs/specs/ZONE_CONFIG_UI_PATTERN_I5.6.md
+ *
+ * I5.6.34 (2026-07-24): Stable zone chrome — single sticky container for zone header + primary tabs.
+ * Sub-tab strip + description live in a stable position outside the card body (no jump on sub-tab change).
+ * No repeated faculty heading inside sub-tab panels.
  */
 
 export type ZoneField = {
@@ -241,27 +246,20 @@ function ListingPanel({
   );
 }
 
+/** I5.6.34 — FormPanel renders ONLY the form body. No faculty heading, no sub-tab strip. */
 function FormPanel({
   panel,
-  title,
   accent,
-  subTabs,
-  setChildId,
-  tabLabel,
 }: {
   panel: ZoneTab;
-  title: string;
   accent: string;
-  subTabs: ZoneTab[] | null;
-  setChildId: (id: string) => void;
-  tabLabel: string;
 }) {
   return (
     <Card className="overflow-hidden">
       <CardHeader className="border-b bg-muted/30">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-lg">{title}</CardTitle>
+            <CardTitle className="text-lg">{panel.label}</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">{panel.summary}</p>
           </div>
           <Badge
@@ -271,37 +269,6 @@ function FormPanel({
             Configure
           </Badge>
         </div>
-        {subTabs && subTabs.length > 0 && (
-          <div
-            role="tablist"
-            aria-label={`${tabLabel} sub-elements`}
-            className="mt-4 flex flex-wrap gap-1"
-          >
-            {subTabs.map((c) => {
-              const on = c.id === panel.id;
-              return (
-                <button
-                  key={c.id}
-                  role="tab"
-                  type="button"
-                  aria-selected={on}
-                  onClick={() => setChildId(c.id)}
-                  className={cn(
-                    "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                    on
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
-                  )}
-                  style={
-                    on ? { boxShadow: `inset 0 -2px 0 ${accent}` } : undefined
-                  }
-                >
-                  {c.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </CardHeader>
       <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
         {panel.fields.map((f) => (
@@ -348,6 +315,55 @@ function FormPanel({
   );
 }
 
+/** I5.6.34 — Sub-tab strip + description rendered in a STABLE position outside card body. */
+function SubTabBar({
+  subTabs,
+  activeId,
+  accent,
+  onSelect,
+  ariaLabel,
+}: {
+  subTabs: ZoneTab[];
+  activeId: string;
+  accent: string;
+  onSelect: (id: string) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <div
+        role="tablist"
+        aria-label={ariaLabel}
+        className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/20 p-1"
+      >
+        {subTabs.map((c) => {
+          const on = c.id === activeId;
+          return (
+            <button
+              key={c.id}
+              role="tab"
+              type="button"
+              aria-selected={on}
+              onClick={() => onSelect(c.id)}
+              className={cn(
+                "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                on
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
+              )}
+              style={
+                on ? { boxShadow: `inset 0 -2px 0 ${accent}` } : undefined
+              }
+            >
+              {c.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TabPanel({
   tab,
   accent,
@@ -368,7 +384,6 @@ function TabPanel({
       fields: tab.fields,
       relations: tab.relations,
       links: tab.links,
-      // Parent self is always configuration form; listings live on children.
       presentation: undefined,
       listColumns: undefined,
       sampleRows: undefined,
@@ -387,66 +402,32 @@ function TabPanel({
   }, [subTabs, childId]);
 
   const panel = activeChild ?? tab;
-  const title =
-    subTabs && panel.id !== tab.id
-      ? `${tab.label} · ${panel.label}`
-      : tab.label;
-
   const presentation = panel.presentation ?? "form";
 
-  // I5.6.19 — content only (spatial twin lifted to ZoneConfigView so it does not remount on tab change)
-  if (presentation === "listing") {
-    return (
-      <div className="space-y-3">
-        {subTabs && subTabs.length > 0 && (
-          <div
-            role="tablist"
-            aria-label={`${tab.label} sub-elements`}
-            className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/20 p-1"
-          >
-            {subTabs.map((c) => {
-              const on = c.id === panel.id;
-              return (
-                <button
-                  key={c.id}
-                  role="tab"
-                  type="button"
-                  aria-selected={on}
-                  onClick={() => setChildId(c.id)}
-                  className={cn(
-                    "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                    on
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
-                  )}
-                  style={
-                    on ? { boxShadow: `inset 0 -2px 0 ${accent}` } : undefined
-                  }
-                >
-                  {c.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <ListingPanel panel={panel} accent={accent} />
-      </div>
-    );
-  }
-
+  // I5.6.34 — sub-tab strip + description in stable position; body only changes
   return (
-    <FormPanel
-      panel={panel}
-      title={title}
-      accent={accent}
-      subTabs={subTabs}
-      setChildId={setChildId}
-      tabLabel={tab.label}
-    />
+    <div className="space-y-3">
+      {subTabs && subTabs.length > 0 && (
+        <SubTabBar
+          subTabs={subTabs}
+          activeId={panel.id}
+          accent={accent}
+          onSelect={setChildId}
+          ariaLabel={`${tab.label} sub-elements`}
+        />
+      )}
+      {/* Active sub-tab description — always visible, stable position */}
+      <p className="text-sm text-muted-foreground">{panel.summary}</p>
+      {presentation === "listing" ? (
+        <ListingPanel panel={panel} accent={accent} />
+      ) : (
+        <FormPanel panel={panel} accent={accent} />
+      )}
+    </div>
   );
 }
 
-/** Map 3D hub node id to tab + optional nested child (I5.6.19 / I5.6 board). Executive=center sphere; no Service/Product hub mapping. */
+/** Map 3D hub node id to tab + optional nested child (I5.6.19 / I5.6 board). */
 function resolveNodeToTab(
   nodeId: string,
   config: ZoneConfig
@@ -463,14 +444,12 @@ function resolveNodeToTab(
       }
     }
   }
-
   return null;
 }
 
 export function ZoneConfigView({ config }: { config: ZoneConfig }) {
   const [active, setActive] = useState(config.tabs[0]?.id ?? "");
   const [childId, setChildId] = useState(config.tabs[0]?.id ?? "");
-  /** When true, next active change should not reset childId (sphere selected nested). */
   const skipChildResetRef = useRef(false);
 
   const tab = useMemo(
@@ -478,7 +457,6 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
     [active, config.tabs]
   );
 
-  // Reset nested child to parent self-tab when top-level tab changes via tab bar
   useEffect(() => {
     if (skipChildResetRef.current) {
       skipChildResetRef.current = false;
@@ -508,11 +486,8 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
     [config]
   );
 
-  // I5.6.19 — static twins on collab/env; org keeps gentle motion
-  const twinAnimSpeed =
-    config.id === "organization" ? 1 : 0;
+  const twinAnimSpeed = config.id === "organization" ? 1 : 0;
 
-  // I5.6.31 — hideable spatial twin drawer; persist per zone; content expands when closed
   const twinStorageKey = `mc.spatialTwinOpen.${config.id}`;
   const [twinOpen, setTwinOpen] = useState(true);
   const [twinHydrated, setTwinHydrated] = useState(false);
@@ -541,91 +516,96 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="sticky top-14 z-20 flex flex-col gap-4 bg-background/95 pb-3 pt-1 backdrop-blur supports-[backdrop-filter]:bg-background/80 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: config.accent }}
-              aria-hidden
-            />
-            <Badge variant="outline" className="font-normal">
-              Zone config · mock
-            </Badge>
+    <div className="space-y-4">
+      {/* I5.6.34 — single sticky container: zone header + primary tabs together */}
+      <div className="sticky top-14 z-20 flex flex-col gap-3 bg-background/95 pb-3 pt-1 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        {/* Row 1: zone identity + actions */}
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: config.accent }}
+                aria-hidden
+              />
+              <Badge variant="outline" className="font-normal">
+                Zone config · mock
+              </Badge>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight">{config.title}</h1>
+            <p className="max-w-2xl text-muted-foreground">{config.subtitle}</p>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">{config.title}</h1>
-          <p className="max-w-2xl text-muted-foreground">{config.subtitle}</p>
-        </div>
-        <div className="flex flex-wrap gap-2 text-sm">
-          <Link
-            href="/dashboard"
-            className="rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            Full 3D hub
-          </Link>
-          <button
-            type="button"
-            onClick={() => setTwinOpenPersist(!twinOpen)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-pressed={twinOpen}
-            aria-controls={`spatial-twin-drawer-${config.id}`}
-            title={twinOpen ? "Hide spatial twin" : "Show spatial twin"}
-          >
-            {twinOpen ? (
-              <PanelRightClose className="h-4 w-4" aria-hidden />
-            ) : (
-              <PanelRightOpen className="h-4 w-4" aria-hidden />
-            )}
-            {twinOpen ? "Hide twin" : "Show twin"}
-          </button>
-          <span
-            className="rounded-md px-3 py-1.5 font-medium text-white"
-            style={{ backgroundColor: config.accent }}
-          >
-            {config.title}
-          </span>
-        </div>
-      </div>
-
-      <div
-        role="tablist"
-        aria-label={`${config.title} elements`}
-        className="sticky top-[5.5rem] z-20 flex flex-wrap gap-1 border-b border-border bg-background/95 pb-px backdrop-blur supports-[backdrop-filter]:bg-background/80"
-      >
-        {config.tabs.map((t) => {
-          const on = t.id === tab?.id;
-          return (
-            <button
-              key={t.id}
-              role="tab"
-              type="button"
-              aria-selected={on}
-              onClick={() => selectTab(t.id)}
-              className={cn(
-                "-mb-px rounded-t-md border border-transparent px-3 py-2 text-sm font-medium transition-colors",
-                on
-                  ? "border-border border-b-background bg-background text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-              style={
-                on
-                  ? {
-                      borderBottomColor: "var(--background)",
-                      boxShadow: `inset 0 2px 0 ${config.accent}`,
-                    }
-                  : undefined
-              }
+          <div className="flex flex-wrap gap-2 text-sm">
+            <Link
+              href="/dashboard"
+              className="rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              {t.label}
-              {t.children && t.children.length > 0 ? (
-                <span className="ml-1 text-xs text-muted-foreground">
-                  ({t.children.length + 1})
-                </span>
-              ) : null}
+              Full 3D hub
+            </Link>
+            <button
+              type="button"
+              onClick={() => setTwinOpenPersist(!twinOpen)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-pressed={twinOpen}
+              aria-controls={`spatial-twin-drawer-${config.id}`}
+              title={twinOpen ? "Hide spatial twin" : "Show spatial twin"}
+            >
+              {twinOpen ? (
+                <PanelRightClose className="h-4 w-4" aria-hidden />
+              ) : (
+                <PanelRightOpen className="h-4 w-4" aria-hidden />
+              )}
+              {twinOpen ? "Hide twin" : "Show twin"}
             </button>
-          );
-        })}
+            <span
+              className="rounded-md px-3 py-1.5 font-medium text-white"
+              style={{ backgroundColor: config.accent }}
+            >
+              {config.title}
+            </span>
+          </div>
+        </div>
+
+        {/* Row 2: primary element tabs — same sticky container, no independent sticky */}
+        <div
+          role="tablist"
+          aria-label={`${config.title} elements`}
+          className="flex flex-wrap gap-1 border-b border-border pb-px"
+        >
+          {config.tabs.map((t) => {
+            const on = t.id === tab?.id;
+            return (
+              <button
+                key={t.id}
+                role="tab"
+                type="button"
+                aria-selected={on}
+                onClick={() => selectTab(t.id)}
+                className={cn(
+                  "-mb-px rounded-t-md border border-transparent px-3 py-2 text-sm font-medium transition-colors",
+                  on
+                    ? "border-border border-b-background bg-background text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                style={
+                  on
+                    ? {
+                        borderBottomColor: "var(--background)",
+                        boxShadow: `inset 0 2px 0 ${config.accent}`,
+                      }
+                    : undefined
+                }
+              >
+                {t.label}
+                {t.children && t.children.length > 0 ? (
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    ({t.children.length + 1})
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* I5.6.31 — twin in collapsible drawer; main column grows when closed */}
@@ -691,12 +671,6 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
                 cameraFitZone={config.id}
                 focusedNodeId={focusedNodeId}
                 onNodeClick={handleNodeClick}
-                className="!h-full !min-h-[600px] !rounded-none !border-0"
-                zoneVisible={{
-                  organization: config.id === "organization",
-                  collaboration: config.id === "collaboration",
-                  environment: config.id === "environment",
-                }}
               />
             </div>
           </div>

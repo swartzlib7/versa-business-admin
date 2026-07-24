@@ -19,6 +19,8 @@ type SectionTabsProps = {
   /** Accent for active top inset (defaults to brand indigo). */
   accent?: string;
   className?: string;
+  /** When true, skip sticky positioning (used when embedded in a sticky parent). */
+  noSticky?: boolean;
 };
 
 /**
@@ -32,13 +34,16 @@ export function SectionTabs({
   ariaLabel,
   accent = "#6366f1",
   className,
+  noSticky = false,
 }: SectionTabsProps) {
   return (
     <div
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "sticky top-[5.5rem] z-20 flex flex-wrap gap-1 border-b border-border bg-background/95 pb-px backdrop-blur supports-[backdrop-filter]:bg-background/80",
+        noSticky
+          ? "flex flex-wrap gap-1 border-b border-border pb-px"
+          : "sticky top-[5.5rem] z-20 flex flex-wrap gap-1 border-b border-border bg-background/95 pb-px backdrop-blur supports-[backdrop-filter]:bg-background/80",
         className,
       )}
     >

@@ -11,7 +11,7 @@ import { SectionTabs } from "@/components/ui/section-tabs";
 import { theme } from "@/lib/theme";
 
 type Parent = { parent_kind: string; parent_api_name: string; label: string; baked_in_tabs: string[] };
-type RT = { api_name: string; label: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string };
+type RT = { api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string };
 type FD = { api_name: string; label: string; data_type: string; value_set_api_name: string | null };
 type VS = { api_name: string; label: string };
 
@@ -32,7 +32,7 @@ export function RecordsEditor() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [newType, setNewType] = useState({ api_name: "", label: "", structure: "list" });
+  const [newType, setNewType] = useState({ api_name: "", label: "", description: "", structure: "list" });
   const [newField, setNewField] = useState({ api_name: "", label: "", data_type: "text", value_set_api_name: "" });
   const [newVs, setNewVs] = useState({ api_name: "", label: "", option: "" });
   const [addOpt, setAddOpt] = useState({ vs: "", api_value: "", label: "" });
@@ -59,9 +59,9 @@ export function RecordsEditor() {
   const createType = async () => {
     setBusy(true); setError(null); setStatus(null);
     try {
-      await api("/api/catalog/record-types", { method: "POST", body: JSON.stringify({ api_name: newType.api_name, label: newType.label, parent_kind: pKind, parent_api_name: pApi, structure: newType.structure, show_as_tab: true }) });
+      await api("/api/catalog/record-types", { method: "POST", body: JSON.stringify({ api_name: newType.api_name, label: newType.label, description: newType.description, parent_kind: pKind, parent_api_name: pApi, structure: newType.structure, show_as_tab: true }) });
       setStatus("Created " + newType.api_name);
-      setNewType({ api_name: "", label: "", structure: "list" });
+      setNewType({ api_name: "", label: "", description: "", structure: "list" });
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : "Create failed"); }
     finally { setBusy(false); }
@@ -162,13 +162,14 @@ export function RecordsEditor() {
             <CardContent className="grid gap-3 sm:grid-cols-2">
               <Input placeholder="api_name" value={newType.api_name} onChange={(e) => setNewType((s) => ({ ...s, api_name: e.target.value }))} />
               <Input placeholder="Name" value={newType.label} onChange={(e) => setNewType((s) => ({ ...s, label: e.target.value }))} />
+              <Input placeholder="Description (required)" value={newType.description} onChange={(e) => setNewType((s) => ({ ...s, description: e.target.value }))} />
               <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" value={newType.structure} onChange={(e) => setNewType((s) => ({ ...s, structure: e.target.value }))}
               >
                 <option value="list">list</option>
                 <option value="header">header</option>
                 <option value="header_lines">header_lines</option>
               </select>
-              <Button disabled={busy} onClick={() => void createType()}>Create type</Button>
+              <Button disabled={busy || !newType.description.trim()} onClick={() => void createType()}>Create type</Button>
             </CardContent>
           </Card>
         </div>

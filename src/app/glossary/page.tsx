@@ -496,17 +496,16 @@ export default function GlossaryPage() {
   return (
     <AppShell>
       <div className="mx-auto max-w-5xl space-y-6">
-        <div className="space-y-2">
-          <Badge variant="outline" className="font-normal">
-            Reference · editable mock
-          </Badge>
-          <PageHeader
+        <PageHeader
           title="Glossary"
           subtitle="Sections group terms; each entry has a name and definition — same listing pattern as zone config."
           badge="Glossary"
           accent={theme.colors.brand}
+          tabs={sections.map((s) => ({ id: s.id, label: s.name, hint: s.description }))}
+          tabsValue={activeSectionId}
+          onTabChange={setActiveSectionId}
+          tabsAriaLabel="Glossary sections"
         />
-        </div>
 
         {/* Sections listing */}
         <Card className="overflow-hidden">

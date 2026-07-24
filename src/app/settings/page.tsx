@@ -17,7 +17,6 @@ import { theme } from "@/lib/theme";
 import { RecordsEditor } from "@/components/settings/records-editor";
 import { cn } from "@/lib/utils";
 import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
-import { SectionTabs } from "@/components/ui/section-tabs";
 import { PageHeader } from "@/components/ui/page-header";
 import { Moon, Sun, Compass, Cloud } from "lucide-react";
 
@@ -156,14 +155,10 @@ export default function SettingsPage() {
           subtitle="White-label configuration, Records Editor, and system preferences."
           badge="Settings"
           accent={theme.colors.brand}
-        />
-
-        <SectionTabs
-          ariaLabel="Settings sections"
-          items={TABS}
-          value={tab}
-          onChange={(id) => setTab(id as SettingsTab)}
-          accent={theme.colors.brand}
+          tabs={TABS}
+          tabsValue={tab}
+          onTabChange={(id) => setTab(id as SettingsTab)}
+          tabsAriaLabel="Settings sections"
         />
 
         {tab === "records" && (
