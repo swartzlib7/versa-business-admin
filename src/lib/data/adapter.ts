@@ -20,6 +20,34 @@ export interface TaskFilters {
   q?: string;
 }
 
+/** Phase 3 — create user (password optional; hashed only on postgres path). */
+export interface CreateUserInput {
+  email: string;
+  name: string;
+  role?: User["role"];
+  type?: User["type"];
+  status?: User["status"];
+  department?: string;
+  department_id?: string;
+  bio?: string;
+  password?: string;
+  data?: Record<string, unknown>;
+}
+
+/** Phase 3 — partial update; data JSONB is merged, not replaced. */
+export interface UpdateUserInput {
+  email?: string;
+  name?: string;
+  role?: User["role"];
+  type?: User["type"];
+  status?: User["status"];
+  department?: string;
+  department_id?: string | null;
+  bio?: string;
+  password?: string;
+  data?: Record<string, unknown>;
+}
+
 export interface DataAdapter {
   listAgents(status?: string): Promise<Agent[]>;
   getAgent(id: string): Promise<Agent | null>;
@@ -34,9 +62,11 @@ export interface DataAdapter {
   listServices(): Promise<Service[]>;
   listProducts(): Promise<Product[]>;
   listStaff(): Promise<StaffMember[]>;
-  // Users (I5)
+  // Users (I5 + Phase 3 writes)
   listUsers(type?: string): Promise<User[]>;
   getUser(id: string): Promise<User | null>;
+  createUser?(input: CreateUserInput): Promise<User>;
+  updateUser?(id: string, input: UpdateUserInput): Promise<User | null>;
   // Mission Control facets (I5.3)
   listOtherSystems(): Promise<OtherSystem[]>;
   listSupportTickets(): Promise<SupportTicket[]>;
@@ -68,6 +98,7 @@ import { knowledgeArticles as knowledgeArticleFixtures } from '@/lib/fixtures/kn
 let mutableAgents: Agent[] = [...agentFixtures];
 let mutableProjects: Project[] = [...projectFixtures];
 let mutableTasks: Task[] = [...taskFixtures];
+let mutableUsers = userFixtures.map((u) => ({ ...u, data: u.data ? { ...u.data } : {} }));
 
 export function resetAgents(): void {
   mutableAgents = [...agentFixtures];
@@ -173,7 +204,7 @@ export const fixtureAdapter: DataAdapter = {
   },
 
   async listUsers(type?: string) {
-    let result = userFixtures.map(({ password, ...u }) => u);
+    let result = mutableUsers.map(({ password, ...u }) => u);
     if (type) {
       result = result.filter((u) => u.type === type);
     }
@@ -181,9 +212,91 @@ export const fixtureAdapter: DataAdapter = {
   },
 
   async getUser(id: string) {
-    const found = userFixtures.find((u) => u.id === id);
+    const found = mutableUsers.find((u) => u.id === id);
     if (!found) return null;
     const { password, ...user } = found;
+    return user;
+  },
+
+  async createUser(input: CreateUserInput) {
+    const email = (input.email || "").trim().toLowerCase();
+    const name = (input.name || "").trim();
+    if (!email || !name) {
+      throw new Error("VALIDATION: email and name are required");
+    }
+    if (mutableUsers.some((u) => u.email.toLowerCase() === email)) {
+      throw new Error("CONFLICT: email already exists");
+    }
+    const role = input.role ?? "member";
+    const type = input.type ?? "human";
+    const status = input.status ?? "active";
+    if (!["admin", "member"].includes(role)) throw new Error("VALIDATION: invalid role");
+    if (!["human", "agent"].includes(type)) throw new Error("VALIDATION: invalid type");
+    if (!["active", "inactive"].includes(status)) throw new Error("VALIDATION: invalid status");
+    const id = `user-${Date.now().toString(36)}`;
+    const data = { ...(input.data ?? {}) };
+    if (input.bio !== undefined) data.bio = input.bio;
+    if (input.department) data.department = input.department;
+    const row = {
+      id,
+      email,
+      name,
+      role,
+      type,
+      status,
+      department: input.department ?? (typeof data.department === "string" ? data.department : ""),
+      department_id: input.department_id,
+      bio: input.bio ?? (typeof data.bio === "string" ? String(data.bio) : ""),
+      password: input.password ?? "changeme",
+      data,
+    };
+    mutableUsers.push(row);
+    const { password: _p, ...user } = row;
+    return user;
+  },
+
+  async updateUser(id: string, input: UpdateUserInput) {
+    const idx = mutableUsers.findIndex((u) => u.id === id);
+    if (idx < 0) return null;
+    const cur = mutableUsers[idx];
+    if (input.email !== undefined) {
+      const email = input.email.trim().toLowerCase();
+      if (!email) throw new Error("VALIDATION: email cannot be empty");
+      if (mutableUsers.some((u) => u.id !== id && u.email.toLowerCase() === email)) {
+        throw new Error("CONFLICT: email already exists");
+      }
+      cur.email = email;
+    }
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      if (!name) throw new Error("VALIDATION: name cannot be empty");
+      cur.name = name;
+    }
+    if (input.role !== undefined) {
+      if (!["admin", "member"].includes(input.role)) throw new Error("VALIDATION: invalid role");
+      cur.role = input.role;
+    }
+    if (input.type !== undefined) {
+      if (!["human", "agent"].includes(input.type)) throw new Error("VALIDATION: invalid type");
+      cur.type = input.type;
+    }
+    if (input.status !== undefined) {
+      if (!["active", "inactive"].includes(input.status)) throw new Error("VALIDATION: invalid status");
+      cur.status = input.status;
+    }
+    if (input.department !== undefined) cur.department = input.department;
+    if (input.department_id !== undefined) cur.department_id = input.department_id ?? undefined;
+    if (input.password !== undefined) cur.password = input.password;
+    const data = { ...(cur.data ?? {}) };
+    if (input.data) Object.assign(data, input.data);
+    if (input.bio !== undefined) {
+      cur.bio = input.bio;
+      data.bio = input.bio;
+    }
+    if (input.department !== undefined) data.department = input.department;
+    cur.data = data;
+    mutableUsers[idx] = cur;
+    const { password: _p, ...user } = cur;
     return user;
   },
 
@@ -241,6 +354,14 @@ function createAdapter(): DataAdapter {
     ...fixtureAdapter,
     listUsers: (type?: string) => postgresAdapter.listUsers(type),
     getUser: (id: string) => postgresAdapter.getUser(id),
+    createUser: (input) => {
+      if (!postgresAdapter.createUser) throw new Error("createUser not available");
+      return postgresAdapter.createUser(input);
+    },
+    updateUser: (id, input) => {
+      if (!postgresAdapter.updateUser) throw new Error("updateUser not available");
+      return postgresAdapter.updateUser(id, input);
+    },
     healthCheck: () => postgresAdapter.healthCheck(),
   };
 }

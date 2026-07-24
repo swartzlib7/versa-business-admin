@@ -99,7 +99,7 @@ Do not invent agent-fleet endpoints. Grow toward zone entities per `state_i5_6_z
 |----|------|----------|
 | API-1 | Keep this doc in sync when routes change | ongoing |
 | API-2 | Decide API series bump vs keep 0.4.0 capability label | Stephen/COA |
-| API-3 | Document write methods (POST/PATCH) when implemented | when built |
+| API-3 | Document write methods (POST/PATCH) when implemented | **done 2026-07-23** |
 | API-4 | Zone entity routes after ERD baseline lock | blocked on I5.6 baseline |
 | API-5 | Deprecation timeline for `/api/agents*` | later |
 
@@ -119,3 +119,17 @@ Do not invent agent-fleet endpoints. Grow toward zone entities per `state_i5_6_z
 
 Full prior endpoint examples and JSON samples remain useful history. Prefer the inventory tables above for truth; when implementing, re-verify handlers. Original long-form examples lived in `docs/api/API_CONTRACT.md` pre-fold (git history + optional copy under `__archive/` if restored).
 
+
+
+## API-3 — User writes (Phase 3, 2026-07-23)
+
+| Method | Route | Auth | Notes |
+|--------|-------|------|-------|
+| POST | `/api/users` | session + admin | Body: email, name; optional role, type, status, department, department_id, bio, password, data. 201 + user. |
+| PATCH | `/api/users/{id}` | session + admin or self | Partial update; `data` JSON merged. Members cannot change role/type/status. |
+
+Errors: 400 VALIDATION_ERROR, 403 FORBIDDEN, 409 CONFLICT (email), 404 NOT_FOUND.
+
+Adapter: `createUser` / `updateUser` on fixture (in-memory) and postgres paths. Hybrid DATA_SOURCE=postgres routes User writes to DB.
+
+Product version: **0.7.51**.

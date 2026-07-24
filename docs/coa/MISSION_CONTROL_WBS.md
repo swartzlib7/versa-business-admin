@@ -13,7 +13,7 @@
 | Track | What it is | Status now | Waiting on |
 |-------|------------|------------|------------|
 | **A. Hub / org-board UI** | 3D + zone IA + Records Editor | **I5.6.32c+** Settings section tabs; sample Public/Treasury fixture types removed; Records Editor nested sections | Stephen: preview Settings tabs + empty faculty Records |
-| **B. DB cutover** | Move data from fixtures → Postgres (Drizzle) | **Phase 0–2**: seed script + User list/get + bcrypt login; hybrid adapter (Users from PG, rest fixture) | Phase 3 writes still gated |
+| **B. DB cutover** | Move data from fixtures → Postgres (Drizzle) | **Phase 0–2**: seed script + User list/get + bcrypt login; hybrid adapter (Users from PG, rest fixture) | Phase 3 User writes authorized 2026-07-23 (POST/PATCH /api/users) |
 | **C. Broader Mission** | API writes, more zones, polish, production | Later phases | After B Phase 2–4 |
 
 ### Canonical preview (how to open the app)

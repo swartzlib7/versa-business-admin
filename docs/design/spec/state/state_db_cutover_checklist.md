@@ -492,11 +492,11 @@ Binary checks Stephen/COA can sign:
 - [ ] No TypeScript errors, npm run build passes
 
 ### Phase 3 -- Writes
-- [ ] POST /api/users creates a user in DB
-- [ ] PATCH /api/users/[id] updates user fields + merges data JSON
-- [ ] Write methods enforce RBAC (admin-only for create, admin-or-self for update)
-- [ ] Write methods validate required fields per field_definition catalog
-- [ ] API contract doc updated with write method signatures (API-3)
+- [x] POST /api/users creates a user in DB (fixture always; postgres when DATA_SOURCE=postgres)
+- [x] PATCH /api/users/[id] updates user fields + merges data JSON
+- [x] Write methods enforce RBAC (admin-only for create, admin-or-self for update)
+- [ ] Write methods validate required fields per field_definition catalog (basic required email/name + enums; full catalog validation later)
+- [x] API contract doc updated with write method signatures (API-3)
 
 ### Phase 4 -- Roll to Project/Task/Product
 - [ ] GET /api/projects returns from DB
