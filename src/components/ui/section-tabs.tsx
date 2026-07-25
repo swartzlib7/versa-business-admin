@@ -43,7 +43,7 @@ export function SectionTabs({
       className={cn(
         noSticky
           ? "flex flex-wrap gap-1 border-b border-border pb-px"
-          : "sticky top-[5.5rem] z-20 flex flex-wrap gap-1 border-b border-border bg-background/95 pb-px backdrop-blur supports-[backdrop-filter]:bg-background/80",
+          : "sticky top-14 z-20 flex flex-wrap gap-1 border-b border-border bg-background pb-px",
         className,
       )}
     >
