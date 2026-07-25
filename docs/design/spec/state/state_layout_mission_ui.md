@@ -118,3 +118,14 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 
 **Branch:** `dev/ui-recovery-2026-07-24` (do not commit recovery fixes to beta until COA verify + Stephen OK).
 
+
+### Verified delivery (2026-07-24 night)
+
+| Item | Result |
+|------|--------|
+| Commit | `b4483bc` on `dev/ui-recovery-2026-07-24` |
+| Twin | `twinAnimSpeed = 0` all zones |
+| Description once | Removed TabPanel stable-slot `<p>{panel.summary}</p>`; single render in FormPanel / EntityListing header |
+| Sub-tabs | SubTabBar path unchanged; web-dev SSR smoke org total=1 (was 2) |
+| COA code review | PASS — await Stephen visual OK before beta merge |
+
