@@ -516,7 +516,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
   return (
     <div className="space-y-4">
       {/* I5.6.34 — single sticky container: zone header + primary tabs together */}
-      <div className="sticky top-14 z-20 flex flex-col gap-3 bg-background pb-3 pt-1">
+      <div className="flex flex-col gap-3 bg-background pb-3 pt-1">
         {/* Row 1: zone identity + actions */}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">

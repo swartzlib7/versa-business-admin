@@ -35,7 +35,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "sticky top-14 z-20 flex flex-col gap-3 bg-background pb-3 pt-1",
+        "flex flex-col gap-3 bg-background pb-3 pt-1",
         className,
       )}
     >

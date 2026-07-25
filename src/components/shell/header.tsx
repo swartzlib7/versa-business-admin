@@ -45,7 +45,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-border bg-background px-4 lg:px-6">
+    <header className="flex h-14 items-center gap-4 border-b border-border bg-background px-4 lg:px-6">
       <Button
         variant="outline"
         size="icon"
