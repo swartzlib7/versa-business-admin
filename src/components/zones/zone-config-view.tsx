@@ -416,8 +416,6 @@ function TabPanel({
           ariaLabel={`${tab.label} sub-elements`}
         />
       )}
-      {/* Active sub-tab description — always visible, stable position */}
-      <p className="text-sm text-muted-foreground">{panel.summary}</p>
       {presentation === "listing" ? (
         <ListingPanel panel={panel} accent={accent} />
       ) : (
@@ -486,7 +484,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
     [config]
   );
 
-  const twinAnimSpeed = config.id === "organization" ? 1 : 0;
+  const twinAnimSpeed = 0; // I5.6.35 - all zone twins static (Stephen lock)
 
   const twinStorageKey = `mc.spatialTwinOpen.${config.id}`;
   const [twinOpen, setTwinOpen] = useState(true);
