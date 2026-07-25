@@ -116,6 +116,7 @@ export function RecordsEditor() {
         value={section}
         onChange={(id) => setSection(id as "types" | "fields" | "picklists")}
         accent={theme.colors.brand}
+        noSticky
         items={[
           { id: "types", label: "Types", hint: "Parents and named record types" },
           { id: "fields", label: "Fields", hint: "Extend selected type fields" },

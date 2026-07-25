@@ -90,3 +90,42 @@ Spatial node positions, orbit rules, and zone tab ownership live in **`state_i5_
 
 Sidebar top-level **Projects / Tasks / Products** removed. Access via Organization zone (Executive / Production). Deep-link routes remain. Favorites/shortcuts deferred.
 
+## I5.6.34+ UI recovery hold (2026-07-24)
+
+**Stephen:** Unhappy with UI after web-dev handoff; Twin inconsistent/animated across pages without request; zone layouts worse than earlier better state.
+
+**Branch:** `dev/ui-recovery-2026-07-24` (from beta 204b762) — full tip union verified (coa + web-dev + origin all in beta).
+
+**Twin fact:** `twinAnimSpeed = organization ? 1 : 0` since I5.6.19 (COA); I5.6.31 set dashboard static default but left org twin live. 0.7.54 did not change behavior.
+
+**Hold:** No new web-dev UI slices until Stephen picks recovery path. Full write-up: `docs/coa/UI_RECOVERY_REVIEW_2026-07-24.md`.
+
+
+## I5.6.35 — Stephen recovery path locked (2026-07-24 evening)
+
+**Stephen decisions (msg int_ac05a5e2ff384146):**
+1. **Twin:** relevant element/zone only; **no animation** on zone twins. Zoom levels OK as-is.
+2. **Duplicate sub-heading:** On Organization (and same layout pattern), summary/sub-heading must appear **once**. Remove the **top** duplicate; keep a single description. Apply as design pattern on all pages using this layout style (zone `ZoneConfigView`, and any PageHeader/section stack that repeats the same blurb).
+3. **Sub-tabs:** Primary tab badge e.g. Executive (4) implies nested sub-tabs **must be visible**. Restore if missing (regression vs I5.6.34 intent).
+4. **Process:** COA judges SE skill gaps + statefold need, reports to Stephen; **web-dev implements** the fixes from current work state.
+
+**Code targets:**
+- `zone-config-view.tsx`: `twinAnimSpeed = 0` all zones; TabPanel must not render `panel.summary` both above body **and** inside `FormPanel` CardHeader — one surface only (prefer single description in stable slot **or** in card header, not both; Stephen: drop the **first/top** instance).
+- `SubTabBar` must render whenever `tab.children?.length > 0` (badge count = children+1); verify not covered by sticky chrome / not gated incorrectly.
+- Pattern pages: Settings/Glossary/Users via `PageHeader` — audit for double description.
+
+**Statefold:** This section + zone ERD twin note are the contract. Handoff must cite them. No parallel spec files.
+
+**Branch:** `dev/ui-recovery-2026-07-24` (do not commit recovery fixes to beta until COA verify + Stephen OK).
+
+
+### Verified delivery (2026-07-24 night)
+
+| Item | Result |
+|------|--------|
+| Commit | `b4483bc` on `dev/ui-recovery-2026-07-24` |
+| Twin | `twinAnimSpeed = 0` all zones |
+| Description once | Removed TabPanel stable-slot `<p>{panel.summary}</p>`; single render in FormPanel / EntityListing header |
+| Sub-tabs | SubTabBar path unchanged; web-dev SSR smoke org total=1 (was 2) |
+| COA code review | PASS — await Stephen visual OK before beta merge |
+

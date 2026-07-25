@@ -416,8 +416,6 @@ function TabPanel({
           ariaLabel={`${tab.label} sub-elements`}
         />
       )}
-      {/* Active sub-tab description — always visible, stable position */}
-      <p className="text-sm text-muted-foreground">{panel.summary}</p>
       {presentation === "listing" ? (
         <ListingPanel panel={panel} accent={accent} />
       ) : (
@@ -486,7 +484,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
     [config]
   );
 
-  const twinAnimSpeed = config.id === "organization" ? 1 : 0;
+  const twinAnimSpeed = 0; // I5.6.35 - all zone twins static (Stephen lock)
 
   const twinStorageKey = `mc.spatialTwinOpen.${config.id}`;
   const [twinOpen, setTwinOpen] = useState(true);
@@ -518,7 +516,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
   return (
     <div className="space-y-4">
       {/* I5.6.34 — single sticky container: zone header + primary tabs together */}
-      <div className="sticky top-14 z-20 flex flex-col gap-3 bg-background/95 pb-3 pt-1 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="flex flex-col gap-3 bg-background pb-3 pt-1">
         {/* Row 1: zone identity + actions */}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
@@ -669,6 +667,11 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
                 ringGap={1}
                 sphereScale={1}
                 cameraFitZone={config.id}
+                zoneVisible={{
+                  organization: config.id === 'organization',
+                  collaboration: config.id === 'collaboration',
+                  environment: config.id === 'environment',
+                }}
                 focusedNodeId={focusedNodeId}
                 onNodeClick={handleNodeClick}
               />
