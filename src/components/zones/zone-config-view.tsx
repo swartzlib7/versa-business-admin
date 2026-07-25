@@ -667,6 +667,11 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
                 ringGap={1}
                 sphereScale={1}
                 cameraFitZone={config.id}
+                zoneVisible={{
+                  organization: config.id === 'organization',
+                  collaboration: config.id === 'collaboration',
+                  environment: config.id === 'environment',
+                }}
                 focusedNodeId={focusedNodeId}
                 onNodeClick={handleNodeClick}
               />
