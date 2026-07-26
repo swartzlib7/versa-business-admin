@@ -17,12 +17,12 @@ export function AppShell({
       <div className="hidden lg:block">
         <Sidebar />
       </div>
-      <div className={cn("flex flex-1 flex-col lg:pl-56", fillViewport ? "h-svh min-h-0 min-w-0" : "min-h-svh")}>
+      <div className={cn("flex flex-1 flex-col lg:pl-56", fillViewport ? "min-h-svh lg:h-svh lg:min-h-0 min-w-0" : "min-h-svh")}>
         <Header />
         <main
           className={cn(
             "flex-1 p-4 lg:p-6",
-            fillViewport ? "flex min-h-0 min-w-0 flex-col overflow-y-auto" : ""
+            fillViewport ? "flex min-h-0 min-w-0 flex-col overflow-y-auto lg:overflow-y-auto" : ""
           )}
         >
           {children}

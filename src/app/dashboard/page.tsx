@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [showZoneColors, setShowZoneColors] = useState(true);
   const [showFloor, setShowFloor] = useState(true);
   const [animOn, setAnimOn] = useState(false); // I5.6.36 — separate anim toggle
+  const [showCamTel, setShowCamTel] = useState(false); // I5.6.36 #203 — camera info toggle (default OFF)
   const animSpeed = animOn ? 5 : 0; // default speed when on
   const [ringGap, setRingGap] = useState(1);
   const [sphereScale, setSphereScale] = useState(1);
@@ -215,6 +216,15 @@ export default function DashboardPage() {
                   <span>Spheres {sphereScale}x</span>
                 </Button>
                 <Button
+                  variant={showCamTel ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowCamTel((v) => !v)}
+                  title={showCamTel ? "Hide camera info" : "Show camera info"}
+                  className="gap-1.5"
+                >
+                  <span className="hidden sm:inline">Camera</span>
+                </Button>
+                <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setExpanded(true)}
@@ -243,7 +253,8 @@ export default function DashboardPage() {
                 onShowFloorChange={setShowFloor}
                 showCanvasChrome={false}
                 animSpeed={animSpeed}
-                
+                showCameraTelemetry={showCamTel}
+                onShowCameraTelemetryChange={setShowCamTel}
                 ringGap={ringGap}
                 onRingGapChange={setRingGap}
                 sphereScale={sphereScale}
@@ -336,6 +347,15 @@ export default function DashboardPage() {
                   <span>Spheres {sphereScale}x</span>
                 </Button>
                 <Button
+                  variant={showCamTel ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowCamTel((v) => !v)}
+                  title={showCamTel ? "Hide camera info" : "Show camera info"}
+                  className="gap-1.5"
+                >
+                  <span className="hidden sm:inline">Camera</span>
+                </Button>
+                <Button
                   variant="default"
                   size="sm"
                   onClick={() => setExpanded(false)}
@@ -368,7 +388,8 @@ export default function DashboardPage() {
                 onShowFloorChange={setShowFloor}
                 showCanvasChrome={false}
                 animSpeed={animSpeed}
-                
+                showCameraTelemetry={showCamTel}
+                onShowCameraTelemetryChange={setShowCamTel}
                 ringGap={ringGap}
                 onRingGapChange={setRingGap}
                 sphereScale={sphereScale}

@@ -75,8 +75,10 @@ interface MissionControlSceneProps {
   showLegend?: boolean;
   /** Show top-right view gizmo Front/Left/Angle (default true). */
   showViewGizmo?: boolean;
-  /** Show bottom-right camera telemetry readout (default true). */
+  /** Show camera telemetry readout (default false). */
   showCameraTelemetry?: boolean;
+  /** Notify parent when camera telemetry toggle changes. */
+  onShowCameraTelemetryChange?: (show: boolean) => void;
   /** Optional className on outer scene wrapper. */
   className?: string;
   /**
@@ -1019,7 +1021,8 @@ export function MissionControlScene({
   zoneVisible: zoneVisibleProp,
   showLegend = true,
   showViewGizmo = true,
-  showCameraTelemetry = true,
+  showCameraTelemetry: showCameraTelemetryProp = false,
+  onShowCameraTelemetryChange,
   className,
   cameraFitZone,
 }: MissionControlSceneProps) {
@@ -1052,7 +1055,14 @@ export function MissionControlScene({
   const showFloor = showFloorProp ?? internalFloor;
   const controlsRef = useRef<any>(null);
   const [camTel, setCamTel] = useState<CameraTelemetry | null>(null);
+  const [internalCamTel, setInternalCamTel] = useState(false);
   const onCamTel = useCallback((t: CameraTelemetry) => setCamTel(t), []);
+  const showCameraTelemetry = showCameraTelemetryProp ?? internalCamTel;
+  const toggleCamTel = () => {
+    const next = !showCameraTelemetry;
+    setInternalCamTel(next);
+    onShowCameraTelemetryChange?.(next);
+  };
 
   /** I5.5.13 / I5.6.3 view gizmo: Front, Left, Angle (= Stephen default) */
   const setCameraView = (view: "front" | "left" | "tlf") => {
@@ -1184,8 +1194,8 @@ export function MissionControlScene({
   // I5.6.16/20: className lets zone pages fill a column (h-full); default hub height 750px (I5.6.20 +50%).
   const containerClass = cn(
     expanded
-      ? "relative h-full w-full min-h-[750px] overflow-hidden"
-      : "relative h-[750px] w-full rounded-lg border border-border overflow-hidden transition-colors",
+      ? "flex h-full w-full min-h-[750px] flex-col"
+      : "flex h-[750px] w-full flex-col rounded-lg border border-border transition-colors",
     className
   );
 
@@ -1194,6 +1204,7 @@ export function MissionControlScene({
       className={containerClass}
       style={{ backgroundColor: palette.background }}
     >
+      <div className="relative flex-1 overflow-hidden">
       <Canvas
         camera={{
           position: cameraFitZone
@@ -1301,6 +1312,14 @@ export function MissionControlScene({
           >
             Spheres {sphereScale}x
           </button>
+          <button
+            type="button"
+            onClick={toggleCamTel}
+            className={"rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors " + (showCameraTelemetry ? "border-primary bg-primary/10 text-primary" : "border-border bg-background/90 hover:bg-muted")}
+            title={showCameraTelemetry ? "Hide camera info" : "Show camera info"}
+          >
+            Camera
+          </button>
         </div>
       )}
 
@@ -1337,9 +1356,11 @@ export function MissionControlScene({
       </div>
       )}
 
-      {/* I5.6.1 camera / zoom readout - for Stephen to capture default view */}
+      </div>
+
+      {/* I5.6.1 camera / zoom readout - below canvas in normal flow (I5.6.36 #203) */}
       {showCameraTelemetry && (
-      <div className="absolute bottom-3 right-3 z-20 max-w-[min(100%,20rem)] rounded-md border border-border bg-background/90 px-3 py-2 font-mono text-[10px] leading-relaxed shadow-sm backdrop-blur">
+      <div className="mt-2 max-w-full rounded-md border border-border bg-muted/30 px-3 py-2 font-mono text-[10px] leading-relaxed">
         <div className="mb-1 flex items-center justify-between gap-2">
           <span className="text-[10px] font-sans font-semibold uppercase tracking-wide text-muted-foreground">
             Camera

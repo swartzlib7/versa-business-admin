@@ -334,7 +334,8 @@ function SubTabBar({
       <div
         role="tablist"
         aria-label={ariaLabel}
-        className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/20 p-1"
+        className="flex flex-wrap gap-1 rounded-lg border p-1"
+        style={{ borderColor: accent + "33", backgroundColor: accent + "0d" }}
       >
         {subTabs.map((c) => {
           const on = c.id === activeId;
@@ -395,7 +396,8 @@ function TabPanel({
   );
 
   const subTabs = useMemo(() => {
-    if (!tab.children?.length) return null;
+    // I5.6.36 #203 — always show subtab bar, even for tabs without children
+    if (!tab.children?.length) return [selfPanel];
     return [selfPanel, ...tab.children];
   }, [tab.children, selfPanel]);
 
@@ -410,15 +412,13 @@ function TabPanel({
   // I5.6.34 — sub-tab strip + description in stable position; body only changes
   return (
     <div className="space-y-3">
-      {subTabs && subTabs.length > 0 && (
-        <SubTabBar
-          subTabs={subTabs}
-          activeId={panel.id}
-          accent={accent}
-          onSelect={setChildId}
-          ariaLabel={`${tab.label} sub-elements`}
-        />
-      )}
+      <SubTabBar
+        subTabs={subTabs}
+        activeId={panel.id}
+        accent={accent}
+        onSelect={setChildId}
+        ariaLabel={`${tab.label} sub-elements`}
+      />
       {presentation === "listing" ? (
         <ListingPanel panel={panel} accent={accent} />
       ) : (
@@ -613,13 +613,13 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
       <div
         className={cn(
           "grid gap-4 transition-[grid-template-columns] duration-300 ease-in-out",
-          twinOpen ? "lg:grid-cols-5" : "lg:grid-cols-1"
+          twinOpen ? "lg:grid-cols-4" : "lg:grid-cols-1"
         )}
       >
         <div
           className={cn(
             "min-w-0 transition-all duration-300",
-            twinOpen ? "lg:col-span-3" : "lg:col-span-1"
+            twinOpen ? "lg:col-span-2" : "lg:col-span-1"
           )}
         >
           {tab && (
@@ -635,7 +635,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
         {twinOpen && (
           <div
             id={`spatial-twin-drawer-${config.id}`}
-            className="flex min-h-[380px] flex-col lg:col-span-2"
+            className="flex min-h-[380px] flex-col lg:col-span-2 lg:aspect-[4/3]"
             data-hydrated={twinHydrated ? "1" : "0"}
           >
             <div className="mb-2 flex items-center justify-between gap-2">
