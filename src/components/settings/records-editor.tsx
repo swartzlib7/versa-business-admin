@@ -26,7 +26,15 @@ export function RecordsEditor() {
   const [parents, setParents] = useState<Parent[]>([]);
   const [types, setTypes] = useState<RT[]>([]);
   const [valueSets, setValueSets] = useState<VS[]>([]);
-  const [selectedParent, setSelectedParent] = useState("faculty:public");
+  const [selectedParent, setSelectedParent] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const pk = params.get('parent_kind');
+      const pa = params.get('parent_api_name');
+      if (pk && pa) return `${pk}:${pa}`;
+    }
+    return "faculty:public";
+  });
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [fields, setFields] = useState<FD[]>([]);
   const [error, setError] = useState<string | null>(null);

@@ -383,7 +383,10 @@ function TabPanel({
       summary: tab.summary,
       fields: tab.fields,
       relations: tab.relations,
-      links: tab.links,
+      links: [
+        ...(tab.links ?? []),
+        { href: "/settings?tab=records", label: "record types" },
+      ],
       presentation: undefined,
       listColumns: undefined,
       sampleRows: undefined,

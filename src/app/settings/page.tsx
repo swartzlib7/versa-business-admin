@@ -132,7 +132,16 @@ function AppearancePanel() {
 }
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<SettingsTab>("records");
+  const [tab, setTab] = useState<SettingsTab>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('tab');
+      if (q && ['records', 'branding', 'appearance', 'system'].includes(q)) {
+        return q as SettingsTab;
+      }
+    }
+    return 'records';
+  });
   const [brandName, setBrandName] = useState<string>(theme.brand.name);
   const [brandColor, setBrandColor] = useState<string>(theme.colors.brand);
   const [saved, setSaved] = useState(false);

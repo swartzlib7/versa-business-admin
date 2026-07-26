@@ -118,6 +118,12 @@ export const valueSets: ValueSet[] = [
     label: 'Product category',
     description: 'Catalog category for Product',
   },
+  {
+    id: 'vs-record-status',
+    api_name: 'record_status',
+    label: 'Record status',
+    description: 'Generic status for faculty record types',
+  },
 ];
 
 export const valueSetItems: ValueSetItem[] = [
@@ -335,6 +341,22 @@ export const valueSetItems: ValueSetItem[] = [
     api_value: 'Knowledge',
     label: 'Knowledge',
     sort_order: 40,
+    active: true,
+  },
+  {
+    id: 'vsi-rs-active',
+    value_set_id: 'vs-record-status',
+    api_value: 'active',
+    label: 'Active',
+    sort_order: 10,
+    active: true,
+  },
+  {
+    id: 'vsi-rs-archived',
+    value_set_id: 'vs-record-status',
+    api_value: 'archived',
+    label: 'Archived',
+    sort_order: 20,
     active: true,
   },
 ];
@@ -1061,7 +1083,26 @@ export const layoutDefinitions: LayoutDefinition[] = [
 
 // Faculty / dynamic record baseline fields (I5.6.32c)
 const facultyRecordFieldSeed: FieldDefinition[] = [
-  // Placeholder faculty record fields removed 2026-07-23 (Stephen).
+  // --- public_record ---
+  { id: 'fd-pr-name', object_api_name: 'public_record', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fd-pr-status', object_api_name: 'public_record', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fd-pr-mandate', object_api_name: 'public_record', api_name: 'mandate', label: 'Mandate', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  // --- communication_log ---
+  { id: 'fd-cl-name', object_api_name: 'communication_log', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fd-cl-status', object_api_name: 'communication_log', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fd-cl-channel', object_api_name: 'communication_log', api_name: 'channel', label: 'Channel', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  // --- dissemination_channel ---
+  { id: 'fd-dc-name', object_api_name: 'dissemination_channel', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fd-dc-status', object_api_name: 'dissemination_channel', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fd-dc-type', object_api_name: 'dissemination_channel', api_name: 'channel_type', label: 'Channel type', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  // --- treasury_item ---
+  { id: 'fd-ti-name', object_api_name: 'treasury_item', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fd-ti-status', object_api_name: 'treasury_item', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fd-ti-amount', object_api_name: 'treasury_item', api_name: 'amount', label: 'Amount', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  // --- qualification_record ---
+  { id: 'fd-qr-name', object_api_name: 'qualification_record', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fd-qr-status', object_api_name: 'qualification_record', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fd-qr-standard', object_api_name: 'qualification_record', api_name: 'standard', label: 'Standard', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
 ];
 
 // ---------------------------------------------------------------------------
@@ -1114,6 +1155,51 @@ export const objectDefinitions: ObjectDefinition[] = [
     core_kind: 'typed_table',
     instance_collection: '/api/public/products',
     extensible: true,
+  },
+  {
+    api_name: 'public_record',
+    label: 'Public records',
+    description: 'Public-facing mandates and announcements.',
+    core_kind: 'faculty_record',
+    instance_collection: null,
+    extensible: true,
+    faculty: 'public',
+  },
+  {
+    api_name: 'communication_log',
+    label: 'Communication logs',
+    description: 'Internal and external communication entries.',
+    core_kind: 'faculty_record',
+    instance_collection: null,
+    extensible: true,
+    faculty: 'communications',
+  },
+  {
+    api_name: 'dissemination_channel',
+    label: 'Dissemination channels',
+    description: 'Outbound distribution and publishing channels.',
+    core_kind: 'faculty_record',
+    instance_collection: null,
+    extensible: true,
+    faculty: 'dissemination',
+  },
+  {
+    api_name: 'treasury_item',
+    label: 'Treasury items',
+    description: 'Cash, billing, and AR/AP items.',
+    core_kind: 'faculty_record',
+    instance_collection: null,
+    extensible: true,
+    faculty: 'treasury',
+  },
+  {
+    api_name: 'qualification_record',
+    label: 'Qualification records',
+    description: 'Quality, compliance, and certification records.',
+    core_kind: 'faculty_record',
+    instance_collection: null,
+    extensible: true,
+    faculty: 'qualification',
   },
           ];
 

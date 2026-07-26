@@ -1,9 +1,11 @@
 /**
  * I5.6.32c — Merge Records Editor types into zone tab children.
+ * Instance data comes from record-instances fixture (32c.5).
  */
 import type { ZoneTab } from "@/components/zones/zone-config-view";
 import { listRecordTypes } from "@/lib/fixtures/record-types";
 import { listFieldDefinitions } from "@/lib/fixtures/catalog";
+import { listInstances } from "@/lib/fixtures/record-instances";
 
 const BAKED_IN_CHILD_IDS = new Set([
   "policy",
@@ -52,10 +54,34 @@ export function applyRecordTypesToTab(
   const dynamicChildren: ZoneTab[] = types.map((t) => {
     const fieldDefs = listFieldDefinitions(t.object_api_name);
     const listColumns = fieldDefs.slice(0, 4).map((f) => f.label);
-    const sample =
-      fieldDefs.length > 0
-        ? [fieldDefs.slice(0, 4).map((f) => (f.default_value ?? f.label))]
-        : [["Sample", "active"]];
+    const fields = fieldsFromCatalog(t.object_api_name);
+
+    // Fetch instance data for this type + parent (32c.5)
+    const instances = listInstances({
+      type_api_name: t.api_name,
+      parent_kind: parentKind,
+      parent_api_name: tab.id,
+    });
+
+    let sampleRows: string[][];
+    if (instances.length > 0) {
+      sampleRows = instances.map((inst) => {
+        const row: string[] = [];
+        for (const col of (listColumns.length ? listColumns : ["Name", "Status"])) {
+          if (col.toLowerCase() === "name") row.push(inst.name);
+          else if (col.toLowerCase() === "status") row.push(inst.status);
+          else row.push(inst.data[col] ?? "");
+        }
+        return row;
+      });
+    } else {
+      // Fallback to field defaults if no instances
+      sampleRows =
+        fieldDefs.length > 0
+          ? [fieldDefs.slice(0, 4).map((f) => (f.default_value ?? f.label))]
+          : [["Sample", "active"]];
+    }
+
     return {
       id: `rt-${t.api_name}`,
       label: t.label,
@@ -64,8 +90,8 @@ export function applyRecordTypesToTab(
         `${t.label} (${t.structure}) — managed in Settings → Records Editor.`,
       presentation: t.structure === "header" ? ("form" as const) : ("listing" as const),
       listColumns: listColumns.length ? listColumns : ["Name", "Status"],
-      sampleRows: sample,
-      fields: fieldsFromCatalog(t.object_api_name),
+      sampleRows,
+      fields,
       relations: tab.relations ?? [],
     };
   });
