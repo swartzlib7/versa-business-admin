@@ -635,7 +635,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
         {twinOpen && (
           <div
             id={`spatial-twin-drawer-${config.id}`}
-            className="flex min-h-[380px] flex-col lg:col-span-2 lg:aspect-[4/3]"
+            className="flex min-h-[380px] flex-col lg:col-span-2 lg:min-h-[500px]"
             data-hydrated={twinHydrated ? "1" : "0"}
           >
             <div className="mb-2 flex items-center justify-between gap-2">

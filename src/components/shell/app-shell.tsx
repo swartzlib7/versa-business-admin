@@ -13,7 +13,7 @@ export function AppShell({
   fillViewport?: boolean;
 }) {
   return (
-    <div className={cn("flex", fillViewport ? "h-svh overflow-hidden" : "min-h-svh")}>
+    <div className={cn("flex min-w-[400px]", fillViewport ? "h-svh overflow-hidden" : "min-h-svh")}>
       <div className="hidden lg:block">
         <Sidebar />
       </div>
@@ -22,7 +22,7 @@ export function AppShell({
         <main
           className={cn(
             "flex-1 p-4 lg:p-6",
-            fillViewport ? "flex min-h-0 min-w-0 flex-col overflow-y-auto lg:overflow-y-auto" : ""
+            fillViewport ? "flex min-h-0 min-w-0 flex-col overflow-y-auto" : "min-w-0"
           )}
         >
           {children}

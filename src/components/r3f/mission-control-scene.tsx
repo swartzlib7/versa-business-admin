@@ -17,6 +17,25 @@ import {
   type BusinessGraphNode,
 } from "@/lib/fixtures";
 
+// I5.6.37 — track container size to force Canvas re-render on resize (fixes no-reflow bug)
+function useContainerSize<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setSize({ width: rect.width, height: rect.height });
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return { ref, size };
+}
+
 // --- Types ---
 
 export interface SceneNode {
@@ -1199,13 +1218,19 @@ export function MissionControlScene({
     className
   );
 
+  // I5.6.37 — track container size; key forces Canvas re-mount on significant width change
+  const { ref: containerRef, size: containerSize } = useContainerSize<HTMLDivElement>();
+  const canvasKey = Math.round(containerSize.width / 10) * 10; // bucket to nearest 10px to avoid excessive re-mounts
+
   return (
     <div
+      ref={containerRef}
       className={containerClass}
       style={{ backgroundColor: palette.background }}
     >
       <div className="relative flex-1 overflow-hidden">
       <Canvas
+        key={canvasKey}
         camera={{
           position: cameraFitZone
             ? fitCameraPosition(cameraFitZone)
