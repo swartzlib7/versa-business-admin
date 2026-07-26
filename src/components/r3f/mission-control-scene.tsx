@@ -92,9 +92,10 @@ interface MissionControlSceneProps {
 type ScenePalette =
   | typeof theme.scene.dark
   | typeof theme.scene.light
-  | typeof theme.scene.architect;
+  | typeof theme.scene.architect
+  | typeof theme.scene.slate;
 
-type SceneMode = "light" | "dark" | "architect";
+type SceneMode = "light" | "dark" | "architect" | "slate";
 
 function useSceneMode(): SceneMode {
   const [mode, setMode] = useState<SceneMode>("dark");
@@ -102,6 +103,7 @@ function useSceneMode(): SceneMode {
     const check = () => {
       const root = document.documentElement;
       if (root.classList.contains("architect")) setMode("architect");
+      else if (root.classList.contains("slate")) setMode("slate");
       else if (root.classList.contains("dark")) setMode("dark");
       else setMode("light");
     };
@@ -118,6 +120,7 @@ function useSceneMode(): SceneMode {
 
 function getPalette(mode: SceneMode): ScenePalette {
   if (mode === "architect") return theme.scene.architect;
+  if (mode === "slate") return theme.scene.slate;
   if (mode === "dark") return theme.scene.dark;
   return theme.scene.light;
 }
@@ -900,10 +903,10 @@ const ZONE_CAMERA_FIT: Record<
   "organization" | "collaboration" | "environment",
   { radius: number; fill: number }
 > = {
-  // I5.6.18 — Stephen: org/env ~25% less zoomed-in, collab ~10% less
-  organization: { radius: ZONE_RADII[1], fill: 0.68 }, // was 0.85 / 1.25
-  collaboration: { radius: ZONE_RADII[2], fill: 0.773 }, // was 0.85 / 1.10
-  environment: { radius: ZONE_RADII[3], fill: 0.736 }, // was 0.92 / 1.25
+  // I5.6.36 — spheres fill ~80% of the twin box (zoomed out from prior)
+  organization: { radius: ZONE_RADII[1], fill: 0.55 },
+  collaboration: { radius: ZONE_RADII[2], fill: 0.62 },
+  environment: { radius: ZONE_RADII[3], fill: 0.60 },
 };
 
 function fitDistanceForZone(
@@ -1247,41 +1250,42 @@ export function MissionControlScene({
 
       {/* Canvas chrome — omit when parent Mission Control already has controls (I5.5.8) */}
       {showCanvasChrome && (
-        <div className="absolute top-3 left-3 right-3 z-20 flex max-w-full flex-wrap items-center gap-2">
+        <div className="absolute top-3 left-3 right-3 z-20 flex max-w-full flex-wrap items-center gap-1.5">
           <button
             type="button"
-            onClick={() => setShowAxes(!showAxes)}
-            className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+            onClick={cycleSpeed}
+            className={"rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors " + (animSpeed > 0 ? "border-primary bg-primary/10 text-primary" : "border-border bg-background/90 hover:bg-muted")}
+            title={animSpeed > 0 ? "Animation on — click to cycle speed" : "Animation off — click to start"}
           >
-            {showAxes ? "Hide XYZ axes" : "Show XYZ axes"}
+            {animSpeed > 0 ? "Anim " + animSpeed + "x" : "Anim off"}
           </button>
           <button
             type="button"
             onClick={() => setShowRings(!showRings)}
-            className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+            className={"rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors " + (showRings ? "border-primary bg-primary/10 text-primary" : "border-border bg-background/90 hover:bg-muted")}
           >
-            {showRings ? "Hide rings" : "Show rings"}
+            Rings
           </button>
           <button
             type="button"
             onClick={() => setShowZoneColors(!showZoneColors)}
-            className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+            className={"rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors " + (showZoneColors ? "border-primary bg-primary/10 text-primary" : "border-border bg-background/90 hover:bg-muted")}
           >
-            {showZoneColors ? "Hide zone colors" : "Show zone colors"}
+            Colors
           </button>
           <button
             type="button"
             onClick={() => setShowFloor(!showFloor)}
-            className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+            className={"rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors " + (showFloor ? "border-primary bg-primary/10 text-primary" : "border-border bg-background/90 hover:bg-muted")}
           >
-            {showFloor ? "Hide grid floor" : "Show grid floor"}
+            Floor
           </button>
           <button
             type="button"
-            onClick={cycleSpeed}
-            className="rounded-md border border-border bg-background/90 px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur hover:bg-muted"
+            onClick={() => setShowAxes(!showAxes)}
+            className={"rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors " + (showAxes ? "border-primary bg-primary/10 text-primary" : "border-border bg-background/90 hover:bg-muted")}
           >
-            Speed {animSpeed === 0 ? "off" : animSpeed + "x"}
+            Axes
           </button>
           <button
             type="button"

@@ -81,7 +81,19 @@ export const theme = {
       ambientIntensity: 0.35,
       pointLightIntensity: 0.9,
     },
+    // Slate mode scene palette
+    slate: {
+      background: '#1e293b',
+      gridMain: '#475569',
+      gridSub: '#334155',
+      ringGuideColor: '#94a3b8',
+      ringGuideOpacity: 0.5,
+      secondaryLinkColor: '#60a5fa',
+      secondaryLinkOpacity: 0.6,
+      primaryLinkOpacity: 0.55,
+      labelColor: '#cbd5e1',
+      ambientIntensity: 0.35,
+      pointLightIntensity: 0.85,
+    },
   },
 } as const;
-
-export type ThemeConfig = typeof theme;

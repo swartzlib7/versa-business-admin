@@ -22,7 +22,7 @@ export function AppShell({
         <main
           className={cn(
             "flex-1 p-4 lg:p-6",
-            fillViewport ? "flex min-h-0 min-w-[800px] flex-col overflow-y-auto" : ""
+            fillViewport ? "flex min-h-0 min-w-0 flex-col overflow-y-auto" : ""
           )}
         >
           {children}

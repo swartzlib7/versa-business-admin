@@ -6,7 +6,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sun, Moon, Compass, Cloud, Maximize2, Minimize2, X } from "lucide-react";
+import { Sun, Moon, Compass, Cloud, Maximize2, Minimize2, X, Grid3x3, Circle, Layers, Play, Pause, Move, Expand } from "lucide-react";
 import {
   MissionControlScene,
   type SceneNode,
@@ -22,15 +22,12 @@ export default function DashboardPage() {
   const [showRings, setShowRings] = useState(true);
   const [showZoneColors, setShowZoneColors] = useState(true);
   const [showFloor, setShowFloor] = useState(true);
-  const [animSpeed, setAnimSpeed] = useState(0); // I5.6.31 — spheres static by default
+  const [animOn, setAnimOn] = useState(false); // I5.6.36 — separate anim toggle
+  const animSpeed = animOn ? 5 : 0; // default speed when on
   const [ringGap, setRingGap] = useState(1);
   const [sphereScale, setSphereScale] = useState(1);
 
-  const cycleSpeed = () => {
-    const steps = [0, 1, 5, 10, 15, 20]; // I5.6.3
-    const i = steps.indexOf(animSpeed);
-    setAnimSpeed(steps[(i >= 0 ? i + 1 : 1) % steps.length]);
-  };
+  const toggleAnim = () => setAnimOn((v) => !v);
   const cycleGap = () => {
     const steps = [0.75, 1, 1.25, 1.5];
     const i = steps.indexOf(ringGap);
@@ -68,7 +65,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell fillViewport>
-      <div className="flex min-h-[750px] min-w-[800px] w-full flex-1 flex-col gap-6">
+      <div className="flex min-h-[600px] w-full flex-1 flex-col gap-4 lg:gap-6 lg:min-h-[750px]">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Mission Control</h1>
@@ -146,52 +143,86 @@ export default function DashboardPage() {
           <CardHeader>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <CardTitle>Mission Control Hub</CardTitle>
-              <div className="flex max-w-full flex-wrap items-center gap-2">
+              <div className="flex max-w-full flex-wrap items-center gap-1.5">
                 <Button
-                  variant="outline"
+                  variant={animOn ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setShowAxes((v) => !v)}
-                  title="Toggle XYZ axis guides"
+                  onClick={toggleAnim}
+                  title={animOn ? "Animation on — click to pause" : "Animation off — click to play"}
+                  className="gap-1.5"
                 >
-                  {showAxes ? "Hide axes" : "Show axes"}
+                  {animOn ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                  <span className="hidden sm:inline">{animOn ? "Pause" : "Play"}</span>
                 </Button>
                 <Button
-                  variant="outline"
+                  variant={showRings ? "default" : "outline"}
                   size="sm"
                   onClick={() => setShowRings((v) => !v)}
+                  title={showRings ? "Hide zone rings" : "Show zone rings"}
+                  className="gap-1.5"
                 >
-                  {showRings ? "Hide rings" : "Show rings"}
+                  <Circle className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Rings</span>
                 </Button>
                 <Button
-                  variant="outline"
+                  variant={showZoneColors ? "default" : "outline"}
                   size="sm"
                   onClick={() => setShowZoneColors((v) => !v)}
+                  title={showZoneColors ? "Hide zone colors" : "Show zone colors"}
+                  className="gap-1.5"
                 >
-                  {showZoneColors ? "Hide zone colors" : "Show zone colors"}
+                  <Layers className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Colors</span>
+                </Button>
+                <Button
+                  variant={showFloor ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowFloor((v) => !v)}
+                  title={showFloor ? "Hide grid floor" : "Show grid floor"}
+                  className="gap-1.5"
+                >
+                  <Grid3x3 className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Floor</span>
+                </Button>
+                <Button
+                  variant={showAxes ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowAxes((v) => !v)}
+                  title={showAxes ? "Hide XYZ axes" : "Show XYZ axes"}
+                  className="gap-1.5"
+                >
+                  <Move className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Axes</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowFloor((v) => !v)}
+                  onClick={cycleGap}
+                  title="Ring gap multiplier"
+                  className="gap-1.5"
                 >
-                  {showFloor ? "Hide grid floor" : "Show grid floor"}
+                  <Expand className="h-3.5 w-3.5" />
+                  <span>Gap {ringGap}x</span>
                 </Button>
-                <Button variant="outline" size="sm" onClick={cycleSpeed}>
-                  Speed {animSpeed === 0 ? "off" : animSpeed + "x"}
-                </Button>
-                <Button variant="outline" size="sm" onClick={cycleGap}>
-                  Gap {ringGap}x
-                </Button>
-                <Button variant="outline" size="sm" onClick={cycleSphere}>
-                  Spheres {sphereScale}x
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={cycleSphere}
+                  title="Sphere size multiplier"
+                  className="gap-1.5"
+                >
+                  <Circle className="h-3.5 w-3.5" />
+                  <span>Spheres {sphereScale}x</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setExpanded(true)}
+                  title="Full screen"
+                  className="gap-1.5"
                 >
-                  <Maximize2 className="h-4 w-4 mr-1" />
-                  Full screen
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Full</span>
                 </Button>
               </div>
             </div>
@@ -199,7 +230,7 @@ export default function DashboardPage() {
           <CardContent className="flex min-h-0 flex-1 flex-col pt-0">
             {!expanded && (
               <MissionControlScene
-                className="min-h-[750px] h-[min(75vh,900px)] flex-1"
+                className="min-h-[400px] h-[50vh] flex-1 lg:min-h-[750px] lg:h-[min(75vh,900px)]"
                 onNodeClick={handleNodeClick}
                 focusedNodeId={focusedNodeId}
                 expanded={false}
@@ -212,7 +243,7 @@ export default function DashboardPage() {
                 onShowFloorChange={setShowFloor}
                 showCanvasChrome={false}
                 animSpeed={animSpeed}
-                onAnimSpeedChange={setAnimSpeed}
+                
                 ringGap={ringGap}
                 onRingGapChange={setRingGap}
                 sphereScale={sphereScale}
@@ -233,52 +264,85 @@ export default function DashboardPage() {
                   Full screen — restore to return to the dashboard layout
                 </p>
               </div>
-              <div className="flex max-w-full flex-wrap items-center gap-2">
+              <div className="flex max-w-full flex-wrap items-center gap-1.5">
                 <Button
-                  variant="outline"
+                  variant={animOn ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setShowAxes((v) => !v)}
+                  onClick={toggleAnim}
+                  title={animOn ? "Animation on — click to pause" : "Animation off — click to play"}
+                  className="gap-1.5"
                 >
-                  {showAxes ? "Hide XYZ axes" : "Show XYZ axes"}
+                  {animOn ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                  <span className="hidden sm:inline">{animOn ? "Pause" : "Play"}</span>
                 </Button>
                 <Button
-                  variant="outline"
+                  variant={showRings ? "default" : "outline"}
                   size="sm"
                   onClick={() => setShowRings((v) => !v)}
+                  title={showRings ? "Hide zone rings" : "Show zone rings"}
+                  className="gap-1.5"
                 >
-                  {showRings ? "Hide rings" : "Show rings"}
+                  <Circle className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Rings</span>
                 </Button>
                 <Button
-                  variant="outline"
+                  variant={showZoneColors ? "default" : "outline"}
                   size="sm"
                   onClick={() => setShowZoneColors((v) => !v)}
+                  title={showZoneColors ? "Hide zone colors" : "Show zone colors"}
+                  className="gap-1.5"
                 >
-                  {showZoneColors ? "Hide zone colors" : "Show zone colors"}
+                  <Layers className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Colors</span>
+                </Button>
+                <Button
+                  variant={showFloor ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowFloor((v) => !v)}
+                  title={showFloor ? "Hide grid floor" : "Show grid floor"}
+                  className="gap-1.5"
+                >
+                  <Grid3x3 className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Floor</span>
+                </Button>
+                <Button
+                  variant={showAxes ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowAxes((v) => !v)}
+                  title={showAxes ? "Hide XYZ axes" : "Show XYZ axes"}
+                  className="gap-1.5"
+                >
+                  <Move className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Axes</span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowFloor((v) => !v)}
+                  onClick={cycleGap}
+                  title="Ring gap multiplier"
+                  className="gap-1.5"
                 >
-                  {showFloor ? "Hide grid floor" : "Show grid floor"}
+                  <Expand className="h-3.5 w-3.5" />
+                  <span>Gap {ringGap}x</span>
                 </Button>
-                <Button variant="outline" size="sm" onClick={cycleSpeed}>
-                  Speed {animSpeed === 0 ? "off" : animSpeed + "x"}
-                </Button>
-                <Button variant="outline" size="sm" onClick={cycleGap}>
-                  Gap {ringGap}x
-                </Button>
-                <Button variant="outline" size="sm" onClick={cycleSphere}>
-                  Spheres {sphereScale}x
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={cycleSphere}
+                  title="Sphere size multiplier"
+                  className="gap-1.5"
+                >
+                  <Circle className="h-3.5 w-3.5" />
+                  <span>Spheres {sphereScale}x</span>
                 </Button>
                 <Button
                   variant="default"
                   size="sm"
                   onClick={() => setExpanded(false)}
-                  className="gap-1"
+                  className="gap-1.5"
                 >
-                  <Minimize2 className="h-4 w-4" />
-                  Restore
+                  <Minimize2 className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Restore</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -304,7 +368,7 @@ export default function DashboardPage() {
                 onShowFloorChange={setShowFloor}
                 showCanvasChrome={false}
                 animSpeed={animSpeed}
-                onAnimSpeedChange={setAnimSpeed}
+                
                 ringGap={ringGap}
                 onRingGapChange={setRingGap}
                 sphereScale={sphereScale}
