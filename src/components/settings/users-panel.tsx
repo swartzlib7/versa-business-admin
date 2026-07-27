@@ -142,7 +142,7 @@ export function UsersPanel() {
   return (
     <>
       <EntityListing<LocalUser & Record<string, unknown>>
-        title="Users"
+        title="Configuration"
         summary="Directory driven by User list layout catalog. Filter by type; edit expands on the row."
         accent={theme.colors.brand}
         fields={fields}

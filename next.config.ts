@@ -1,8 +1,14 @@
 import type { NextConfig } from "next";
+import pkg from "./package.json" with { type: "json" };
 
 const nextConfig: NextConfig = {
   // Allow phone/LAN access during next dev (blank page without this)
   allowedDevOrigins: ["192.168.4.107"],
+
+  // Expose package version to client components
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+  },
 
   // HTML shells must not be cached across deploys. Chrome was keeping
   // year-long s-maxage prerender responses after 0.7.52->0.7.53, which

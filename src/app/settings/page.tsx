@@ -98,7 +98,7 @@ function AppearancePanel() {
   const { theme: uiTheme, setTheme } = useUiTheme();
   return (
     <PanelShell
-      title="Appearance"
+      title="Configuration"
       summary="Choose how Mission Control looks. Selection is remembered on this device and survives navigation (including Glossary on the side menu)."
       badge="Theme"
     >
