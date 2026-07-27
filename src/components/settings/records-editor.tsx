@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SectionTabs } from "@/components/ui/section-tabs";
+import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { theme } from "@/lib/theme";
 
 type Parent = { parent_kind: string; parent_api_name: string; label: string; baked_in_tabs: string[] };
@@ -111,6 +112,7 @@ export function RecordsEditor() {
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [section, setSection] = useState<"types" | "fields" | "picklists">("types");
+  const [subTab, setSubTab] = useState<string>("configuration");
 
   // Types state
   const [showTypeForm, setShowTypeForm] = useState(false);
@@ -327,7 +329,7 @@ export function RecordsEditor() {
       <SectionTabs
         ariaLabel="Records Editor sections"
         value={section}
-        onChange={(id) => setSection(id as "types" | "fields" | "picklists")}
+        onChange={(id) => { setSection(id as "types" | "fields" | "picklists"); setSubTab("configuration"); }}
         accent={theme.colors.brand}
         noSticky
         items={[
@@ -339,12 +341,19 @@ export function RecordsEditor() {
 
       {/* ── TYPES ── */}
       {section === "types" && (
-        <div role="tabpanel">
+        <div role="tabpanel" className="space-y-3">
+          <SubTabBar
+            items={[{ id: "configuration", label: "Configuration" }]}
+            activeId={subTab}
+            accent={theme.colors.brand}
+            onSelect={setSubTab}
+            ariaLabel="Types sub-sections"
+          />
           <Card className="overflow-hidden">
             <CardHeader className="border-b bg-muted/30">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <CardTitle className="text-lg">Record Types</CardTitle>
+                  <CardTitle className="text-lg">Configuration</CardTitle>
                   <p className="mt-1 text-sm text-muted-foreground">Named tabs under parent entities. System types are relabelable.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -471,12 +480,19 @@ export function RecordsEditor() {
 
       {/* ── FIELDS ── */}
       {section === "fields" && (
-        <div role="tabpanel">
+        <div role="tabpanel" className="space-y-3">
+          <SubTabBar
+            items={[{ id: "configuration", label: "Configuration" }]}
+            activeId={subTab}
+            accent={theme.colors.brand}
+            onSelect={setSubTab}
+            ariaLabel="Fields sub-sections"
+          />
           <Card className="overflow-hidden">
             <CardHeader className="border-b bg-muted/30">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <CardTitle className="text-lg">Fields</CardTitle>
+                  <CardTitle className="text-lg">Configuration</CardTitle>
                   <p className="mt-1 text-sm text-muted-foreground">Field definitions across all record types. Filter by type or search.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -589,12 +605,19 @@ export function RecordsEditor() {
 
       {/* ── PICKLISTS ── */}
       {section === "picklists" && (
-        <div role="tabpanel">
+        <div role="tabpanel" className="space-y-3">
+          <SubTabBar
+            items={[{ id: "configuration", label: "Configuration" }]}
+            activeId={subTab}
+            accent={theme.colors.brand}
+            onSelect={setSubTab}
+            ariaLabel="Picklists sub-sections"
+          />
           <Card className="overflow-hidden">
             <CardHeader className="border-b bg-muted/30">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <CardTitle className="text-lg">Picklists</CardTitle>
+                  <CardTitle className="text-lg">Configuration</CardTitle>
                   <p className="mt-1 text-sm text-muted-foreground">Value sets for picklist fields. Expand a row to view and add options.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">

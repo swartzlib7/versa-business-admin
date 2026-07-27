@@ -4,6 +4,7 @@ import { Fragment, useMemo, useState } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { theme } from "@/lib/theme";
 import { PageHeader } from "@/components/ui/page-header";
+import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -238,6 +239,7 @@ export default function GlossaryPage() {
   const [sections, setSections] = useState(INITIAL_SECTIONS);
   const [entries, setEntries] = useState(INITIAL_ENTRIES);
   const [activeTab, setActiveTab] = useState<GlossaryTab>("sections");
+  const [subTab, setSubTab] = useState<string>("configuration");
   const [activeSectionId, setActiveSectionId] = useState(
     INITIAL_SECTIONS[0]?.id ?? ""
   );
@@ -511,16 +513,24 @@ export default function GlossaryPage() {
             { id: "entries", label: "Entries" },
           ]}
           tabsValue={activeTab}
-          onTabChange={(id) => setActiveTab(id as GlossaryTab)}
+          onTabChange={(id) => { setActiveTab(id as GlossaryTab); setSubTab("configuration"); }}
           tabsAriaLabel="Glossary sections"
         />
 
         {activeTab === "sections" && (
+        <div className="space-y-3">
+        <SubTabBar
+          items={[{ id: "configuration", label: "Configuration" }]}
+          activeId={subTab}
+          accent={ACCENT}
+          onSelect={setSubTab}
+          ariaLabel="Sections sub-sections"
+        />
         <Card className="overflow-hidden">
           <CardHeader className="border-b bg-muted/30">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <CardTitle className="text-lg">Sections</CardTitle>
+                <CardTitle className="text-lg">Configuration</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Choose a section, then manage entries below. Description is
                   the subheading under each area.
@@ -612,15 +622,24 @@ export default function GlossaryPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
         )}
 
         {activeTab === "entries" && (
+        <div className="space-y-3">
+        <SubTabBar
+          items={[{ id: "configuration", label: "Configuration" }]}
+          activeId={subTab}
+          accent={ACCENT}
+          onSelect={setSubTab}
+          ariaLabel="Entries sub-sections"
+        />
         <Card className="overflow-hidden">
           <CardHeader className="border-b bg-muted/30">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <CardTitle className="text-lg">
-                  Entries
+                  Configuration
                   {activeSection ? ` · ${activeSection.name}` : ""}
                 </CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -726,6 +745,7 @@ export default function GlossaryPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
         )}
 
         <p className="text-xs text-muted-foreground">

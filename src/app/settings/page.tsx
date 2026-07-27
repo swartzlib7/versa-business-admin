@@ -14,21 +14,18 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { theme } from "@/lib/theme";
-import { RecordsEditor } from "@/components/settings/records-editor";
 import { cn } from "@/lib/utils";
 import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
 import { PageHeader } from "@/components/ui/page-header";
+import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { Moon, Sun, Compass, Cloud } from "lucide-react";
-import { UsersPanel } from "@/components/settings/users-panel"; 
 
-type SettingsTab = "records" | "branding" | "appearance" | "system" | "users";
+type SettingsTab = "branding" | "appearance" | "system";
 
 const TABS: { id: SettingsTab; label: string }[] = [
-  { id: "records", label: "Records Editor" },
   { id: "branding", label: "Branding" },
   { id: "appearance", label: "Appearance" },
   { id: "system", label: "System" },
-  { id: "users", label: "Users" },
 ];
 
 const THEME_OPTIONS: {
@@ -141,12 +138,22 @@ export default function SettingsPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const q = params.get('tab');
-      if (q && ['records', 'branding', 'appearance', 'system', 'users'].includes(q)) {
+      // I5.6.43 #209 — redirect old tab params to new top-level pages
+      if (q === 'records') {
+        window.location.replace('/records-editor');
+        return 'branding'; // fallback during redirect
+      }
+      if (q === 'users') {
+        window.location.replace('/users');
+        return 'branding'; // fallback during redirect
+      }
+      if (q && ['branding', 'appearance', 'system'].includes(q)) {
         return q as SettingsTab;
       }
     }
-    return 'records';
+    return 'branding';
   });
+  const [subTab, setSubTab] = useState<string>("configuration");
   const [brandName, setBrandName] = useState<string>(theme.brand.name);
   const [brandColor, setBrandColor] = useState<string>(theme.colors.brand);
   const [saved, setSaved] = useState(false);
@@ -166,7 +173,7 @@ export default function SettingsPage() {
       <div className="space-y-6">
         <PageHeader
           title="Settings"
-          subtitle="White-label configuration, Records Editor, and system preferences."
+          subtitle="White-label configuration and system preferences."
           badge="Settings"
           accent={theme.colors.brand}
           tabs={TABS}
@@ -175,16 +182,17 @@ export default function SettingsPage() {
           tabsAriaLabel="Settings sections"
         />
 
-        {tab === "records" && (
-          <div role="tabpanel" className="space-y-4">
-            <RecordsEditor />
-          </div>
-        )}
-
         {tab === "branding" && (
           <div role="tabpanel" className="space-y-4">
+            <SubTabBar
+              items={[{ id: "configuration", label: "Configuration" }]}
+              activeId={subTab}
+              accent={theme.colors.brand}
+              onSelect={setSubTab}
+              ariaLabel="Branding sub-sections"
+            />
             <PanelShell
-              title="Branding"
+              title="Configuration"
               summary="Customize how Mission Control appears. Changes are previewed live and saved for this session."
               badge="Brand"
             >
@@ -262,14 +270,28 @@ export default function SettingsPage() {
 
         {tab === "appearance" && (
           <div role="tabpanel" className="space-y-4">
+            <SubTabBar
+              items={[{ id: "configuration", label: "Configuration" }]}
+              activeId={subTab}
+              accent={theme.colors.brand}
+              onSelect={setSubTab}
+              ariaLabel="Appearance sub-sections"
+            />
             <AppearancePanel />
           </div>
         )}
 
         {tab === "system" && (
           <div role="tabpanel" className="space-y-4">
+            <SubTabBar
+              items={[{ id: "information", label: "Information" }]}
+              activeId={subTab === "information" ? "information" : "information"}
+              accent={theme.colors.brand}
+              onSelect={setSubTab}
+              ariaLabel="System sub-sections"
+            />
             <PanelShell
-              title="System"
+              title="Information"
               summary="Runtime boundary for this Mission Control instance."
               badge="Runtime"
             >
@@ -288,11 +310,6 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {tab === "users" && (
-          <div role="tabpanel" className="space-y-4">
-            <UsersPanel />
-          </div>
-        )}
       </div>
     </AppShell>
   );

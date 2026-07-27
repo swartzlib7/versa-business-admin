@@ -14,6 +14,7 @@ import {
   Handshake,
   Globe2,
   BookOpen,
+  Database,
 } from "lucide-react";
 
 interface NavItem {
@@ -45,7 +46,8 @@ const navEntries: NavEntry[] = [
   { href: "/collaboration", label: "Collaboration", icon: Handshake },
   { href: "/environment", label: "Environment", icon: Globe2 },
   { href: "/glossary", label: "Glossary", icon: BookOpen },
-  { href: "/settings?tab=users", label: "Users", icon: Users },
+  { href: "/users", label: "Users", icon: Users },
+  { href: "/records-editor", label: "Records Editor", icon: Database },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
