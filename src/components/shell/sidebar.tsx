@@ -45,7 +45,7 @@ const navEntries: NavEntry[] = [
   { href: "/collaboration", label: "Collaboration", icon: Handshake },
   { href: "/environment", label: "Environment", icon: Globe2 },
   { href: "/glossary", label: "Glossary", icon: BookOpen },
-  { href: "/users", label: "Users", icon: Users },
+  { href: "/settings?tab=users", label: "Users", icon: Users },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

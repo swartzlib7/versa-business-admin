@@ -19,14 +19,16 @@ import { cn } from "@/lib/utils";
 import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
 import { PageHeader } from "@/components/ui/page-header";
 import { Moon, Sun, Compass, Cloud } from "lucide-react";
+import { UsersPanel } from "@/components/settings/users-panel"; 
 
-type SettingsTab = "records" | "branding" | "appearance" | "system";
+type SettingsTab = "records" | "branding" | "appearance" | "system" | "users";
 
-const TABS: { id: SettingsTab; label: string; hint: string }[] = [
-  { id: "records", label: "Records Editor", hint: "Types, fields, picklists" },
-  { id: "branding", label: "Branding", hint: "Name and colors" },
-  { id: "appearance", label: "Appearance", hint: "Light, dark, Slate, Architect" },
-  { id: "system", label: "System", hint: "Runtime and product boundary" },
+const TABS: { id: SettingsTab; label: string }[] = [
+  { id: "records", label: "Records Editor" },
+  { id: "branding", label: "Branding" },
+  { id: "appearance", label: "Appearance" },
+  { id: "system", label: "System" },
+  { id: "users", label: "Users" },
 ];
 
 const THEME_OPTIONS: {
@@ -139,7 +141,7 @@ export default function SettingsPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const q = params.get('tab');
-      if (q && ['records', 'branding', 'appearance', 'system'].includes(q)) {
+      if (q && ['records', 'branding', 'appearance', 'system', 'users'].includes(q)) {
         return q as SettingsTab;
       }
     }
@@ -283,6 +285,12 @@ export default function SettingsPage() {
                 </p>
               </div>
             </PanelShell>
+          </div>
+        )}
+
+        {tab === "users" && (
+          <div role="tabpanel" className="space-y-4">
+            <UsersPanel />
           </div>
         )}
       </div>

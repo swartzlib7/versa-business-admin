@@ -219,7 +219,7 @@ const INITIAL_ENTRIES: GlossaryEntry[] = [
   },
 ];
 
-const ACCENT = theme.scene.hubColor;
+const ACCENT = "#2563eb";
 
 function uid(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
@@ -500,15 +500,15 @@ export default function GlossaryPage() {
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="space-y-6">
         <PageHeader
           title="Glossary"
           subtitle="Sections group terms; each entry has a name and definition — same listing pattern as zone config."
           badge="Glossary"
           accent={ACCENT}
           tabs={[
-            { id: "sections", label: "Sections", hint: "Group terms by area" },
-            { id: "entries", label: "Entries", hint: "Term definitions" },
+            { id: "sections", label: "Sections" },
+            { id: "entries", label: "Entries" },
           ]}
           tabsValue={activeTab}
           onTabChange={(id) => setActiveTab(id as GlossaryTab)}

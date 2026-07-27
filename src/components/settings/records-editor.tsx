@@ -1,19 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { SectionTabs } from "@/components/ui/section-tabs";
 import { theme } from "@/lib/theme";
 
 type Parent = { parent_kind: string; parent_api_name: string; label: string; baked_in_tabs: string[] };
-type RT = { api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string };
-type FD = { api_name: string; label: string; data_type: string; value_set_api_name: string | null };
-type VS = { api_name: string; label: string };
+type RT = { api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string; is_system?: boolean; active?: boolean; show_as_tab?: boolean; sort_order?: number };
+type FD = { api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string };
+type VS = { api_name: string; label: string; description?: string };
+type VSI = { id: string; api_value: string; label: string; sort_order: number; active: boolean };
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { ...init, headers: { "Content-Type": "application/json", ...(init?.headers || {}) }, credentials: "include" });
@@ -22,109 +22,300 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return json as T;
 }
 
+const DATA_TYPES = ["text", "long_text", "number", "boolean", "date", "datetime", "picklist", "multipicklist", "lookup", "email", "url", "phone"];
+
+/* ── Inline create form ── */
+function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel }: {
+  fields: { key: string; label: string; type?: "text" | "select" | "textarea"; options?: string[]; placeholder?: string }[];
+  accent: string;
+  onSubmit: (vals: Record<string, string>) => void;
+  onCancel: () => void;
+  busy: boolean;
+  submitLabel: string;
+}) {
+  const [vals, setVals] = useState<Record<string, string>>({});
+  return (
+    <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${accent}` }}>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {fields.map((f) => {
+          const v = vals[f.key] ?? "";
+          if (f.type === "select") {
+            return (
+              <label key={f.key} className="flex flex-col gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">{f.label}</span>
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  value={v}
+                  onChange={(e) => setVals((s) => ({ ...s, [f.key]: e.target.value }))}
+                >
+                  <option value="">Select…</option>
+                  {(f.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </label>
+            );
+          }
+          if (f.type === "textarea") {
+            return (
+              <label key={f.key} className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-4">
+                <span className="text-xs font-medium text-muted-foreground">{f.label}</span>
+                <textarea
+                  className="min-h-[72px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  placeholder={f.placeholder}
+                  value={v}
+                  onChange={(e) => setVals((s) => ({ ...s, [f.key]: e.target.value }))}
+                />
+              </label>
+            );
+          }
+          return (
+            <label key={f.key} className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">{f.label}</span>
+              <Input
+                placeholder={f.placeholder ?? f.label}
+                value={v}
+                onChange={(e) => setVals((s) => ({ ...s, [f.key]: e.target.value }))}
+              />
+            </label>
+          );
+        })}
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button disabled={busy} onClick={() => onSubmit(vals)} style={{ backgroundColor: accent }} className="text-white">
+          {submitLabel}
+        </Button>
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Expandable row wrapper ── */
+function ExpandRow({ colSpan, children }: { colSpan: number; children: ReactNode }) {
+  return (
+    <tr className="border-b border-border">
+      <td colSpan={colSpan} className="p-0">{children}</td>
+    </tr>
+  );
+}
+
 export function RecordsEditor() {
   const [parents, setParents] = useState<Parent[]>([]);
   const [types, setTypes] = useState<RT[]>([]);
   const [valueSets, setValueSets] = useState<VS[]>([]);
-  const [selectedParent, setSelectedParent] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const pk = params.get('parent_kind');
-      const pa = params.get('parent_api_name');
-      if (pk && pa) return `${pk}:${pa}`;
-    }
-    return "faculty:public";
-  });
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [fields, setFields] = useState<FD[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [newType, setNewType] = useState({ api_name: "", label: "", description: "", structure: "list" });
-  const [newField, setNewField] = useState({ api_name: "", label: "", data_type: "text", value_set_api_name: "" });
-  const [newVs, setNewVs] = useState({ api_name: "", label: "", options: "" });
-  const [addOpt, setAddOpt] = useState({ vs: "" });
-  const [addOptText, setAddOptText] = useState("");
   const [section, setSection] = useState<"types" | "fields" | "picklists">("types");
-  const [pKind, pApi] = selectedParent.split(":");
+
+  // Types state
+  const [showTypeForm, setShowTypeForm] = useState(false);
+  const [expandedType, setExpandedType] = useState<string | null>(null);
+  const [parentFilter, setParentFilter] = useState("");
+  const [editingTypeLabel, setEditingTypeLabel] = useState<Record<string, string>>({});
+
+  // Fields state
+  const [allFields, setAllFields] = useState<FD[]>([]);
+  const [showFieldForm, setShowFieldForm] = useState(false);
+  const [expandedField, setExpandedField] = useState<string | null>(null);
+  const [fieldFilter, setFieldFilter] = useState("");
+  const [fieldTypeFilter, setFieldTypeFilter] = useState("");
+  const [selectedTypeForFields, setSelectedTypeForFields] = useState<string>("");
+
+  // Picklists state
+  const [showVsForm, setShowVsForm] = useState(false);
+  const [expandedVs, setExpandedVs] = useState<string | null>(null);
+  const [vsItems, setVsItems] = useState<Record<string, VSI[]>>({});
+  const [optText, setOptText] = useState<Record<string, string>>({});
+
   const load = useCallback(async () => {
     setError(null);
     try {
       const rt = await api<{ data: RT[]; parents: Parent[] }>("/api/catalog/record-types?include_inactive=1");
-      setTypes(rt.data); setParents(rt.parents || []);
+      setTypes(rt.data);
+      setParents(rt.parents || []);
       const vs = await api<{ data: VS[] }>("/api/catalog/value-sets");
       setValueSets(vs.data);
-    } catch (e) { setError(e instanceof Error ? e.message : "Failed to load"); }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load");
+    }
   }, []);
-  useEffect(() => { void load(); }, [load]);
-  const typesForParent = useMemo(() => types.filter((t) => t.parent_kind === pKind && t.parent_api_name === pApi), [types, pKind, pApi]);
-  const loadTypeDetail = async (apiName: string) => {
-    setSelectedType(apiName); setError(null);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  // Load all fields for the Fields tab
+  const loadAllFields = useCallback(async () => {
+    setError(null);
     try {
-      const detail = await api<{ data: { fields: FD[] } }>("/api/catalog/record-types/" + apiName);
-      setFields(detail.data.fields || []);
-    } catch (e) { setError(e instanceof Error ? e.message : "Failed type"); }
-  };
-  const createType = async () => {
-    setBusy(true); setError(null); setStatus(null);
-    try {
-      await api("/api/catalog/record-types", { method: "POST", body: JSON.stringify({ api_name: newType.api_name, label: newType.label, description: newType.description, parent_kind: pKind, parent_api_name: pApi, structure: newType.structure, show_as_tab: true }) });
-      setStatus("Created " + newType.api_name);
-      setNewType({ api_name: "", label: "", description: "", structure: "list" });
-      await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "Create failed"); }
-    finally { setBusy(false); }
-  };
-  const extendField = async () => {
-    if (!selectedType) return;
-    setBusy(true); setError(null); setStatus(null);
-    try {
-      const object_api_name = types.find((t) => t.api_name === selectedType)?.object_api_name || selectedType;
-      await api("/api/catalog/fields", { method: "POST", body: JSON.stringify({ object_api_name, api_name: newField.api_name, label: newField.label, data_type: newField.data_type, value_set_api_name: newField.value_set_api_name || null }) });
-      setStatus("Added " + newField.api_name);
-      setNewField({ api_name: "", label: "", data_type: "text", value_set_api_name: "" });
-      await loadTypeDetail(selectedType);
-    } catch (e) { setError(e instanceof Error ? e.message : "Field failed"); }
-    finally { setBusy(false); }
-  };
-  const createValueSet = async () => {
-    setBusy(true); setError(null); setStatus(null);
-    try {
-      const items = newVs.options
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean)
-        .map((line) => ({ api_value: line, label: line }));
-      await api("/api/catalog/value-sets", { method: "POST", body: JSON.stringify({ api_name: newVs.api_name, label: newVs.label, items }) });
-      setStatus("Created picklist " + newVs.api_name);
-      setNewVs({ api_name: "", label: "", options: "" });
-      await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "VS failed"); }
-    finally { setBusy(false); }
-  };
-  const addOptions = async () => {
-    if (!addOpt.vs) return;
-    setBusy(true); setError(null); setStatus(null);
-    try {
-      const lines = addOptText.split("\n").map((l) => l.trim()).filter(Boolean);
-      for (const line of lines) {
-        await api("/api/catalog/value-sets/" + addOpt.vs, { method: "POST", body: JSON.stringify({ api_value: line, label: line }) });
+      const allTypes = types;
+      const all: FD[] = [];
+      for (const t of allTypes) {
+        try {
+          const detail = await api<{ data: { fields: FD[] } }>("/api/catalog/record-types/" + t.api_name);
+          const fields = (detail.data.fields || []).map((f) => ({ ...f, object_api_name: t.object_api_name }));
+          all.push(...fields);
+        } catch { /* skip types that error */ }
       }
-      setStatus("Added " + lines.length + " option(s) to " + addOpt.vs);
-      setAddOptText("");
-      await load();
-    } catch (e) { setError(e instanceof Error ? e.message : "Opt failed"); }
-    finally { setBusy(false); }
+      setAllFields(all);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load fields");
+    }
+  }, [types]);
+
+  useEffect(() => {
+    if (section === "fields" && types.length > 0 && allFields.length === 0) {
+      void loadAllFields();
+    }
+  }, [section, types, allFields.length, loadAllFields]);
+
+  // Load picklist items for a value set
+  const loadVsItems = async (apiName: string) => {
+    try {
+      const detail = await api<{ data: VS & { items: VSI[] } }>("/api/catalog/value-sets/" + apiName);
+      setVsItems((prev) => ({ ...prev, [apiName]: detail.data.items || [] }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load options");
+    }
   };
-  const currentParent = parents.find((p) => p.parent_kind + ":" + p.parent_api_name === selectedParent);
+
+  // ── Types handlers ──
+  const createType = async (vals: Record<string, string>) => {
+    setBusy(true); setError(null); setStatus(null);
+    const [pKind, pApi] = (vals.parent || parentFilter || "faculty:public").split(":");
+    try {
+      await api("/api/catalog/record-types", {
+        method: "POST",
+        body: JSON.stringify({
+          api_name: vals.api_name,
+          label: vals.label,
+          description: vals.description || "",
+          parent_kind: pKind,
+          parent_api_name: pApi,
+          structure: vals.structure || "list",
+          show_as_tab: true,
+        }),
+      });
+      setStatus("Created " + vals.api_name);
+      setShowTypeForm(false);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Create failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const relabelType = async (apiName: string, newLabel: string) => {
+    setBusy(true); setError(null); setStatus(null);
+    try {
+      await api("/api/catalog/record-types/" + apiName, {
+        method: "PATCH",
+        body: JSON.stringify({ label: newLabel }),
+      });
+      setStatus("Relabeled " + apiName + " to " + newLabel);
+      setEditingTypeLabel((s) => ({ ...s, [apiName]: "" }));
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Relabel failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── Fields handlers ──
+  const createField = async (vals: Record<string, string>) => {
+    setBusy(true); setError(null); setStatus(null);
+    try {
+      const object_api_name = vals.object_api_name || selectedTypeForFields || types.find((t) => t.api_name === vals.type)?.object_api_name || vals.type;
+      if (!object_api_name) { setError("Select a type first"); setBusy(false); return; }
+      await api("/api/catalog/fields", {
+        method: "POST",
+        body: JSON.stringify({
+          object_api_name,
+          api_name: vals.api_name,
+          label: vals.label,
+          data_type: vals.data_type || "text",
+          value_set_api_name: vals.value_set_api_name || null,
+          lookup_object_api_name: vals.lookup_object_api_name || null,
+        }),
+      });
+      setStatus("Added field " + vals.api_name);
+      setShowFieldForm(false);
+      setAllFields([]);
+      void loadAllFields();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Field failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── Picklists handlers ──
+  const createValueSet = async (vals: Record<string, string>) => {
+    setBusy(true); setError(null); setStatus(null);
+    try {
+      const items = (vals.options || "").split("\n").map((l) => l.trim()).filter(Boolean).map((line) => ({ api_value: line, label: line }));
+      await api("/api/catalog/value-sets", {
+        method: "POST",
+        body: JSON.stringify({ api_name: vals.api_name, label: vals.label, items }),
+      });
+      setStatus("Created picklist " + vals.api_name);
+      setShowVsForm(false);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "VS failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addOptions = async (vsApiName: string) => {
+    const text = optText[vsApiName] || "";
+    if (!text.trim()) return;
+    setBusy(true); setError(null); setStatus(null);
+    try {
+      const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+      for (const line of lines) {
+        await api("/api/catalog/value-sets/" + vsApiName, {
+          method: "POST",
+          body: JSON.stringify({ api_value: line, label: line }),
+        });
+      }
+      setStatus("Added " + lines.length + " option(s) to " + vsApiName);
+      setOptText((s) => ({ ...s, [vsApiName]: "" }));
+      await loadVsItems(vsApiName);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Opt failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── Derived data ──
+  const filteredTypes = useMemo(() => {
+    let rows = [...types];
+    if (parentFilter) {
+      const [pk, pa] = parentFilter.split(":");
+      rows = rows.filter((t) => t.parent_kind === pk && t.parent_api_name === pa);
+    }
+    return rows;
+  }, [types, parentFilter]);
+
+  const filteredFields = useMemo(() => {
+    let rows = [...allFields];
+    if (fieldTypeFilter) rows = rows.filter((f) => f.data_type === fieldTypeFilter);
+    if (fieldFilter) {
+      const ff = fieldFilter.toLowerCase();
+      rows = rows.filter((f) => f.api_name.toLowerCase().includes(ff) || f.label.toLowerCase().includes(ff) || (f.object_api_name || "").toLowerCase().includes(ff));
+    }
+    return rows;
+  }, [allFields, fieldTypeFilter, fieldFilter]);
+
+  const parentOptions = useMemo(() => parents.map((p) => p.parent_kind + ":" + p.parent_api_name), [parents]);
+
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
-        <p className="text-sm text-muted-foreground max-w-3xl">
-          Customize zone entities including baked-in tabs. Types become named tabs under the
-          selected parent; fields and picklists extend those types.
-        </p>
-      </div>
       {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
       {status && <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">{status}</div>}
 
@@ -135,172 +326,383 @@ export function RecordsEditor() {
         accent={theme.colors.brand}
         noSticky
         items={[
-          { id: "types", label: "Types", hint: "Parents and named record types" },
-          { id: "fields", label: "Fields", hint: "Extend selected type fields" },
-          { id: "picklists", label: "Picklists", hint: "Value sets and options" },
+          { id: "types", label: "Types" },
+          { id: "fields", label: "Fields" },
+          { id: "picklists", label: "Picklists" },
         ]}
       />
 
+      {/* ── TYPES ── */}
       {section === "types" && (
-        <div role="tabpanel" className="grid gap-6 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Parent entity</CardTitle>
-              <CardDescription>Faculty, collab, environment, or baked-in.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={selectedParent} onChange={(e) => { setSelectedParent(e.target.value); setSelectedType(null); setFields([]); }}
-              >
-                {parents.map((p) => (
-                  <option key={p.parent_kind + ":" + p.parent_api_name} value={p.parent_kind + ":" + p.parent_api_name}>{p.label}</option>
-                ))}
-              </select>
-              {currentParent && currentParent.baked_in_tabs.length > 0 && (
-                <p className="text-xs text-muted-foreground">Baked-in: {currentParent.baked_in_tabs.join(", ")}</p>
-              )}
-              <Separator />
-              <ul className="space-y-1">
-                {typesForParent.map((t) => (
-                  <li key={t.api_name}>
-                    <button type="button" className={"w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted " + (selectedType === t.api_name ? "bg-muted font-medium" : "")} onClick={() => void loadTypeDetail(t.api_name)}
-                    >
-                      {t.label} <Badge variant="outline" className="text-[10px]">{t.structure}</Badge>
-                    </button>
-                  </li>
-                ))}
-                {typesForParent.length === 0 && <li className="text-sm text-muted-foreground">No types yet. Create one to add a named tab under this parent.</li>}
-              </ul>
-            </CardContent>
-          </Card>
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-base">Add record type</CardTitle>
-              <CardDescription>Named tab under the selected parent. Nothing is pre-seeded for Public/Treasury placeholders.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <Input placeholder="api_name" value={newType.api_name} onChange={(e) => setNewType((s) => ({ ...s, api_name: e.target.value }))} />
-              <Input placeholder="Name" value={newType.label} onChange={(e) => setNewType((s) => ({ ...s, label: e.target.value }))} />
-              <Input placeholder="Description (required)" value={newType.description} onChange={(e) => setNewType((s) => ({ ...s, description: e.target.value }))} />
-              <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" value={newType.structure} onChange={(e) => setNewType((s) => ({ ...s, structure: e.target.value }))}
-              >
-                <option value="list">list</option>
-                <option value="header">header</option>
-                <option value="header_lines">header_lines</option>
-              </select>
-              <Button disabled={busy || !newType.description.trim()} onClick={() => void createType()}>Create type</Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {section === "fields" && (
-        <div role="tabpanel" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Fields</CardTitle>
-              <CardDescription>Select a type on the Types tab first, then extend its fields here.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="text-sm font-medium">Type</label>
-                <select className="rounded-md border border-input bg-background px-3 py-2 text-sm min-w-[12rem]" value={selectedType || ""} onChange={(e) => { const v = e.target.value; if (v) void loadTypeDetail(v); else { setSelectedType(null); setFields([]); } }}
-                >
-                  <option value="">Select type…</option>
-                  {types.map((t) => (
-                    <option key={t.api_name} value={t.api_name}>{t.label} ({t.parent_api_name})</option>
-                  ))}
-                </select>
+        <div role="tabpanel">
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-muted/30">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="text-lg">Record Types</CardTitle>
+                  <p className="mt-1 text-sm text-muted-foreground">Named tabs under parent entities. System types are relabelable.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="shrink-0 border-0 text-white" style={{ backgroundColor: theme.colors.brand }}>Types</Badge>
+                  <select
+                    className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                    value={parentFilter}
+                    onChange={(e) => setParentFilter(e.target.value)}
+                  >
+                    <option value="">All parents</option>
+                    {parents.map((p) => (
+                      <option key={p.parent_kind + ":" + p.parent_api_name} value={p.parent_kind + ":" + p.parent_api_name}>{p.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowTypeForm((s) => !s)}
+                    className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                    style={{ backgroundColor: theme.colors.brand }}
+                  >
+                    {showTypeForm ? "Close" : "New Record Type"}
+                  </button>
+                </div>
               </div>
-              {!selectedType && <p className="text-sm text-muted-foreground">No type selected.</p>}
-              {selectedType && (
-                <>
-                  <div className="overflow-x-auto rounded-md border">
-                    <table className="w-full text-sm">
-                      <thead className="bg-muted/50 text-left"><tr>
-                        <th className="px-3 py-2">API</th><th className="px-3 py-2">Label</th>
-                        <th className="px-3 py-2">Type</th><th className="px-3 py-2">Value set</th>
-                      </tr></thead>
-                      <tbody>
-                        {fields.map((f) => (
-                          <tr key={f.api_name} className="border-t">
-                            <td className="px-3 py-1.5 font-mono text-xs">{f.api_name}</td>
-                            <td className="px-3 py-1.5">{f.label}</td>
-                            <td className="px-3 py-1.5">{f.data_type}</td>
-                            <td className="px-3 py-1.5 text-muted-foreground">{f.value_set_api_name || "-"}</td>
-                          </tr>
-                        ))}
-                        {fields.length === 0 && (
-                          <tr><td className="px-3 py-2 text-muted-foreground" colSpan={4}>No fields yet.</td></tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                    <Input placeholder="field_api" value={newField.api_name} onChange={(e) => setNewField((s) => ({ ...s, api_name: e.target.value }))} />
-                    <Input placeholder="Label" value={newField.label} onChange={(e) => setNewField((s) => ({ ...s, label: e.target.value }))} />
-                    <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" value={newField.data_type} onChange={(e) => setNewField((s) => ({ ...s, data_type: e.target.value }))}
-                    >
-                      <option value="text">text</option>
-                      <option value="long_text">long_text</option>
-                      <option value="number">number</option>
-                      <option value="boolean">boolean</option>
-                      <option value="date">date</option>
-                      <option value="picklist">picklist</option>
-                      <option value="lookup">lookup</option>
-                    </select>
-                    <Input placeholder="value_set (optional)" value={newField.value_set_api_name} onChange={(e) => setNewField((s) => ({ ...s, value_set_api_name: e.target.value }))} />
-                    <Button disabled={busy} onClick={() => void extendField()}>Add field</Button>
-                  </div>
-                </>
+            </CardHeader>
+            <CardContent className="space-y-0 p-0">
+              {showTypeForm && (
+                <CreateForm
+                  fields={[
+                    { key: "api_name", label: "API name", placeholder: "api_name" },
+                    { key: "label", label: "Label", placeholder: "Name" },
+                    { key: "description", label: "Description", placeholder: "Description" },
+                    { key: "parent", label: "Parent", type: "select", options: parentOptions },
+                    { key: "structure", label: "Structure", type: "select", options: ["list", "header", "header_lines"] },
+                  ]}
+                  accent={theme.colors.brand}
+                  onSubmit={createType}
+                  onCancel={() => setShowTypeForm(false)}
+                  busy={busy}
+                  submitLabel="Create type"
+                />
               )}
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px] border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="px-4 py-2.5 font-medium">Label</th>
+                      <th className="px-4 py-2.5 font-medium">API name</th>
+                      <th className="px-4 py-2.5 font-medium">Parent</th>
+                      <th className="px-4 py-2.5 font-medium">Structure</th>
+                      <th className="px-4 py-2.5 font-medium">System?</th>
+                      <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTypes.map((t) => {
+                      const isExpanded = expandedType === t.api_name;
+                      const parentLabel = parents.find((p) => p.parent_kind === t.parent_kind && p.parent_api_name === t.parent_api_name)?.label || t.parent_kind + ":" + t.parent_api_name;
+                      return (
+                        <Fragment key={t.api_name}>
+                          <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
+                            <td className="px-4 py-3 align-top font-medium">{t.label}</td>
+                            <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{t.api_name}</td>
+                            <td className="px-4 py-3 align-top text-muted-foreground">{parentLabel}</td>
+                            <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{t.structure}</Badge></td>
+                            <td className="px-4 py-3 align-top">{t.is_system ? <span className="text-xs font-medium text-amber-600">System</span> : <span className="text-xs text-muted-foreground">—</span>}</td>
+                            <td className="px-4 py-3 text-right align-top">
+                              <button
+                                type="button"
+                                onClick={() => setExpandedType(isExpanded ? null : t.api_name)}
+                                className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                                style={isExpanded ? { borderColor: theme.colors.brand, color: theme.colors.brand } : undefined}
+                              >
+                                {isExpanded ? "Close" : "Edit"}
+                              </button>
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <ExpandRow colSpan={6}>
+                              <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${theme.colors.brand}` }}>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <div>
+                                    <label className="text-xs font-medium text-muted-foreground">Label</label>
+                                    <div className="mt-1 flex gap-2">
+                                      <Input
+                                        value={editingTypeLabel[t.api_name] ?? t.label}
+                                        onChange={(e) => setEditingTypeLabel((s) => ({ ...s, [t.api_name]: e.target.value }))}
+                                        className="flex-1"
+                                      />
+                                      <Button
+                                        disabled={busy || (editingTypeLabel[t.api_name] ?? t.label) === t.label}
+                                        onClick={() => void relabelType(t.api_name, editingTypeLabel[t.api_name] ?? t.label)}
+                                        style={{ backgroundColor: theme.colors.brand }}
+                                        className="text-white"
+                                      >
+                                        Save
+                                      </Button>
+                                    </div>
+                                    {t.is_system && <p className="mt-1 text-xs text-muted-foreground">System type — label is editable, API name is read-only.</p>}
+                                  </div>
+                                  <div className="space-y-1 text-sm">
+                                    <p><span className="text-muted-foreground">API name:</span> <span className="font-mono text-xs">{t.api_name}</span></p>
+                                    <p><span className="text-muted-foreground">Object:</span> <span className="font-mono text-xs">{t.object_api_name}</span></p>
+                                    <p><span className="text-muted-foreground">Description:</span> {t.description || "—"}</p>
+                                    <p><span className="text-muted-foreground">Show as tab:</span> {t.show_as_tab ? "Yes" : "No"}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </ExpandRow>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                    {filteredTypes.length === 0 && (
+                      <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No record types yet. Use New Record Type to add the first one.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         </div>
       )}
 
+      {/* ── FIELDS ── */}
+      {section === "fields" && (
+        <div role="tabpanel">
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-muted/30">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="text-lg">Fields</CardTitle>
+                  <p className="mt-1 text-sm text-muted-foreground">Field definitions across all record types. Filter by type or search.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="shrink-0 border-0 text-white" style={{ backgroundColor: theme.colors.brand }}>Fields</Badge>
+                  <select
+                    className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                    value={fieldTypeFilter}
+                    onChange={(e) => setFieldTypeFilter(e.target.value)}
+                  >
+                    <option value="">All data types</option>
+                    {DATA_TYPES.map((dt) => <option key={dt} value={dt}>{dt}</option>)}
+                  </select>
+                  <Input
+                    placeholder="Search…"
+                    value={fieldFilter}
+                    onChange={(e) => setFieldFilter(e.target.value)}
+                    className="w-32"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowFieldForm((s) => !s)}
+                    className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                    style={{ backgroundColor: theme.colors.brand }}
+                  >
+                    {showFieldForm ? "Close" : "New Field"}
+                  </button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-0 p-0">
+              {showFieldForm && (
+                <CreateForm
+                  fields={[
+                    { key: "api_name", label: "API name", placeholder: "field_api" },
+                    { key: "label", label: "Label", placeholder: "Label" },
+                    { key: "type", label: "Record type", type: "select", options: types.map((t) => t.api_name) },
+                    { key: "data_type", label: "Data type", type: "select", options: DATA_TYPES },
+                    { key: "value_set_api_name", label: "Value set (picklist)", type: "select", options: valueSets.map((v) => v.api_name) },
+                    { key: "lookup_object_api_name", label: "Lookup object", type: "select", options: types.map((t) => t.object_api_name) },
+                  ]}
+                  accent={theme.colors.brand}
+                  onSubmit={createField}
+                  onCancel={() => setShowFieldForm(false)}
+                  busy={busy}
+                  submitLabel="Add field"
+                />
+              )}
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[700px] border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="px-4 py-2.5 font-medium">Label</th>
+                      <th className="px-4 py-2.5 font-medium">API name</th>
+                      <th className="px-4 py-2.5 font-medium">Type</th>
+                      <th className="px-4 py-2.5 font-medium">Object</th>
+                      <th className="px-4 py-2.5 font-medium">Value set / Lookup</th>
+                      <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredFields.map((f) => {
+                      const fid = (f.object_api_name || "") + ":" + f.api_name;
+                      const isExpanded = expandedField === fid;
+                      return (
+                        <Fragment key={fid}>
+                          <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
+                            <td className="px-4 py-3 align-top font-medium">{f.label}</td>
+                            <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.api_name}</td>
+                            <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{f.data_type}</Badge></td>
+                            <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.object_api_name || "—"}</td>
+                            <td className="px-4 py-3 align-top text-muted-foreground">{f.value_set_api_name || f.lookup_object_api_name || "—"}</td>
+                            <td className="px-4 py-3 text-right align-top">
+                              <button
+                                type="button"
+                                onClick={() => setExpandedField(isExpanded ? null : fid)}
+                                className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                                style={isExpanded ? { borderColor: theme.colors.brand, color: theme.colors.brand } : undefined}
+                              >
+                                {isExpanded ? "Close" : "View"}
+                              </button>
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <ExpandRow colSpan={6}>
+                              <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${theme.colors.brand}` }}>
+                                <div className="grid gap-2 sm:grid-cols-2 text-sm">
+                                  <p><span className="text-muted-foreground">API name:</span> <span className="font-mono text-xs">{f.api_name}</span></p>
+                                  <p><span className="text-muted-foreground">Label:</span> {f.label}</p>
+                                  <p><span className="text-muted-foreground">Data type:</span> {f.data_type}</p>
+                                  <p><span className="text-muted-foreground">Object:</span> <span className="font-mono text-xs">{f.object_api_name || "—"}</span></p>
+                                  <p><span className="text-muted-foreground">Value set:</span> {f.value_set_api_name || "—"}</p>
+                                  <p><span className="text-muted-foreground">Lookup object:</span> {f.lookup_object_api_name || "—"}</p>
+                                </div>
+                              </div>
+                            </ExpandRow>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                    {filteredFields.length === 0 && (
+                      <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No fields found. Use New Field to add one.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ── PICKLISTS ── */}
       {section === "picklists" && (
         <div role="tabpanel">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Picklists</CardTitle>
-              <CardDescription>Create value sets and add options for picklist fields.</CardDescription>
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-muted/30">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="text-lg">Picklists</CardTitle>
+                  <p className="mt-1 text-sm text-muted-foreground">Value sets for picklist fields. Expand a row to view and add options.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="shrink-0 border-0 text-white" style={{ backgroundColor: theme.colors.brand }}>Picklists</Badge>
+                  <button
+                    type="button"
+                    onClick={() => setShowVsForm((s) => !s)}
+                    className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                    style={{ backgroundColor: theme.colors.brand }}
+                  >
+                    {showVsForm ? "Close" : "New Picklist"}
+                  </button>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <Input placeholder="value_set api_name" value={newVs.api_name} onChange={(e) => setNewVs((s) => ({ ...s, api_name: e.target.value }))} />
-                <Input placeholder="Label" value={newVs.label} onChange={(e) => setNewVs((s) => ({ ...s, label: e.target.value }))} />
-                <Button disabled={busy} onClick={() => void createValueSet()}>Create picklist</Button>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Options (one per line)</label>
-                <textarea
-                  className="min-h-[100px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder={"Option 1\nOption 2\nOption 3"}
-                  value={newVs.options}
-                  onChange={(e) => setNewVs((s) => ({ ...s, options: e.target.value }))}
+            <CardContent className="space-y-0 p-0">
+              {showVsForm && (
+                <CreateForm
+                  fields={[
+                    { key: "api_name", label: "API name", placeholder: "value_set api_name" },
+                    { key: "label", label: "Label", placeholder: "Label" },
+                    { key: "options", label: "Options (one per line)", type: "textarea", placeholder: "Option 1\nOption 2\nOption 3" },
+                  ]}
+                  accent={theme.colors.brand}
+                  onSubmit={createValueSet}
+                  onCancel={() => setShowVsForm(false)}
+                  busy={busy}
+                  submitLabel="Create picklist"
                 />
-                <p className="mt-1 text-xs text-muted-foreground">Each line becomes a picklist entry. The text itself is the API value.</p>
-              </div>
-              <Separator />
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" value={addOpt.vs} onChange={(e) => setAddOpt({ vs: e.target.value })}
-                >
-                  <option value="">Select picklist…</option>
-                  {valueSets.map((v) => (
-                    <option key={v.api_name} value={v.api_name}>{v.label || v.api_name}</option>
-                  ))}
-                </select>
-                <Button disabled={busy || !addOpt.vs} onClick={() => void addOptions()}>Add options</Button>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Options (one per line)</label>
-                <textarea
-                  className="min-h-[100px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder={"New option 1\nNew option 2"}
-                  value={addOptText}
-                  onChange={(e) => setAddOptText(e.target.value)}
-                />
-                <p className="mt-1 text-xs text-muted-foreground">Each line becomes a picklist entry. The text itself is the API value.</p>
+              )}
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[500px] border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                      <th className="px-4 py-2.5 font-medium">Label</th>
+                      <th className="px-4 py-2.5 font-medium">API name</th>
+                      <th className="px-4 py-2.5 font-medium">Options</th>
+                      <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {valueSets.map((vs) => {
+                      const isExpanded = expandedVs === vs.api_name;
+                      const items = vsItems[vs.api_name] || [];
+                      return (
+                        <Fragment key={vs.api_name}>
+                          <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
+                            <td className="px-4 py-3 align-top font-medium">{vs.label}</td>
+                            <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{vs.api_name}</td>
+                            <td className="px-4 py-3 align-top text-muted-foreground">{items.length > 0 ? items.length + " option" + (items.length !== 1 ? "s" : "") : "—"}</td>
+                            <td className="px-4 py-3 text-right align-top">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isExpanded) {
+                                    setExpandedVs(null);
+                                  } else {
+                                    setExpandedVs(vs.api_name);
+                                    void loadVsItems(vs.api_name);
+                                  }
+                                }}
+                                className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                                style={isExpanded ? { borderColor: theme.colors.brand, color: theme.colors.brand } : undefined}
+                              >
+                                {isExpanded ? "Close" : "Expand"}
+                              </button>
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <ExpandRow colSpan={4}>
+                              <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${theme.colors.brand}` }}>
+                                <div className="mb-3">
+                                  <p className="mb-2 text-sm font-medium">Existing options</p>
+                                  {items.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">No options yet. Add some below.</p>
+                                  ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                      {items.map((item) => (
+                                        <Badge key={item.id} variant="outline" className="text-xs">
+                                          {item.label} <span className="ml-1 font-mono text-[10px] text-muted-foreground">{item.api_value}</span>
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="mt-4">
+                                  <label className="mb-1 block text-sm font-medium">Add options (one per line)</label>
+                                  <textarea
+                                    className="min-h-[80px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    placeholder={"New option 1\nNew option 2"}
+                                    value={optText[vs.api_name] || ""}
+                                    onChange={(e) => setOptText((s) => ({ ...s, [vs.api_name]: e.target.value }))}
+                                  />
+                                  <Button
+                                    disabled={busy || !(optText[vs.api_name] || "").trim()}
+                                    onClick={() => void addOptions(vs.api_name)}
+                                    style={{ backgroundColor: theme.colors.brand }}
+                                    className="mt-2 text-white"
+                                  >
+                                    Add options
+                                  </Button>
+                                </div>
+                              </div>
+                            </ExpandRow>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                    {valueSets.length === 0 && (
+                      <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No picklists yet. Use New Picklist to add the first one.</td></tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </CardContent>
           </Card>
@@ -309,4 +711,3 @@ export function RecordsEditor() {
     </div>
   );
 }
-
