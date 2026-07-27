@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { EntityListing } from "@/components/listing/entity-listing";
@@ -180,6 +179,7 @@ export default function UsersPage() {
             formatCell={formatCell}
             onAdd={onAdd}
             onUpdate={onUpdate}
+            viewHref={(u) => `/users/${u.id}`}
             headerExtra={
               <div className="flex flex-wrap items-center gap-2">
                 <select
@@ -197,28 +197,6 @@ export default function UsersPage() {
               </div>
             }
           />
-        )}
-
-        {!loading && !error && users.length > 0 && (
-          <Card>
-            <CardContent className="py-4">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">
-                Detail routes (layout-driven)
-              </p>
-              <ul className="flex flex-wrap gap-2 text-sm">
-                {users.map((u) => (
-                  <li key={u.id}>
-                    <Link
-                      href={`/users/${u.id}`}
-                      className="text-primary underline-offset-4 hover:underline"
-                    >
-                      {u.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
         )}
 
         {note && <p className="pt-2 text-xs text-muted-foreground">{note}</p>}

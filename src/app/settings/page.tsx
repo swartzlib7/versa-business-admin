@@ -81,7 +81,10 @@ function PanelShell({
             <p className="mt-1 text-sm text-muted-foreground">{summary}</p>
           </div>
           {badge ? (
-            <Badge className="shrink-0 border-0 bg-primary text-primary-foreground">
+            <Badge
+              className="shrink-0 border-0 text-white"
+              style={{ backgroundColor: theme.colors.brand }}
+            >
               {badge}
             </Badge>
           ) : null}
@@ -234,12 +237,21 @@ export default function SettingsPage() {
                 </div>
                 <Separator />
                 <div className="flex gap-2">
-                  <Button onClick={handleSave}>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    className="rounded-md px-4 py-2 text-sm font-medium text-white"
+                    style={{ backgroundColor: theme.colors.brand }}
+                  >
                     {saved ? "Saved" : "Save changes"}
-                  </Button>
-                  <Button variant="outline" onClick={handleReset}>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
+                  >
                     Reset
-                  </Button>
+                  </button>
                 </div>
               </div>
             </PanelShell>

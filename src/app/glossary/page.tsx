@@ -232,9 +232,12 @@ type Editor =
   | { kind: "entry-new" }
   | { kind: "entry-edit"; id: string };
 
+type GlossaryTab = "sections" | "entries";
+
 export default function GlossaryPage() {
   const [sections, setSections] = useState(INITIAL_SECTIONS);
   const [entries, setEntries] = useState(INITIAL_ENTRIES);
+  const [activeTab, setActiveTab] = useState<GlossaryTab>("sections");
   const [activeSectionId, setActiveSectionId] = useState(
     INITIAL_SECTIONS[0]?.id ?? ""
   );
@@ -252,8 +255,10 @@ export default function GlossaryPage() {
 
   const sectionEntries = useMemo(
     () =>
-      entries.filter((e) => e.sectionId === (activeSection?.id ?? "")),
-    [entries, activeSection?.id]
+      activeSectionId
+        ? entries.filter((e) => e.sectionId === activeSectionId)
+        : entries,
+    [entries, activeSectionId]
   );
 
   const cancel = () => setEditor(null);
@@ -500,14 +505,17 @@ export default function GlossaryPage() {
           title="Glossary"
           subtitle="Sections group terms; each entry has a name and definition — same listing pattern as zone config."
           badge="Glossary"
-          accent={theme.colors.brand}
-          tabs={sections.map((s) => ({ id: s.id, label: s.name, hint: s.description }))}
-          tabsValue={activeSectionId}
-          onTabChange={setActiveSectionId}
+          accent={ACCENT}
+          tabs={[
+            { id: "sections", label: "Sections", hint: "Group terms by area" },
+            { id: "entries", label: "Entries", hint: "Term definitions" },
+          ]}
+          tabsValue={activeTab}
+          onTabChange={(id) => setActiveTab(id as GlossaryTab)}
           tabsAriaLabel="Glossary sections"
         />
 
-        {/* Sections listing */}
+        {activeTab === "sections" && (
         <Card className="overflow-hidden">
           <CardHeader className="border-b bg-muted/30">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -604,8 +612,9 @@ export default function GlossaryPage() {
             </div>
           </CardContent>
         </Card>
+        )}
 
-        {/* Entries listing for active section */}
+        {activeTab === "entries" && (
         <Card className="overflow-hidden">
           <CardHeader className="border-b bg-muted/30">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -626,6 +635,16 @@ export default function GlossaryPage() {
                 >
                   Listing
                 </Badge>
+                <select
+                  className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                  value={activeSectionId}
+                  onChange={(e) => setActiveSectionId(e.target.value)}
+                >
+                  <option value="">All sections</option>
+                  {sections.map((sec) => (
+                    <option key={sec.id} value={sec.id}>{sec.name}</option>
+                  ))}
+                </select>
                 <button
                   type="button"
                   onClick={startEntryNew}
@@ -707,6 +726,7 @@ export default function GlossaryPage() {
             </div>
           </CardContent>
         </Card>
+        )}
 
         <p className="text-xs text-muted-foreground">
           Mock only — changes stay in this browser session. Pattern matches zone

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { theme } from "@/lib/theme";
+import Link from "next/link";
 
 export type ListingField = {
   key: string;
@@ -35,6 +36,8 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   onUpdate?: (id: string, draft: Record<string, string>) => void;
   emptyLabel?: string;
   headerExtra?: ReactNode;
+  /** Optional href for a "View" button on each row */
+  viewHref?: (row: T) => string;
   /** Optional badge text (default Listing) */
   badgeLabel?: string;
 };
@@ -154,6 +157,7 @@ export function EntityListing<T extends Record<string, unknown>>({
   onUpdate,
   emptyLabel,
   headerExtra,
+  viewHref,
   badgeLabel = "Listing",
 }: EntityListingProps<T>) {
   const displayCell = (row: T, key: string): ReactNode => {
@@ -234,7 +238,7 @@ export function EntityListing<T extends Record<string, unknown>>({
               {badgeLabel}
             </Badge>
             {headerExtra}
-            {(onAdd || onUpdate) && (
+            {(onAdd || onUpdate || viewHref) && (
               <button
                 type="button"
                 onClick={startNew}
@@ -270,7 +274,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                     {c.label}
                   </th>
                 ))}
-                {(onAdd || onUpdate) && (
+                {(onAdd || onUpdate || viewHref) && (
                   <th className="px-4 py-2.5 text-right font-medium">Actions</th>
                 )}
               </tr>
@@ -288,20 +292,32 @@ export function EntityListing<T extends Record<string, unknown>>({
                           </span>
                         </td>
                       ))}
-                      {(onAdd || onUpdate) && (
+                      {(onAdd || onUpdate || viewHref) && (
                         <td className="px-4 py-3 text-right align-top">
-                          <button
-                            type="button"
-                            onClick={() => startEdit(row)}
-                            className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
-                            style={
-                              editor === id
-                                ? { borderColor: accent, color: accent }
-                                : undefined
-                            }
-                          >
-                            {editor === id ? "Close" : "Edit"}
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            {viewHref && (
+                              <Link
+                                href={viewHref(row)}
+                                className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                              >
+                                View
+                              </Link>
+                            )}
+                            {(onAdd || onUpdate) && (
+                              <button
+                                type="button"
+                                onClick={() => startEdit(row)}
+                                className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                                style={
+                                  editor === id
+                                    ? { borderColor: accent, color: accent }
+                                    : undefined
+                                }
+                              >
+                                {editor === id ? "Close" : "Edit"}
+                              </button>
+                            )}
+                          </div>
                         </td>
                       )}
                     </tr>

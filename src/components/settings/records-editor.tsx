@@ -42,8 +42,9 @@ export function RecordsEditor() {
   const [busy, setBusy] = useState(false);
   const [newType, setNewType] = useState({ api_name: "", label: "", description: "", structure: "list" });
   const [newField, setNewField] = useState({ api_name: "", label: "", data_type: "text", value_set_api_name: "" });
-  const [newVs, setNewVs] = useState({ api_name: "", label: "", option: "" });
-  const [addOpt, setAddOpt] = useState({ vs: "", api_value: "", label: "" });
+  const [newVs, setNewVs] = useState({ api_name: "", label: "", options: "" });
+  const [addOpt, setAddOpt] = useState({ vs: "" });
+  const [addOptText, setAddOptText] = useState("");
   const [section, setSection] = useState<"types" | "fields" | "picklists">("types");
   const [pKind, pApi] = selectedParent.split(":");
   const load = useCallback(async () => {
@@ -89,20 +90,28 @@ export function RecordsEditor() {
   const createValueSet = async () => {
     setBusy(true); setError(null); setStatus(null);
     try {
-      const items = newVs.option ? [{ api_value: newVs.option, label: newVs.option }] : [];
+      const items = newVs.options
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .map((line) => ({ api_value: line, label: line }));
       await api("/api/catalog/value-sets", { method: "POST", body: JSON.stringify({ api_name: newVs.api_name, label: newVs.label, items }) });
       setStatus("Created picklist " + newVs.api_name);
-      setNewVs({ api_name: "", label: "", option: "" });
+      setNewVs({ api_name: "", label: "", options: "" });
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : "VS failed"); }
     finally { setBusy(false); }
   };
-  const addOption = async () => {
+  const addOptions = async () => {
+    if (!addOpt.vs) return;
     setBusy(true); setError(null); setStatus(null);
     try {
-      await api("/api/catalog/value-sets/" + addOpt.vs, { method: "POST", body: JSON.stringify({ api_value: addOpt.api_value, label: addOpt.label || addOpt.api_value }) });
-      setStatus("Added option to " + addOpt.vs);
-      setAddOpt({ vs: addOpt.vs, api_value: "", label: "" });
+      const lines = addOptText.split("\n").map((l) => l.trim()).filter(Boolean);
+      for (const line of lines) {
+        await api("/api/catalog/value-sets/" + addOpt.vs, { method: "POST", body: JSON.stringify({ api_value: line, label: line }) });
+      }
+      setStatus("Added " + lines.length + " option(s) to " + addOpt.vs);
+      setAddOptText("");
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : "Opt failed"); }
     finally { setBusy(false); }
@@ -260,21 +269,38 @@ export function RecordsEditor() {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Input placeholder="value_set api_name" value={newVs.api_name} onChange={(e) => setNewVs((s) => ({ ...s, api_name: e.target.value }))} />
                 <Input placeholder="Label" value={newVs.label} onChange={(e) => setNewVs((s) => ({ ...s, label: e.target.value }))} />
-                <Input placeholder="First option (optional)" value={newVs.option} onChange={(e) => setNewVs((s) => ({ ...s, option: e.target.value }))} />
                 <Button disabled={busy} onClick={() => void createValueSet()}>Create picklist</Button>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Options (one per line)</label>
+                <textarea
+                  className="min-h-[100px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder={"Option 1\nOption 2\nOption 3"}
+                  value={newVs.options}
+                  onChange={(e) => setNewVs((s) => ({ ...s, options: e.target.value }))}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">Each line becomes a picklist entry. The text itself is the API value.</p>
               </div>
               <Separator />
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" value={addOpt.vs} onChange={(e) => setAddOpt((s) => ({ ...s, vs: e.target.value }))}
+                <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" value={addOpt.vs} onChange={(e) => setAddOpt({ vs: e.target.value })}
                 >
                   <option value="">Select picklist…</option>
                   {valueSets.map((v) => (
                     <option key={v.api_name} value={v.api_name}>{v.label || v.api_name}</option>
                   ))}
                 </select>
-                <Input placeholder="api_value" value={addOpt.api_value} onChange={(e) => setAddOpt((s) => ({ ...s, api_value: e.target.value }))} />
-                <Input placeholder="Label" value={addOpt.label} onChange={(e) => setAddOpt((s) => ({ ...s, label: e.target.value }))} />
-                <Button disabled={busy || !addOpt.vs} onClick={() => void addOption()}>Add option</Button>
+                <Button disabled={busy || !addOpt.vs} onClick={() => void addOptions()}>Add options</Button>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium">Options (one per line)</label>
+                <textarea
+                  className="min-h-[100px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  placeholder={"New option 1\nNew option 2"}
+                  value={addOptText}
+                  onChange={(e) => setAddOptText(e.target.value)}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">Each line becomes a picklist entry. The text itself is the API value.</p>
               </div>
             </CardContent>
           </Card>
