@@ -3,10 +3,10 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Records Editor UX + Settings IA polish (I5.6.41) |
-| **Status** | In progress — brief locked for web-dev |
+| **Status** | 🔧 In progress — I5.6.43 #209 IA Configuration pattern (Gate 3 structure) |
 | **Last verified against code** | 2026-07-27 (beta 0.7.61 / cf4712c) |
 | **Primary code** | `src/components/settings/records-editor.tsx`, `src/app/settings/page.tsx`, `src/app/glossary/page.tsx`, `src/app/users/page.tsx`, `src/components/listing/entity-listing.tsx`, `src/components/ui/section-tabs.tsx` |
-| **Task** | #205 |
+| **Task** | #205 cumulative + #209 I5.6.43 |
 | **Source messages** | 5QtlTIWsvezycavae5An (prior 5-item), int_ba6a155650d240ab (2026-07-27 full list) |
 
 ## Collaboration
@@ -58,7 +58,21 @@ Reference implementations: `entity-listing.tsx` (`New ${singular}`), zone Listin
 - Same pattern: **New Picklist** on top, table of value sets, expand row to see/edit **options** (options must be visible after add — prior #205 items 3–4).
 - Bulk add options still supported inside expanded row (textarea to multiple options).
 
-### 1.6 Users under Settings
+### 1.6 Users + Records Editor navigation (UPDATED 2026-07-27 Gate 3)
+
+Stephen Gate 3 (`kRfBiWcX8I1doALc2r31`) **supersedes** placing Users under Settings:
+
+- **Users** is a **left-nav** item again → `/users` with main section Users and sub-tab **Configuration** (UsersPanel).
+- **Records Editor** is a **left-nav** item (not under Settings) with main tabs Types | Fields | Picklists; each has sub-tab **Configuration**.
+- **Settings** retains only **Branding | Appearance | System**.
+  - Branding / Appearance → sub-tab **Configuration** (no duplicate panel title matching the tab name).
+  - System → sub-tab **Information** (read-oriented content).
+- Glossary: Sections | Entries each get sub-tab **Configuration** (align with Organization/Collaboration/Environment nested Configuration pattern in ZoneConfigView).
+- Deep links: `/settings?tab=users` and `/settings?tab=records` redirect to new homes.
+
+### 1.6b (historical) Users under Settings
+Prior I5.6.41 briefly moved Users into Settings as a subtab. That placement is **reverted** by I5.6.43 in favor of left-nav + Configuration sub-tab consistency.
+
 - Move **Users** into Settings as a **subtab** labeled **Users** (alongside Records Editor, Branding, Appearance, System).
 - Users panel: **New User** button on top + EntityListing table (existing users page behavior).
 - Keep `/users` route as deep link that renders the same panel or redirects into Settings `?tab=users` (prefer query tab for one chrome).
