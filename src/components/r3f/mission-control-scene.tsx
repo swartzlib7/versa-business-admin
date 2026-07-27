@@ -58,9 +58,9 @@ interface MissionControlSceneProps {
   showAxes?: boolean;
   /** Notify parent when user toggles axes from the scene chrome. */
   onShowAxesChange?: (show: boolean) => void;
-  /** Show dotted zone rings (default true). */
-  showRings?: boolean;
-  onShowRingsChange?: (show: boolean) => void;
+  /** Rings display mode: 'on' (full opacity), 'half' (palette opacity), 'off' (hidden). Default 'on'. */
+  ringsMode?: 'on' | 'half' | 'off';
+  onRingsModeChange?: (mode: 'on' | 'half' | 'off') => void;
   /**
    * When true (default), render in-canvas axes/rings toggles.
    * Set false when parent Mission Control chrome already owns those controls (I5.5.8).
@@ -666,7 +666,7 @@ function SceneContent({
   focusedNodeId,
   palette,
   showAxes,
-  showRings,
+  ringsMode,
   showZoneColors,
   animSpeed,
   ringGap,
@@ -678,7 +678,7 @@ function SceneContent({
   focusedNodeId?: string | null;
   palette: ScenePalette;
   showAxes: boolean;
-  showRings: boolean;
+  ringsMode: 'on' | 'half' | 'off';
   showZoneColors: boolean;
   animSpeed: number;
   ringGap: number;
@@ -818,7 +818,7 @@ function SceneContent({
           />
         )}
 
-        {showRings &&
+        {ringsMode !== 'off' &&
           zoneMeta
             .filter((z) => ringVisible(z.ring))
             .map((z) => (
@@ -826,7 +826,7 @@ function SceneContent({
                 <ZoneCircles
                   radius={radii[z.ring]}
                   color={showZoneColors ? z.color : palette.labelColor}
-                  opacity={palette.ringGuideOpacity}
+                  opacity={ringsMode === 'on' ? 1.0 : palette.ringGuideOpacity}
                 />
                 <ZoneMidLabel
                   midRadius={z.midRadius}
@@ -1024,8 +1024,8 @@ export function MissionControlScene({
   expanded = false,
   showAxes: showAxesProp,
   onShowAxesChange,
-  showRings: showRingsProp,
-  onShowRingsChange,
+  ringsMode: ringsModeProp,
+  onRingsModeChange,
   showCanvasChrome = true,
   animSpeed: animSpeedProp,
   onAnimSpeedChange,
@@ -1048,7 +1048,7 @@ export function MissionControlScene({
   const sceneMode = useSceneMode();
   const palette = getPalette(sceneMode);
   const [internalAxes, setInternalAxes] = useState(false); // I5.6.3 hide axes by default
-  const [internalRings, setInternalRings] = useState(true);
+  const [internalRingsMode, setInternalRingsMode] = useState<'on' | 'half' | 'off'>('on');
   const [internalSpeed, setInternalSpeed] = useState(0); // I5.6.31 — static by default
   const [internalGap, setInternalGap] = useState(1);
   const [internalSphere, setInternalSphere] = useState(1);
@@ -1066,7 +1066,7 @@ export function MissionControlScene({
     setInternalZoneVisible((prev) => ({ ...prev, [key]: !prev[key] }));
   };
   const showAxes = showAxesProp ?? internalAxes;
-  const showRings = showRingsProp ?? internalRings;
+  const ringsMode = ringsModeProp ?? internalRingsMode;
   const animSpeed = animSpeedProp ?? internalSpeed;
   const ringGap = ringGapProp ?? internalGap;
   const sphereScale = sphereScaleProp ?? internalSphere;
@@ -1153,9 +1153,9 @@ export function MissionControlScene({
     onShowAxesChange?.(next);
   };
 
-  const setShowRings = (next: boolean) => {
-    if (showRingsProp === undefined) setInternalRings(next);
-    onShowRingsChange?.(next);
+  const setRingsModeInternal = (next: 'on' | 'half' | 'off') => {
+    if (ringsModeProp === undefined) setInternalRingsMode(next);
+    onRingsModeChange?.(next);
   };
 
   const setShowZoneColors = (next: boolean) => {
@@ -1251,7 +1251,7 @@ export function MissionControlScene({
           focusedNodeId={focusedNodeId}
           palette={palette}
           showAxes={showAxes}
-          showRings={showRings}
+          ringsMode={ringsMode}
           showZoneColors={showZoneColors}
           animSpeed={animSpeed}
           ringGap={ringGap}
@@ -1297,10 +1297,15 @@ export function MissionControlScene({
           </button>
           <button
             type="button"
-            onClick={() => setShowRings(!showRings)}
-            className={"rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors " + (showRings ? "border-primary bg-primary/10 text-primary" : "border-border bg-background/90 hover:bg-muted")}
+            onClick={() => {
+              const order: ('on' | 'half' | 'off')[] = ['on', 'half', 'off'];
+              const i = order.indexOf(ringsMode);
+              setRingsModeInternal(order[(i + 1) % order.length]);
+            }}
+            className={"rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors " + (ringsMode === 'on' ? "border-primary bg-primary/10 text-primary" : ringsMode === 'half' ? "border-primary/50 bg-primary/5 text-primary/70" : "border-border bg-background/90 hover:bg-muted")}
+            title={'Rings: ' + (ringsMode === 'on' ? 'On' : ringsMode === 'half' ? '50%' : 'Off') + ' — click to cycle'}
           >
-            Rings
+            Rings {ringsMode === 'on' ? 'On' : ringsMode === 'half' ? '50%' : 'Off'}
           </button>
           <button
             type="button"

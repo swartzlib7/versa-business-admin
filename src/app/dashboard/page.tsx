@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [showAxes, setShowAxes] = useState(false); // I5.6.3 hide axes by default
-  const [showRings, setShowRings] = useState(true);
+  const [ringsMode, setRingsMode] = useState<'on' | 'half' | 'off'>('on');
   const [showZoneColors, setShowZoneColors] = useState(true);
   const [showFloor, setShowFloor] = useState(true);
   const [animOn, setAnimOn] = useState(false); // I5.6.36 — separate anim toggle
@@ -39,6 +39,12 @@ export default function DashboardPage() {
     const i = steps.indexOf(sphereScale);
     setSphereScale(steps[(i >= 0 ? i + 1 : 1) % steps.length]);
   };
+  const cycleRings = () => {
+    const order: ('on' | 'half' | 'off')[] = ['on', 'half', 'off'];
+    const i = order.indexOf(ringsMode);
+    setRingsMode(order[(i + 1) % order.length]);
+  };
+  const ringsVariant = ringsMode === 'on' ? 'default' : ringsMode === 'half' ? 'secondary' : 'outline';
 
   
   const toggleTheme = () => {
@@ -156,14 +162,14 @@ export default function DashboardPage() {
                   <span className="hidden sm:inline">{animOn ? "Pause" : "Play"}</span>
                 </Button>
                 <Button
-                  variant={showRings ? "default" : "outline"}
+                  variant={ringsVariant}
                   size="sm"
-                  onClick={() => setShowRings((v) => !v)}
-                  title={showRings ? "Hide zone rings" : "Show zone rings"}
+                  onClick={cycleRings}
+                  title={'Rings: ' + (ringsMode === 'on' ? 'On' : ringsMode === 'half' ? '50%' : 'Off') + ' — click to cycle'}
                   className="gap-1.5"
                 >
                   <Circle className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Rings</span>
+                  <span className="hidden sm:inline">Rings {ringsMode === 'on' ? 'On' : ringsMode === 'half' ? '50%' : 'Off'}</span>
                 </Button>
                 <Button
                   variant={showZoneColors ? "default" : "outline"}
@@ -245,8 +251,8 @@ export default function DashboardPage() {
                 focusedNodeId={focusedNodeId}
                 expanded={false}
                 showAxes={showAxes}
-                showRings={showRings}
-                onShowRingsChange={setShowRings}
+                ringsMode={ringsMode}
+                onRingsModeChange={setRingsMode}
                 showZoneColors={showZoneColors}
                 onShowZoneColorsChange={setShowZoneColors}
                 showFloor={showFloor}
@@ -287,14 +293,14 @@ export default function DashboardPage() {
                   <span className="hidden sm:inline">{animOn ? "Pause" : "Play"}</span>
                 </Button>
                 <Button
-                  variant={showRings ? "default" : "outline"}
+                  variant={ringsVariant}
                   size="sm"
-                  onClick={() => setShowRings((v) => !v)}
-                  title={showRings ? "Hide zone rings" : "Show zone rings"}
+                  onClick={cycleRings}
+                  title={'Rings: ' + (ringsMode === 'on' ? 'On' : ringsMode === 'half' ? '50%' : 'Off') + ' — click to cycle'}
                   className="gap-1.5"
                 >
                   <Circle className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Rings</span>
+                  <span className="hidden sm:inline">Rings {ringsMode === 'on' ? 'On' : ringsMode === 'half' ? '50%' : 'Off'}</span>
                 </Button>
                 <Button
                   variant={showZoneColors ? "default" : "outline"}
@@ -380,8 +386,8 @@ export default function DashboardPage() {
                 focusedNodeId={focusedNodeId}
                 expanded={true}
                 showAxes={showAxes}
-                showRings={showRings}
-                onShowRingsChange={setShowRings}
+                ringsMode={ringsMode}
+                onRingsModeChange={setRingsMode}
                 showZoneColors={showZoneColors}
                 onShowZoneColorsChange={setShowZoneColors}
                 showFloor={showFloor}

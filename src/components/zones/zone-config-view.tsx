@@ -665,7 +665,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
                 showViewGizmo={false}
                 showCameraTelemetry={false}
                 showAxes={false}
-                showRings={true}
+                ringsMode='on'
                 animSpeed={twinAnimSpeed}
                 ringGap={1}
                 sphereScale={1}
