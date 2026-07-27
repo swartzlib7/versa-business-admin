@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Records Editor UX + Settings IA polish (I5.6.41) |
-| **Status** | 🔧 In progress — I5.6.43 #209 IA Configuration pattern (Gate 3 structure) |
-| **Last verified against code** | 2026-07-27 (beta 0.7.61 / cf4712c) |
+| **Status** | 🔧 In progress — I5.6.44 #210 rings default 50% + heading hygiene (Gate 2) |
+| **Last verified against code** | 2026-07-27 (agent/web-dev 0.7.65 / 46fe780) |
 | **Primary code** | `src/components/settings/records-editor.tsx`, `src/app/settings/page.tsx`, `src/app/glossary/page.tsx`, `src/app/users/page.tsx`, `src/components/listing/entity-listing.tsx`, `src/components/ui/section-tabs.tsx` |
 | **Task** | #205 cumulative + #209 I5.6.43 |
 | **Source messages** | 5QtlTIWsvezycavae5An (prior 5-item), int_ba6a155650d240ab (2026-07-27 full list) |
@@ -89,6 +89,29 @@ Prior I5.6.41 briefly moved Users into Settings as a subtab. That placement is *
 - No Buffer / Interview work.
 - Do not re-open rings / #201 layout unless regression found.
 
+
+### 1.7 Heading hygiene (I5.6.44 #210)
+
+**Rule (sitewide):** Under an active main tab or sub-tab, do NOT render a large heading / CardTitle / EntityListing title that repeats the tab label. Keep subtitle/description only.
+
+Applied to:
+- Records Editor Types/Fields/Picklists → Configuration sub-tab: CardTitle removed, subtitle only.
+- Glossary Sections/Entries → Configuration sub-tab: CardTitle removed (including `Configuration · SectionName` derivative), subtitle only.
+- Settings Branding/Appearance → Configuration sub-tab: PanelShell CardTitle removed, subtitle only.
+- Settings System → Information sub-tab: PanelShell CardTitle removed, subtitle only.
+- Users → Configuration sub-tab: EntityListing title removed, subtitle only.
+- ZoneConfigView FormPanel: CardTitle panel.label removed, subtitle only.
+- ZoneConfigView ListingPanel: EntityListing title prop removed, subtitle only.
+- EntityListing component: `title` prop made optional; CardTitle rendered only when title is non-empty.
+
+### 1.8 Rings default 50% (I5.6.44 #210)
+
+- Dashboard `ringsMode` useState initial value changed from `'on'` to `'50'`.
+- localStorage persistence: if `ringsMode` key exists in localStorage, that value is honored; otherwise default `'50'`.
+- MissionControlScene internal default changed from `'on'` to `'50'`.
+- ZoneConfigView twin scene `ringsMode` prop changed from `'on'` to `'50'`.
+- Cycle order unchanged: On → 50% → 25% → 10% → Off → On.
+
 ## 2. Current State (2026-07-27)
 - Records Editor: parent select + type button list + side create form; explainer box present; subtab hints present.
 - Settings tabs: hints on each tab.
@@ -136,6 +159,7 @@ Prior I5.6.41 briefly moved Users into Settings as a subtab. That placement is *
 | Date | Change |
 |------|--------|
 | 2026-07-27 | State created from msg int_ba6a155650d240ab + prior #205; implementation brief issued to web-dev. |
+| 2026-07-27 | I5.6.44 #210 rings default 50% + heading hygiene (0.7.65, 46fe780): A) Rings default initial state 50% (dashboard + mission-control-scene + zone twin). localStorage persistence honors existing preference. B) Sitewide heading hygiene — removed CardTitle/EntityListing title that repeats active sub-tab label across Records Editor, Glossary, Settings, Users, ZoneConfigView. EntityListing title prop made optional. tsc+build clean. |
 | 2026-07-27 | I5.6.43 #209 IA Configuration pattern (0.7.64, 604e4b3): Left nav restructured (Users→/users, Records Editor→/records-editor, Settings→/settings with Branding/Appearance/System only). Shared SubTabBar component. Configuration sub-tab under Glossary Sections/Entries, Records Editor Types/Fields/Picklists, Users, Settings Branding/Appearance. Information sub-tab under Settings System. Old ?tab=users/?tab=records redirect. Panel titles renamed to avoid duplication. tsc+build clean. |
 
 ## 7. Reconciliation — already specced vs new
