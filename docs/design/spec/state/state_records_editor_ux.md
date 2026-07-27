@@ -120,10 +120,23 @@ Prior I5.6.41 briefly moved Users into Settings as a subtab. That placement is *
 |------|--------|
 | 2026-07-27 | Stephen full list captured; reconciled with #205 prior 5 items; built-in relabel confirmed in 32c doc (`is_system` editable labels). |
 
+## 8. IA Configuration Pattern (I5.6.43 #209)
+
+### Behavior
+- Left nav = top-level destinations: Dashboard, Organization, Collaboration, Environment, Glossary, Users, Records Editor, Settings.
+- Users → /users (own top-level page with UsersPanel + Configuration sub-tab).
+- Records Editor → /records-editor (own top-level page wrapping RecordsEditor + Configuration sub-tab).
+- Settings → /settings with tabs: Branding | Appearance | System only.
+- Under each main tab: Configuration sub-tab (or Information for System).
+- No duplicate panel titles that repeat the main tab name.
+- Old ?tab=users redirects to /users; ?tab=records redirects to /records-editor.
+- Shared SubTabBar component (src/components/ui/sub-tab-bar.tsx) matching ZoneConfigView inner strip pattern.
+
 ## 6. Change Log
 | Date | Change |
 |------|--------|
 | 2026-07-27 | State created from msg int_ba6a155650d240ab + prior #205; implementation brief issued to web-dev. |
+| 2026-07-27 | I5.6.43 #209 IA Configuration pattern (0.7.64, 604e4b3): Left nav restructured (Users→/users, Records Editor→/records-editor, Settings→/settings with Branding/Appearance/System only). Shared SubTabBar component. Configuration sub-tab under Glossary Sections/Entries, Records Editor Types/Fields/Picklists, Users, Settings Branding/Appearance. Information sub-tab under Settings System. Old ?tab=users/?tab=records redirect. Panel titles renamed to avoid duplication. tsc+build clean. |
 
 ## 7. Reconciliation — already specced vs new
 
