@@ -58,9 +58,9 @@ interface MissionControlSceneProps {
   showAxes?: boolean;
   /** Notify parent when user toggles axes from the scene chrome. */
   onShowAxesChange?: (show: boolean) => void;
-  /** Rings display mode: 'on' (full opacity), 'half' (palette opacity), 'off' (hidden). Default 'on'. */
-  ringsMode?: 'on' | 'half' | 'off';
-  onRingsModeChange?: (mode: 'on' | 'half' | 'off') => void;
+  /** Rings display mode: 'on' (100%), '50' (50%), '25' (25%), '10' (10%), 'off' (hidden). Default 'on'. */
+  ringsMode?: 'on' | '50' | '25' | '10' | 'off';
+  onRingsModeChange?: (mode: 'on' | '50' | '25' | '10' | 'off') => void;
   /**
    * When true (default), render in-canvas axes/rings toggles.
    * Set false when parent Mission Control chrome already owns those controls (I5.5.8).
@@ -678,7 +678,7 @@ function SceneContent({
   focusedNodeId?: string | null;
   palette: ScenePalette;
   showAxes: boolean;
-  ringsMode: 'on' | 'half' | 'off';
+  ringsMode: 'on' | '50' | '25' | '10' | 'off';
   showZoneColors: boolean;
   animSpeed: number;
   ringGap: number;
@@ -826,7 +826,7 @@ function SceneContent({
                 <ZoneCircles
                   radius={radii[z.ring]}
                   color={showZoneColors ? z.color : palette.labelColor}
-                  opacity={ringsMode === 'on' ? 1.0 : palette.ringGuideOpacity}
+                  opacity={ringsMode === 'on' ? 1.0 : ringsMode === '50' ? 0.5 : ringsMode === '25' ? 0.25 : ringsMode === '10' ? 0.10 : 0}
                 />
                 <ZoneMidLabel
                   midRadius={z.midRadius}
@@ -1048,7 +1048,7 @@ export function MissionControlScene({
   const sceneMode = useSceneMode();
   const palette = getPalette(sceneMode);
   const [internalAxes, setInternalAxes] = useState(false); // I5.6.3 hide axes by default
-  const [internalRingsMode, setInternalRingsMode] = useState<'on' | 'half' | 'off'>('on');
+  const [internalRingsMode, setInternalRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>('on');
   const [internalSpeed, setInternalSpeed] = useState(0); // I5.6.31 — static by default
   const [internalGap, setInternalGap] = useState(1);
   const [internalSphere, setInternalSphere] = useState(1);
@@ -1153,7 +1153,7 @@ export function MissionControlScene({
     onShowAxesChange?.(next);
   };
 
-  const setRingsModeInternal = (next: 'on' | 'half' | 'off') => {
+  const setRingsModeInternal = (next: 'on' | '50' | '25' | '10' | 'off') => {
     if (ringsModeProp === undefined) setInternalRingsMode(next);
     onRingsModeChange?.(next);
   };
@@ -1298,14 +1298,14 @@ export function MissionControlScene({
           <button
             type="button"
             onClick={() => {
-              const order: ('on' | 'half' | 'off')[] = ['on', 'half', 'off'];
+              const order: ('on' | '50' | '25' | '10' | 'off')[] = ['on', '50', '25', '10', 'off'];
               const i = order.indexOf(ringsMode);
               setRingsModeInternal(order[(i + 1) % order.length]);
             }}
-            className={"rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors " + (ringsMode === 'on' ? "border-primary bg-primary/10 text-primary" : ringsMode === 'half' ? "border-primary/50 bg-primary/5 text-primary/70" : "border-border bg-background/90 hover:bg-muted")}
-            title={'Rings: ' + (ringsMode === 'on' ? 'On' : ringsMode === 'half' ? '50%' : 'Off') + ' — click to cycle'}
+            className={"rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm backdrop-blur transition-colors " + (ringsMode === 'on' ? "border-primary bg-primary/10 text-primary" : ringsMode === 'off' ? "border-border bg-background/90 hover:bg-muted" : "border-primary/50 bg-primary/5 text-primary/70")}
+            title={'Rings: ' + (ringsMode === 'on' ? 'On' : ringsMode === '50' ? '50%' : ringsMode === '25' ? '25%' : ringsMode === '10' ? '10%' : 'Off') + ' — click to cycle'}
           >
-            Rings {ringsMode === 'on' ? 'On' : ringsMode === 'half' ? '50%' : 'Off'}
+            Rings {ringsMode === 'on' ? 'On' : ringsMode === '50' ? '50%' : ringsMode === '25' ? '25%' : ringsMode === '10' ? '10%' : 'Off'}
           </button>
           <button
             type="button"

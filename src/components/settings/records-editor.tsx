@@ -3,15 +3,13 @@
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { SectionTabs } from "@/components/ui/section-tabs";
 import { theme } from "@/lib/theme";
 
 type Parent = { parent_kind: string; parent_api_name: string; label: string; baked_in_tabs: string[] };
 type RT = { api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string; is_system?: boolean; active?: boolean; show_as_tab?: boolean; sort_order?: number };
-type FD = { api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string };
+type FD = { api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string; is_system?: boolean };
 type VS = { api_name: string; label: string; description?: string };
 type VSI = { id: string; api_value: string; label: string; sort_order: number; active: boolean };
 
@@ -23,6 +21,12 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 const DATA_TYPES = ["text", "long_text", "number", "boolean", "date", "datetime", "picklist", "multipicklist", "lookup", "email", "url", "phone"];
+/* ── Sample data label prefix helper (I5.6.42 #207 C) ── */
+function formatSampleLabel(label: string, isSystem: boolean): string {
+  return (isSystem ? "(fixed) " : "(db) ") + label;
+}
+
+
 
 /* ── Inline create form ── */
 function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel }: {
@@ -70,7 +74,8 @@ function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel }: {
           return (
             <label key={f.key} className="flex flex-col gap-1.5">
               <span className="text-xs font-medium text-muted-foreground">{f.label}</span>
-              <Input
+              <input
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 placeholder={f.placeholder ?? f.label}
                 value={v}
                 onChange={(e) => setVals((s) => ({ ...s, [f.key]: e.target.value }))}
@@ -401,7 +406,7 @@ export function RecordsEditor() {
                       return (
                         <Fragment key={t.api_name}>
                           <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{t.label}</td>
+                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(t.label, !!t.is_system)}</td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{t.api_name}</td>
                             <td className="px-4 py-3 align-top text-muted-foreground">{parentLabel}</td>
                             <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{t.structure}</Badge></td>
@@ -424,10 +429,10 @@ export function RecordsEditor() {
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground">Label</label>
                                     <div className="mt-1 flex gap-2">
-                                      <Input
+                                      <input
+                                        className="flex-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                                         value={editingTypeLabel[t.api_name] ?? t.label}
                                         onChange={(e) => setEditingTypeLabel((s) => ({ ...s, [t.api_name]: e.target.value }))}
-                                        className="flex-1"
                                       />
                                       <Button
                                         disabled={busy || (editingTypeLabel[t.api_name] ?? t.label) === t.label}
@@ -484,11 +489,11 @@ export function RecordsEditor() {
                     <option value="">All data types</option>
                     {DATA_TYPES.map((dt) => <option key={dt} value={dt}>{dt}</option>)}
                   </select>
-                  <Input
+                  <input
+                    className="w-32 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     placeholder="Search…"
                     value={fieldFilter}
                     onChange={(e) => setFieldFilter(e.target.value)}
-                    className="w-32"
                   />
                   <button
                     type="button"
@@ -538,7 +543,7 @@ export function RecordsEditor() {
                       return (
                         <Fragment key={fid}>
                           <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{f.label}</td>
+                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(f.label, !!f.is_system)}</td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.api_name}</td>
                             <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{f.data_type}</Badge></td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.object_api_name || "—"}</td>
@@ -559,7 +564,7 @@ export function RecordsEditor() {
                               <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${theme.colors.brand}` }}>
                                 <div className="grid gap-2 sm:grid-cols-2 text-sm">
                                   <p><span className="text-muted-foreground">API name:</span> <span className="font-mono text-xs">{f.api_name}</span></p>
-                                  <p><span className="text-muted-foreground">Label:</span> {f.label}</p>
+                                  <p><span className="text-muted-foreground">Label:</span> {formatSampleLabel(f.label, !!f.is_system)}</p>
                                   <p><span className="text-muted-foreground">Data type:</span> {f.data_type}</p>
                                   <p><span className="text-muted-foreground">Object:</span> <span className="font-mono text-xs">{f.object_api_name || "—"}</span></p>
                                   <p><span className="text-muted-foreground">Value set:</span> {f.value_set_api_name || "—"}</p>
@@ -637,7 +642,7 @@ export function RecordsEditor() {
                       return (
                         <Fragment key={vs.api_name}>
                           <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{vs.label}</td>
+                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(vs.label, true)}</td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{vs.api_name}</td>
                             <td className="px-4 py-3 align-top text-muted-foreground">{items.length > 0 ? items.length + " option" + (items.length !== 1 ? "s" : "") : "—"}</td>
                             <td className="px-4 py-3 text-right align-top">
@@ -669,7 +674,7 @@ export function RecordsEditor() {
                                     <div className="flex flex-wrap gap-2">
                                       {items.map((item) => (
                                         <Badge key={item.id} variant="outline" className="text-xs">
-                                          {item.label} <span className="ml-1 font-mono text-[10px] text-muted-foreground">{item.api_value}</span>
+                                          {formatSampleLabel(item.label, false)} <span className="ml-1 font-mono text-[10px] text-muted-foreground">{item.api_value}</span>
                                         </Badge>
                                       ))}
                                     </div>

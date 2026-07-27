@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [showAxes, setShowAxes] = useState(false); // I5.6.3 hide axes by default
-  const [ringsMode, setRingsMode] = useState<'on' | 'half' | 'off'>('on');
+  const [ringsMode, setRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>('on');
   const [showZoneColors, setShowZoneColors] = useState(true);
   const [showFloor, setShowFloor] = useState(true);
   const [animOn, setAnimOn] = useState(false); // I5.6.36 — separate anim toggle
@@ -40,11 +40,11 @@ export default function DashboardPage() {
     setSphereScale(steps[(i >= 0 ? i + 1 : 1) % steps.length]);
   };
   const cycleRings = () => {
-    const order: ('on' | 'half' | 'off')[] = ['on', 'half', 'off'];
+    const order: ('on' | '50' | '25' | '10' | 'off')[] = ['on', '50', '25', '10', 'off'];
     const i = order.indexOf(ringsMode);
     setRingsMode(order[(i + 1) % order.length]);
   };
-  const ringsVariant = ringsMode === 'on' ? 'default' : ringsMode === 'half' ? 'secondary' : 'outline';
+  const ringsVariant = ringsMode === 'on' ? 'default' : ringsMode === 'off' ? 'outline' : 'secondary';
 
   
   const toggleTheme = () => {
@@ -165,11 +165,11 @@ export default function DashboardPage() {
                   variant={ringsVariant}
                   size="sm"
                   onClick={cycleRings}
-                  title={'Rings: ' + (ringsMode === 'on' ? 'On' : ringsMode === 'half' ? '50%' : 'Off') + ' — click to cycle'}
+                  title={'Rings: ' + (ringsMode === 'on' ? 'On' : ringsMode === '50' ? '50%' : ringsMode === '25' ? '25%' : ringsMode === '10' ? '10%' : 'Off') + ' — click to cycle'}
                   className="gap-1.5"
                 >
                   <Circle className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Rings {ringsMode === 'on' ? 'On' : ringsMode === 'half' ? '50%' : 'Off'}</span>
+                  <span className="hidden sm:inline">Rings {ringsMode === 'on' ? 'On' : ringsMode === '50' ? '50%' : ringsMode === '25' ? '25%' : ringsMode === '10' ? '10%' : 'Off'}</span>
                 </Button>
                 <Button
                   variant={showZoneColors ? "default" : "outline"}
@@ -296,11 +296,11 @@ export default function DashboardPage() {
                   variant={ringsVariant}
                   size="sm"
                   onClick={cycleRings}
-                  title={'Rings: ' + (ringsMode === 'on' ? 'On' : ringsMode === 'half' ? '50%' : 'Off') + ' — click to cycle'}
+                  title={'Rings: ' + (ringsMode === 'on' ? 'On' : ringsMode === '50' ? '50%' : ringsMode === '25' ? '25%' : ringsMode === '10' ? '10%' : 'Off') + ' — click to cycle'}
                   className="gap-1.5"
                 >
                   <Circle className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Rings {ringsMode === 'on' ? 'On' : ringsMode === 'half' ? '50%' : 'Off'}</span>
+                  <span className="hidden sm:inline">Rings {ringsMode === 'on' ? 'On' : ringsMode === '50' ? '50%' : ringsMode === '25' ? '25%' : ringsMode === '10' ? '10%' : 'Off'}</span>
                 </Button>
                 <Button
                   variant={showZoneColors ? "default" : "outline"}
