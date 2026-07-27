@@ -147,7 +147,7 @@ function getPalette(mode: SceneMode): ScenePalette {
 }
 
 function getNodeColor(type: BusinessGraphNode["type"], id?: string): string {
-  // I5.6 board: Executive (center) uses hub blue; Public and other org spheres use org colors
+  // I5.6 board: Executive (center) uses Royal red; Public and other org spheres use org colors
   if (id === HUB_CENTER_ID) return theme.scene.hubColor;
   switch (type) {
     case "organization": return theme.scene.organizationColor;

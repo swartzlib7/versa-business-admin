@@ -27,9 +27,9 @@ export const theme = {
   scene: {
     hubName: 'Executive',
     hubSubtitle: 'Organization center',
-    // Hub color — Versa brand indigo
-    hubColor: '#3b82f6',
-    hubGlow: '#60a5fa',
+    // Hub color — Royal red to match Organization section accent
+    hubColor: '#ef4444',
+    hubGlow: '#f87171',
     executiveColor: '#ef4444',
     executiveGlow: '#f87171',
     // Zone colors — must be obvious at a glance
