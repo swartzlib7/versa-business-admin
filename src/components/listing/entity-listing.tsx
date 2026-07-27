@@ -19,7 +19,7 @@ export type ListingField = {
 };
 
 export type EntityListingProps<T extends Record<string, unknown>> = {
-  title: string;
+  title?: string;
   summary: string;
   accent?: string;
   fields: ListingField[];
@@ -144,7 +144,7 @@ function InlineForm({
  * Shared by Users pilot and zone config entity tabs.
  */
 export function EntityListing<T extends Record<string, unknown>>({
-  title,
+  title = "",
   summary,
   accent = theme.colors.brand,
   fields,
@@ -220,14 +220,14 @@ export function EntityListing<T extends Record<string, unknown>>({
     setDraft(blank());
   };
 
-  const singular = title.endsWith("s") ? title.slice(0, -1) : title;
+  const singular = title ? (title.endsWith("s") ? title.slice(0, -1) : title) : "item";
 
   return (
     <Card className="overflow-hidden">
       <CardHeader className="border-b bg-muted/30">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-lg">{title}</CardTitle>
+            {title ? <CardTitle className="text-lg">{title}</CardTitle> : null}
             <p className="mt-1 text-sm text-muted-foreground">{summary}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">

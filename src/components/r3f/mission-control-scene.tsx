@@ -58,7 +58,7 @@ interface MissionControlSceneProps {
   showAxes?: boolean;
   /** Notify parent when user toggles axes from the scene chrome. */
   onShowAxesChange?: (show: boolean) => void;
-  /** Rings display mode: 'on' (100%), '50' (50%), '25' (25%), '10' (10%), 'off' (hidden). Default 'on'. */
+  /** Rings display mode: 'on' (100%), '50' (50%), '25' (25%), '10' (10%), 'off' (hidden). Default '50'. */
   ringsMode?: 'on' | '50' | '25' | '10' | 'off';
   onRingsModeChange?: (mode: 'on' | '50' | '25' | '10' | 'off') => void;
   /**
@@ -1048,7 +1048,7 @@ export function MissionControlScene({
   const sceneMode = useSceneMode();
   const palette = getPalette(sceneMode);
   const [internalAxes, setInternalAxes] = useState(false); // I5.6.3 hide axes by default
-  const [internalRingsMode, setInternalRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>('on');
+  const [internalRingsMode, setInternalRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>('50'); // I5.6.44 default 50%
   const [internalSpeed, setInternalSpeed] = useState(0); // I5.6.31 — static by default
   const [internalGap, setInternalGap] = useState(1);
   const [internalSphere, setInternalSphere] = useState(1);

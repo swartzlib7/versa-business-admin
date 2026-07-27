@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
   CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -61,12 +60,10 @@ const THEME_OPTIONS: {
 ];
 
 function PanelShell({
-  title,
   summary,
   badge,
   children,
 }: {
-  title: string;
   summary: string;
   badge?: string;
   children: ReactNode;
@@ -76,7 +73,6 @@ function PanelShell({
       <CardHeader className="border-b bg-muted/30">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-lg">{title}</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">{summary}</p>
           </div>
           {badge ? (
@@ -98,7 +94,6 @@ function AppearancePanel() {
   const { theme: uiTheme, setTheme } = useUiTheme();
   return (
     <PanelShell
-      title="Configuration"
       summary="Choose how Mission Control looks. Selection is remembered on this device and survives navigation (including Glossary on the side menu)."
       badge="Theme"
     >
@@ -192,7 +187,6 @@ export default function SettingsPage() {
               ariaLabel="Branding sub-sections"
             />
             <PanelShell
-              title="Configuration"
               summary="Customize how Mission Control appears. Changes are previewed live and saved for this session."
               badge="Brand"
             >
@@ -291,7 +285,6 @@ export default function SettingsPage() {
               ariaLabel="System sub-sections"
             />
             <PanelShell
-              title="Information"
               summary="Runtime boundary for this Mission Control instance."
               badge="Runtime"
             >

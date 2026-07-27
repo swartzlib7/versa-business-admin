@@ -232,7 +232,6 @@ function ListingPanel({
 
   return (
     <EntityListing<ZoneListRow>
-      title={panel.label}
       summary={panel.summary}
       accent={accent}
       fields={fields}
@@ -259,8 +258,7 @@ function FormPanel({
       <CardHeader className="border-b bg-muted/30">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-lg">{panel.label}</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">{panel.summary}</p>
+            <p className="text-sm text-muted-foreground">{panel.summary}</p>
           </div>
           <Badge
             className="shrink-0 border-0 text-white"
@@ -665,7 +663,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
                 showViewGizmo={false}
                 showCameraTelemetry={false}
                 showAxes={false}
-                ringsMode='on'
+                ringsMode='50'
                 animSpeed={twinAnimSpeed}
                 ringGap={1}
                 sphereScale={1}

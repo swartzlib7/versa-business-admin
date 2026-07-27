@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SectionTabs } from "@/components/ui/section-tabs";
@@ -353,7 +353,6 @@ export function RecordsEditor() {
             <CardHeader className="border-b bg-muted/30">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <CardTitle className="text-lg">Configuration</CardTitle>
                   <p className="mt-1 text-sm text-muted-foreground">Named tabs under parent entities. System types are relabelable.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -492,7 +491,6 @@ export function RecordsEditor() {
             <CardHeader className="border-b bg-muted/30">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <CardTitle className="text-lg">Configuration</CardTitle>
                   <p className="mt-1 text-sm text-muted-foreground">Field definitions across all record types. Filter by type or search.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -617,7 +615,6 @@ export function RecordsEditor() {
             <CardHeader className="border-b bg-muted/30">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <CardTitle className="text-lg">Configuration</CardTitle>
                   <p className="mt-1 text-sm text-muted-foreground">Value sets for picklist fields. Expand a row to view and add options.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">

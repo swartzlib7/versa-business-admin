@@ -19,7 +19,14 @@ export default function DashboardPage() {
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [showAxes, setShowAxes] = useState(false); // I5.6.3 hide axes by default
-  const [ringsMode, setRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>('on');
+const [ringsMode, setRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>(() => {
+    if (typeof window === 'undefined') return '50';
+    try {
+      const stored = localStorage.getItem('ringsMode');
+      if (stored && ['on','50','25','10','off'].includes(stored)) return stored as 'on' | '50' | '25' | '10' | 'off';
+    } catch {}
+    return '50';
+  });
   const [showZoneColors, setShowZoneColors] = useState(true);
   const [showFloor, setShowFloor] = useState(true);
   const [animOn, setAnimOn] = useState(false); // I5.6.36 — separate anim toggle
@@ -45,6 +52,7 @@ export default function DashboardPage() {
     setRingsMode(order[(i + 1) % order.length]);
   };
   const ringsVariant = ringsMode === 'on' ? 'default' : ringsMode === 'off' ? 'outline' : 'secondary';
+  useEffect(() => { try { localStorage.setItem("ringsMode", ringsMode); } catch {} }, [ringsMode]);
 
   
   const toggleTheme = () => {

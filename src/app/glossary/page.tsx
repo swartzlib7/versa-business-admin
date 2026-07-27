@@ -5,7 +5,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { theme } from "@/lib/theme";
 import { PageHeader } from "@/components/ui/page-header";
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -530,7 +530,6 @@ export default function GlossaryPage() {
           <CardHeader className="border-b bg-muted/30">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <CardTitle className="text-lg">Configuration</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Choose a section, then manage entries below. Description is
                   the subheading under each area.
@@ -638,10 +637,6 @@ export default function GlossaryPage() {
           <CardHeader className="border-b bg-muted/30">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <CardTitle className="text-lg">
-                  Configuration
-                  {activeSection ? ` · ${activeSection.name}` : ""}
-                </CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {activeSection?.description ||
                     "Select a section above to filter entries."}
