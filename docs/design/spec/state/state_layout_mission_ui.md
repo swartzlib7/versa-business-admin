@@ -129,3 +129,16 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 | Sub-tabs | SubTabBar path unchanged; web-dev SSR smoke org total=1 (was 2) |
 | COA code review | PASS — await Stephen visual OK before beta merge |
 
+
+## I5.6.38 — Zone pages UI cleanup (2026-07-28)
+
+**Stephen request:** Remove spatial twin border and top mock badge on zone pages.
+
+**Changes:**
+- `zone-config-view.tsx`: Removed `border border-border` from spatial twin wrapper div.
+- `zone-config-view.tsx`: Removed top colored dot + 'Zone config · mock' badge container.
+
+### Change log
+| Date | Change |
+|------|--------|
+| 2026-07-28 | I5.6.38: Zone pages UI cleanup (border + mock badge) |

@@ -521,16 +521,6 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
         {/* Row 1: zone identity + actions */}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span
-                className="inline-block h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: config.accent }}
-                aria-hidden
-              />
-              <Badge variant="outline" className="font-normal">
-                Zone config · mock
-              </Badge>
-            </div>
             <h1 className="text-2xl font-bold tracking-tight">{config.title}</h1>
             <p className="max-w-2xl text-muted-foreground">{config.subtitle}</p>
           </div>
@@ -656,7 +646,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
                 </button>
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-hidden rounded-lg border border-border">
+            <div className="min-h-0 flex-1 overflow-hidden rounded-lg">
               <MissionControlScene
                 showCanvasChrome={false}
                 showLegend={false}
