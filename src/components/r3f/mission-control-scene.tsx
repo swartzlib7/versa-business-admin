@@ -1214,7 +1214,7 @@ export function MissionControlScene({
   const containerClass = cn(
     expanded
       ? "relative flex h-full w-full min-h-[375px] flex-col"
-      : "relative flex h-[375px] w-full flex-col rounded-lg border border-border transition-colors",
+      : "relative flex max-h-[375px] w-full flex-col rounded-lg border border-border transition-colors",
     className
   );
 
