@@ -1,4 +1,5 @@
 "use client";
+import { Suspense } from "react";
 
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/ui/page-header";
@@ -21,7 +22,7 @@ export default function RecordsEditorPage() {
           badge="Records"
           accent={theme.colors.brand}
         />
-        <RecordsEditor />
+        <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading editor...</div>}><RecordsEditor /></Suspense>
       </div>
     </AppShell>
   );
