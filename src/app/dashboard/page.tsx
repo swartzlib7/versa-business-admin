@@ -254,7 +254,7 @@ const [ringsMode, setRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>(()
           <CardContent className="flex min-h-0 flex-1 flex-col pt-0">
             {!expanded && (
               <MissionControlScene
-                className="h-full max-h-[375px] w-full"
+                className="h-[375px] w-full"
                 onNodeClick={handleNodeClick}
                 focusedNodeId={focusedNodeId}
                 expanded={false}
