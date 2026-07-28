@@ -3,10 +3,10 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Records Editor UX + Settings IA polish (I5.6.41) |
-| **Status** | 🔍 Gate 2 — I5.6.32 Slice 2 Task #219 Records Editor expand/edit + contextual entry |
-| **Last verified against code** | 2026-07-28 (agent/web-dev, Task #219) |
+| **Status** | 🔍 Gate 2 — I5.6.32 Slice 2.1 Task #220 Records Editor refinements |
+| **Last verified against code** | 2026-07-28 (agent/web-dev, Task #220) |
 | **Primary code** | `src/components/settings/records-editor.tsx`, `src/app/settings/page.tsx`, `src/app/glossary/page.tsx`, `src/app/users/page.tsx`, `src/components/listing/entity-listing.tsx`, `src/components/ui/section-tabs.tsx` |
-| **Task** | #219 I5.6.32 Slice 2 (+ prior #205 cumulative) |
+| **Task** | #220 I5.6.32 Slice 2.1 (+ prior #219/#205) |
 | **Source messages** | 5QtlTIWsvezycavae5An (prior 5-item), int_ba6a155650d240ab (2026-07-27 full list) |
 
 ## Collaboration
@@ -54,10 +54,13 @@ Reference implementations: `entity-listing.tsx` (`New ${singular}`), zone Listin
 - Inline row editor on expand.
 - When data_type is picklist/lookup: **select existing value sets / objects** (no free-text hunt for API names) — from prior #205 item 2.
 
+- **Type filter auto-applies** on change of the “All record types” dropdown (no extra Apply). `selectedTypeForFields` is included in the fields `useMemo` dependency list (Slice 2.1 #220).
 ### 1.5 Records Editor — Picklists
 - Same pattern: **New Picklist** on top, table of value sets, expand row to see/edit **options** (options must be visible after add — prior #205 items 3–4).
 - Bulk add options still supported inside expanded row (textarea to multiple options).
 
+- Existing options render with an **× delete** control.
+- On delete: if fixture references exist (field defaults / record instance values), UI prompts for a **replacement** from remaining options; API `DELETE /api/catalog/value-sets/:apiName` with `{ api_value, replacement_api_value? }` remaps then removes (Slice 2.1 #220).
 ### 1.6 Users + Records Editor navigation (UPDATED 2026-07-27 Gate 3)
 
 Stephen Gate 3 (`kRfBiWcX8I1doALc2r31`) **supersedes** placing Users under Settings:
@@ -192,3 +195,9 @@ Applied to:
 | Glossary blue accent | NEW | Add |
 | Glossary not center-aligned | NEW | Add |
 | New Record Type / New Field / New Picklist button pattern | Implied by EntityListing; not fully applied in Records Editor | Make explicit |
+
+### Slice 2.1 (#220) — 2026-07-28
+1. Fields: record-type dropdown filter applies immediately (`selectedTypeForFields` in memo deps).
+2. Removed unspec'd seed record types + default fields: public_record, communication_log, dissemination_channel, treasury_item, qualification_record (and catalog object/field seeds). Parents remain; types created via editor.
+3. Picklists: option × delete + replacement prompt when references exist (fixture catalog + API DELETE).
+

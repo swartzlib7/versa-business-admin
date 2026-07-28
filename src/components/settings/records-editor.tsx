@@ -137,6 +137,15 @@ export function RecordsEditor() {
   const [expandedVs, setExpandedVs] = useState<string | null>(null);
   const [vsItems, setVsItems] = useState<Record<string, VSI[]>>({});
   const [optText, setOptText] = useState<Record<string, string>>({});
+  /** Pending picklist option delete — prompts for replacement when refs exist */
+  const [deletePending, setDeletePending] = useState<null | {
+    vsApiName: string;
+    apiValue: string;
+    label: string;
+    referenceCount: number;
+    remaining: { api_value: string; label: string }[];
+    replacement: string;
+  }>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -309,6 +318,70 @@ export function RecordsEditor() {
     }
   };
 
+  const requestDeleteOption = async (vsApiName: string, item: VSI) => {
+    setBusy(true); setError(null); setStatus(null);
+    try {
+      const res = await fetch("/api/catalog/value-sets/" + vsApiName, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ api_value: item.api_value }),
+      });
+      const json = await res.json();
+      if (res.status === 409 || json?.error?.code === "REPLACEMENT_REQUIRED") {
+        const remaining = (json?.error?.remaining_options || []).filter(
+          (o: { api_value: string }) => o.api_value !== item.api_value,
+        );
+        setDeletePending({
+          vsApiName,
+          apiValue: item.api_value,
+          label: item.label,
+          referenceCount: json?.error?.reference_count || 0,
+          remaining,
+          replacement: remaining[0]?.api_value || "",
+        });
+        return;
+      }
+      if (!res.ok) throw new Error(json?.error?.message || res.statusText);
+      setStatus("Deleted option " + item.api_value);
+      setDeletePending(null);
+      await loadVsItems(vsApiName);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmDeleteOption = async () => {
+    if (!deletePending) return;
+    const { vsApiName, apiValue, replacement } = deletePending;
+    if (!replacement) {
+      setError("Select a replacement value for existing references.");
+      return;
+    }
+    setBusy(true); setError(null); setStatus(null);
+    try {
+      const res = await fetch("/api/catalog/value-sets/" + vsApiName, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ api_value: apiValue, replacement_api_value: replacement }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error?.message || res.statusText);
+      const n = json?.meta?.remapped ?? 0;
+      setStatus("Deleted " + apiValue + (n ? " (remapped " + n + " reference" + (n === 1 ? "" : "s") + ")" : ""));
+      setDeletePending(null);
+      await loadVsItems(vsApiName);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+
   // ── Derived data ──
   const filteredTypes = useMemo(() => {
     let rows = [...types];
@@ -331,7 +404,7 @@ export function RecordsEditor() {
       rows = rows.filter((f) => f.api_name.toLowerCase().includes(ff) || f.label.toLowerCase().includes(ff) || (f.object_api_name || "").toLowerCase().includes(ff));
     }
     return rows;
-  }, [allFields, fieldTypeFilter, fieldFilter]);
+  }, [allFields, selectedTypeForFields, types, fieldTypeFilter, fieldFilter]);
 
   const parentOptions = useMemo(() => parents.map((p) => p.parent_kind + ":" + p.parent_api_name), [parents]);
 
@@ -751,7 +824,7 @@ export function RecordsEditor() {
             <CardHeader className="border-b bg-muted/30">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="mt-1 text-sm text-muted-foreground">Value sets for picklist fields. Expand a row to view and add options.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Value sets for picklist fields. Expand a row to view, add, or delete options (delete prompts for replacement when referenced).</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge className="shrink-0 border-0 text-white" style={{ backgroundColor: theme.colors.brand }}>Picklists</Badge>
@@ -827,13 +900,76 @@ export function RecordsEditor() {
                                   {items.length === 0 ? (
                                     <p className="text-sm text-muted-foreground">No options yet. Add some below.</p>
                                   ) : (
+                                    <>
                                     <div className="flex flex-wrap gap-2">
                                       {items.map((item) => (
-                                        <Badge key={item.id} variant="outline" className="text-xs">
-                                          {formatSampleLabel(item.label, false)} <span className="ml-1 font-mono text-[10px] text-muted-foreground">{item.api_value}</span>
-                                        </Badge>
+                                        <span
+                                          key={item.id}
+                                          className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-xs"
+                                        >
+                                          <span>{formatSampleLabel(item.label, false)}</span>
+                                          <span className="font-mono text-[10px] text-muted-foreground">{item.api_value}</span>
+                                          <button
+                                            type="button"
+                                            title="Delete option"
+                                            disabled={busy}
+                                            onClick={() => void requestDeleteOption(vs.api_name, item)}
+                                            className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                            aria-label={"Delete option " + item.api_value}
+                                          >
+                                            ×
+                                          </button>
+                                        </span>
                                       ))}
                                     </div>
+                                    {deletePending && deletePending.vsApiName === vs.api_name && (
+                                      <div className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-3 text-sm">
+                                        <p className="font-medium">
+                                          <>Replace references to &ldquo;{deletePending.label}&rdquo; ({deletePending.apiValue})</>
+                                        </p>
+                                        <p className="mt-1 text-muted-foreground">
+                                          {deletePending.referenceCount > 0
+                                            ? deletePending.referenceCount + " existing reference" + (deletePending.referenceCount === 1 ? "" : "s") + " must move to another option before delete."
+                                            : "Choose a replacement option, then confirm delete."}
+                                        </p>
+                                        {deletePending.remaining.length === 0 ? (
+                                          <p className="mt-2 text-destructive">No remaining options available for replacement. Add another option first.</p>
+                                        ) : (
+                                          <div className="mt-3 flex flex-wrap items-end gap-2">
+                                            <label className="flex flex-col gap-1">
+                                              <span className="text-xs font-medium text-muted-foreground">Replacement value</span>
+                                              <select
+                                                className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+                                                value={deletePending.replacement}
+                                                onChange={(e) =>
+                                                  setDeletePending((s) =>
+                                                    s ? { ...s, replacement: e.target.value } : s,
+                                                  )
+                                                }
+                                              >
+                                                {deletePending.remaining.map((o) => (
+                                                  <option key={o.api_value} value={o.api_value}>
+                                                    {o.label} ({o.api_value})
+                                                  </option>
+                                                ))}
+                                              </select>
+                                            </label>
+                                            <Button
+                                              disabled={busy || !deletePending.replacement}
+                                              onClick={() => void confirmDeleteOption()}
+                                              style={{ backgroundColor: theme.colors.brand }}
+                                              className="text-white"
+                                            >
+                                              Delete & remap
+                                            </Button>
+                                            <Button variant="outline" onClick={() => setDeletePending(null)}>
+                                              Cancel
+                                            </Button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                    </>
                                   )}
                                 </div>
                                 <div className="mt-4">

@@ -4,6 +4,7 @@
  * HTTP: GET/POST under /api/catalog (auth). Custom field extensions are session-local on fixtures
  * until Phase 2+ persists catalog tables.
  */
+import { listInstances } from './record-instances';
 
 export type CatalogDataType =
   | 'text'
@@ -1081,29 +1082,9 @@ export const layoutDefinitions: LayoutDefinition[] = [
 ];
 
 
-// Faculty / dynamic record baseline fields (I5.6.32c)
-const facultyRecordFieldSeed: FieldDefinition[] = [
-  // --- public_record ---
-  { id: 'fd-pr-name', object_api_name: 'public_record', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fd-pr-status', object_api_name: 'public_record', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
-  { id: 'fd-pr-mandate', object_api_name: 'public_record', api_name: 'mandate', label: 'Mandate', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
-  // --- communication_log ---
-  { id: 'fd-cl-name', object_api_name: 'communication_log', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fd-cl-status', object_api_name: 'communication_log', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
-  { id: 'fd-cl-channel', object_api_name: 'communication_log', api_name: 'channel', label: 'Channel', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
-  // --- dissemination_channel ---
-  { id: 'fd-dc-name', object_api_name: 'dissemination_channel', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fd-dc-status', object_api_name: 'dissemination_channel', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
-  { id: 'fd-dc-type', object_api_name: 'dissemination_channel', api_name: 'channel_type', label: 'Channel type', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
-  // --- treasury_item ---
-  { id: 'fd-ti-name', object_api_name: 'treasury_item', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fd-ti-status', object_api_name: 'treasury_item', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
-  { id: 'fd-ti-amount', object_api_name: 'treasury_item', api_name: 'amount', label: 'Amount', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
-  // --- qualification_record ---
-  { id: 'fd-qr-name', object_api_name: 'qualification_record', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fd-qr-status', object_api_name: 'qualification_record', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
-  { id: 'fd-qr-standard', object_api_name: 'qualification_record', api_name: 'standard', label: 'Standard', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
-];
+// Faculty / dynamic record baseline fields (I5.6.32 Slice 2.1 #220)
+// Unspec seed types removed - fields are created with record types via editor/API.
+const facultyRecordFieldSeed: FieldDefinition[] = [];
 
 // ---------------------------------------------------------------------------
 // Object registry (typed cores + faculty record types) — I5.6.32b
@@ -1156,52 +1137,7 @@ export const objectDefinitions: ObjectDefinition[] = [
     instance_collection: '/api/public/products',
     extensible: true,
   },
-  {
-    api_name: 'public_record',
-    label: 'Public records',
-    description: 'Public-facing mandates and announcements.',
-    core_kind: 'faculty_record',
-    instance_collection: null,
-    extensible: true,
-    faculty: 'public',
-  },
-  {
-    api_name: 'communication_log',
-    label: 'Communication logs',
-    description: 'Internal and external communication entries.',
-    core_kind: 'faculty_record',
-    instance_collection: null,
-    extensible: true,
-    faculty: 'communications',
-  },
-  {
-    api_name: 'dissemination_channel',
-    label: 'Dissemination channels',
-    description: 'Outbound distribution and publishing channels.',
-    core_kind: 'faculty_record',
-    instance_collection: null,
-    extensible: true,
-    faculty: 'dissemination',
-  },
-  {
-    api_name: 'treasury_item',
-    label: 'Treasury items',
-    description: 'Cash, billing, and AR/AP items.',
-    core_kind: 'faculty_record',
-    instance_collection: null,
-    extensible: true,
-    faculty: 'treasury',
-  },
-  {
-    api_name: 'qualification_record',
-    label: 'Qualification records',
-    description: 'Quality, compliance, and certification records.',
-    core_kind: 'faculty_record',
-    instance_collection: null,
-    extensible: true,
-    faculty: 'qualification',
-  },
-          ];
+                    ];
 
 // Mutable copies for in-process custom field extensions (fixture mode).
 let mutableFieldDefinitions: FieldDefinition[] = [...fieldDefinitions, ...facultyRecordFieldSeed];
@@ -1507,6 +1443,166 @@ export function addValueSetItem(
   };
   mutableValueSetItems.push(item);
   return { ok: true, value_set: vs, items: listValueSetItems(vs.id) };
+}
+
+
+export type DeleteValueSetItemResult =
+  | { ok: true; value_set: ValueSet; items: ValueSetItem[]; remapped: number }
+  | { ok: false; code: string; message: string; reference_count?: number };
+
+/** Count fixture references to a picklist api_value (field defaults + record instance data). */
+export function countValueSetItemReferences(
+  valueSetApiName: string,
+  apiValue: string,
+): number {
+  const vs = getValueSetByApiName(valueSetApiName);
+  if (!vs) return 0;
+  let count = 0;
+  for (const f of mutableFieldDefinitions) {
+    if (f.value_set_api_name !== valueSetApiName) continue;
+    if (f.default_value === apiValue) {
+      count += 1;
+      continue;
+    }
+    if (
+      f.default_value &&
+      f.data_type === 'multipicklist' &&
+      f.default_value
+        .split(',')
+        .map((s) => s.trim())
+        .includes(apiValue)
+    ) {
+      count += 1;
+    }
+  }
+  const fieldsForVs = mutableFieldDefinitions.filter(
+    (f) => f.value_set_api_name === valueSetApiName,
+  );
+  const fieldNames = new Set(fieldsForVs.map((f) => f.api_name));
+  for (const inst of listInstances({})) {
+    if (inst.status === apiValue && fieldNames.has('status')) count += 1;
+    for (const [k, v] of Object.entries(inst.data || {})) {
+      if (!fieldNames.has(k)) continue;
+      if (v === apiValue) count += 1;
+      else if (
+        typeof v === 'string' &&
+        v
+          .split(',')
+          .map((s) => s.trim())
+          .includes(apiValue)
+      ) {
+        count += 1;
+      }
+    }
+  }
+  return count;
+}
+
+function remapValueSetItemReferences(
+  valueSetApiName: string,
+  fromValue: string,
+  toValue: string,
+): number {
+  let remapped = 0;
+  for (const f of mutableFieldDefinitions) {
+    if (f.value_set_api_name !== valueSetApiName) continue;
+    if (f.default_value === fromValue) {
+      f.default_value = toValue;
+      remapped += 1;
+    } else if (f.default_value && f.data_type === 'multipicklist') {
+      const parts = f.default_value.split(',').map((s) => s.trim());
+      if (parts.includes(fromValue)) {
+        f.default_value = parts.map((p) => (p === fromValue ? toValue : p)).join(',');
+        remapped += 1;
+      }
+    }
+  }
+  const fieldsForVs = mutableFieldDefinitions.filter(
+    (f) => f.value_set_api_name === valueSetApiName,
+  );
+  const fieldNames = new Set(fieldsForVs.map((f) => f.api_name));
+  for (const inst of listInstances({})) {
+    if (fieldNames.has('status') && inst.status === fromValue) {
+      (inst as { status: string }).status = toValue;
+      remapped += 1;
+    }
+    for (const k of Object.keys(inst.data || {})) {
+      if (!fieldNames.has(k)) continue;
+      const v = inst.data[k];
+      if (v === fromValue) {
+        inst.data[k] = toValue;
+        remapped += 1;
+      } else if (typeof v === 'string' && v.includes(',')) {
+        const parts = v.split(',').map((s) => s.trim());
+        if (parts.includes(fromValue)) {
+          inst.data[k] = parts.map((p) => (p === fromValue ? toValue : p)).join(',');
+          remapped += 1;
+        }
+      }
+    }
+  }
+  return remapped;
+}
+
+/**
+ * Delete a picklist option. When existing references are found, replacement_api_value
+ * is required and all fixture references are remapped to it (I5.6.32 Slice 2.1 #220).
+ */
+export function deleteValueSetItem(
+  valueSetApiName: string,
+  apiValue: string,
+  replacementApiValue?: string | null,
+): DeleteValueSetItemResult {
+  const vs = getValueSetByApiName(valueSetApiName);
+  if (!vs) {
+    return { ok: false, code: 'NOT_FOUND', message: `Unknown value set '${valueSetApiName}'.` };
+  }
+  const itemIdx = mutableValueSetItems.findIndex(
+    (i) => i.value_set_id === vs.id && i.api_value === apiValue && i.active,
+  );
+  if (itemIdx < 0) {
+    return {
+      ok: false,
+      code: 'ITEM_NOT_FOUND',
+      message: `Option '${apiValue}' not found on value set '${valueSetApiName}'.`,
+    };
+  }
+  const remaining = mutableValueSetItems.filter(
+    (i) => i.value_set_id === vs.id && i.active && i.api_value !== apiValue,
+  );
+  const refs = countValueSetItemReferences(valueSetApiName, apiValue);
+  if (refs > 0) {
+    const replacement = (replacementApiValue || '').trim();
+    if (!replacement) {
+      return {
+        ok: false,
+        code: 'REPLACEMENT_REQUIRED',
+        message: `Option '${apiValue}' is used by ${refs} reference(s). Pick a replacement from the remaining options.`,
+        reference_count: refs,
+      };
+    }
+    if (replacement === apiValue) {
+      return {
+        ok: false,
+        code: 'INVALID_REPLACEMENT',
+        message: 'Replacement must be a different option.',
+        reference_count: refs,
+      };
+    }
+    if (!remaining.some((i) => i.api_value === replacement)) {
+      return {
+        ok: false,
+        code: 'INVALID_REPLACEMENT',
+        message: `Replacement '${replacement}' is not an active option on this picklist.`,
+        reference_count: refs,
+      };
+    }
+    const remapped = remapValueSetItemReferences(valueSetApiName, apiValue, replacement);
+    mutableValueSetItems.splice(itemIdx, 1);
+    return { ok: true, value_set: vs, items: listValueSetItems(vs.id), remapped };
+  }
+  mutableValueSetItems.splice(itemIdx, 1);
+  return { ok: true, value_set: vs, items: listValueSetItems(vs.id), remapped: 0 };
 }
 
 export function ensureObjectForRecordType(input: {
