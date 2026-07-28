@@ -1213,8 +1213,8 @@ export function MissionControlScene({
   // I5.6.16/20: className lets zone pages fill a column (h-full); default hub height 750px (I5.6.20 +50%).
   const containerClass = cn(
     expanded
-      ? "flex h-full w-full min-h-[750px] flex-col"
-      : "flex h-[750px] w-full flex-col rounded-lg border border-border transition-colors",
+      ? "relative flex h-full w-full min-h-[375px] flex-col"
+      : "relative flex h-[375px] w-full flex-col rounded-lg border border-border transition-colors",
     className
   );
 
