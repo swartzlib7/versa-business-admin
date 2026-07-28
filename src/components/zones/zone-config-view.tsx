@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { theme } from "@/lib/theme";
 import { MissionControlScene } from "@/components/r3f/mission-control-scene";
 import { EntityListing, type ListingField } from "@/components/listing/entity-listing";
+import { SubTabBar } from "@/components/ui/sub-tab-bar";
 
 /**
  * I5.6.10 zone config UI pattern (Stephen):
@@ -49,6 +50,9 @@ export type ZoneTab = {
   listColumns?: string[];
   /** Seed rows for listing mocks. */
   sampleRows?: string[][];
+  recordTypeApiName?: string;
+  parentKind?: string;
+  parentApiName?: string;
 };
 
 export type ZoneConfig = {
@@ -210,42 +214,141 @@ function ListingPanel({
   }, [panel.id, panel.sampleRows, panel.label, columns]);
 
   const [rows, setRows] = useState<ZoneListRow[]>(seedRows);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const isDynamic = !!panel.recordTypeApiName;
 
   useEffect(() => {
-    setRows(seedRows);
-  }, [seedRows]);
+    if (!isDynamic) {
+      setRows(seedRows);
+      return;
+    }
 
-  const getCell = (row: ZoneListRow, key: string) => row.cells[key] ?? "";
+    setLoading(true);
+    const params = new URLSearchParams();
+    params.set("type", panel.recordTypeApiName!);
+    params.set("parent_kind", panel.parentKind!);
+    params.set("parent", panel.parentApiName!);
 
-  const onAdd = (draft: Record<string, string>) => {
-    setRows((prev) => [
-      ...prev,
-      { id: `${panel.id}-row-${Date.now()}`, cells: { ...draft } },
-    ]);
+    fetch(`/api/records?${params.toString()}`)
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to fetch records");
+        return r.json();
+      })
+      .then((json) => {
+        const apiRows = (json.data ?? []).map((inst: any) => {
+          const cells: Record<string, string> = {
+            Name: inst.name,
+            Status: inst.status,
+            ...inst.data,
+          };
+          return { id: inst.id, cells };
+        });
+        setRows(apiRows);
+        setLoading(false);
+      })
+      .catch((e) => {
+        setError(e.message);
+        setLoading(false);
+      });
+  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, seedRows]);
+
+  const onAdd = async (draft: Record<string, string>) => {
+    if (!isDynamic) {
+      const id = `${panel.id}-row-${rows.length + 1}`;
+      setRows((prev) => [...prev, { id, cells: draft }]);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/records", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type_api_name: panel.recordTypeApiName,
+          parent_kind: panel.parentKind,
+          parent_api_name: panel.parentApiName,
+          name: draft.Name || draft.name || "New Record",
+          status: draft.Status || draft.status || "active",
+          data: draft,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create record");
+      const json = await res.json();
+      const inst = json.data;
+      const cells: Record<string, string> = {
+        Name: inst.name,
+        Status: inst.status,
+        ...inst.data,
+      };
+      setRows((prev) => [...prev, { id: inst.id, cells }]);
+    } catch (e: any) {
+      alert(e.message);
+    }
   };
 
-  const onUpdate = (id: string, draft: Record<string, string>) => {
-    setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, cells: { ...draft } } : r)),
-    );
+  const onUpdate = async (id: string, draft: Record<string, string>) => {
+    if (!isDynamic || id.startsWith(panel.id)) {
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, cells: draft } : r)));
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/records/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: draft.Name || draft.name,
+          status: draft.Status || draft.status,
+          data: draft,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update record");
+      const json = await res.json();
+      const inst = json.data;
+      const cells: Record<string, string> = {
+        Name: inst.name,
+        Status: inst.status,
+        ...inst.data,
+      };
+      setRows((prev) => prev.map((r) => (r.id === id ? { id: inst.id, cells } : r)));
+    } catch (e: any) {
+      alert(e.message);
+    }
   };
 
   return (
-    <EntityListing<ZoneListRow>
-      summary={panel.summary}
-      accent={accent}
-      fields={fields}
-      rows={rows}
-      getRowId={(r) => r.id}
-      getCell={getCell}
-      onAdd={onAdd}
-      onUpdate={onUpdate}
-      emptyLabel={`No ${panel.label.toLowerCase()} yet — use New to add the first row.`}
-    />
+    <div className="space-y-4">
+      {loading && (
+        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+          Loading records...
+        </div>
+      )}
+      {error && (
+        <div className="rounded-md bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+      {!loading && (
+        <EntityListing
+          title={panel.label}
+          summary={panel.summary}
+          accent={accent}
+          fields={fields}
+          rows={rows}
+          getRowId={(r) => r.id}
+          getCell={(r, k) => r.cells[k] ?? ""}
+          onAdd={onAdd}
+          onUpdate={onUpdate}
+          badgeLabel={isDynamic ? "Dynamic Record" : "Listing"}
+        />
+      )}
+    </div>
   );
 }
 
-/** I5.6.34 — FormPanel renders ONLY the form body. No faculty heading, no sub-tab strip. */
+
 function FormPanel({
   panel,
   accent,
@@ -277,91 +380,11 @@ function FormPanel({
             <FieldMock {...f} />
           </div>
         ))}
-        {panel.links && panel.links.length > 0 && (
-          <div className="sm:col-span-2 flex flex-wrap gap-2">
-            {panel.links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
-              >
-                Open {l.label}{' →'}
-              </Link>
-            ))}
-          </div>
-        )}
-        <div className="sm:col-span-2 flex flex-wrap gap-2 pt-2">
-          <button
-            type="button"
-            className="rounded-md px-4 py-2 text-sm font-medium text-white"
-            style={{ backgroundColor: accent }}
-          >
-            Save draft
-          </button>
-          <button
-            type="button"
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
-          >
-            Reset
-          </button>
-          <span className="self-center text-xs text-muted-foreground">
-            Mock only - no persistence yet
-          </span>
-        </div>
       </CardContent>
     </Card>
   );
 }
 
-/** I5.6.34 — Sub-tab strip + description rendered in a STABLE position outside card body. */
-function SubTabBar({
-  subTabs,
-  activeId,
-  accent,
-  onSelect,
-  ariaLabel,
-}: {
-  subTabs: ZoneTab[];
-  activeId: string;
-  accent: string;
-  onSelect: (id: string) => void;
-  ariaLabel: string;
-}) {
-  return (
-    <div className="space-y-2">
-      <div
-        role="tablist"
-        aria-label={ariaLabel}
-        className="flex flex-wrap gap-1 rounded-lg border p-1"
-        style={{ borderColor: accent + "33", backgroundColor: accent + "0d" }}
-      >
-        {subTabs.map((c) => {
-          const on = c.id === activeId;
-          return (
-            <button
-              key={c.id}
-              role="tab"
-              type="button"
-              aria-selected={on}
-              onClick={() => onSelect(c.id)}
-              className={cn(
-                "rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                on
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
-              )}
-              style={
-                on ? { boxShadow: `inset 0 -2px 0 ${accent}` } : undefined
-              }
-            >
-              {c.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function TabPanel({
   tab,
@@ -411,7 +434,7 @@ function TabPanel({
   return (
     <div className="space-y-3">
       <SubTabBar
-        subTabs={subTabs}
+        items={subTabs}
         activeId={panel.id}
         accent={accent}
         onSelect={setChildId}
