@@ -407,7 +407,7 @@ function TabPanel({
       relations: tab.relations,
       links: [
         ...(tab.links ?? []),
-        { href: "/settings?tab=records", label: "record types" },
+        { href: `/records-editor?parent=${tab.parentKind}:${tab.parentApiName}`, label: "record types" },
       ],
       presentation: undefined,
       listColumns: undefined,
