@@ -142,3 +142,16 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 | Date | Change |
 |------|--------|
 | 2026-07-28 | I5.6.38: Zone pages UI cleanup (border + mock badge) |
+
+## I5.6.32 Slice 1 \u2014 Live Dynamic Records Integration (2026-07-28)
+
+**Request:** Implement live dynamic record queries for Organization, Collaboration, and Environment zone pages.
+
+**Behavior:**
+- `ZoneConfigView` (\`ListingPanel\`): Fetches records from \`/api/records?type=...&parent_kind=...&parent=...\` when \`recordTypeApiName\` is present on the tab.
+- **Persistence:** \`onAdd\` and \`onUpdate\` in \`ListingPanel\` now call the API (\`POST /api/records\` and \`PATCH /api/records/[id]\`) for dynamic record tabs.
+- **Metadata:** \`ZoneTab\` extended with \`recordTypeApiName\`, \`parentKind\`, and \`parentApiName\`.
+- **Integration:** \`applyRecordTypesToTab\` in \`record-type-tabs.ts\` populates the new metadata fields from the Records Editor configuration.
+- **UI Feedback:** Added loading and error states to \`ListingPanel\`. Added "Dynamic Record" badge for API-driven rows.
+
+**Code:** \`zone-config-view.tsx\`, \`record-type-tabs.ts\`.
