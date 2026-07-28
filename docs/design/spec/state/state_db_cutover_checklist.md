@@ -7,10 +7,10 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Fixture to Postgres JSONB cutover plan |
-| **Status** | Phase 0-4 done (2026-07-24): seed (org+dept+users+catalog+projects+tasks+products+integrations); all reads from Postgres; writes (users+projects+tasks); agents as users views; /api/agents deprecated to redirect; hybrid adapter; DATA_SOURCE=postgres on beta |
-| **Last verified against code** | 2026-07-24 (DB wrap slice, package 0.7.52) |
+| **Status** | Phase 0-4 done (2026-07-28): seed (org+dept+users+catalog+projects+tasks+products+integrations); all reads from Postgres; writes (users+projects+tasks); agents as users views; /api/agents deprecated to redirect; hybrid adapter; DATA_SOURCE=postgres on beta |
+| **Last verified against code** | 2026-07-28 (rebase verified, package 0.7.67) |
 | **Primary code** | src/lib/data/adapter.ts, src/lib/fixtures/*, src/app/api/** |
-| **Task** | #182 |
+| **Task** | #182, #191 |
 | **Parent state doc** | state_i5_6_zone_erd.md (section 1.4 persistence, section 4 backlog) |
 
 ---
