@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,15 +31,16 @@ function formatSampleLabel(label: string, isSystem: boolean): string {
 
 
 /* ── Inline create form ── */
-function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel }: {
+function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel, initialValues }: {
   fields: { key: string; label: string; type?: "text" | "select" | "textarea"; options?: string[]; placeholder?: string }[];
   accent: string;
   onSubmit: (vals: Record<string, string>) => void;
   onCancel: () => void;
   busy: boolean;
   submitLabel: string;
+  initialValues?: Record<string, string>;
 }) {
-  const [vals, setVals] = useState<Record<string, string>>({});
+  const [vals, setVals] = useState<Record<string, string>>(initialValues ?? {});
   return (
     <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${accent}` }}>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -117,8 +119,10 @@ export function RecordsEditor() {
   // Types state
   const [showTypeForm, setShowTypeForm] = useState(false);
   const [expandedType, setExpandedType] = useState<string | null>(null);
-  const [parentFilter, setParentFilter] = useState("");
-  const [editingTypeLabel, setEditingTypeLabel] = useState<Record<string, string>>({});
+  const searchParams = useSearchParams();
+  const [parentFilter, setParentFilter] = useState(() => searchParams.get("parent") || "");
+  const [editingType, setEditingType] = useState<Record<string, Partial<RT>>>({});
+  const [typeFields, setTypeFields] = useState<Record<string, FD[]>>({});
 
   // Fields state
   const [allFields, setAllFields] = useState<FD[]>([]);
@@ -185,6 +189,12 @@ export function RecordsEditor() {
       setError(e instanceof Error ? e.message : "Failed to load options");
     }
   };
+  const loadTypeFields = async (apiName: string) => {
+    try {
+      const detail = await api<{ data: { fields: FD[] } }>("/api/catalog/record-types/" + apiName);
+      setTypeFields((prev) => ({ ...prev, [apiName]: detail.data.fields || [] }));
+    } catch { /* skip */ }
+  };
 
   // ── Types handlers ──
   const createType = async (vals: Record<string, string>) => {
@@ -213,18 +223,18 @@ export function RecordsEditor() {
     }
   };
 
-  const relabelType = async (apiName: string, newLabel: string) => {
+  const updateType = async (apiName: string, patch: Partial<RT>) => {
     setBusy(true); setError(null); setStatus(null);
     try {
       await api("/api/catalog/record-types/" + apiName, {
         method: "PATCH",
-        body: JSON.stringify({ label: newLabel }),
+        body: JSON.stringify(patch),
       });
-      setStatus("Relabeled " + apiName + " to " + newLabel);
-      setEditingTypeLabel((s) => ({ ...s, [apiName]: "" }));
+      setStatus("Updated " + apiName);
+      setExpandedType(null);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Relabel failed");
+      setError(e instanceof Error ? e.message : "Update failed");
     } finally {
       setBusy(false);
     }
@@ -311,6 +321,10 @@ export function RecordsEditor() {
 
   const filteredFields = useMemo(() => {
     let rows = [...allFields];
+    if (selectedTypeForFields) {
+      const targetObj = types.find((t) => t.api_name === selectedTypeForFields)?.object_api_name || selectedTypeForFields;
+      rows = rows.filter((f) => f.object_api_name === targetObj);
+    }
     if (fieldTypeFilter) rows = rows.filter((f) => f.data_type === fieldTypeFilter);
     if (fieldFilter) {
       const ff = fieldFilter.toLowerCase();
@@ -393,6 +407,7 @@ export function RecordsEditor() {
                   onCancel={() => setShowTypeForm(false)}
                   busy={busy}
                   submitLabel="Create type"
+                  initialValues={parentFilter ? { parent: parentFilter } : undefined}
                 />
               )}
               <div className="overflow-x-auto">
@@ -411,6 +426,7 @@ export function RecordsEditor() {
                     {filteredTypes.map((t) => {
                       const isExpanded = expandedType === t.api_name;
                       const parentLabel = parents.find((p) => p.parent_kind === t.parent_kind && p.parent_api_name === t.parent_api_name)?.label || t.parent_kind + ":" + t.parent_api_name;
+                      const draft = editingType[t.api_name] ?? {};
                       return (
                         <Fragment key={t.api_name}>
                           <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
@@ -422,7 +438,25 @@ export function RecordsEditor() {
                             <td className="px-4 py-3 text-right align-top">
                               <button
                                 type="button"
-                                onClick={() => setExpandedType(isExpanded ? null : t.api_name)}
+                                onClick={() => {
+                                  if (isExpanded) {
+                                    setExpandedType(null);
+                                  } else {
+                                    setExpandedType(t.api_name);
+                                    setEditingType((s) => ({
+                                      ...s,
+                                      [t.api_name]: {
+                                        label: t.label,
+                                        description: t.description,
+                                        structure: t.structure,
+                                        sort_order: t.sort_order ?? 0,
+                                        show_as_tab: t.show_as_tab ?? true,
+                                        active: t.active ?? true,
+                                      },
+                                    }));
+                                    void loadTypeFields(t.api_name);
+                                  }
+                                }}
                                 className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
                                 style={isExpanded ? { borderColor: theme.colors.brand, color: theme.colors.brand } : undefined}
                               >
@@ -433,33 +467,126 @@ export function RecordsEditor() {
                           {isExpanded && (
                             <ExpandRow colSpan={6}>
                               <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${theme.colors.brand}` }}>
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                  <div>
+                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                  <div className="space-y-1.5">
                                     <label className="text-xs font-medium text-muted-foreground">Label</label>
-                                    <div className="mt-1 flex gap-2">
-                                      <input
-                                        className="flex-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                                        value={editingTypeLabel[t.api_name] ?? t.label}
-                                        onChange={(e) => setEditingTypeLabel((s) => ({ ...s, [t.api_name]: e.target.value }))}
-                                      />
-                                      <Button
-                                        disabled={busy || (editingTypeLabel[t.api_name] ?? t.label) === t.label}
-                                        onClick={() => void relabelType(t.api_name, editingTypeLabel[t.api_name] ?? t.label)}
-                                        style={{ backgroundColor: theme.colors.brand }}
-                                        className="text-white"
-                                      >
-                                        Save
-                                      </Button>
-                                    </div>
-                                    {t.is_system && <p className="mt-1 text-xs text-muted-foreground">System type — label is editable, API name is read-only.</p>}
+                                    <input
+                                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                      value={draft.label ?? t.label}
+                                      onChange={(e) => setEditingType((s) => ({ ...s, [t.api_name]: { ...s[t.api_name], label: e.target.value } }))}
+                                    />
                                   </div>
-                                  <div className="space-y-1 text-sm">
+                                  <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Structure</label>
+                                    <select
+                                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                      value={draft.structure ?? t.structure}
+                                      onChange={(e) => setEditingType((s) => ({ ...s, [t.api_name]: { ...s[t.api_name], structure: e.target.value } }))}
+                                    >
+                                      <option value="list">List</option>
+                                      <option value="header">Header</option>
+                                      <option value="header_lines">Header + Lines</option>
+                                    </select>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Sort Order</label>
+                                    <input
+                                      type="number"
+                                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                      value={draft.sort_order ?? t.sort_order ?? 0}
+                                      onChange={(e) => setEditingType((s) => ({ ...s, [t.api_name]: { ...s[t.api_name], sort_order: parseInt(e.target.value || "0", 10) } }))}
+                                    />
+                                  </div>
+                                  <div className="sm:col-span-2 lg:col-span-3 space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Description</label>
+                                    <textarea
+                                      className="min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                      value={draft.description ?? t.description ?? ""}
+                                      onChange={(e) => setEditingType((s) => ({ ...s, [t.api_name]: { ...s[t.api_name], description: e.target.value } }))}
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-4 sm:col-span-2 lg:col-span-3">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        checked={draft.show_as_tab ?? t.show_as_tab ?? true}
+                                        onChange={(e) => setEditingType((s) => ({ ...s, [t.api_name]: { ...s[t.api_name], show_as_tab: e.target.checked } }))}
+                                      />
+                                      <span className="text-sm font-medium">Show as tab</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                        checked={draft.active ?? t.active ?? true}
+                                        onChange={(e) => setEditingType((s) => ({ ...s, [t.api_name]: { ...s[t.api_name], active: e.target.checked } }))}
+                                      />
+                                      <span className="text-sm font-medium">Active</span>
+                                    </label>
+                                  </div>
+                                  <div className="space-y-1 text-sm sm:col-span-2 lg:col-span-3">
                                     <p><span className="text-muted-foreground">API name:</span> <span className="font-mono text-xs">{t.api_name}</span></p>
                                     <p><span className="text-muted-foreground">Object:</span> <span className="font-mono text-xs">{t.object_api_name}</span></p>
-                                    <p><span className="text-muted-foreground">Description:</span> {t.description || "—"}</p>
-                                    <p><span className="text-muted-foreground">Show as tab:</span> {t.show_as_tab ? "Yes" : "No"}</p>
+                                    <p><span className="text-muted-foreground">Parent:</span> {parentLabel}</p>
                                   </div>
                                 </div>
+                                <div className="mt-4 flex gap-2">
+                                  <Button
+                                    disabled={busy}
+                                    onClick={() => void updateType(t.api_name, {
+                                      label: draft.label ?? t.label,
+                                      description: draft.description ?? t.description,
+                                      structure: draft.structure ?? t.structure,
+                                      sort_order: draft.sort_order ?? t.sort_order ?? 0,
+                                      show_as_tab: draft.show_as_tab ?? t.show_as_tab ?? true,
+                                      active: draft.active ?? t.active ?? true,
+                                    })}
+                                    style={{ backgroundColor: theme.colors.brand }}
+                                    className="text-white"
+                                  >
+                                    Save changes
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setExpandedType(null);
+                                      setEditingType((s) => {
+                                        const n = { ...s };
+                                        delete n[t.api_name];
+                                        return n;
+                                      });
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                                <div className="mt-6 border-t border-border pt-4">
+                                  <div className="mb-2 flex items-center justify-between">
+                                    <p className="text-sm font-medium">Fields Preview</p>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setSection("fields"); setSelectedTypeForFields(t.api_name); }}
+                                      className="text-xs text-primary hover:underline"
+                                    >
+                                      Manage Fields
+                                    </button>
+                                  </div>
+                                  {typeFields[t.api_name]?.length ? (
+                                    <div className="flex flex-wrap gap-2">
+                                      {typeFields[t.api_name]?.map((f) => (
+                                        <Badge key={f.api_name} variant="secondary" className="text-[10px] font-normal">
+                                          {f.label} <span className="ml-1 font-mono text-muted-foreground">{f.data_type}</span>
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs italic text-muted-foreground">No fields defined for this type yet.</p>
+                                  )}
+                                </div>
+                                {t.is_system && (
+                                  <p className="mt-2 text-xs italic text-muted-foreground">System type — API name and parent are read-only.</p>
+                                )}
                               </div>
                             </ExpandRow>
                           )}
@@ -495,6 +622,14 @@ export function RecordsEditor() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge className="shrink-0 border-0 text-white" style={{ backgroundColor: theme.colors.brand }}>Fields</Badge>
+                  <select
+                    className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                    value={selectedTypeForFields}
+                    onChange={(e) => setSelectedTypeForFields(e.target.value)}
+                  >
+                    <option value="">All record types</option>
+                    {types.map((t) => <option key={t.api_name} value={t.api_name}>{t.label}</option>)}
+                  </select>
                   <select
                     className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
                     value={fieldTypeFilter}
@@ -536,6 +671,7 @@ export function RecordsEditor() {
                   onCancel={() => setShowFieldForm(false)}
                   busy={busy}
                   submitLabel="Add field"
+                  initialValues={selectedTypeForFields ? { type: selectedTypeForFields } : undefined}
                 />
               )}
               <div className="overflow-x-auto">

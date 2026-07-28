@@ -3,10 +3,10 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Records Editor UX + Settings IA polish (I5.6.41) |
-| **Status** | 🔧 In progress — I5.6.44 #210 rings default 50% + heading hygiene (Gate 2) |
-| **Last verified against code** | 2026-07-27 (agent/web-dev 0.7.65 / 46fe780) |
+| **Status** | 🔍 Gate 2 — I5.6.32 Slice 2 Task #219 Records Editor expand/edit + contextual entry |
+| **Last verified against code** | 2026-07-28 (agent/web-dev, Task #219) |
 | **Primary code** | `src/components/settings/records-editor.tsx`, `src/app/settings/page.tsx`, `src/app/glossary/page.tsx`, `src/app/users/page.tsx`, `src/components/listing/entity-listing.tsx`, `src/components/ui/section-tabs.tsx` |
-| **Task** | #205 cumulative + #209 I5.6.43 |
+| **Task** | #219 I5.6.32 Slice 2 (+ prior #205 cumulative) |
 | **Source messages** | 5QtlTIWsvezycavae5An (prior 5-item), int_ba6a155650d240ab (2026-07-27 full list) |
 
 ## Collaboration
@@ -155,9 +155,24 @@ Applied to:
 - Old ?tab=users redirects to /users; ?tab=records redirects to /records-editor.
 - Shared SubTabBar component (src/components/ui/sub-tab-bar.tsx) matching ZoneConfigView inner strip pattern.
 
+
+## I5.6.32 Slice 2 — Records Editor UI (Task #219) — 2026-07-28
+
+### Delivered
+- `/records-editor` Suspense wrap for `useSearchParams`.
+- Parent filter initializes from `?parent=kind:api_name` query param; New Type form prefills parent.
+- Type row expand editor: label, description, structure (list/header/header_lines), sort_order, show_as_tab, active → `PATCH /api/catalog/record-types/:apiName`.
+- Fields preview badges on expanded type + link to Fields tab filtered by type.
+- Zone Configuration "record types" link points to `/records-editor?parent=${parentKind}:${parentApiName}`.
+
+### Gate
+- Gate 2: COA on :3200
+- Gate 3: Stephen visual
+
 ## 6. Change Log
 | Date | Change |
 |------|--------|
+| 2026-07-28 | I5.6.32 Slice 2 #219 Records Editor: contextual `?parent=` entry from zone Configuration links; Suspense boundary for useSearchParams; expanded type row editor (label, description, structure, sort_order, show_as_tab, active) via PATCH; fields preview on type expand + Manage Fields jump; CreateForm initialValues for parent prefill; ZoneConfigView record-types link → `/records-editor?parent=kind:api`. tsc clean. |
 | 2026-07-27 | State created from msg int_ba6a155650d240ab + prior #205; implementation brief issued to web-dev. |
 | 2026-07-27 | I5.6.44 #210 rings default 50% + heading hygiene (0.7.65, 46fe780): A) Rings default initial state 50% (dashboard + mission-control-scene + zone twin). localStorage persistence honors existing preference. B) Sitewide heading hygiene — removed CardTitle/EntityListing title that repeats active sub-tab label across Records Editor, Glossary, Settings, Users, ZoneConfigView. EntityListing title prop made optional. tsc+build clean. |
 | 2026-07-27 | I5.6.43 #209 IA Configuration pattern (0.7.64, 604e4b3): Left nav restructured (Users→/users, Records Editor→/records-editor, Settings→/settings with Branding/Appearance/System only). Shared SubTabBar component. Configuration sub-tab under Glossary Sections/Entries, Records Editor Types/Fields/Picklists, Users, Settings Branding/Appearance. Information sub-tab under Settings System. Old ?tab=users/?tab=records redirect. Panel titles renamed to avoid duplication. tsc+build clean. |
