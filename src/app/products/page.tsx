@@ -31,7 +31,7 @@ function toCatalogValues(r: LocalRow): Record<string, string> {
   return {
     name: String(r.name ?? ""),
     tagline: String(r.tagline ?? ""),
-    category: String(r.category ?? "Packages"),
+    kind: String(r.kind ?? "software"),
     status: String(r.status ?? "available"),
     description: String(r.description ?? ""),
     features: featuresToText(r.features),
@@ -88,7 +88,7 @@ export default function ProductsPage() {
       name: draft.name || "New product",
       tagline: draft.tagline || "",
       description: draft.description || "",
-      category: draft.category || "Packages",
+      kind: draft.kind || "software",
       status: (draft.status as Product["status"]) || "available",
       features: textToFeatures(draft.features || ""),
       _local: true,
@@ -106,7 +106,7 @@ export default function ProductsPage() {
               name: draft.name || r.name,
               tagline: draft.tagline || r.tagline,
               description: draft.description || r.description,
-              category: draft.category || r.category,
+              kind: draft.kind || r.kind,
               status: (draft.status as Product["status"]) || r.status,
               features: textToFeatures(draft.features || ""),
             }

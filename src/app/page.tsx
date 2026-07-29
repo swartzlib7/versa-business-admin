@@ -362,7 +362,7 @@ export default async function HomePage() {
                     </div>
                     <div className="mt-2 text-3xl font-bold">{metric.value}</div>
                     <p className="mt-1 text-xs text-muted-foreground">{metric.trendValue}</p>
-                    <Badge variant="outline" className="mt-3 text-xs">{metric.category}</Badge>
+                    <Badge variant="outline" className="mt-3 text-xs">{metric.kind}</Badge>
                   </CardContent>
                 </Card>
               ))}
@@ -383,7 +383,7 @@ export default async function HomePage() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">{article.title}</CardTitle>
-                      <Badge variant="secondary" className="text-xs">{article.category}</Badge>
+                      <Badge variant="secondary" className="text-xs">{article.kind}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>

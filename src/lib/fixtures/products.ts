@@ -6,7 +6,7 @@ export interface Product {
   name: string;
   tagline: string;
   description: string;
-  category: string;
+  kind: string;
   status: 'available' | 'beta' | 'coming-soon';
   features: string[];
 }
@@ -18,7 +18,7 @@ export const products: Product[] = [
     tagline: 'Templates to go from idea to first sale.',
     description:
       'A packaged set of checklists and templates for product specs, first offers, fulfillment, and customer follow-up — ready to customize on day one.',
-    category: 'Packages',
+    kind: 'software',
     status: 'available',
     features: [
       'Product brief template',
@@ -33,7 +33,7 @@ export const products: Product[] = [
     tagline: 'One place for projects, tasks, and the people who ship them.',
     description:
       'A simple workspace for projects, tasks, and team directories so makers and operators know what is in progress and who owns it — humans and agents included.',
-    category: 'Platform',
+    kind: 'software',
     status: 'beta',
     features: [
       'Projects and tasks',
@@ -48,7 +48,7 @@ export const products: Product[] = [
     tagline: 'Support that stays organized while you keep making.',
     description:
       'A lightweight desk for intake, prioritization, and resolution of customer requests with clear ownership and history.',
-    category: 'Service',
+    kind: 'software',
     status: 'available',
     features: [
       'Request intake',
@@ -63,7 +63,7 @@ export const products: Product[] = [
     tagline: 'How we make things — always current.',
     description:
       'A living handbook for recipes, policies, and how-we-work guides that new collaborators and veterans can trust.',
-    category: 'Knowledge',
+    kind: 'file',
     status: 'available',
     features: [
       'Process library',

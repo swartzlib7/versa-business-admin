@@ -1,9 +1,17 @@
 import type { ZoneConfig } from "@/components/zones/zone-config-view";
+import { getValueSetByApiName, listValueSetItems } from "@/lib/fixtures/catalog";
 import { theme } from "@/lib/theme";
 
 const orgAccent = theme.scene.executiveColor ?? "#ef4444";
 const collabAccent = theme.scene.collaborationColor ?? "#22c55e";
 const envAccent = theme.scene.environmentalColor ?? "#f97316";
+
+
+function getVsOptions(apiName: string): string[] {
+  const vs = getValueSetByApiName(apiName);
+  if (!vs) return [];
+  return listValueSetItems(vs.id).map(i => i.api_value);
+}
 
 function soft(hex: string, alpha = "22") {
   if (hex.startsWith("#") && hex.length === 7) return hex + alpha;
@@ -41,7 +49,7 @@ export const organizationZone: ZoneConfig = {
           label: "Status",
           placeholder: "Select status",
           kind: "select",
-          options: ["active", "standby", "connected"],
+          options: getVsOptions("faculty_status"),
         },
         { label: "Mandate", placeholder: "Short charter...", kind: "textarea" },
       ],
@@ -66,7 +74,7 @@ export const organizationZone: ZoneConfig = {
               label: "Scope",
               placeholder: "Select scope",
               kind: "select",
-              options: ["organization", "department", "product", "compliance"],
+              options: getVsOptions("policy_scope"),
             },
             { label: "Owner", placeholder: "Executive lead" },
             { label: "Summary", placeholder: "Intent and rules...", kind: "textarea" },
@@ -92,7 +100,7 @@ export const organizationZone: ZoneConfig = {
               label: "Status",
               placeholder: "Select status",
               kind: "select",
-              options: ["planned", "active", "blocked", "done"],
+              options: getVsOptions("zone_project_status"),
             },
             { label: "Owner", placeholder: "Project lead" },
             { label: "Description", placeholder: "...", kind: "textarea" },
@@ -118,7 +126,7 @@ export const organizationZone: ZoneConfig = {
               label: "Status",
               placeholder: "Select status",
               kind: "select",
-              options: ["todo", "in_progress", "waiting", "done"],
+              options: getVsOptions("zone_task_status"),
             },
             { label: "Assignee", placeholder: "Person or agent" },
             { label: "Notes", placeholder: "...", kind: "textarea" },
@@ -141,7 +149,7 @@ export const organizationZone: ZoneConfig = {
           label: "Status",
           placeholder: "Select status",
           kind: "select",
-          options: ["active", "standby", "connected"],
+          options: getVsOptions("faculty_status"),
         },
         { label: "Mandate", placeholder: "Outward voice and brand presence...", kind: "textarea" },
       ],
@@ -213,7 +221,7 @@ export const organizationZone: ZoneConfig = {
           label: "Status",
           placeholder: "Select status",
           kind: "select",
-          options: ["active", "standby", "connected"],
+          options: getVsOptions("faculty_status"),
         },
         { label: "Capacity notes", placeholder: "...", kind: "textarea" },
         { label: "Mandate", placeholder: "How production is run...", kind: "textarea" },
@@ -240,7 +248,7 @@ export const organizationZone: ZoneConfig = {
               label: "Kind",
               placeholder: "Select kind",
               kind: "select",
-              options: ["device", "manufactured", "software", "file"],
+              options: getVsOptions("product_kind"),
             },
             { label: "Description", placeholder: "...", kind: "textarea" },
           ],
@@ -266,7 +274,7 @@ export const organizationZone: ZoneConfig = {
               label: "Status",
               placeholder: "Select status",
               kind: "select",
-              options: ["connected", "active", "standby"],
+              options: getVsOptions("service_status"),
             },
             { label: "Description", placeholder: "...", kind: "textarea" },
           ],
@@ -324,7 +332,7 @@ export const collaborationZone: ZoneConfig = {
           label: "Status",
           placeholder: "Select status",
           kind: "select",
-          options: ["connected", "active", "standby"],
+          options: getVsOptions("service_status"),
         },
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
@@ -354,13 +362,13 @@ export const collaborationZone: ZoneConfig = {
               label: "Kind",
               placeholder: "Select kind",
               kind: "select",
-              options: ["api", "webhook", "sftp", "manual", "other"],
+              options: getVsOptions("integration_kind"),
             },
             {
               label: "Status",
               placeholder: "Select status",
               kind: "select",
-              options: ["connected", "active", "standby", "error"],
+              options: getVsOptions("integration_status"),
             },
             { label: "Notes", placeholder: "Endpoints, credentials owner...", kind: "textarea" },
           ],
@@ -387,7 +395,7 @@ export const collaborationZone: ZoneConfig = {
           label: "Kind",
           placeholder: "Select kind",
           kind: "select",
-          options: ["person", "business"],
+          options: getVsOptions("customer_kind"),
         },
         { label: "Tier", placeholder: "Standard, priority..." },
         { label: "Notes", placeholder: "...", kind: "textarea" },
@@ -416,7 +424,7 @@ export const collaborationZone: ZoneConfig = {
           label: "Kind",
           placeholder: "Select kind",
           kind: "select",
-          options: ["business", "investor", "association"],
+          options: getVsOptions("partner_kind"),
         },
         { label: "Notes", placeholder: "...", kind: "textarea" },
       ],
@@ -502,7 +510,7 @@ export const environmentZone: ZoneConfig = {
           label: "Kind",
           placeholder: "Select kind",
           kind: "select",
-          options: ["meeting", "launch", "maintenance", "other"],
+          options: getVsOptions("event_kind"),
         },
         { label: "Description", placeholder: "...", kind: "textarea" },
       ],
@@ -529,7 +537,7 @@ export const environmentZone: ZoneConfig = {
           label: "Asset type",
           placeholder: "Select type",
           kind: "select",
-          options: ["document", "recording", "photo", "policy", "research"],
+          options: getVsOptions("knowledge_kind"),
         },
         { label: "Summary", placeholder: "...", kind: "textarea" },
       ],

@@ -77,7 +77,7 @@ export interface Product {
   name: string;
   tagline: string;
   description: string;
-  category: string;
+  kind: string;
   status: "available" | "beta" | "coming-soon";
   features: string[];
 }
@@ -118,13 +118,13 @@ export interface Metric {
   value: string;
   trend: 'up' | 'down' | 'flat';
   trendValue: string;
-  category: string;
+  kind: string;
 }
 
 export interface KnowledgeArticle {
   id: string;
   title: string;
-  category: string;
+  kind: string;
   summary: string;
   updatedAt: string;
 }
