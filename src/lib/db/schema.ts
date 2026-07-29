@@ -162,7 +162,7 @@ export const products = pgTable(
     name: text('name').notNull(),
     tagline: text('tagline').notNull().default(''),
     description: text('description').notNull().default(''),
-    kind: text('kind'),
+    category: text('category'),
     status: text('status').notNull().default('available'),
     data: jsonb('data').notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

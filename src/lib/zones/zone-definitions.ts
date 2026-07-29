@@ -245,10 +245,10 @@ export const organizationZone: ZoneConfig = {
           fields: [
             { label: "Name", placeholder: "Versa AGi Mission Control" },
             {
-              label: "Kind",
-              placeholder: "Select kind",
+              label: "Category",
+              placeholder: "Select category",
               kind: "select",
-              options: getVsOptions("product_kind"),
+              options: getVsOptions("product_category"),
             },
             { label: "Description", placeholder: "...", kind: "textarea" },
           ],
