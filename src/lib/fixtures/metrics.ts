@@ -7,7 +7,7 @@ export interface MetricFixture {
   value: string;
   trend: 'up' | 'down' | 'flat';
   trendValue: string;
-  kind: string;
+  category: string;
 }
 
 export const metrics: MetricFixture[] = [
@@ -17,7 +17,7 @@ export const metrics: MetricFixture[] = [
     value: '12',
     trend: 'up',
     trendValue: '+2 this month',
-    kind: 'Operations',
+    category: 'Operations',
   },
   {
     id: 'met-2',
@@ -25,7 +25,7 @@ export const metrics: MetricFixture[] = [
     value: '47',
     trend: 'down',
     trendValue: '-8 this week',
-    kind: 'Operations',
+    category: 'Operations',
   },
   {
     id: 'met-3',
@@ -33,7 +33,7 @@ export const metrics: MetricFixture[] = [
     value: '2.4h',
     trend: 'down',
     trendValue: '-0.6h vs last week',
-    kind: 'Support',
+    category: 'Support',
   },
   {
     id: 'met-4',
@@ -41,7 +41,7 @@ export const metrics: MetricFixture[] = [
     value: '94%',
     trend: 'up',
     trendValue: '+1% this quarter',
-    kind: 'Support',
+    category: 'Support',
   },
   {
     id: 'met-5',
@@ -49,7 +49,7 @@ export const metrics: MetricFixture[] = [
     value: '4 of 5',
     trend: 'flat',
     trendValue: '1 needs attention',
-    kind: 'Systems',
+    category: 'Systems',
   },
   {
     id: 'met-6',
@@ -57,6 +57,6 @@ export const metrics: MetricFixture[] = [
     value: '38',
     trend: 'up',
     trendValue: '+5 this month',
-    kind: 'Knowledge',
+    category: 'Knowledge',
   },
 ];

@@ -99,7 +99,7 @@ function mapProductRow(row: typeof productsTable.$inferSelect): Product {
     name: row.name,
     tagline: row.tagline,
     description: row.description,
-    kind: row.kind ?? "",
+    category: row.category ?? "",
     status: row.status as Product["status"],
     features: Array.isArray(data.features) ? (data.features as string[]) : [],
   };

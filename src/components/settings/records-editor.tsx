@@ -10,9 +10,9 @@ import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { theme } from "@/lib/theme";
 
 type Parent = { parent_kind: string; parent_api_name: string; label: string; baked_in_tabs: string[] };
-type RT = { api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string; is_system?: boolean; active?: boolean; show_as_tab?: boolean; sort_order?: number };
-type FD = { api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string; is_system?: boolean };
-type VS = { api_name: string; label: string; description?: string };
+type RT = { id?: string; api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string; is_system?: boolean; active?: boolean; show_as_tab?: boolean; sort_order?: number };
+type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string; is_system?: boolean };
+type VS = { id?: string; api_name: string; label: string; description?: string; is_system?: boolean };
 type VSI = { id: string; api_value: string; label: string; sort_order: number; active: boolean };
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
@@ -27,6 +27,21 @@ const DATA_TYPES = ["text", "long_text", "number", "boolean", "date", "datetime"
 function formatSampleLabel(label: string, isSystem: boolean): string {
   return (isSystem ? "(fixed) " : "(db) ") + label;
 }
+
+/* ── Standard / DB Core badge ── */
+function StandardBadge({ isSystem }: { isSystem: boolean }) {
+  if (isSystem) {
+    return <Badge className="ml-2 border-0 bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px]">Standard / DB Core</Badge>;
+  }
+  return <Badge className="ml-2 border-0 bg-blue-500/20 text-blue-700 dark:text-blue-400 text-[10px]">Custom</Badge>;
+}
+
+/* ── Record ID display ── */
+function RecordIdDisplay({ id }: { id?: string }) {
+  if (!id) return null;
+  return <span className="ml-2 font-mono text-[10px] text-muted-foreground">#{id}</span>;
+}
+
 
 
 
@@ -503,7 +518,7 @@ export function RecordsEditor() {
                       return (
                         <Fragment key={t.api_name}>
                           <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(t.label, !!t.is_system)}</td>
+                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(t.label, !!t.is_system)}<StandardBadge isSystem={!!t.is_system} /><RecordIdDisplay id={t.id} /></td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{t.api_name}</td>
                             <td className="px-4 py-3 align-top text-muted-foreground">{parentLabel}</td>
                             <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{t.structure}</Badge></td>
@@ -766,7 +781,7 @@ export function RecordsEditor() {
                       return (
                         <Fragment key={fid}>
                           <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(f.label, !!f.is_system)}</td>
+                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(f.label, !!f.is_system)}<StandardBadge isSystem={!!f.is_system} /><RecordIdDisplay id={f.id} /></td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.api_name}</td>
                             <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{f.data_type}</Badge></td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.object_api_name || "—"}</td>
@@ -871,7 +886,7 @@ export function RecordsEditor() {
                       return (
                         <Fragment key={vs.api_name}>
                           <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(vs.label, true)}</td>
+                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(vs.label, !!vs.is_system)}<StandardBadge isSystem={!!vs.is_system} /><RecordIdDisplay id={vs.id} /></td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{vs.api_name}</td>
                             <td className="px-4 py-3 align-top text-muted-foreground">{items.length > 0 ? items.length + " option" + (items.length !== 1 ? "s" : "") : "—"}</td>
                             <td className="px-4 py-3 text-right align-top">
