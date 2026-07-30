@@ -1,25 +1,78 @@
-import { NextResponse } from 'next/server';
-import { getSessionFromRequest, isAuthenticated } from '@/lib/auth';
-import { listAllLayouts, type LayoutDefinition } from '@/lib/fixtures/catalog';
+import { NextRequest, NextResponse } from 'next/server';
+import { saveLayoutConfig, getLayoutConfig, getAllLayoutConfigs } from '@/lib/catalog/layout-storage';
 
-/** GET /api/catalog/layouts?object=user&type=detail */
-export async function GET(request: Request) {
-  const session = getSessionFromRequest(request);
-  if (!isAuthenticated(session)) {
+/**
+ * GET /api/catalog/layouts
+ * Query params:
+ *   - objectApiName: filter by object
+ *   - layoutType: filter by type (detail|edit|list)
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const objectApiName = searchParams.get('objectApiName');
+    const layoutType = searchParams.get('layoutType') as 'detail' | 'edit' | 'list' | null;
+
+    if (objectApiName && layoutType) {
+      const config = getLayoutConfig(objectApiName, layoutType);
+      return NextResponse.json({
+        success: true,
+        data: config || null,
+      });
+    }
+
+    if (objectApiName) {
+      const configs = getAllLayoutConfigs(objectApiName);
+      return NextResponse.json({
+        success: true,
+        data: configs,
+      });
+    }
+
     return NextResponse.json(
-      { error: { code: 'UNAUTHORIZED', message: 'Authentication required.' } },
-      { status: 401 },
+      { error: 'objectApiName query parameter is required' },
+      { status: 400 }
+    );
+  } catch (error) {
+    console.error('Failed to fetch layouts:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch layout configurations' },
+      { status: 500 }
     );
   }
+}
 
-  const { searchParams } = new URL(request.url);
-  const object = searchParams.get('object') ?? undefined;
-  const type = searchParams.get('type') as LayoutDefinition['layout_type'] | null;
-  const data = listAllLayouts(object, type ?? undefined);
-  return NextResponse.json({
-    data,
-    count: data.length,
-    object: object ?? null,
-    type: type ?? null,
-  });
+/**
+ * POST /api/catalog/layouts
+ * Body: { objectApiName, layoutType, sections }
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { objectApiName, layoutType, sections } = body;
+
+    if (!objectApiName || !layoutType || !sections) {
+      return NextResponse.json(
+        { error: 'Missing required fields: objectApiName, layoutType, sections' },
+        { status: 400 }
+      );
+    }
+
+    const result = saveLayoutConfig({
+      objectApiName,
+      layoutType,
+      sections,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error('Failed to save layout:', error);
+    return NextResponse.json(
+      { error: 'Failed to save layout configuration' },
+      { status: 500 }
+    );
+  }
 }
