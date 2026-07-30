@@ -15,6 +15,7 @@ import {
   Globe2,
   BookOpen,
   Database,
+  Palette,
 } from "lucide-react";
 
 interface NavItem {
@@ -48,6 +49,7 @@ const navEntries: NavEntry[] = [
   { href: "/glossary", label: "Glossary", icon: BookOpen },
   { href: "/users", label: "Users", icon: Users },
   { href: "/records-editor", label: "Records Editor", icon: Database },
+  { href: "/ui-components", label: "UI Components", icon: Palette },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

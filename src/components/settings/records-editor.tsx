@@ -1,4 +1,5 @@
 "use client";
+import { LayoutEditorWrapper } from "@/components/settings/layout-editor-wrapper";
 
 import { useSearchParams } from "next/navigation";
 import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -108,10 +109,10 @@ function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel, ini
         </Button>
         <Button variant="outline" onClick={onCancel}>Cancel</Button>
       </div>
+
     </div>
   );
 }
-
 /* ── Expandable row wrapper ── */
 function ExpandRow({ colSpan, children }: { colSpan: number; children: ReactNode }) {
   return (
@@ -128,7 +129,7 @@ export function RecordsEditor() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [section, setSection] = useState<"types" | "fields" | "picklists">("types");
+  const [section, setSection] = useState<"types" | "fields" | "picklists" | "layouts">("types");
   const [subTab, setSubTab] = useState<string>("configuration");
 
   // Types state
@@ -431,13 +432,14 @@ export function RecordsEditor() {
       <SectionTabs
         ariaLabel="Records Editor sections"
         value={section}
-        onChange={(id) => { setSection(id as "types" | "fields" | "picklists"); setSubTab("configuration"); }}
+        onChange={(id) => { setSection(id as "types" | "fields" | "picklists" | "layouts"); setSubTab("configuration"); }}
         accent={theme.colors.brand}
         noSticky
         items={[
           { id: "types", label: "Types" },
           { id: "fields", label: "Fields" },
           { id: "picklists", label: "Picklists" },
+          { id: "layouts", label: "Layouts" },
         ]}
       />
 
@@ -1016,6 +1018,34 @@ export function RecordsEditor() {
                   </tbody>
                 </table>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ── LAYOUTS ── */}
+      {section === "layouts" && (
+        <div role="tabpanel" className="space-y-3">
+          <SubTabBar
+            items={[{ id: "configuration", label: "Configuration" }]}
+            activeId={subTab}
+            accent={theme.colors.brand}
+            onSelect={setSubTab}
+            ariaLabel="Layouts sub-sections"
+          />
+          <Card className="overflow-hidden">
+            <CardHeader className="border-b bg-muted/30">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="mt-1 text-sm text-muted-foreground">Visual form layout builder. Configure sections, field order, and visibility for record forms.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="shrink-0 border-0 text-white" style={{ backgroundColor: theme.colors.brand }}>Layouts</Badge>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <LayoutEditorWrapper />
             </CardContent>
           </Card>
         </div>
