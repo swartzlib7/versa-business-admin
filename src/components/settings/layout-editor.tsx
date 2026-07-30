@@ -39,8 +39,10 @@ export type LayoutField = {
 };
 
 export type LayoutConfig = {
-  object_api_name: string;
-  layout_type: "detail" | "edit" | "list";
+  objectApiName: string;
+  object_api_name?: string;
+  layoutType: "detail" | "edit" | "list";
+  layout_type?: "detail" | "edit" | "list";
   sections: LayoutSection[];
 };
 
@@ -267,7 +269,9 @@ export function LayoutEditor({
   /* ── Save / Reset ── */
   const handleSave = useCallback(async () => {
     const config: LayoutConfig = {
+      objectApiName,
       object_api_name: objectApiName,
+      layoutType: "edit",
       layout_type: "edit",
       sections,
     };
@@ -284,8 +288,9 @@ export function LayoutEditor({
           body: JSON.stringify(config),
         });
         if (!res.ok) {
-          const json = await res.json();
-          throw new Error(json?.error?.message || res.statusText);
+          const json = await res.json().catch(() => ({}));
+          const errMsg = typeof json?.error === "string" ? json.error : (json?.error?.message || res.statusText || "Failed to save layout");
+          throw new Error(errMsg);
         }
       }
       setDirty(false);
