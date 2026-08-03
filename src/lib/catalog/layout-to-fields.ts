@@ -23,6 +23,8 @@ export type UiListingField = {
   required?: boolean;
   dataType?: CatalogDataType;
   isSystem?: boolean;
+  /** Runtime saved-layout preference; defaults to one grid column. */
+  span?: 1 | 2;
 };
 
 function dataTypeToKind(dt: CatalogDataType): UiFieldKind {

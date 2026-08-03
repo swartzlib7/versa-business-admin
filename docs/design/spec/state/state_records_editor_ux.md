@@ -3,10 +3,10 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Records Editor UX + Settings IA polish (I5.6.41) |
-| **Status** | 🔍 Gate 2 — I5.6.32 Slice 2.1 Task #220 Records Editor refinements |
-| **Last verified against code** | 2026-07-28 (agent/web-dev, Task #220) |
+| **Status** | 🔍 Gate 1 — I5.6.32 Slice 4 Task #230 Runtime saved-layout User pilot |
+| **Last verified against code** | 2026-08-03 (agent/web-dev, Task #230) |
 | **Primary code** | `src/components/settings/records-editor.tsx`, `src/app/settings/page.tsx`, `src/app/glossary/page.tsx`, `src/app/users/page.tsx`, `src/components/listing/entity-listing.tsx`, `src/components/ui/section-tabs.tsx` |
-| **Task** | #220 I5.6.32 Slice 2.1 (+ prior #219/#205) |
+| **Task** | #230 I5.6.32 Slice 4 (plus prior #219/#220/#224) |
 | **Source messages** | 5QtlTIWsvezycavae5An (prior 5-item), int_ba6a155650d240ab (2026-07-27 full list) |
 
 ## Collaboration
@@ -86,6 +86,13 @@ Prior I5.6.41 briefly moved Users into Settings as a subtab. That placement is *
 - **Left-aligned content** consistent with Settings/zone pages: remove `mx-auto max-w-5xl` centering constraint (match Settings full-width `space-y-6` shell).
 - Tab hints: drop subtitle hints on Sections/Entries tabs for parity with Settings (labels only).
 
+### 1.9 Runtime saved-layout User pilot (I5.6.32 Slice 4, Task #230)
+- The Layout Editor can save separate **Edit** and **Detail** layouts for the bounded `user` pilot.
+- User detail and edit fetch the saved layout per mode at runtime. Its section order, labels, column count, visible fields, field order, and field span control rendering.
+- Saved configuration is treated as optional/untrusted presentation data: malformed, stale, empty, or unavailable layouts fall back to the catalog default without breaking the User view.
+- Layout Editor selection is isolated by `(objectApiName, layoutType)`: changing either clears the prior configuration and blocks editing until the current fields and saved layout resolve. A selection with no saved layout mounts its own catalog-derived default; aborted or superseded async responses cannot overwrite the current selection.
+- User save remains explicitly session-local/mock: no new persistence API, database migration, generic-record CRUD, or additional object runtime support is introduced.
+
 ### 1.8 Non-goals (this slice)
 - No new backend record model.
 - No Phase-2 DB cutover.
@@ -140,6 +147,7 @@ Applied to:
 | RE-UX-4 | Picklists: New + table + expand options visible | RE-UX-1 | web-dev | PU | planned | #205 |
 | RE-UX-5 | Glossary: blue accent + left align + tab label-only | RE-UX-0 | web-dev | PU | planned | #205 |
 | RE-UX-6 | Gate 2 COA + Gate 3 Stephen on :3200 | RE-UX-1..5 | COA | PU | planned | #205 |
+| RUNTIME-1 | User runtime saved edit/detail layouts plus catalog fallback | Slice 3 Layout Editor | web-dev tsc/build | COA Gate 2, PU Gate 3 | Gate 1 complete | #230 |
 
 ## 5. Results Feedback
 | Date | Result |
@@ -173,6 +181,8 @@ Applied to:
 - Gate 3: Stephen visual
 
 ## 6. Change Log
+| 2026-08-03 | I5.6.32 Slice 4 #230 corrective pass: Layout Editor now clears prior state on object/mode changes, remounts each selection from its saved config or catalog default, and ignores aborted/superseded async fetch responses. Focused ESLint and TypeScript validation clean; Gate 2 re-review requested. |
+| 2026-08-03 | I5.6.32 Slice 4 #230: Layout Editor now selects and persists separate edit/detail configurations; User detail/edit consumes saved User layouts at runtime and safely falls back to catalog defaults. Saved layout sections honor ordering, visibility, columns, and field span. User writes remain mock/session-local. tsc clean. |
 | Date | Change |
 |------|--------|
 | 2026-07-28 | I5.6.32 Slice 2 #219 Records Editor: contextual `?parent=` entry from zone Configuration links; Suspense boundary for useSearchParams; expanded type row editor (label, description, structure, sort_order, show_as_tab, active) via PATCH; fields preview on type expand + Manage Fields jump; CreateForm initialValues for parent prefill; ZoneConfigView record-types link → `/records-editor?parent=kind:api`. tsc clean. |

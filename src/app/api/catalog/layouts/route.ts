@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { saveLayoutConfig, getLayoutConfig, getAllLayoutConfigs } from '@/lib/catalog/layout-storage';
+import { saveLayoutConfig, getLayoutConfig, getAllLayoutConfigs, type LayoutConfig } from '@/lib/catalog/layout-storage';
 
 /**
  * GET /api/catalog/layouts
@@ -49,11 +49,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const objectApiName = body.objectApiName || body.object_api_name;
+const objectApiName = body.objectApiName || body.object_api_name;
     const layoutType = body.layoutType || body.layout_type;
-    const { sections } = body;
+    const { sections } = body as Partial<LayoutConfig>;
 
-    if (!objectApiName || !layoutType || !sections) {
+    if (!objectApiName || !layoutType || !Array.isArray(sections)) {
       return NextResponse.json(
         { error: 'Missing required fields: objectApiName, layoutType, sections' },
         { status: 400 }
