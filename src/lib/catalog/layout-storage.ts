@@ -3,7 +3,7 @@
  * Stores form layout configurations per Record Type.
  */
 
-import { listAllLayouts, type LayoutDefinition } from '@/lib/fixtures/catalog';
+import { type LayoutDefinition } from '@/lib/fixtures/catalog';
 
 export type LayoutSection = {
   id: string;
