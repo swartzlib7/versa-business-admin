@@ -54,6 +54,7 @@ type FieldDef = {
 type LayoutEditorProps = {
   objectApiName: string;
   objectLabel: string;
+  layoutType: "detail" | "edit";
   fields: FieldDef[];
   initialConfig?: LayoutConfig;
   onSave?: (config: LayoutConfig) => void;
@@ -88,6 +89,7 @@ function buildDefaultSections(fields: FieldDef[]): LayoutSection[] {
 export function LayoutEditor({
   objectApiName,
   objectLabel,
+  layoutType,
   fields,
   initialConfig,
   onSave,
@@ -102,17 +104,13 @@ export function LayoutEditor({
 
   // Reset when initialConfig changes
   useEffect(() => {
-  // eslint-disable-next-line react-hooks/set-state-in-effect
     if (initialConfig) {
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronize an externally loaded saved layout.
       setSections(initialConfig.sections);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset dirty state with the external layout.
       setDirty(false);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
     }
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   }, [initialConfig]);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
 
   const allFieldApiNames = useMemo(
     () => new Set(sections.flatMap((s) => s.fields.map((f) => f.api_name))),
@@ -268,7 +266,7 @@ export function LayoutEditor({
   const handleSave = useCallback(async () => {
     const config: LayoutConfig = {
       object_api_name: objectApiName,
-      layout_type: "edit",
+      layout_type: layoutType,
       sections,
     };
     setSaving(true);
@@ -281,7 +279,7 @@ export function LayoutEditor({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify(config),
+          body: JSON.stringify({ objectApiName: config.object_api_name, layoutType: config.layout_type, sections: config.sections }),
         });
         if (!res.ok) {
           const json = await res.json();
@@ -295,7 +293,7 @@ export function LayoutEditor({
     } finally {
       setSaving(false);
     }
-  }, [objectApiName, sections, onSave]);
+  }, [objectApiName, layoutType, sections, onSave]);
 
   const handleReset = useCallback(() => {
     if (initialConfig) {

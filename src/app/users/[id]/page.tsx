@@ -11,6 +11,7 @@ import {
   editFieldsFromCatalog,
 } from "@/lib/catalog/layout-to-fields";
 import { theme } from "@/lib/theme";
+import { savedLayoutToRuntimeSections, type SavedLayoutConfig } from "@/lib/catalog/runtime-layout";
 import type { User } from "@/lib/data";
 
 type LocalUser = User & {
@@ -44,9 +45,14 @@ export default function UserDetailPage() {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
+  const [savedLayouts, setSavedLayouts] = useState<Partial<Record<"detail" | "edit", SavedLayoutConfig>>>({});
 
   const detail = useMemo(() => detailSectionsFromCatalog("user"), []);
   const edit = useMemo(() => editFieldsFromCatalog("user"), []);
+  const runtimeSections = useMemo(() => ({
+    detail: savedLayoutToRuntimeSections(savedLayouts.detail, "user", "detail") ?? detail.sections,
+    edit: savedLayoutToRuntimeSections(savedLayouts.edit, "user", "edit") ?? edit.sections,
+  }), [detail.sections, edit.sections, savedLayouts]);
 
   useEffect(() => {
     if (!id) return;
@@ -67,6 +73,20 @@ export default function UserDetailPage() {
         setLoading(false);
       });
   }, [id]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    Promise.all(["detail", "edit"].map((layoutType) =>
+      fetch(`/api/catalog/layouts?objectApiName=user&layoutType=${layoutType}`, { signal: controller.signal })
+        .then((response) => response.ok ? response.json() : { data: null })
+        .then((json) => [layoutType, json.data] as const),
+    )).then((entries) => {
+      if (!controller.signal.aborted) setSavedLayouts(Object.fromEntries(entries));
+    }).catch((error) => {
+      if (error.name !== "AbortError") console.warn("Saved User layouts unavailable; using catalog defaults.", error);
+    });
+    return () => controller.abort();
+  }, []);
 
   const startEdit = () => {
     if (user) setDraft(toValues(user));
@@ -100,7 +120,7 @@ export default function UserDetailPage() {
     setUser(next);
     setEditing(false);
     setNote(
-      "Saved in this session (mock). Catalog layout sections applied; API write not wired yet.",
+      "Saved in this session (mock). The active saved or catalog fallback layout was applied; API write is not wired.",
     );
   };
 
@@ -120,8 +140,7 @@ export default function UserDetailPage() {
               {user?.name ?? "User"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              ERD-C pilot — sections from default User{" "}
-              {editing ? "edit" : "detail"} layout_definition
+              Runtime saved-layout User pilot — {editing ? "edit" : "detail"} uses a saved layout when available, otherwise the catalog default.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -174,7 +193,7 @@ export default function UserDetailPage() {
           </Card>
         ) : user ? (
           <LayoutDrivenForm
-            sections={editing ? edit.sections : detail.sections}
+            sections={editing ? runtimeSections.edit : runtimeSections.detail}
             values={editing ? draft : toValues(user)}
             onChange={(k, v) => setDraft((d) => ({ ...d, [k]: v }))}
             readOnly={!editing}

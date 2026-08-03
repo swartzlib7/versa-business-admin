@@ -115,7 +115,7 @@ export function LayoutDrivenForm({
               <div
                 key={f.key}
                 className={
-                  f.kind === "textarea" && sec.columns === 2
+                  (f.span === 2 || f.kind === "textarea") && sec.columns === 2
                     ? "sm:col-span-2"
                     : undefined
                 }
