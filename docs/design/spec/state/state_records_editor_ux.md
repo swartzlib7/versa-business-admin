@@ -90,6 +90,7 @@ Prior I5.6.41 briefly moved Users into Settings as a subtab. That placement is *
 - The Layout Editor can save separate **Edit** and **Detail** layouts for the bounded `user` pilot.
 - User detail and edit fetch the saved layout per mode at runtime. Its section order, labels, column count, visible fields, field order, and field span control rendering.
 - Saved configuration is treated as optional/untrusted presentation data: malformed, stale, empty, or unavailable layouts fall back to the catalog default without breaking the User view.
+- Layout Editor selection is isolated by `(objectApiName, layoutType)`: changing either clears the prior configuration and blocks editing until the current fields and saved layout resolve. A selection with no saved layout mounts its own catalog-derived default; aborted or superseded async responses cannot overwrite the current selection.
 - User save remains explicitly session-local/mock: no new persistence API, database migration, generic-record CRUD, or additional object runtime support is introduced.
 
 ### 1.8 Non-goals (this slice)
@@ -180,6 +181,7 @@ Applied to:
 - Gate 3: Stephen visual
 
 ## 6. Change Log
+| 2026-08-03 | I5.6.32 Slice 4 #230 corrective pass: Layout Editor now clears prior state on object/mode changes, remounts each selection from its saved config or catalog default, and ignores aborted/superseded async fetch responses. Focused ESLint and TypeScript validation clean; Gate 2 re-review requested. |
 | 2026-08-03 | I5.6.32 Slice 4 #230: Layout Editor now selects and persists separate edit/detail configurations; User detail/edit consumes saved User layouts at runtime and safely falls back to catalog defaults. Saved layout sections honor ordering, visibility, columns, and field span. User writes remain mock/session-local. tsc clean. |
 | Date | Change |
 |------|--------|

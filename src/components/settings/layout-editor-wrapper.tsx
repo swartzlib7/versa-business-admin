@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LayoutEditor, type LayoutConfig } from "./layout-editor";
 
 type RecordType = { api_name: string; label: string; object_api_name: string };
@@ -14,6 +14,8 @@ export function LayoutEditorWrapper() {
   const [fields, setFields] = useState<FieldDef[]>([]);
   const [initialConfig, setInitialConfig] = useState<LayoutConfig | undefined>();
   const [loading, setLoading] = useState(true);
+  const [loadingLayout, setLoadingLayout] = useState(false);
+  const latestRequest = useRef(0);
 
   useEffect(() => {
     fetch("/api/catalog/record-types").then((res) => res.json()).then((data) => {
@@ -21,19 +23,41 @@ export function LayoutEditorWrapper() {
     }).catch(() => setLoading(false));
   }, []);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- selection changes must clear prior layout synchronously before fetch completion. */
   useEffect(() => {
-    if (!selectedType) return;
+    const requestId = ++latestRequest.current;
+    if (!selectedType) {
+      setFields([]);
+      setInitialConfig(undefined);
+      setLoadingLayout(false);
+      return;
+    }
+
     const controller = new AbortController();
+    // Do not show or save a previous selection while the current selection resolves.
+    setFields([]);
+    setInitialConfig(undefined);
+    setLoadingLayout(true);
+
     Promise.all([
       fetch("/api/catalog/fields?object=" + selectedType, { signal: controller.signal }).then((res) => res.json()),
       fetch(`/api/catalog/layouts?objectApiName=${encodeURIComponent(selectedType)}&layoutType=${layoutType}`, { signal: controller.signal }).then((res) => res.json()),
     ]).then(([fieldData, layoutData]) => {
+      if (controller.signal.aborted || requestId !== latestRequest.current) return;
       setFields(fieldData.data || []);
       const saved = layoutData.data;
       setInitialConfig(saved ? { object_api_name: saved.objectApiName, layout_type: saved.layoutType, sections: saved.sections } : undefined);
-    }).catch((err) => { if (err.name !== "AbortError") console.error("Failed to load layout editor:", err); });
+      setLoadingLayout(false);
+    }).catch((err) => {
+      if (controller.signal.aborted || requestId !== latestRequest.current) return;
+      console.error("Failed to load layout editor:", err);
+      setFields([]);
+      setInitialConfig(undefined);
+      setLoadingLayout(false);
+    });
     return () => controller.abort();
   }, [selectedType, layoutType]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (loading) return <div className="p-4 text-sm text-muted-foreground">Loading record types...</div>;
   if (!recordTypes.length) return <div className="p-4 text-sm text-muted-foreground">No record types available.</div>;
@@ -51,6 +75,7 @@ export function LayoutEditorWrapper() {
         </select>
       </label>
     </div>
-    {selectedType && <LayoutEditor objectApiName={selectedType} objectLabel={selectedRecordType?.label || selectedType} layoutType={layoutType} fields={fields} initialConfig={initialConfig} />}
+    {selectedType && loadingLayout && <div className="text-sm text-muted-foreground">Loading layout...</div>}
+    {selectedType && !loadingLayout && <LayoutEditor key={`${selectedType}:${layoutType}`} objectApiName={selectedType} objectLabel={selectedRecordType?.label || selectedType} layoutType={layoutType} fields={fields} initialConfig={initialConfig} />}
   </div>;
 }
