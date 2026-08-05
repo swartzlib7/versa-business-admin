@@ -49,7 +49,7 @@ function RecordIdDisplay({ id }: { id?: string }) {
 
 /* ── Inline create form ── */
 function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel, initialValues }: {
-  fields: { key: string; label: string; type?: "text" | "select" | "textarea"; options?: SelectOption[]; placeholder?: string }[];
+  fields: { key: string; label: string; type?: "text" | "select" | "textarea" | "custom-parent"; options?: SelectOption[]; placeholder?: string }[];
   accent: string;
   onSubmit: (vals: Record<string, string>) => void;
   onCancel: () => void;
@@ -94,6 +94,17 @@ function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel, ini
                       return <option key={value} value={value}>{label}</option>;
                     });
                   })()}
+                </select>
+              </label>
+            );
+          }
+          if (f.type === "custom-parent") {
+            return (
+              <label key={f.key} className="flex flex-col gap-1.5 sm:col-span-2">
+                <span className="text-xs font-medium text-muted-foreground">{f.label}</span>
+                <select aria-label="Parent" className="w-full rounded-md border-2 border-primary/50 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" value={v} onChange={(e) => setVals((s) => ({ ...s, [f.key]: e.target.value }))}>
+                  <option value="">Select…</option>
+                  {(f.options ?? []).every((option) => typeof option !== "string" && Boolean(option.group)) ? [...new Set((f.options ?? []).map((option) => typeof option === "string" ? "Other" : option.group!))].map((group) => <optgroup key={group} label={group}>{(f.options ?? []).filter((option) => typeof option !== "string" && option.group === group).map((option) => typeof option === "string" ? null : <option key={option.value} value={option.value}>{option.label}</option>)}</optgroup>) : null}
                 </select>
               </label>
             );
@@ -514,7 +525,7 @@ export function RecordsEditor() {
                     { key: "api_name", label: "API name", placeholder: "api_name" },
                     { key: "label", label: "Label", placeholder: "Name" },
                     { key: "description", label: "Description", placeholder: "Description" },
-                    { key: "parent", label: "Parent", type: "select", options: parentOptions },
+                    { key: "parent", label: "Parent", type: "custom-parent", options: parentOptions },
                     { key: "structure", label: "Structure", type: "select", options: ["list", "header", "header_lines"] },
                   ]}
                   accent={theme.colors.brand}

@@ -230,3 +230,5 @@ Applied to:
 2. Removed unspec'd seed record types + default fields: public_record, communication_log, dissemination_channel, treasury_item, qualification_record (and catalog object/field seeds). Parents remain; types created via editor.
 3. Picklists: option × delete + replacement prompt when references exist (fixture catalog + API DELETE).
 
+
+| 2026-08-05 | I5.6.32 #233 implementation retry: isolated New Record Type Parent rendering into a dedicated grouped field path with emphasized focus styling; serialized values and create parsing remain unchanged. |
