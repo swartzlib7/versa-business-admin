@@ -3,7 +3,6 @@
  * Instance data comes from record-instances fixture (32c.5).
  */
 import type { ZoneTab } from "@/components/zones/zone-config-view";
-import { listRecordTypes } from "@/lib/fixtures/record-types";
 import { listFieldDefinitions } from "@/lib/fixtures/catalog";
 import { listInstances } from "@/lib/fixtures/record-instances";
 
@@ -15,6 +14,11 @@ const BAKED_IN_CHILD_IDS = new Set([
   "service",
   "integrations",
 ]);
+
+export type ZoneRecordType = {
+  api_name: string; label: string; description: string; parent_kind: string; parent_api_name: string;
+  structure: "list" | "header" | "header_lines"; show_as_tab: boolean; active: boolean; object_api_name: string;
+};
 
 function fieldsFromCatalog(objectApiName: string) {
   const defs = listFieldDefinitions(objectApiName);
@@ -41,12 +45,9 @@ function fieldsFromCatalog(objectApiName: string) {
 export function applyRecordTypesToTab(
   tab: ZoneTab,
   parentKind: "faculty" | "collaboration" | "environment",
+  recordTypes: ZoneRecordType[],
 ): ZoneTab {
-  const types = listRecordTypes({
-    parent_kind: parentKind,
-    parent_api_name: tab.id,
-    active_only: true,
-  }).filter((t) => t.show_as_tab);
+  const types = recordTypes.filter((t) => t.parent_kind === parentKind && t.parent_api_name === tab.id && t.active && t.show_as_tab);
 
   if (!types.length) return tab;
 
@@ -108,6 +109,7 @@ export function applyRecordTypesToTab(
 export function applyRecordTypesToZoneTabs(
   tabs: ZoneTab[],
   parentKind: "faculty" | "collaboration" | "environment",
+  recordTypes: ZoneRecordType[],
 ): ZoneTab[] {
-  return tabs.map((t) => applyRecordTypesToTab(t, parentKind));
+  return tabs.map((t) => applyRecordTypesToTab(t, parentKind, recordTypes));
 }

@@ -10,7 +10,8 @@ import { SectionTabs } from "@/components/ui/section-tabs";
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { theme } from "@/lib/theme";
 
-type Parent = { parent_kind: string; parent_api_name: string; label: string; baked_in_tabs: string[] };
+type Parent = { parent_kind: string; parent_api_name: string; label: string; group?: string; baked_in_tabs: string[] };
+type SelectOption = string | { value: string; label: string; group?: string };
 type RT = { id?: string; api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string; is_system?: boolean; active?: boolean; show_as_tab?: boolean; sort_order?: number };
 type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string; is_system?: boolean };
 type VS = { id?: string; api_name: string; label: string; description?: string; is_system?: boolean };
@@ -48,7 +49,7 @@ function RecordIdDisplay({ id }: { id?: string }) {
 
 /* ── Inline create form ── */
 function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel, initialValues }: {
-  fields: { key: string; label: string; type?: "text" | "select" | "textarea"; options?: string[]; placeholder?: string }[];
+  fields: { key: string; label: string; type?: "text" | "select" | "textarea"; options?: SelectOption[]; placeholder?: string }[];
   accent: string;
   onSubmit: (vals: Record<string, string>) => void;
   onCancel: () => void;
@@ -72,7 +73,11 @@ function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel, ini
                   onChange={(e) => setVals((s) => ({ ...s, [f.key]: e.target.value }))}
                 >
                   <option value="">Select…</option>
-                  {(f.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
+                  {(f.options ?? []).map((option) => {
+                    const value = typeof option === "string" ? option : option.value;
+                    const label = typeof option === "string" ? option : option.label;
+                    return <option key={value} value={value}>{label}</option>;
+                  })}
                 </select>
               </label>
             );
@@ -422,7 +427,11 @@ export function RecordsEditor() {
     return rows;
   }, [allFields, selectedTypeForFields, types, fieldTypeFilter, fieldFilter]);
 
-  const parentOptions = useMemo(() => parents.map((p) => p.parent_kind + ":" + p.parent_api_name), [parents]);
+  const parentOptions = useMemo<SelectOption[]>(() => parents.map((p) => ({
+    value: p.parent_kind + ":" + p.parent_api_name,
+    label: (p.group ? p.group + " — " : "") + p.label,
+    group: p.group,
+  })), [parents]);
 
   return (
     <div className="space-y-6">
@@ -468,7 +477,7 @@ export function RecordsEditor() {
                   >
                     <option value="">All parents</option>
                     {parents.map((p) => (
-                      <option key={p.parent_kind + ":" + p.parent_api_name} value={p.parent_kind + ":" + p.parent_api_name}>{p.label}</option>
+                      <option key={p.parent_kind + ":" + p.parent_api_name} value={p.parent_kind + ":" + p.parent_api_name}>{p.group ? p.group + " — " : ""}{p.label}</option>
                     ))}
                   </select>
                   <button

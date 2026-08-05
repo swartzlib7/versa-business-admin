@@ -180,6 +180,19 @@ Applied to:
 - Gate 2: COA on :3200
 - Gate 3: Stephen visual
 
+## I5.6.32 Bounded correction — dynamic visibility and Parent taxonomy (Task #233) — 2026-08-05
+
+### Behavior
+- Zone pages fetch active record types from the existing catalog endpoint on client mount, then merge them with static zone tabs. A type created in Records Editor is therefore visible after normal client navigation to its parent zone and after a browser refresh; no generic persistence or CRUD scope was added.
+- Parent choices use human-readable taxonomy labels while retaining stable API values: **Organization** — Executive, Public, Communications, Dissemination, Treasury, Production, Qualification; **Collaboration** — Vendor, Customer, Partner, Branch; **Environment** — Locations, Events, Knowledge, Schedules.
+
+### Root cause
+- Zone pages derived their tab model during the server/client render from process-local fixture state. After an editor-side POST, client-side navigation could retain a route payload computed before that in-memory mutation, so the newly created type was not reliably present. The parent list also exposed raw internal `kind:api_name` values and modeled Environment only as its root instead of its four documented children.
+
+### Validation
+- TypeScript no-emit passed.
+- Targeted ESLint is blocked by two pre-existing `react-hooks/set-state-in-effect` errors in Records Editor's existing load effects; the changed zone/runtime files lint clean apart from that inherited file-level result.
+
 ## 6. Change Log
 | 2026-08-03 | I5.6.32 Slice 4 #230 corrective pass: Layout Editor now clears prior state on object/mode changes, remounts each selection from its saved config or catalog default, and ignores aborted/superseded async fetch responses. Focused ESLint and TypeScript validation clean; Gate 2 re-review requested. |
 | 2026-08-03 | I5.6.32 Slice 4 #230: Layout Editor now selects and persists separate edit/detail configurations; User detail/edit consumes saved User layouts at runtime and safely falls back to catalog defaults. Saved layout sections honor ordering, visibility, columns, and field span. User writes remain mock/session-local. tsc clean. |

@@ -161,29 +161,31 @@ export function updateRecordType(
   return { ok: true, type: next };
 }
 
-export function listEditorParents(): Array<{
+export type EditorParent = {
   parent_kind: ParentKind;
   parent_api_name: string;
   label: string;
+  group: "Organization" | "Collaboration" | "Environment";
   baked_in_tabs: string[];
-}> {
+};
+
+/** Canonical Records Editor taxonomy. Labels are presentation-ready; API values remain stable. */
+export function listEditorParents(): EditorParent[] {
   return [
-    { parent_kind: 'faculty', parent_api_name: 'executive', label: 'Executive', baked_in_tabs: ['Policy', 'Projects', 'Tasks'] },
-    { parent_kind: 'faculty', parent_api_name: 'public', label: 'Public', baked_in_tabs: [] },
-    { parent_kind: 'faculty', parent_api_name: 'communications', label: 'Communications', baked_in_tabs: [] },
-    { parent_kind: 'faculty', parent_api_name: 'dissemination', label: 'Dissemination', baked_in_tabs: [] },
-    { parent_kind: 'faculty', parent_api_name: 'treasury', label: 'Treasury', baked_in_tabs: [] },
-    { parent_kind: 'faculty', parent_api_name: 'production', label: 'Production', baked_in_tabs: ['Product', 'Service'] },
-    { parent_kind: 'faculty', parent_api_name: 'qualification', label: 'Qualification', baked_in_tabs: [] },
-    { parent_kind: 'baked_in', parent_api_name: 'policy', label: 'Policy (baked-in)', baked_in_tabs: [] },
-    { parent_kind: 'baked_in', parent_api_name: 'project', label: 'Project (baked-in)', baked_in_tabs: [] },
-    { parent_kind: 'baked_in', parent_api_name: 'task', label: 'Task (baked-in)', baked_in_tabs: [] },
-    { parent_kind: 'baked_in', parent_api_name: 'product', label: 'Product (baked-in)', baked_in_tabs: [] },
-    { parent_kind: 'baked_in', parent_api_name: 'service', label: 'Service (baked-in)', baked_in_tabs: [] },
-    { parent_kind: 'collaboration', parent_api_name: 'vendor', label: 'Vendor', baked_in_tabs: [] },
-    { parent_kind: 'collaboration', parent_api_name: 'customer', label: 'Customer', baked_in_tabs: [] },
-    { parent_kind: 'collaboration', parent_api_name: 'partner', label: 'Partner', baked_in_tabs: [] },
-    { parent_kind: 'collaboration', parent_api_name: 'branch', label: 'Branch', baked_in_tabs: [] },
-    { parent_kind: 'environment', parent_api_name: 'environment', label: 'Environment (root)', baked_in_tabs: [] },
+    { parent_kind: "faculty", parent_api_name: "executive", label: "Executive", group: "Organization", baked_in_tabs: ["Policy", "Projects", "Tasks"] },
+    { parent_kind: "faculty", parent_api_name: "public", label: "Public", group: "Organization", baked_in_tabs: [] },
+    { parent_kind: "faculty", parent_api_name: "communications", label: "Communications", group: "Organization", baked_in_tabs: [] },
+    { parent_kind: "faculty", parent_api_name: "dissemination", label: "Dissemination", group: "Organization", baked_in_tabs: [] },
+    { parent_kind: "faculty", parent_api_name: "treasury", label: "Treasury", group: "Organization", baked_in_tabs: [] },
+    { parent_kind: "faculty", parent_api_name: "production", label: "Production", group: "Organization", baked_in_tabs: ["Product", "Service"] },
+    { parent_kind: "faculty", parent_api_name: "qualification", label: "Qualification", group: "Organization", baked_in_tabs: [] },
+    { parent_kind: "collaboration", parent_api_name: "vendor", label: "Vendor", group: "Collaboration", baked_in_tabs: [] },
+    { parent_kind: "collaboration", parent_api_name: "customer", label: "Customer", group: "Collaboration", baked_in_tabs: [] },
+    { parent_kind: "collaboration", parent_api_name: "partner", label: "Partner", group: "Collaboration", baked_in_tabs: [] },
+    { parent_kind: "collaboration", parent_api_name: "branch", label: "Branch", group: "Collaboration", baked_in_tabs: [] },
+    { parent_kind: "environment", parent_api_name: "locations", label: "Locations", group: "Environment", baked_in_tabs: [] },
+    { parent_kind: "environment", parent_api_name: "events", label: "Events", group: "Environment", baked_in_tabs: [] },
+    { parent_kind: "environment", parent_api_name: "knowledge", label: "Knowledge", group: "Environment", baked_in_tabs: [] },
+    { parent_kind: "environment", parent_api_name: "schedules", label: "Schedules", group: "Environment", baked_in_tabs: [] },
   ];
 }
