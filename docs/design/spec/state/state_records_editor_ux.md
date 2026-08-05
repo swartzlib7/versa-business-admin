@@ -184,16 +184,22 @@ Applied to:
 
 ### Behavior
 - Zone pages fetch active record types from the existing catalog endpoint on client mount, then merge them with static zone tabs. A type created in Records Editor is therefore visible after normal client navigation to its parent zone and after a browser refresh; no generic persistence or CRUD scope was added.
-- Parent choices use human-readable taxonomy labels while retaining stable API values: **Organization** — Executive, Public, Communications, Dissemination, Treasury, Production, Qualification; **Collaboration** — Vendor, Customer, Partner, Branch; **Environment** — Locations, Events, Knowledge, Schedules.
+- Parent choices retain stable `kind:api_name` values and existing selection, query-prefill, and filtering behavior. In the **New Record Type** form, the native select presents non-selectable Organization, Collaboration, and Environment group headings; individual choices use only clean human labels: Executive, Public, Communications, Dissemination, Treasury, Production, Qualification; Vendor, Customer, Partner, Branch; Locations, Events, Knowledge, Schedules. No individual option repeats its group prefix.
 
 ### Root cause
 - Zone pages derived their tab model during the server/client render from process-local fixture state. After an editor-side POST, client-side navigation could retain a route payload computed before that in-memory mutation, so the newly created type was not reliably present. The parent list also exposed raw internal `kind:api_name` values and modeled Environment only as its root instead of its four documented children.
+
+### Follow-up contract — Parent select grouping (Task #233)
+- Stephen reported that the New Record Type Parent select still showed textual group prefixes on its individual choices. The form now renders taxonomy groups as native non-selectable `optgroup` headings, while every selectable option label is clean and prefix-free.
+- The serialized option value remains `parent_kind:parent_api_name`; `createType`, parent-filter prefill (`?parent=kind:api`), and the existing parent filter are unchanged.
+- Scope is limited to the Type-create picker presentation and its living-state documentation; persistence and generic CRUD behavior are unchanged.
 
 ### Validation
 - TypeScript no-emit passed.
 - Targeted ESLint is blocked by two pre-existing `react-hooks/set-state-in-effect` errors in Records Editor's existing load effects; the changed zone/runtime files lint clean apart from that inherited file-level result.
 
 ## 6. Change Log
+| 2026-08-05 | I5.6.32 #233 bounded Parent-picker follow-up: New Record Type Parent uses clean individual labels with native non-selectable Organization, Collaboration, and Environment headings. Stored `kind:api` values plus prefill/filter/create behavior remain unchanged. |
 | 2026-08-03 | I5.6.32 Slice 4 #230 corrective pass: Layout Editor now clears prior state on object/mode changes, remounts each selection from its saved config or catalog default, and ignores aborted/superseded async fetch responses. Focused ESLint and TypeScript validation clean; Gate 2 re-review requested. |
 | 2026-08-03 | I5.6.32 Slice 4 #230: Layout Editor now selects and persists separate edit/detail configurations; User detail/edit consumes saved User layouts at runtime and safely falls back to catalog defaults. Saved layout sections honor ordering, visibility, columns, and field span. User writes remain mock/session-local. tsc clean. |
 | Date | Change |

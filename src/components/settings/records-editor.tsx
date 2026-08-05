@@ -73,11 +73,27 @@ function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel, ini
                   onChange={(e) => setVals((s) => ({ ...s, [f.key]: e.target.value }))}
                 >
                   <option value="">Select…</option>
-                  {(f.options ?? []).map((option) => {
-                    const value = typeof option === "string" ? option : option.value;
-                    const label = typeof option === "string" ? option : option.label;
-                    return <option key={value} value={value}>{label}</option>;
-                  })}
+                  {(() => {
+                    const options = f.options ?? [];
+                    const grouped = options.every((option) => typeof option !== "string" && Boolean(option.group));
+                    if (grouped) {
+                      const groups = new Map<string, Exclude<SelectOption, string>[]>();
+                      for (const option of options as Exclude<SelectOption, string>[]) {
+                        const group = option.group!;
+                        groups.set(group, [...(groups.get(group) ?? []), option]);
+                      }
+                      return [...groups].map(([group, groupOptions]) => (
+                        <optgroup key={group} label={group}>
+                          {groupOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                        </optgroup>
+                      ));
+                    }
+                    return options.map((option) => {
+                      const value = typeof option === "string" ? option : option.value;
+                      const label = typeof option === "string" ? option : option.label;
+                      return <option key={value} value={value}>{label}</option>;
+                    });
+                  })()}
                 </select>
               </label>
             );
@@ -429,7 +445,7 @@ export function RecordsEditor() {
 
   const parentOptions = useMemo<SelectOption[]>(() => parents.map((p) => ({
     value: p.parent_kind + ":" + p.parent_api_name,
-    label: (p.group ? p.group + " — " : "") + p.label,
+    label: p.label,
     group: p.group,
   })), [parents]);
 
