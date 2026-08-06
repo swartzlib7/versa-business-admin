@@ -1842,6 +1842,71 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
 }
 
 // ---------------------------------------------------------------------------
+// Field lifecycle mutations (nested Record Type ownership) — I5.6.32c
+// ---------------------------------------------------------------------------
+
+export type UpdateFieldInput = Partial<Pick<FieldDefinition,
+  'label' | 'is_required' | 'default_value' | 'value_set_api_name' |
+  'lookup_object_api_name' | 'sort_order' | 'active'
+>>;
+
+export type FieldMutationResult =
+  | { ok: true; field: FieldDefinition; references: number }
+  | { ok: false; code: string; message: string; references?: number };
+
+function fieldReferenceCount(objectApiName: string, apiName: string): number {
+  return listInstances({ type_api_name: objectApiName }).filter((instance) =>
+    Object.prototype.hasOwnProperty.call(instance.data, apiName),
+  ).length;
+}
+
+export function updateFieldDefinition(
+  objectApiName: string,
+  apiName: string,
+  input: UpdateFieldInput,
+): FieldMutationResult {
+  const index = mutableFieldDefinitions.findIndex(
+    (field) => field.object_api_name === objectApiName && field.api_name === apiName,
+  );
+  if (index < 0) return { ok: false, code: 'NOT_FOUND', message: `Unknown field '${apiName}'.` };
+  const current = mutableFieldDefinitions[index];
+  if (input.label !== undefined && !input.label.trim()) {
+    return { ok: false, code: 'LABEL_REQUIRED', message: 'Field label is required.' };
+  }
+  if (input.value_set_api_name && !getValueSetByApiName(input.value_set_api_name)) {
+    return { ok: false, code: 'UNKNOWN_VALUE_SET', message: `Unknown value_set_api_name '${input.value_set_api_name}'.` };
+  }
+  const next: FieldDefinition = {
+    ...current,
+    ...input,
+    label: input.label !== undefined ? input.label.trim() : current.label,
+  };
+  mutableFieldDefinitions[index] = next;
+  return { ok: true, field: next, references: fieldReferenceCount(objectApiName, apiName) };
+}
+
+export function retireFieldDefinition(objectApiName: string, apiName: string): FieldMutationResult {
+  return updateFieldDefinition(objectApiName, apiName, { active: false });
+}
+
+export function deleteFieldDefinition(objectApiName: string, apiName: string): FieldMutationResult {
+  const index = mutableFieldDefinitions.findIndex(
+    (field) => field.object_api_name === objectApiName && field.api_name === apiName,
+  );
+  if (index < 0) return { ok: false, code: 'NOT_FOUND', message: `Unknown field '${apiName}'.` };
+  const field = mutableFieldDefinitions[index];
+  const references = fieldReferenceCount(objectApiName, apiName);
+  if (field.is_system) {
+    return { ok: false, code: 'SYSTEM_FIELD', message: 'System/reference fields cannot be hard-deleted.', references };
+  }
+  if (references > 0) {
+    return { ok: false, code: 'FIELD_REFERENCED', message: 'Referenced fields must be retired instead of hard-deleted.', references };
+  }
+  mutableFieldDefinitions.splice(index, 1);
+  return { ok: true, field, references: 0 };
+}
+
+// ---------------------------------------------------------------------------
 // Value set mutations (Records Editor picklist options) — I5.6.32c
 // ---------------------------------------------------------------------------
 

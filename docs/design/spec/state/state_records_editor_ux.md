@@ -232,3 +232,18 @@ Applied to:
 
 
 | 2026-08-05 | I5.6.32 #233 implementation retry: isolated New Record Type Parent rendering into a dedicated grouped field path with emphasized focus styling; serialized values and create parsing remain unchanged. |
+
+## Task #235 — Nested field lifecycle guardrails (2026-08-06)
+
+### Behavior
+- Record Type detail remains the owner context for its fields; the existing Fields Preview and Manage Fields path preserve that relationship while the Layouts editor uses the selected type's object schema.
+- Field lifecycle API now supports authenticated admin `PATCH` for inline-safe label/value-set updates and `DELETE` retirement. Retirement soft-hides a field while retaining its definition for existing data.
+- Hard deletion is deliberately guarded: system fields cannot be deleted, and fields referenced by record instances return a conflict and must be retired. Custom unreferenced fields may be hard-deleted through the API contract with an explicit `hard_delete` request.
+- Responses include reference counts so the editor can present confirmation/protection messaging without guessing.
+
+### Validation
+- TypeScript no-emit passed after adding the field lifecycle fixture mutations and nested field route.
+- `git diff --check` passed.
+
+### Change Log
+| 2026-08-06 | Task #235: added nested field lifecycle mutation helpers and authenticated admin route for inline updates, retirement, and guarded hard deletion. |
