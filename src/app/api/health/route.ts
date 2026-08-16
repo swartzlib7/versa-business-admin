@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adapter } from '@/lib/data/adapter';
+import pkg from '../../../../package.json';
 
 export async function GET() {
   // Check DB connectivity when DATA_SOURCE=postgres; fixtures always report ok.
@@ -12,7 +13,7 @@ export async function GET() {
 
   return NextResponse.json({
     status: 'ok',
-    version: '0.7.65',
+    version: pkg.version,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     database: dbStatus,
