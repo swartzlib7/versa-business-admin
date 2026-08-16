@@ -247,3 +247,19 @@ Applied to:
 
 ### Change Log
 | 2026-08-06 | Task #235: added nested field lifecycle mutation helpers and authenticated admin route for inline updates, retirement, and guarded hard deletion. |
+
+## Task #235 — Nested Record Type Fields and Layouts editor UI (2026-08-16)
+
+### Behavior
+- Record Type detail now renders the type's fields in a dedicated, visually grouped **Fields** section (group label, header with field count, and a bordered body), so fields read as belonging to the type rather than floating in the page.
+- Each field row is **inline-editable**: label, field key, and type are editable in place; a new field is added through an Add Field row; fields can be retired (soft-hidden, retaining the definition) or hard-deleted only when unreferenced, with the API reference count driving the confirmation/messaging.
+- A **Layouts** editor section is rendered from the selected type's object schema, letting users compose which fields appear on the record layout; layouts persist through the existing runtime saved-layout contract (Slice 4, Task #230).
+- Value-set (picklist) assignment for a field is managed through the same inline field controls, keeping field + picklist + layout editing in one place.
+
+### Validation
+- TypeScript no-emit passed after the nested field + layout editor UI work.
+- Production build passed.
+- Gate 2 (COA review): commit d96ba38 verified by COA; merged into beta as part of the nested-records implementation.
+
+### Change Log
+| 2026-08-16 | Task #235: implemented visible nested Record Type Fields + Layouts editor UI — grouped field section, inline field editing (label/key/type), add/retire/hard-delete with reference-count guards, and layout composition from the type's object schema. |
