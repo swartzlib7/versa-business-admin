@@ -13,7 +13,7 @@ import { theme } from "@/lib/theme";
 type Parent = { parent_kind: string; parent_api_name: string; label: string; group?: string; baked_in_tabs: string[] };
 type SelectOption = string | { value: string; label: string; group?: string };
 type RT = { id?: string; api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string; is_system?: boolean; active?: boolean; show_as_tab?: boolean; sort_order?: number };
-type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string; is_system?: boolean };
+type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean };
 type VS = { id?: string; api_name: string; label: string; description?: string; is_system?: boolean };
 type VSI = { id: string; api_value: string; label: string; sort_order: number; active: boolean };
 
@@ -176,6 +176,20 @@ export function RecordsEditor() {
   const [allFields, setAllFields] = useState<FD[]>([]);
   const [showFieldForm, setShowFieldForm] = useState(false);
   const [expandedField, setExpandedField] = useState<string | null>(null);
+  const [editingField, setEditingField] = useState<Record<string, Partial<FD>>>({});
+  const [fieldDeletePending, setFieldDeletePending] = useState<null | {
+    objectApiName: string;
+    apiName: string;
+    label: string;
+    isSystem: boolean;
+    mode: "retire" | "delete";
+    references?: number;
+  }>(null);
+  const [typeDeletePending, setTypeDeletePending] = useState<null | {
+    apiName: string;
+    label: string;
+    isSystem: boolean;
+  }>(null);
   const [fieldFilter, setFieldFilter] = useState("");
   const [fieldTypeFilter, setFieldTypeFilter] = useState("");
   const [selectedTypeForFields, setSelectedTypeForFields] = useState<string>("");
@@ -320,6 +334,106 @@ export function RecordsEditor() {
       void loadAllFields();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Field failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const updateField = async (objectApiName: string, apiName: string, patch: Partial<FD>) => {
+    setBusy(true); setError(null); setStatus(null);
+    try {
+      await api("/api/catalog/fields/" + encodeURIComponent(objectApiName) + "/" + encodeURIComponent(apiName), {
+        method: "PATCH",
+        body: JSON.stringify({
+          label: patch.label,
+          is_required: patch.is_required,
+          value_set_api_name: patch.value_set_api_name ?? null,
+          lookup_object_api_name: patch.lookup_object_api_name ?? null,
+          active: patch.active,
+        }),
+      });
+      setStatus("Updated field " + apiName);
+      setExpandedField(null);
+      setEditingField((s) => {
+        const n = { ...s };
+        delete n[objectApiName + ":" + apiName];
+        return n;
+      });
+      setAllFields([]);
+      void loadAllFields();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Field update failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const requestFieldLifecycle = async (
+    objectApiName: string,
+    apiName: string,
+    label: string,
+    isSystem: boolean,
+    mode: "retire" | "delete",
+  ) => {
+    setFieldDeletePending({ objectApiName, apiName, label, isSystem, mode });
+  };
+
+  const confirmFieldLifecycle = async () => {
+    if (!fieldDeletePending) return;
+    const { objectApiName, apiName, mode, isSystem } = fieldDeletePending;
+    if (mode === "delete" && isSystem) {
+      setError("System/reference fields cannot be hard-deleted. Retire them instead.");
+      setFieldDeletePending(null);
+      return;
+    }
+    setBusy(true); setError(null); setStatus(null);
+    try {
+      const res = await fetch(
+        "/api/catalog/fields/" + encodeURIComponent(objectApiName) + "/" + encodeURIComponent(apiName),
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ hard_delete: mode === "delete" }),
+        },
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error?.message || res.statusText);
+      setStatus(mode === "delete" ? ("Deleted field " + apiName) : ("Retired field " + apiName));
+      setFieldDeletePending(null);
+      setExpandedField(null);
+      setAllFields([]);
+      void loadAllFields();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Field lifecycle failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const requestRetireType = (t: RT) => {
+    if (t.is_system) {
+      setError("System record types cannot be retired from this control. Deactivate via Active checkbox if allowed.");
+      return;
+    }
+    setTypeDeletePending({ apiName: t.api_name, label: t.label, isSystem: !!t.is_system });
+  };
+
+  const confirmRetireType = async () => {
+    if (!typeDeletePending) return;
+    const { apiName } = typeDeletePending;
+    setBusy(true); setError(null); setStatus(null);
+    try {
+      await api("/api/catalog/record-types/" + encodeURIComponent(apiName), {
+        method: "PATCH",
+        body: JSON.stringify({ active: false, show_as_tab: false }),
+      });
+      setStatus("Retired record type " + apiName);
+      setTypeDeletePending(null);
+      setExpandedType(null);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Type retire failed");
     } finally {
       setBusy(false);
     }
@@ -686,7 +800,35 @@ export function RecordsEditor() {
                                   >
                                     Cancel
                                   </Button>
+                                  {!t.is_system && (t.active !== false) && (
+                                    <Button
+                                      variant="outline"
+                                      disabled={busy}
+                                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                                      onClick={() => requestRetireType(t)}
+                                    >
+                                      Retire type
+                                    </Button>
+                                  )}
                                 </div>
+                                {typeDeletePending && typeDeletePending.apiName === t.api_name && (
+                                  <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                                    <p className="font-medium">Retire record type “{typeDeletePending.label}”?</p>
+                                    <p className="mt-1 text-muted-foreground">
+                                      Sets the type inactive and hides its zone tab. System types stay protected.
+                                    </p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      <Button
+                                        disabled={busy}
+                                        className="bg-destructive text-white hover:bg-destructive/90"
+                                        onClick={() => void confirmRetireType()}
+                                      >
+                                        Confirm retire
+                                      </Button>
+                                      <Button variant="outline" onClick={() => setTypeDeletePending(null)}>Cancel</Button>
+                                    </div>
+                                  </div>
+                                )}
                                 <div className="mt-6 border-t border-border pt-4">
                                   <div className="mb-2 flex items-center justify-between">
                                     <p className="text-sm font-medium">Fields Preview</p>
@@ -816,10 +958,12 @@ export function RecordsEditor() {
                     {filteredFields.map((f) => {
                       const fid = (f.object_api_name || "") + ":" + f.api_name;
                       const isExpanded = expandedField === fid;
+                      const draft = editingField[fid] ?? {};
+                      const objectApi = f.object_api_name || "";
                       return (
                         <Fragment key={fid}>
                           <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(f.label, !!f.is_system)}<StandardBadge isSystem={!!f.is_system} /><RecordIdDisplay id={f.id} /></td>
+                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(f.label, !!f.is_system)}<StandardBadge isSystem={!!f.is_system} /><RecordIdDisplay id={f.id} />{f.active === false ? <Badge className="ml-2 border-0 bg-muted text-muted-foreground text-[10px]">Retired</Badge> : null}</td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.api_name}</td>
                             <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{f.data_type}</Badge></td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.object_api_name || "—"}</td>
@@ -827,25 +971,150 @@ export function RecordsEditor() {
                             <td className="px-4 py-3 text-right align-top">
                               <button
                                 type="button"
-                                onClick={() => setExpandedField(isExpanded ? null : fid)}
+                                onClick={() => {
+                                  if (isExpanded) {
+                                    setExpandedField(null);
+                                  } else {
+                                    setExpandedField(fid);
+                                    setEditingField((s) => ({
+                                      ...s,
+                                      [fid]: {
+                                        label: f.label,
+                                        value_set_api_name: f.value_set_api_name,
+                                        lookup_object_api_name: f.lookup_object_api_name ?? null,
+                                        is_required: f.is_required,
+                                        active: f.active !== false,
+                                      },
+                                    }));
+                                  }
+                                }}
                                 className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
                                 style={isExpanded ? { borderColor: theme.colors.brand, color: theme.colors.brand } : undefined}
                               >
-                                {isExpanded ? "Close" : "View"}
+                                {isExpanded ? "Close" : "Edit"}
                               </button>
                             </td>
                           </tr>
                           {isExpanded && (
                             <ExpandRow colSpan={6}>
                               <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${theme.colors.brand}` }}>
-                                <div className="grid gap-2 sm:grid-cols-2 text-sm">
-                                  <p><span className="text-muted-foreground">API name:</span> <span className="font-mono text-xs">{f.api_name}</span></p>
-                                  <p><span className="text-muted-foreground">Label:</span> {formatSampleLabel(f.label, !!f.is_system)}</p>
-                                  <p><span className="text-muted-foreground">Data type:</span> {f.data_type}</p>
-                                  <p><span className="text-muted-foreground">Object:</span> <span className="font-mono text-xs">{f.object_api_name || "—"}</span></p>
-                                  <p><span className="text-muted-foreground">Value set:</span> {f.value_set_api_name || "—"}</p>
-                                  <p><span className="text-muted-foreground">Lookup object:</span> {f.lookup_object_api_name || "—"}</p>
+                                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                  <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Label</label>
+                                    <input
+                                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                      value={draft.label ?? f.label}
+                                      onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], label: e.target.value } }))}
+                                    />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Value set</label>
+                                    <select
+                                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                      value={draft.value_set_api_name ?? f.value_set_api_name ?? ""}
+                                      onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], value_set_api_name: e.target.value || null } }))}
+                                      disabled={!(f.data_type === "picklist" || f.data_type === "multipicklist")}
+                                    >
+                                      <option value="">—</option>
+                                      {valueSets.map((vs) => <option key={vs.api_name} value={vs.api_name}>{vs.label}</option>)}
+                                    </select>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Lookup object</label>
+                                    <input
+                                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono text-xs"
+                                      value={draft.lookup_object_api_name ?? f.lookup_object_api_name ?? ""}
+                                      onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], lookup_object_api_name: e.target.value || null } }))}
+                                      disabled={f.data_type !== "lookup"}
+                                      placeholder="object_api_name"
+                                    />
+                                  </div>
+                                  <label className="flex items-center gap-2 pt-6">
+                                    <input
+                                      type="checkbox"
+                                      checked={draft.is_required ?? f.is_required ?? false}
+                                      onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], is_required: e.target.checked } }))}
+                                    />
+                                    <span className="text-sm font-medium">Required</span>
+                                  </label>
+                                  <div className="space-y-1 text-sm sm:col-span-2 lg:col-span-3">
+                                    <p><span className="text-muted-foreground">API name:</span> <span className="font-mono text-xs">{f.api_name}</span> (read-only)</p>
+                                    <p><span className="text-muted-foreground">Data type:</span> {f.data_type} (read-only)</p>
+                                    <p><span className="text-muted-foreground">Object:</span> <span className="font-mono text-xs">{objectApi || "—"}</span></p>
+                                    {f.is_system && (
+                                      <p className="text-xs italic text-muted-foreground">System field — hard delete is blocked; retire is allowed to hide from new layouts.</p>
+                                    )}
+                                  </div>
                                 </div>
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                  <Button
+                                    disabled={busy || !objectApi}
+                                    onClick={() => void updateField(objectApi, f.api_name, {
+                                      label: draft.label ?? f.label,
+                                      value_set_api_name: draft.value_set_api_name ?? f.value_set_api_name,
+                                      lookup_object_api_name: draft.lookup_object_api_name ?? f.lookup_object_api_name,
+                                      is_required: draft.is_required ?? f.is_required,
+                                      active: draft.active ?? f.active,
+                                    })}
+                                    style={{ backgroundColor: theme.colors.brand }}
+                                    className="text-white"
+                                  >
+                                    Save changes
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setExpandedField(null);
+                                      setEditingField((s) => {
+                                        const n = { ...s };
+                                        delete n[fid];
+                                        return n;
+                                      });
+                                    }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    disabled={busy || !objectApi || f.active === false}
+                                    onClick={() => void requestFieldLifecycle(objectApi, f.api_name, f.label, !!f.is_system, "retire")}
+                                  >
+                                    Retire
+                                  </Button>
+                                  {!f.is_system && (
+                                    <Button
+                                      variant="outline"
+                                      disabled={busy || !objectApi}
+                                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                                      onClick={() => void requestFieldLifecycle(objectApi, f.api_name, f.label, !!f.is_system, "delete")}
+                                    >
+                                      Delete
+                                    </Button>
+                                  )}
+                                </div>
+                                {fieldDeletePending && fieldDeletePending.objectApiName === objectApi && fieldDeletePending.apiName === f.api_name && (
+                                  <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                                    <p className="font-medium">
+                                      {fieldDeletePending.mode === "delete" ? "Hard-delete" : "Retire"} field “{fieldDeletePending.label}”?
+                                    </p>
+                                    <p className="mt-1 text-muted-foreground">
+                                      {fieldDeletePending.mode === "delete"
+                                        ? "Hard delete removes the definition when unreferenced. Referenced custom fields must be retired instead."
+                                        : "Retire hides the field from active catalogs while preserving historical references."}
+                                      {fieldDeletePending.isSystem ? " System fields cannot be hard-deleted." : ""}
+                                    </p>
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      <Button
+                                        disabled={busy}
+                                        className="bg-destructive text-white hover:bg-destructive/90"
+                                        onClick={() => void confirmFieldLifecycle()}
+                                      >
+                                        Confirm {fieldDeletePending.mode === "delete" ? "delete" : "retire"}
+                                      </Button>
+                                      <Button variant="outline" onClick={() => setFieldDeletePending(null)}>Cancel</Button>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </ExpandRow>
                           )}

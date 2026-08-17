@@ -2153,16 +2153,42 @@ export function ensureObjectForRecordType(input: {
   faculty?: string;
 }): ObjectDefinition {
   const existing = getObject(input.api_name);
-  if (existing) return existing;
-  const obj: ObjectDefinition = {
-    api_name: input.api_name,
-    label: input.label,
-    description: input.description || `Record type ${input.api_name}`,
-    core_kind: 'faculty_record',
-    instance_collection: null,
-    extensible: true,
-    faculty: input.faculty,
+  const obj =
+    existing ??
+    ({
+      api_name: input.api_name,
+      label: input.label,
+      description: input.description || `Record type ${input.api_name}`,
+      core_kind: 'faculty_record',
+      instance_collection: null,
+      extensible: true,
+      faculty: input.faculty,
+    } as ObjectDefinition);
+  if (!existing) mutableObjectDefinitions.push(obj);
+
+  // Seed core name/status fields so zone Executive (and other) subtabs render real catalog fields
+  // instead of falling back to generic Name/Status placeholders only.
+  const ensureField = (apiName: string, label: string, sortOrder: number) => {
+    const has = mutableFieldDefinitions.some(
+      (f) => f.object_api_name === input.api_name && f.api_name === apiName,
+    );
+    if (has) return;
+    mutableFieldDefinitions.push({
+      id: `fld-${input.api_name}-${apiName}`,
+      object_api_name: input.api_name,
+      api_name: apiName,
+      label,
+      data_type: 'text',
+      is_system: true,
+      is_required: apiName === 'name',
+      default_value: null,
+      value_set_api_name: null,
+      lookup_object_api_name: null,
+      sort_order: sortOrder,
+      active: true,
+    });
   };
-  mutableObjectDefinitions.push(obj);
+  ensureField('name', 'Name', 10);
+  ensureField('status', 'Status', 20);
   return obj;
 }

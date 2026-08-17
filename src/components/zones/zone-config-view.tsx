@@ -51,6 +51,7 @@ export type ZoneTab = {
   /** Seed rows for listing mocks. */
   sampleRows?: string[][];
   recordTypeApiName?: string;
+  objectApiName?: string;
   parentKind?: string;
   parentApiName?: string;
 };
@@ -164,14 +165,73 @@ function ListingPanel({
   panel: ZoneTab;
   accent: string;
 }) {
+  type CatalogField = {
+    api_name: string;
+    label: string;
+    data_type: string;
+    value_set_api_name?: string | null;
+    active?: boolean;
+  };
+
+  const isDynamic = !!panel.recordTypeApiName;
+  const [catalogFields, setCatalogFields] = useState<CatalogField[]>([]);
+  const [fieldsLoading, setFieldsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isDynamic || !panel.recordTypeApiName) {
+      return;
+    }
+    const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick loading flag before async catalog fetch
+    setFieldsLoading(true);
+    const url = "/api/catalog/record-types/" + encodeURIComponent(panel.recordTypeApiName);
+    void fetch(url, {
+      credentials: "include",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Failed to load field definitions");
+        return response.json();
+      })
+      .then((payload: { data?: { fields?: CatalogField[] } }) => {
+        const next = (payload.data?.fields ?? []).filter((f) => f.active !== false);
+        setCatalogFields(next);
+        setFieldsLoading(false);
+      })
+      .catch((error: unknown) => {
+        if ((error as { name?: string }).name !== "AbortError") {
+          setCatalogFields([]);
+          setFieldsLoading(false);
+        }
+      });
+    return () => controller.abort();
+  }, [isDynamic, panel.recordTypeApiName]);
+
   const columns = useMemo(() => {
+    if (isDynamic && catalogFields.length > 0) {
+      return catalogFields.slice(0, 4).map((f) => f.label);
+    }
     if (panel.listColumns && panel.listColumns.length > 0) {
       return panel.listColumns;
     }
     return panel.fields.slice(0, 4).map((f) => f.label);
-  }, [panel.listColumns, panel.fields]);
+  }, [isDynamic, catalogFields, panel.listColumns, panel.fields]);
 
   const fields: ListingField[] = useMemo(() => {
+    if (isDynamic && catalogFields.length > 0) {
+      const colSet = new Set(columns);
+      return catalogFields.map((f) => ({
+        key: f.api_name,
+        label: f.label,
+        kind:
+          f.data_type === "long_text"
+            ? ("textarea" as const)
+            : f.data_type === "picklist" || f.data_type === "multipicklist"
+              ? ("select" as const)
+              : ("text" as const),
+        column: colSet.has(f.label) || colSet.has(f.api_name),
+      }));
+    }
     const colSet = new Set(columns);
     const fromFields: ListingField[] = panel.fields.map((f) => ({
       key: f.label,
@@ -194,22 +254,22 @@ function ListingPanel({
       if (!columns.includes(f.key)) ordered.push({ ...f, column: false });
     }
     return ordered;
-  }, [panel.fields, columns]);
+  }, [isDynamic, catalogFields, panel.fields, columns]);
 
   const seedRows: ZoneListRow[] = useMemo(() => {
     const seed: string[][] =
       panel.sampleRows && panel.sampleRows.length > 0
         ? panel.sampleRows.map((r) => [...r])
         : [
-            columns.map((_, i) => (i === 0 ? `Sample ${panel.label} A` : "-")),
-            columns.map((_, i) => (i === 0 ? `Sample ${panel.label} B` : "-")),
+            columns.map((_, i) => (i === 0 ? ("Sample " + panel.label + " A") : "-")),
+            columns.map((_, i) => (i === 0 ? ("Sample " + panel.label + " B") : "-")),
           ];
     return seed.map((cells, idx) => {
       const rec: Record<string, string> = {};
       columns.forEach((c, i) => {
         rec[c] = cells[i] === "-" ? "" : (cells[i] ?? "");
       });
-      return { id: `${panel.id}-row-${idx}`, cells: rec };
+      return { id: panel.id + "-row-" + idx, cells: rec };
     });
   }, [panel.id, panel.sampleRows, panel.label, columns]);
 
@@ -217,32 +277,36 @@ function ListingPanel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const isDynamic = !!panel.recordTypeApiName;
-
   useEffect(() => {
     if (!isDynamic) {
-      setRows(seedRows);
       return;
     }
-
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick loading flag before async records fetch
     setLoading(true);
     const params = new URLSearchParams();
     params.set("type", panel.recordTypeApiName!);
     params.set("parent_kind", panel.parentKind!);
     params.set("parent", panel.parentApiName!);
-
-    fetch(`/api/records?${params.toString()}`)
+    fetch("/api/records?" + params.toString(), { credentials: "include" })
       .then((r) => {
         if (!r.ok) throw new Error("Failed to fetch records");
         return r.json();
       })
       .then((json) => {
-        const apiRows = (json.data ?? []).map((inst: any) => {
-          const cells: Record<string, string> = {
-            Name: inst.name,
-            Status: inst.status,
-            ...inst.data,
-          };
+        const apiRows = (json.data ?? []).map((inst: { id: string; name?: string; status?: string; data?: Record<string, string> }) => {
+          const data = (inst.data ?? {}) as Record<string, string>;
+          const cells: Record<string, string> = { ...data };
+          cells.Name = inst.name ?? data.Name ?? data.name ?? "";
+          cells.name = cells.Name;
+          cells.Status = inst.status ?? data.Status ?? data.status ?? "";
+          cells.status = cells.Status;
+          for (const f of catalogFields) {
+            if (f.api_name === "name") cells[f.api_name] = cells.Name;
+            else if (f.api_name === "status") cells[f.api_name] = cells.Status;
+            else if (cells[f.api_name] == null) {
+              cells[f.api_name] = data[f.api_name] ?? data[f.label] ?? "";
+            }
+          }
           return { id: inst.id, cells };
         });
         setRows(apiRows);
@@ -252,39 +316,49 @@ function ListingPanel({
         setError(e.message);
         setLoading(false);
       });
-  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, seedRows]);
+  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, seedRows, catalogFields]);
 
   const onAdd = async (draft: Record<string, string>) => {
     if (!isDynamic) {
-      const id = `${panel.id}-row-${rows.length + 1}`;
+      const id = panel.id + "-row-" + (rows.length + 1);
       setRows((prev) => [...prev, { id, cells: draft }]);
       return;
     }
-
     try {
+      const name = draft.name || draft.Name || "New Record";
+      const status = draft.status || draft.Status || "active";
+      const data: Record<string, string> = { ...draft };
+      delete data.Name;
+      delete data.Status;
       const res = await fetch("/api/records", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           type_api_name: panel.recordTypeApiName,
           parent_kind: panel.parentKind,
           parent_api_name: panel.parentApiName,
-          name: draft.Name || draft.name || "New Record",
-          status: draft.Status || draft.status || "active",
-          data: draft,
+          name,
+          status,
+          data,
         }),
       });
       if (!res.ok) throw new Error("Failed to create record");
       const json = await res.json();
       const inst = json.data;
       const cells: Record<string, string> = {
+        ...(inst.data ?? {}),
         Name: inst.name,
+        name: inst.name,
         Status: inst.status,
-        ...inst.data,
+        status: inst.status,
       };
+      for (const f of catalogFields) {
+        if (cells[f.api_name] == null) cells[f.api_name] = "";
+      }
       setRows((prev) => [...prev, { id: inst.id, cells }]);
-    } catch (e: any) {
-      alert(e.message);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -293,34 +367,40 @@ function ListingPanel({
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, cells: draft } : r)));
       return;
     }
-
     try {
-      const res = await fetch(`/api/records/${id}`, {
+      const name = draft.name || draft.Name;
+      const status = draft.status || draft.Status;
+      const data: Record<string, string> = { ...draft };
+      delete data.Name;
+      delete data.Status;
+      const res = await fetch("/api/records/" + id, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: draft.Name || draft.name,
-          status: draft.Status || draft.status,
-          data: draft,
-        }),
+        credentials: "include",
+        body: JSON.stringify({ name, status, data }),
       });
       if (!res.ok) throw new Error("Failed to update record");
       const json = await res.json();
       const inst = json.data;
       const cells: Record<string, string> = {
+        ...(inst.data ?? {}),
         Name: inst.name,
+        name: inst.name,
         Status: inst.status,
-        ...inst.data,
+        status: inst.status,
       };
+      for (const f of catalogFields) {
+        if (cells[f.api_name] == null) cells[f.api_name] = draft[f.api_name] ?? "";
+      }
       setRows((prev) => prev.map((r) => (r.id === id ? { id: inst.id, cells } : r)));
-    } catch (e: any) {
-      alert(e.message);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : String(e));
     }
   };
 
   return (
     <div className="space-y-4">
-      {loading && (
+      {(loading || fieldsLoading) && (
         <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
           Loading records...
         </div>
@@ -330,7 +410,7 @@ function ListingPanel({
           {error}
         </div>
       )}
-      {!loading && (
+      {!loading && !fieldsLoading && (
         <EntityListing
           title={panel.label}
           summary={panel.summary}
@@ -356,6 +436,45 @@ function FormPanel({
   panel: ZoneTab;
   accent: string;
 }) {
+  type CatalogField = { api_name: string; label: string; data_type: string; active?: boolean };
+  const isDynamic = !!panel.recordTypeApiName;
+  const [catalogFields, setCatalogFields] = useState<CatalogField[]>([]);
+  const [fieldsLoading, setFieldsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isDynamic || !panel.recordTypeApiName) {
+      return;
+    }
+    const controller = new AbortController();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- kick loading flag before async catalog fetch
+    setFieldsLoading(true);
+    const url = "/api/catalog/record-types/" + encodeURIComponent(panel.recordTypeApiName);
+    void fetch(url, { credentials: "include", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Failed to load field definitions");
+        return response.json();
+      })
+      .then((payload: { data?: { fields?: CatalogField[] } }) => {
+        setCatalogFields((payload.data?.fields ?? []).filter((f) => f.active !== false));
+        setFieldsLoading(false);
+      })
+      .catch((error: unknown) => {
+        if ((error as { name?: string }).name !== "AbortError") {
+          setCatalogFields([]);
+          setFieldsLoading(false);
+        }
+      });
+    return () => controller.abort();
+  }, [isDynamic, panel.recordTypeApiName]);
+
+  const renderFields = isDynamic && catalogFields.length > 0
+    ? catalogFields.map((f) => ({
+        label: f.label,
+        placeholder: f.label,
+        kind: (f.data_type === "long_text" ? "textarea" : f.data_type === "picklist" || f.data_type === "multipicklist" ? "select" : "text") as "text" | "textarea" | "select" | undefined,
+      }))
+    : panel.fields;
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="border-b bg-muted/30">
@@ -367,12 +486,15 @@ function FormPanel({
             className="shrink-0 border-0 text-white"
             style={{ backgroundColor: accent }}
           >
-            Configure
+            {isDynamic ? "Dynamic Record" : "Configure"}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
-        {panel.fields.map((f) => (
+        {fieldsLoading && (
+          <p className="text-sm text-muted-foreground sm:col-span-2">Loading fields...</p>
+        )}
+        {!fieldsLoading && renderFields.map((f) => (
           <div
             key={f.label}
             className={f.kind === "textarea" ? "sm:col-span-2" : undefined}

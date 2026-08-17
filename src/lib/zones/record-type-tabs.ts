@@ -95,6 +95,7 @@ export function applyRecordTypesToTab(
       fields,
       relations: tab.relations ?? [],
       recordTypeApiName: t.api_name,
+      objectApiName: t.object_api_name,
       parentKind,
       parentApiName: tab.id,
     };
