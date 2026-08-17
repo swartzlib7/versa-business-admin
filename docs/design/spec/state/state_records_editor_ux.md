@@ -9,6 +9,13 @@
 | **Task** | #230 I5.6.32 Slice 4 (plus prior #219/#220/#224) |
 | **Source messages** | 5QtlTIWsvezycavae5An (prior 5-item), int_ba6a155650d240ab (2026-07-27 full list) |
 
+
+## Gate 3 grouped batch (Task #235) — 2026-08-17
+1. **Visible edit + guarded delete/retire** for user-created fields and record types in Records Editor (system fields/types protected from hard delete; retire via confirmation).
+2. **Executive / zone custom subtabs** load field definitions from \`GET /api/catalog/record-types/:apiName\` so selected custom record type fields render (not only default Name/Status placeholders). New custom types seed core name/status fields via \`ensureObjectForRecordType\`.
+3. **Typography**: system UI uses Hack with web-safe sans-serif fallbacks (\`layout.tsx\` CDN + \`globals.css\` font stack).
+4. **Gate 1**: \`tsc --noEmit\` clean; \`npm run build\` success on agent/web-dev.
+
 ## Collaboration
 | Field | Value |
 |-------|-------|
