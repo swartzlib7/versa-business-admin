@@ -34,6 +34,20 @@ export function LayoutEditorWrapper() {
   const [loading, setLoading] = useState(true);
   const [loadingLayout, setLoadingLayout] = useState(false);
   const latestRequest = useRef(0);
+  const editorAnchorRef = useRef<HTMLDivElement | null>(null);
+
+  const selectType = (apiName: string) => {
+    setSelectedType(apiName);
+  };
+
+  useEffect(() => {
+    if (!selectedType) return;
+    // Scroll editor region into view after selection (F6 discoverability).
+    const id = window.requestAnimationFrame(() => {
+      editorAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [selectedType, layoutType]);
 
   useEffect(() => {
     fetch("/api/catalog/record-types")
@@ -119,6 +133,7 @@ export function LayoutEditorWrapper() {
                 <th className="px-3 py-2 font-medium">Kind</th>
                 <th className="px-3 py-2 font-medium">API name</th>
                 <th className="px-3 py-2 font-medium">Object key</th>
+                <th className="px-3 py-2 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -128,21 +143,24 @@ export function LayoutEditorWrapper() {
                 return (
                   <tr
                     key={rt.api_name}
+                    role="button"
+                    tabIndex={0}
+                    aria-selected={selected}
+                    aria-label={`Edit layout for ${rt.label}`}
+                    onClick={() => selectType(rt.api_name)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        selectType(rt.api_name);
+                      }
+                    }}
                     className={
                       selected
-                        ? "border-b border-border/70 bg-primary/10"
-                        : "border-b border-border/70 transition-colors hover:bg-muted/30"
+                        ? "cursor-pointer border-b border-border/70 bg-primary/10 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        : "cursor-pointer border-b border-border/70 transition-colors hover:bg-muted/30 outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     }
                   >
-                    <td className="px-3 py-2 align-middle">
-                      <button
-                        type="button"
-                        className="text-left font-medium hover:underline"
-                        onClick={() => setSelectedType(rt.api_name)}
-                      >
-                        {rt.label}
-                      </button>
-                    </td>
+                    <td className="px-3 py-2 align-middle font-medium">{rt.label}</td>
                     <td className="px-3 py-2 align-middle">
                       {rt.is_system ? (
                         <Badge className="border-0 bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px]">
@@ -159,6 +177,23 @@ export function LayoutEditorWrapper() {
                     </td>
                     <td className="px-3 py-2 align-middle font-mono text-xs text-muted-foreground">
                       {key}
+                    </td>
+                    <td className="px-3 py-2 text-right align-middle">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectType(rt.api_name);
+                        }}
+                        className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                        style={
+                          selected
+                            ? { borderColor: "hsl(var(--primary))", color: "hsl(var(--primary))" }
+                            : undefined
+                        }
+                      >
+                        Edit
+                      </button>
                     </td>
                   </tr>
                 );
@@ -182,24 +217,26 @@ export function LayoutEditorWrapper() {
         </label>
       </div>
 
-      {!selectedType && (
-        <div className="text-sm text-muted-foreground">
-          Select a record type from the table to edit its layout.
-        </div>
-      )}
-      {selectedType && loadingLayout && (
-        <div className="text-sm text-muted-foreground">Loading layout...</div>
-      )}
-      {selectedType && !loadingLayout && (
-        <LayoutEditor
-          key={`${objectKey}:${layoutType}`}
-          objectApiName={objectKey}
-          objectLabel={selectedRecordType?.label || selectedType}
-          layoutType={layoutType}
-          fields={fields}
-          initialConfig={initialConfig}
-        />
-      )}
+      <div ref={editorAnchorRef}>
+        {!selectedType && (
+          <div className="text-sm text-muted-foreground">
+            Select a record type from the table (or use Edit) to open its layout editor.
+          </div>
+        )}
+        {selectedType && loadingLayout && (
+          <div className="text-sm text-muted-foreground">Loading layout...</div>
+        )}
+        {selectedType && !loadingLayout && (
+          <LayoutEditor
+            key={`${objectKey}:${layoutType}`}
+            objectApiName={objectKey}
+            objectLabel={selectedRecordType?.label || selectedType}
+            layoutType={layoutType}
+            fields={fields}
+            initialConfig={initialConfig}
+          />
+        )}
+      </div>
     </div>
   );
 }
