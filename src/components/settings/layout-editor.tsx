@@ -14,7 +14,6 @@ import {
   ChevronUp,
   ChevronDown,
   Columns2,
-  Columns3,
   Rows3,
   Eye,
   EyeOff,
