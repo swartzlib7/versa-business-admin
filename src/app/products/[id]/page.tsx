@@ -1,15 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
-import {
-  detailSectionsFromCatalog,
-  editFieldsFromCatalog,
-} from "@/lib/catalog/layout-to-fields";
+import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
 import { theme } from "@/lib/theme";
 import { products, type Product } from "@/lib/fixtures/products";
 
@@ -62,8 +59,7 @@ export default function ProductsDetailPage() {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
 
-  const detail = useMemo(() => detailSectionsFromCatalog("product"), []);
-  const edit = useMemo(() => editFieldsFromCatalog("product"), []);
+  const runtimeSections = useSavedRuntimeLayouts("product");
 
   if (!row) {
     return (
@@ -93,7 +89,7 @@ export default function ProductsDetailPage() {
   const save = () => {
     setRow((prev) => (prev ? applyDraft(prev, draft) : prev));
     setEditing(false);
-    setNote("Updated in this session (mock) — catalog layout; fixtures are not persisted.");
+    setNote("Updated in this session (mock). The active saved or catalog fallback layout was applied; fixtures are not persisted.");
   };
 
   return (
@@ -111,7 +107,7 @@ export default function ProductsDetailPage() {
               {values.name || row.id}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              ERD-D layout-driven detail/edit · object "product"
+              Runtime saved-layout pilot — {editing ? "edit" : "detail"} uses a saved layout when available, otherwise the catalog default.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -155,7 +151,7 @@ export default function ProductsDetailPage() {
         <Card>
           <CardContent className="p-4 sm:p-6">
             <LayoutDrivenForm
-              sections={editing ? edit.sections : detail.sections}
+              sections={editing ? runtimeSections.edit : runtimeSections.detail}
               values={editing ? draft : values}
               onChange={
                 editing

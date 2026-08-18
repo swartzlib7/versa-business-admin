@@ -1,17 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
-import {
-  detailSectionsFromCatalog,
-  editFieldsFromCatalog,
-} from "@/lib/catalog/layout-to-fields";
+import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
 import { theme } from "@/lib/theme";
-import { savedLayoutToRuntimeSections, type SavedLayoutConfig } from "@/lib/catalog/runtime-layout";
 import type { User } from "@/lib/data";
 
 type LocalUser = User & {
@@ -45,14 +41,8 @@ export default function UserDetailPage() {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
-  const [savedLayouts, setSavedLayouts] = useState<Partial<Record<"detail" | "edit", SavedLayoutConfig>>>({});
+  const runtimeSections = useSavedRuntimeLayouts("user");
 
-  const detail = useMemo(() => detailSectionsFromCatalog("user"), []);
-  const edit = useMemo(() => editFieldsFromCatalog("user"), []);
-  const runtimeSections = useMemo(() => ({
-    detail: savedLayoutToRuntimeSections(savedLayouts.detail, "user", "detail") ?? detail.sections,
-    edit: savedLayoutToRuntimeSections(savedLayouts.edit, "user", "edit") ?? edit.sections,
-  }), [detail.sections, edit.sections, savedLayouts]);
 
   useEffect(() => {
     if (!id) return;
@@ -73,20 +63,6 @@ export default function UserDetailPage() {
         setLoading(false);
       });
   }, [id]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    Promise.all(["detail", "edit"].map((layoutType) =>
-      fetch(`/api/catalog/layouts?objectApiName=user&layoutType=${layoutType}`, { signal: controller.signal })
-        .then((response) => response.ok ? response.json() : { data: null })
-        .then((json) => [layoutType, json.data] as const),
-    )).then((entries) => {
-      if (!controller.signal.aborted) setSavedLayouts(Object.fromEntries(entries));
-    }).catch((error) => {
-      if (error.name !== "AbortError") console.warn("Saved User layouts unavailable; using catalog defaults.", error);
-    });
-    return () => controller.abort();
-  }, []);
 
   const startEdit = () => {
     if (user) setDraft(toValues(user));

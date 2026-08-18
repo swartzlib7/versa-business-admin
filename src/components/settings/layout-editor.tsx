@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Columns2,
   Columns3,
+  Rows3,
   Eye,
   EyeOff,
   Save,
@@ -101,6 +102,10 @@ export function LayoutEditor({
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [dragSectionId, setDragSectionId] = useState<string | null>(null);
+  const [dropSectionId, setDropSectionId] = useState<string | null>(null);
+  const [dragField, setDragField] = useState<{ sectionId: string; apiName: string } | null>(null);
+  const [dropFieldTarget, setDropFieldTarget] = useState<{ sectionId: string; apiName: string } | null>(null);
 
   // Reset when initialConfig changes
   useEffect(() => {
@@ -262,6 +267,41 @@ export function LayoutEditor({
     setDirty(true);
   }, []);
 
+
+  const reorderSections = useCallback((fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    setSections((prev) => {
+      const from = prev.findIndex((s) => s.id === fromId);
+      const to = prev.findIndex((s) => s.id === toId);
+      if (from < 0 || to < 0) return prev;
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+    setDirty(true);
+  }, []);
+
+  const reorderField = useCallback(
+    (sectionId: string, fromApi: string, toApi: string) => {
+      if (fromApi === toApi) return;
+      setSections((prev) =>
+        prev.map((s) => {
+          if (s.id !== sectionId) return s;
+          const from = s.fields.findIndex((f) => f.api_name === fromApi);
+          const to = s.fields.findIndex((f) => f.api_name === toApi);
+          if (from < 0 || to < 0) return s;
+          const next = [...s.fields];
+          const [item] = next.splice(from, 1);
+          next.splice(to, 0, item);
+          return { ...s, fields: next };
+        }),
+      );
+      setDirty(true);
+    },
+    [],
+  );
+
   /* ── Save / Reset ── */
   const handleSave = useCallback(async () => {
     const config: LayoutConfig = {
@@ -360,9 +400,56 @@ export function LayoutEditor({
       {/* Sections */}
       <div className="space-y-3">
         {sections.map((section, sIdx) => (
-          <Card key={section.id} className="overflow-visible">
+          <Card
+            key={section.id}
+            className={cn(
+              "overflow-visible transition-shadow",
+              dropSectionId === section.id && dragSectionId && dragSectionId !== section.id
+                ? "ring-2 ring-primary shadow-md"
+                : dropSectionId === section.id && dragField
+                  ? "ring-2 ring-primary/70"
+                  : "",
+              dragSectionId === section.id ? "opacity-70" : "",
+            )}
+            onDragOver={(e) => {
+              if (!dragSectionId && !dragField) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              setDropSectionId(section.id);
+            }}
+            onDragLeave={() => {
+              setDropSectionId((cur) => (cur === section.id ? null : cur));
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (dragSectionId) {
+                reorderSections(dragSectionId, section.id);
+              }
+              setDragSectionId(null);
+              setDropSectionId(null);
+            }}
+          >
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", `section:${section.id}`);
+                    setDragSectionId(section.id);
+                    setDragField(null);
+                  }}
+                  onDragEnd={() => {
+                    setDragSectionId(null);
+                    setDropSectionId(null);
+                  }}
+                  className="cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+                  title="Drag to reorder section"
+                  aria-label="Drag section"
+                >
+                  <GripVertical className="h-4 w-4" />
+                </button>
                 <div className="flex flex-col gap-0.5">
                   <Button
                     variant="ghost"
@@ -395,9 +482,9 @@ export function LayoutEditor({
                   className="h-7 gap-1 text-xs"
                 >
                   {section.columns === 2 ? (
-                    <Columns3 className="h-3.5 w-3.5" />
-                  ) : (
                     <Columns2 className="h-3.5 w-3.5" />
+                  ) : (
+                    <Rows3 className="h-3.5 w-3.5" />
                   )}
                   {section.columns === 2 ? "2 Col" : "1 Col"}
                 </Button>
@@ -427,14 +514,53 @@ export function LayoutEditor({
                   {section.fields.map((field, fIdx) => (
                     <div
                       key={field.api_name}
+                      draggable
+                      onDragStart={(e) => {
+                        e.stopPropagation();
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData(
+                          "text/plain",
+                          `field:${section.id}:${field.api_name}`,
+                        );
+                        setDragField({ sectionId: section.id, apiName: field.api_name });
+                        setDragSectionId(null);
+                      }}
+                      onDragEnd={() => {
+                        setDragField(null);
+                        setDropFieldTarget(null);
+                        setDropSectionId(null);
+                      }}
+                      onDragOver={(e) => {
+                        if (!dragField || dragField.sectionId !== section.id) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDropFieldTarget({ sectionId: section.id, apiName: field.api_name });
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (dragField && dragField.sectionId === section.id) {
+                          reorderField(section.id, dragField.apiName, field.api_name);
+                        }
+                        setDragField(null);
+                        setDropFieldTarget(null);
+                      }}
                       className={cn(
                         "flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors",
                         field.visible
                           ? "border-border bg-background"
-                          : "border-dashed border-border/50 bg-muted/30 opacity-60"
+                          : "border-dashed border-border/50 bg-muted/30 opacity-60",
+                        dragField?.apiName === field.api_name &&
+                          dragField.sectionId === section.id &&
+                          "opacity-60",
+                        dropFieldTarget?.apiName === field.api_name &&
+                          dropFieldTarget.sectionId === section.id &&
+                          dragField &&
+                          dragField.apiName !== field.api_name &&
+                          "ring-2 ring-primary/60",
                       )}
                     >
-                      <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" />
                       <span className={cn("flex-1 font-medium", !field.visible && "line-through")}>
                         {field.label}
                       </span>
@@ -450,9 +576,9 @@ export function LayoutEditor({
                           title={field.span === 2 ? "Full width" : "Half width"}
                         >
                           {field.span === 2 ? (
-                            <Columns2 className="h-3 w-3" />
+                            <Rows3 className="h-3 w-3" />
                           ) : (
-                            <Columns3 className="h-3 w-3" />
+                            <Columns2 className="h-3 w-3" />
                           )}
                         </Button>
                       )}

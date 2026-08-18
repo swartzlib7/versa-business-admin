@@ -11,6 +11,8 @@ import { theme } from "@/lib/theme";
 import { MissionControlScene } from "@/components/r3f/mission-control-scene";
 import { EntityListing, type ListingField } from "@/components/listing/entity-listing";
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
+import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
+import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
 
 /**
  * I5.6.10 zone config UI pattern (Stephen):
@@ -174,6 +176,8 @@ function ListingPanel({
   };
 
   const isDynamic = !!panel.recordTypeApiName;
+  const objectApiName = panel.objectApiName || panel.recordTypeApiName || "";
+  const runtime = useSavedRuntimeLayouts(isDynamic ? objectApiName : "");
   const [catalogFields, setCatalogFields] = useState<CatalogField[]>([]);
   const [fieldsLoading, setFieldsLoading] = useState(false);
 
@@ -220,17 +224,31 @@ function ListingPanel({
   const fields: ListingField[] = useMemo(() => {
     if (isDynamic && catalogFields.length > 0) {
       const colSet = new Set(columns);
-      return catalogFields.map((f) => ({
-        key: f.api_name,
-        label: f.label,
-        kind:
-          f.data_type === "long_text"
-            ? ("textarea" as const)
-            : f.data_type === "picklist" || f.data_type === "multipicklist"
-              ? ("select" as const)
-              : ("text" as const),
-        column: colSet.has(f.label) || colSet.has(f.api_name),
-      }));
+      const byApi = new Map(catalogFields.map((f) => [f.api_name, f]));
+      // Prefer saved edit layout field order when present (runtime effect of Layout Editor).
+      const orderedApis: string[] = [];
+      for (const sec of runtime.edit) {
+        for (const f of sec.fields) {
+          if (byApi.has(f.key) && !orderedApis.includes(f.key)) orderedApis.push(f.key);
+        }
+      }
+      for (const f of catalogFields) {
+        if (!orderedApis.includes(f.api_name)) orderedApis.push(f.api_name);
+      }
+      return orderedApis.map((api) => {
+        const f = byApi.get(api)!;
+        return {
+          key: f.api_name,
+          label: f.label,
+          kind:
+            f.data_type === "long_text"
+              ? ("textarea" as const)
+              : f.data_type === "picklist" || f.data_type === "multipicklist"
+                ? ("select" as const)
+                : ("text" as const),
+          column: colSet.has(f.label) || colSet.has(f.api_name),
+        };
+      });
     }
     const colSet = new Set(columns);
     const fromFields: ListingField[] = panel.fields.map((f) => ({
@@ -254,7 +272,7 @@ function ListingPanel({
       if (!columns.includes(f.key)) ordered.push({ ...f, column: false });
     }
     return ordered;
-  }, [isDynamic, catalogFields, panel.fields, columns]);
+  }, [isDynamic, catalogFields, panel.fields, columns, runtime.edit]);
 
   const seedRows: ZoneListRow[] = useMemo(() => {
     const seed: string[][] =
@@ -438,8 +456,11 @@ function FormPanel({
 }) {
   type CatalogField = { api_name: string; label: string; data_type: string; active?: boolean };
   const isDynamic = !!panel.recordTypeApiName;
+  const objectApiName = panel.objectApiName || panel.recordTypeApiName || "";
+  const runtime = useSavedRuntimeLayouts(isDynamic ? objectApiName : "");
   const [catalogFields, setCatalogFields] = useState<CatalogField[]>([]);
   const [fieldsLoading, setFieldsLoading] = useState(false);
+  const [values, setValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!isDynamic || !panel.recordTypeApiName) {
@@ -455,7 +476,15 @@ function FormPanel({
         return response.json();
       })
       .then((payload: { data?: { fields?: CatalogField[] } }) => {
-        setCatalogFields((payload.data?.fields ?? []).filter((f) => f.active !== false));
+        const next = (payload.data?.fields ?? []).filter((f) => f.active !== false);
+        setCatalogFields(next);
+        setValues((prev) => {
+          const draft = { ...prev };
+          for (const f of next) {
+            if (draft[f.api_name] == null) draft[f.api_name] = "";
+          }
+          return draft;
+        });
         setFieldsLoading(false);
       })
       .catch((error: unknown) => {
@@ -467,13 +496,39 @@ function FormPanel({
     return () => controller.abort();
   }, [isDynamic, panel.recordTypeApiName]);
 
-  const renderFields = isDynamic && catalogFields.length > 0
-    ? catalogFields.map((f) => ({
-        label: f.label,
-        placeholder: f.label,
-        kind: (f.data_type === "long_text" ? "textarea" : f.data_type === "picklist" || f.data_type === "multipicklist" ? "select" : "text") as "text" | "textarea" | "select" | undefined,
-      }))
-    : panel.fields;
+  const fallbackSections = useMemo(() => {
+    const fields = (isDynamic && catalogFields.length > 0
+      ? catalogFields.map((f) => ({
+          key: f.api_name,
+          label: f.label,
+          kind: (f.data_type === "long_text"
+            ? "textarea"
+            : f.data_type === "picklist" || f.data_type === "multipicklist"
+              ? "select"
+              : "text") as "text" | "textarea" | "select",
+        }))
+      : panel.fields.map((f) => ({
+          key: f.label,
+          label: f.label,
+          kind: (f.kind ?? "text") as "text" | "textarea" | "select",
+          options: f.options,
+        })));
+    return [
+      {
+        id: "zone-default",
+        label: panel.label || "Details",
+        columns: 2 as const,
+        fields,
+      },
+    ];
+  }, [isDynamic, catalogFields, panel.fields, panel.label]);
+
+  const sections =
+    isDynamic && objectApiName && runtime.detail.length
+      ? runtime.detail
+      : fallbackSections;
+
+  const loading = fieldsLoading || (isDynamic && runtime.loading);
 
   return (
     <Card className="overflow-hidden">
@@ -490,18 +545,17 @@ function FormPanel({
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="grid gap-4 p-6 sm:grid-cols-2">
-        {fieldsLoading && (
-          <p className="text-sm text-muted-foreground sm:col-span-2">Loading fields...</p>
+      <CardContent className="p-6">
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading fields...</p>
+        ) : (
+          <LayoutDrivenForm
+            sections={sections}
+            values={values}
+            onChange={(key, value) => setValues((d) => ({ ...d, [key]: value }))}
+            accent={accent}
+          />
         )}
-        {!fieldsLoading && renderFields.map((f) => (
-          <div
-            key={f.label}
-            className={f.kind === "textarea" ? "sm:col-span-2" : undefined}
-          >
-            <FieldMock {...f} />
-          </div>
-        ))}
       </CardContent>
     </Card>
   );

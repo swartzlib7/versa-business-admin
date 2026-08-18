@@ -663,7 +663,7 @@ export function RecordsEditor() {
                     { key: "label", label: "Label", placeholder: "Name" },
                     { key: "description", label: "Description", placeholder: "Description" },
                     { key: "parent", label: "Parent", type: "custom-parent", options: parentOptions },
-                    { key: "structure", label: "Structure", type: "select", options: ["list", "header", "header_lines"] },
+                    { key: "structure", label: "Structure", type: "select", options: [{ value: "list", label: "List" }, { value: "header", label: "Header" }, { value: "header_lines", label: "Header + Lines" }] },
                   ]}
                   accent={theme.colors.brand}
                   onSubmit={createType}
@@ -678,6 +678,7 @@ export function RecordsEditor() {
                   <thead>
                     <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
                       <th className="px-4 py-2.5 font-medium">Label</th>
+                      <th className="px-4 py-2.5 font-medium">Kind</th>
                       <th className="px-4 py-2.5 font-medium">API name</th>
                       <th className="px-4 py-2.5 font-medium">Parent</th>
                       <th className="px-4 py-2.5 font-medium">Structure</th>
@@ -693,7 +694,8 @@ export function RecordsEditor() {
                       return (
                         <Fragment key={t.api_name}>
                           <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(t.label, !!t.is_system)}<StandardBadge isSystem={!!t.is_system} /><RecordIdDisplay id={t.id} /></td>
+                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(t.label, !!t.is_system)}<RecordIdDisplay id={t.id} /></td>
+                            <td className="px-4 py-3 align-top"><StandardBadge isSystem={!!t.is_system} /></td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{t.api_name}</td>
                             <td className="px-4 py-3 align-top text-muted-foreground">{parentLabel}</td>
                             <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{t.structure}</Badge></td>
@@ -984,6 +986,7 @@ export function RecordsEditor() {
                   <thead>
                     <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
                       <th className="px-4 py-2.5 font-medium">Label</th>
+                      <th className="px-4 py-2.5 font-medium">Kind</th>
                       <th className="px-4 py-2.5 font-medium">API name</th>
                       <th className="px-4 py-2.5 font-medium">Type</th>
                       <th className="px-4 py-2.5 font-medium">Object</th>
@@ -1000,7 +1003,8 @@ export function RecordsEditor() {
                       return (
                         <Fragment key={fid}>
                           <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(f.label, !!f.is_system)}<StandardBadge isSystem={!!f.is_system} /><RecordIdDisplay id={f.id} />{f.active === false ? <Badge className="ml-2 border-0 bg-muted text-muted-foreground text-[10px]">Retired</Badge> : null}</td>
+                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(f.label, !!f.is_system)}<RecordIdDisplay id={f.id} />{f.active === false ? <Badge className="ml-2 border-0 bg-muted text-muted-foreground text-[10px]">Retired</Badge> : null}</td>
+                            <td className="px-4 py-3 align-top"><StandardBadge isSystem={!!f.is_system} /></td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.api_name}</td>
                             <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{f.data_type}</Badge></td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.object_api_name || "—"}</td>
@@ -1218,6 +1222,7 @@ export function RecordsEditor() {
                   <thead>
                     <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
                       <th className="px-4 py-2.5 font-medium">Label</th>
+                      <th className="px-4 py-2.5 font-medium">Kind</th>
                       <th className="px-4 py-2.5 font-medium">API name</th>
                       <th className="px-4 py-2.5 font-medium">Options</th>
                       <th className="px-4 py-2.5 text-right font-medium">Actions</th>
@@ -1230,7 +1235,8 @@ export function RecordsEditor() {
                       return (
                         <Fragment key={vs.api_name}>
                           <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(vs.label, !!vs.is_system)}<StandardBadge isSystem={!!vs.is_system} /><RecordIdDisplay id={vs.id} /></td>
+                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(vs.label, !!vs.is_system)}<RecordIdDisplay id={vs.id} /></td>
+                            <td className="px-4 py-3 align-top"><StandardBadge isSystem={!!vs.is_system} /></td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{vs.api_name}</td>
                             <td className="px-4 py-3 align-top text-muted-foreground">{items.length > 0 ? items.length + " option" + (items.length !== 1 ? "s" : "") : "—"}</td>
                             <td className="px-4 py-3 text-right align-top">
