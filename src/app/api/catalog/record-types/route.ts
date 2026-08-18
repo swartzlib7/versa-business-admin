@@ -7,7 +7,7 @@ import {
   type ParentKind,
   type RecordStructure,
 } from "@/lib/fixtures/record-types";
-import { ensureObjectForRecordType } from "@/lib/fixtures/catalog";
+import { ensureObjectForRecordType, ensureObjectsForAllRecordTypes } from "@/lib/fixtures/catalog";
 
 export async function GET(request: Request) {
   const session = getSessionFromRequest(request);
@@ -26,6 +26,8 @@ export async function GET(request: Request) {
     parent_api_name,
     active_only: !include_inactive,
   });
+  // F3 repair-on-read: register catalog objects for any custom types missing from registry
+  ensureObjectsForAllRecordTypes(listRecordTypes({ active_only: false }));
   return NextResponse.json({ data, count: data.length, parents: listEditorParents() });
 }
 

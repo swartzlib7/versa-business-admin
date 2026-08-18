@@ -4,6 +4,10 @@
  * Fixture-local until catalog/records tables persist (Phase 2+).
  */
 
+import { cascadeDeleteObjectForRecordType } from '@/lib/fixtures/catalog';
+import { deleteInstance, listInstances } from '@/lib/fixtures/record-instances';
+import { deleteLayoutConfig } from '@/lib/catalog/layout-storage';
+
 export type RecordStructure = 'list' | 'header' | 'header_lines';
 export type ParentKind = 'faculty' | 'collaboration' | 'environment' | 'baked_in';
 
@@ -159,6 +163,70 @@ export function updateRecordType(
   };
   mutableRecordTypes[idx] = next;
   return { ok: true, type: next };
+}
+
+
+export type DeleteRecordTypeResult =
+  | {
+      ok: true;
+      type: RecordTypeDefinition;
+      cascade: {
+        fields_removed: number;
+        layouts_removed: number;
+        instances_removed: number;
+        object_removed: boolean;
+      };
+    }
+  | { ok: false; code: string; message: string };
+
+/**
+ * Hard-delete a non-system record type and cascade related fixture data.
+ * System types are refused. Soft-retire remains via updateRecordType({ active: false }).
+ */
+export function deleteRecordType(apiName: string): DeleteRecordTypeResult {
+  const idx = mutableRecordTypes.findIndex((r) => r.api_name === apiName);
+  if (idx < 0) {
+    return { ok: false, code: 'NOT_FOUND', message: `Unknown record type '${apiName}'.` };
+  }
+  const cur = mutableRecordTypes[idx];
+  if (cur.is_system) {
+    return {
+      ok: false,
+      code: 'SYSTEM_TYPE',
+      message: 'System record types cannot be hard-deleted.',
+    };
+  }
+
+  const objectApi = cur.object_api_name || cur.api_name;
+  const cascade = cascadeDeleteObjectForRecordType(objectApi);
+  const instanceRows = listInstances({ type_api_name: apiName });
+  let instances_removed = 0;
+  for (const row of instanceRows) {
+    if (deleteInstance(row.id)) instances_removed += 1;
+  }
+  // Also drop instances keyed by object api name if different
+  if (objectApi !== apiName) {
+    for (const row of listInstances({ type_api_name: objectApi })) {
+      if (deleteInstance(row.id)) instances_removed += 1;
+    }
+  }
+  let layouts_removed = 0;
+  for (const lt of ['detail', 'edit', 'list'] as const) {
+    if (deleteLayoutConfig(objectApi, lt)) layouts_removed += 1;
+  }
+  layouts_removed += cascade.layouts_removed;
+
+  mutableRecordTypes.splice(idx, 1);
+  return {
+    ok: true,
+    type: cur,
+    cascade: {
+      fields_removed: cascade.fields_removed,
+      layouts_removed,
+      instances_removed,
+      object_removed: cascade.object_removed,
+    },
+  };
 }
 
 export type EditorParent = {

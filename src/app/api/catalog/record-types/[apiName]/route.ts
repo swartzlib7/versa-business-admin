@@ -3,9 +3,14 @@ import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 import {
   getRecordType,
   updateRecordType,
+  deleteRecordType,
   type RecordStructure,
 } from '@/lib/fixtures/record-types';
-import { listAllFieldDefinitions, getObjectSchema } from '@/lib/fixtures/catalog';
+import {
+  listAllFieldDefinitions,
+  getObjectSchema,
+  ensureObjectForRecordType,
+} from '@/lib/fixtures/catalog';
 
 export async function GET(
   request: Request,
@@ -32,6 +37,13 @@ export async function GET(
       { status: 404 },
     );
   }
+  // F3 repair: ensure catalog object exists for legacy custom types
+  ensureObjectForRecordType({
+    api_name: type.object_api_name || type.api_name,
+    label: type.label,
+    description: type.description,
+    faculty: type.parent_kind === 'faculty' ? type.parent_api_name : undefined,
+  });
   const fields = listAllFieldDefinitions(type.object_api_name);
   const schema = getObjectSchema(type.object_api_name);
   return NextResponse.json({ data: { type, fields, schema } });
@@ -84,4 +96,60 @@ export async function PATCH(
   }
 
   return NextResponse.json({ data: result.type });
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ apiName: string }> },
+) {
+  const session = getSessionFromRequest(request);
+  if (!isAuthenticated(session)) {
+    return NextResponse.json(
+      { error: { code: 'UNAUTHORIZED', message: 'Authentication required.' } },
+      { status: 401 },
+    );
+  }
+  if (!isAdmin(session)) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'Admin session required.' } },
+      { status: 403 },
+    );
+  }
+
+  const { apiName } = await context.params;
+  let hardDelete = true;
+  try {
+    const body = await request.json();
+    if (body && typeof body === 'object' && 'hard_delete' in body) {
+      hardDelete = Boolean((body as { hard_delete?: boolean }).hard_delete);
+    }
+  } catch {
+    // empty body defaults to hard delete
+  }
+
+  if (!hardDelete) {
+    const result = updateRecordType(apiName, { active: false, show_as_tab: false });
+    if (!result.ok) {
+      const status = result.code === 'NOT_FOUND' ? 404 : 400;
+      return NextResponse.json(
+        { error: { code: result.code, message: result.message } },
+        { status },
+      );
+    }
+    return NextResponse.json({ data: result.type, meta: { retired: true } });
+  }
+
+  const result = deleteRecordType(apiName);
+  if (!result.ok) {
+    const status =
+      result.code === 'NOT_FOUND' ? 404 : result.code === 'SYSTEM_TYPE' ? 403 : 400;
+    return NextResponse.json(
+      { error: { code: result.code, message: result.message } },
+      { status },
+    );
+  }
+  return NextResponse.json({
+    data: result.type,
+    meta: { hard_deleted: true, cascade: result.cascade },
+  });
 }

@@ -3,9 +3,12 @@ import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 import {
   extendFieldDefinition,
   listAllFieldDefinitions,
+  ensureObjectForRecordType,
+  getObject,
   type CatalogDataType,
   type ExtendFieldInput,
 } from '@/lib/fixtures/catalog';
+import { getRecordType } from '@/lib/fixtures/record-types';
 
 /** GET /api/catalog/fields?object=user — field definitions (optional object filter). */
 export async function GET(request: Request) {
@@ -70,8 +73,22 @@ export async function POST(request: Request) {
     );
   }
 
+  // F3 repair-on-write: if object missing but a record type owns this api_name, register it
+  const objectApiName = String(body.object_api_name);
+  if (!getObject(objectApiName)) {
+    const rt = getRecordType(objectApiName);
+    if (rt) {
+      ensureObjectForRecordType({
+        api_name: rt.object_api_name || rt.api_name,
+        label: rt.label,
+        description: rt.description,
+        faculty: rt.parent_kind === 'faculty' ? rt.parent_api_name : undefined,
+      });
+    }
+  }
+
   const result = extendFieldDefinition({
-    object_api_name: body.object_api_name,
+    object_api_name: objectApiName,
     api_name: body.api_name,
     label: body.label,
     data_type: body.data_type as CatalogDataType,

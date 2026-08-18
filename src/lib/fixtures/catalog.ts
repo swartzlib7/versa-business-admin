@@ -2146,6 +2146,37 @@ export function deleteValueSetItem(
   return { ok: true, value_set: vs, items: listValueSetItems(vs.id), remapped: 0 };
 }
 
+/** Remove catalog object + its field/layout definitions (custom type cascade). */
+export function cascadeDeleteObjectForRecordType(objectApiName: string): {
+  fields_removed: number;
+  layouts_removed: number;
+  object_removed: boolean;
+} {
+  const beforeFields = mutableFieldDefinitions.length;
+  mutableFieldDefinitions = mutableFieldDefinitions.filter(
+    (f) => f.object_api_name !== objectApiName,
+  );
+  const fields_removed = beforeFields - mutableFieldDefinitions.length;
+
+  const beforeLayouts = mutableLayoutDefinitions.length;
+  mutableLayoutDefinitions = mutableLayoutDefinitions.filter(
+    (l) => l.object_api_name !== objectApiName,
+  );
+  const layouts_removed = beforeLayouts - mutableLayoutDefinitions.length;
+
+  const objIdx = mutableObjectDefinitions.findIndex((o) => o.api_name === objectApiName);
+  let object_removed = false;
+  if (objIdx >= 0) {
+    // Only remove non-core objects that were registered for custom record types
+    const obj = mutableObjectDefinitions[objIdx];
+    if (obj.core_kind === 'faculty_record' || obj.instance_collection == null) {
+      mutableObjectDefinitions.splice(objIdx, 1);
+      object_removed = true;
+    }
+  }
+  return { fields_removed, layouts_removed, object_removed };
+}
+
 export function ensureObjectForRecordType(input: {
   api_name: string;
   label: string;
@@ -2191,4 +2222,30 @@ export function ensureObjectForRecordType(input: {
   ensureField('name', 'Name', 10);
   ensureField('status', 'Status', 20);
   return obj;
+}
+
+/** Repair path: register catalog objects for every known record type (existing custom types). */
+export function ensureObjectsForAllRecordTypes(
+  types: Array<{
+    api_name: string;
+    label: string;
+    description?: string;
+    parent_kind?: string;
+    parent_api_name?: string;
+    object_api_name?: string;
+  }>,
+): { ensured: string[] } {
+  const ensured: string[] = [];
+  for (const t of types) {
+    const api = (t.object_api_name || t.api_name || '').trim();
+    if (!api) continue;
+    ensureObjectForRecordType({
+      api_name: api,
+      label: t.label || api,
+      description: t.description,
+      faculty: t.parent_kind === 'faculty' ? t.parent_api_name : undefined,
+    });
+    ensured.push(api);
+  }
+  return { ensured: [...new Set(ensured)] };
 }

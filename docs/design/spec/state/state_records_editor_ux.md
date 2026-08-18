@@ -270,3 +270,19 @@ Applied to:
 
 ### Change Log
 | 2026-08-16 | Task #235: implemented visible nested Record Type Fields + Layouts editor UI — grouped field section, inline field editing (label/key/type), add/retire/hard-delete with reference-count guards, and layout composition from the type's object schema. |
+
+## Task #235 — Gate 3 fix batch (Stephen 2026-08-18)
+
+### Behavior
+- **F1 Hack webfont:** Self-hosted Hack woff2 under `public/fonts/hack/` with `@font-face` in `globals.css`. CDN link removed from root layout so front/back both resolve local Hack.
+- **F2 Delete Type cascade:** Non-system record types expose **Delete type** beside **Retire type**. DELETE `/api/catalog/record-types/:apiName` with `hard_delete` cascades custom fields, catalog object registration, saved layouts, and fixture instance rows. System types refused. Soft retire via PATCH remains.
+- **F3 object registry:** `createRecordType` already called `ensureObjectForRecordType`. Repair paths added: list GET ensures all types, type detail GET ensures the selected type, and field POST registers the object when a matching record type exists but the catalog object is missing (fixes `Unknown object_api_name` e.g. `e1`).
+
+### Out of scope
+- Upgradability overlay / `c_` migration, production deploy.
+
+### Validation
+- Gate 1: tsc + production build (this cycle).
+
+### Change Log
+| 2026-08-18 | Task #235 Gate 3 fixes F1–F3: self-hosted Hack, cascade Delete Type, object registry repair-on-read/write. |

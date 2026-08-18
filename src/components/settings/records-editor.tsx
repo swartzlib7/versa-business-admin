@@ -189,6 +189,7 @@ export function RecordsEditor() {
     apiName: string;
     label: string;
     isSystem: boolean;
+    mode: "retire" | "delete";
   }>(null);
   const [fieldFilter, setFieldFilter] = useState("");
   const [fieldTypeFilter, setFieldTypeFilter] = useState("");
@@ -411,29 +412,51 @@ export function RecordsEditor() {
     }
   };
 
-  const requestRetireType = (t: RT) => {
+  const requestTypeLifecycle = (t: RT, mode: "retire" | "delete") => {
     if (t.is_system) {
-      setError("System record types cannot be retired from this control. Deactivate via Active checkbox if allowed.");
+      setError(
+        mode === "delete"
+          ? "System record types cannot be deleted."
+          : "System record types cannot be retired from this control. Deactivate via Active checkbox if allowed.",
+      );
       return;
     }
-    setTypeDeletePending({ apiName: t.api_name, label: t.label, isSystem: !!t.is_system });
+    setTypeDeletePending({ apiName: t.api_name, label: t.label, isSystem: !!t.is_system, mode });
   };
 
-  const confirmRetireType = async () => {
+  const confirmTypeLifecycle = async () => {
     if (!typeDeletePending) return;
-    const { apiName } = typeDeletePending;
+    const { apiName, mode } = typeDeletePending;
     setBusy(true); setError(null); setStatus(null);
     try {
-      await api("/api/catalog/record-types/" + encodeURIComponent(apiName), {
-        method: "PATCH",
-        body: JSON.stringify({ active: false, show_as_tab: false }),
-      });
-      setStatus("Retired record type " + apiName);
+      if (mode === "delete") {
+        const res = await fetch("/api/catalog/record-types/" + encodeURIComponent(apiName), {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ hard_delete: true }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error?.message || res.statusText);
+        const c = json?.meta?.cascade;
+        const detail = c
+          ? " (fields " + (c.fields_removed ?? 0) + ", layouts " + (c.layouts_removed ?? 0) + ", instances " + (c.instances_removed ?? 0) + ")"
+          : "";
+        setStatus("Deleted record type " + apiName + detail);
+      } else {
+        await api("/api/catalog/record-types/" + encodeURIComponent(apiName), {
+          method: "PATCH",
+          body: JSON.stringify({ active: false, show_as_tab: false }),
+        });
+        setStatus("Retired record type " + apiName);
+      }
       setTypeDeletePending(null);
       setExpandedType(null);
+      setAllFields([]);
+      void loadAllFields();
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Type retire failed");
+      setError(e instanceof Error ? e.message : "Type lifecycle failed");
     } finally {
       setBusy(false);
     }
@@ -804,26 +827,40 @@ export function RecordsEditor() {
                                     <Button
                                       variant="outline"
                                       disabled={busy}
-                                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
-                                      onClick={() => requestRetireType(t)}
+                                      className="border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
+                                      onClick={() => requestTypeLifecycle(t, "retire")}
                                     >
                                       Retire type
                                     </Button>
                                   )}
+                                  {!t.is_system && (
+                                    <Button
+                                      variant="outline"
+                                      disabled={busy}
+                                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                                      onClick={() => requestTypeLifecycle(t, "delete")}
+                                    >
+                                      Delete type
+                                    </Button>
+                                  )}
                                 </div>
                                 {typeDeletePending && typeDeletePending.apiName === t.api_name && (
-                                  <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-                                    <p className="font-medium">Retire record type “{typeDeletePending.label}”?</p>
+                                  <div className={"mt-4 rounded-md border p-3 text-sm " + (typeDeletePending.mode === "delete" ? "border-destructive/40 bg-destructive/10" : "border-amber-500/40 bg-amber-500/10")}>
+                                    <p className="font-medium">
+                                      {typeDeletePending.mode === "delete" ? "Delete" : "Retire"} record type “{typeDeletePending.label}”?
+                                    </p>
                                     <p className="mt-1 text-muted-foreground">
-                                      Sets the type inactive and hides its zone tab. System types stay protected.
+                                      {typeDeletePending.mode === "delete"
+                                        ? "Permanently removes this type and cascades: its custom fields, saved layouts, catalog object registration, and any session/fixture instance rows for this type. This cannot be undone. System types stay protected."
+                                        : "Sets the type inactive and hides its zone tab. You can keep Retire for soft deactivation; use Delete type for hard removal. System types stay protected."}
                                     </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
                                       <Button
                                         disabled={busy}
                                         className="bg-destructive text-white hover:bg-destructive/90"
-                                        onClick={() => void confirmRetireType()}
+                                        onClick={() => void confirmTypeLifecycle()}
                                       >
-                                        Confirm retire
+                                        {typeDeletePending.mode === "delete" ? "Confirm delete" : "Confirm retire"}
                                       </Button>
                                       <Button variant="outline" onClick={() => setTypeDeletePending(null)}>Cancel</Button>
                                     </div>
