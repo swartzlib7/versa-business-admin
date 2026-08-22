@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type DragEvent } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +59,7 @@ type LayoutEditorProps = {
   initialConfig?: LayoutConfig;
   onSave?: (config: LayoutConfig) => void;
   onReset?: () => void;
+  onLayoutTypeChange?: (layoutType: "detail" | "edit") => void;
 };
 
 /* ── Helpers ── */
@@ -66,6 +67,26 @@ let sectionCounter = 0;
 function newSectionId(): string {
   sectionCounter += 1;
   return `sec-${Date.now()}-${sectionCounter}`;
+}
+
+/** Column (0|1) occupied by the field at `index` in a 2-col auto-flow grid (span=2 fields occupy a full row). */
+function columnIndexOf(fields: LayoutField[], index: number, columns: 1 | 2): 0 | 1 {
+  if (columns === 1) return 0;
+  let col: 0 | 1 = 0;
+  for (let i = 0; i < index; i++) {
+    if (fields[i].span === 2) col = 0;
+    else col = col === 0 ? 1 : 0;
+  }
+  return col;
+}
+
+/** Insertion index that places a dropped field into `targetCol` (before its first field, else end). */
+function insertionIndexForColumn(fields: LayoutField[], columns: 1 | 2, targetCol: 0 | 1): number {
+  if (columns === 1) return fields.length;
+  for (let i = 0; i < fields.length; i++) {
+    if (columnIndexOf(fields, i, columns) === targetCol) return i;
+  }
+  return fields.length;
 }
 
 function buildDefaultSections(fields: FieldDef[]): LayoutSection[] {
@@ -78,7 +99,7 @@ function buildDefaultSections(fields: FieldDef[]): LayoutSection[] {
   return [
     {
       id: newSectionId(),
-      label: "Details",
+      label: "General",
       columns: 2,
       fields: visible,
     },
@@ -94,6 +115,7 @@ export function LayoutEditor({
   initialConfig,
   onSave,
   onReset,
+  onLayoutTypeChange,
 }: LayoutEditorProps) {
   const [sections, setSections] = useState<LayoutSection[]>(() =>
     initialConfig?.sections ?? buildDefaultSections(fields)
@@ -105,6 +127,8 @@ export function LayoutEditor({
   const [dropSectionId, setDropSectionId] = useState<string | null>(null);
   const [dragField, setDragField] = useState<{ sectionId: string; apiName: string } | null>(null);
   const [dropFieldTarget, setDropFieldTarget] = useState<{ sectionId: string; apiName: string } | null>(null);
+  const [dragUnassigned, setDragUnassigned] = useState<string | null>(null);
+  const [dropCol, setDropCol] = useState<0 | 1 | null>(null);
 
   // Reset when initialConfig changes
   useEffect(() => {
@@ -266,6 +290,114 @@ export function LayoutEditor({
     setDirty(true);
   }, []);
 
+  /** Move an existing field into a target column (2-col sections only; span=2 fields stay full-width). */
+  const moveFieldToColumn = useCallback(
+    (sectionId: string, apiName: string, targetCol: 0 | 1) => {
+      setSections((prev) =>
+        prev.map((s) => {
+          if (s.id !== sectionId || s.columns !== 2) return s;
+          const from = s.fields.findIndex((f) => f.api_name === apiName);
+          if (from < 0 || s.fields[from].span === 2) return s;
+          const next = [...s.fields];
+          const [item] = next.splice(from, 1);
+          let insertAt = next.length;
+          for (let i = from; i < next.length; i++) {
+            if (columnIndexOf(next, i, 2) === targetCol) {
+              insertAt = i;
+              break;
+            }
+          }
+          if (insertAt === next.length) {
+            for (let i = 0; i < next.length; i++) {
+              if (columnIndexOf(next, i, 2) === targetCol) {
+                insertAt = i;
+                break;
+              }
+            }
+          }
+          next.splice(insertAt, 0, item);
+          return { ...s, fields: next };
+        }),
+      );
+      setDirty(true);
+    },
+    [],
+  );
+
+  /** Add an unassigned field to a section, optionally before a specific field. */
+  const addUnassignedField = useCallback(
+    (sectionId: string, apiName: string, beforeApiName?: string) => {
+      setSections((prev) =>
+        prev.map((s) => {
+          if (s.id !== sectionId) return s;
+          const def = fields.find((f) => f.api_name === apiName);
+          if (!def) return s;
+          const newField: LayoutField = {
+            api_name: def.api_name,
+            label: def.label,
+            visible: true,
+            span: (def.data_type === "long_text" ? 2 : 1) as 1 | 2,
+          };
+          const next = [...s.fields];
+          const idx = beforeApiName ? next.findIndex((f) => f.api_name === beforeApiName) : -1;
+          next.splice(idx >= 0 ? idx : next.length, 0, newField);
+          return { ...s, fields: next };
+        }),
+      );
+      setDirty(true);
+    },
+    [fields],
+  );
+
+  /** Grid container drag-over: highlight the column under the pointer. */
+  const handleSectionGridDragOver = useCallback(
+    (e: DragEvent<HTMLDivElement>, sectionId: string) => {
+      const isFieldDrag = !!dragField && dragField.sectionId === sectionId;
+      if (!isFieldDrag && !dragUnassigned) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = e.currentTarget.getBoundingClientRect();
+      setDropCol(e.clientX < rect.left + rect.width / 2 ? 0 : 1);
+    },
+    [dragField, dragUnassigned],
+  );
+
+  /** Grid container drop: move a section field or add an unassigned field into the target column. */
+  const handleSectionGridDrop = useCallback(
+    (e: DragEvent<HTMLDivElement>, sectionId: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = e.currentTarget.getBoundingClientRect();
+      const col: 0 | 1 = e.clientX < rect.left + rect.width / 2 ? 0 : 1;
+      if (dragField && dragField.sectionId === sectionId) {
+        moveFieldToColumn(sectionId, dragField.apiName, col);
+      } else if (dragUnassigned) {
+        setSections((prev) =>
+          prev.map((s) => {
+            if (s.id !== sectionId) return s;
+            const def = fields.find((f) => f.api_name === dragUnassigned);
+            if (!def) return s;
+            const newField: LayoutField = {
+              api_name: def.api_name,
+              label: def.label,
+              visible: true,
+              span: (def.data_type === "long_text" ? 2 : 1) as 1 | 2,
+            };
+            const insertAt = insertionIndexForColumn(s.fields, s.columns, col);
+            const next = [...s.fields];
+            next.splice(insertAt, 0, newField);
+            return { ...s, fields: next };
+          }),
+        );
+        setDirty(true);
+      }
+      setDragField(null);
+      setDragUnassigned(null);
+      setDropCol(null);
+    },
+    [dragField, dragUnassigned, fields, moveFieldToColumn],
+  );
+
 
   const reorderSections = useCallback((fromId: string, toId: string) => {
     if (fromId === toId) return;
@@ -361,6 +493,33 @@ export function LayoutEditor({
           )}
         </div>
         <div className="flex items-center gap-2">
+          <div
+            role="tablist"
+            aria-label="Layout type"
+            className="flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-1"
+          >
+            {(["edit", "detail"] as const).map((lt) => {
+              const on = layoutType === lt;
+              return (
+                <button
+                  key={lt}
+                  role="tab"
+                  type="button"
+                  aria-selected={on}
+                  onClick={() => onLayoutTypeChange?.(lt)}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                    on
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                  )}
+                  style={on ? { boxShadow: `inset 0 -2px 0 ${theme.colors.brand}` } : undefined}
+                >
+                  {lt === "edit" ? "Edit" : "Detail"}
+                </button>
+              );
+            })}
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -504,129 +663,159 @@ export function LayoutEditor({
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              {section.fields.length === 0 ? (
-                <p className="py-3 text-center text-xs text-muted-foreground">
-                  No fields assigned. Add fields from the unassigned pool below.
-                </p>
-              ) : (
-                <div className="space-y-1">
-                  {section.fields.map((field, fIdx) => (
+              <div
+                className={cn(
+                  "relative grid gap-2 rounded-md border border-dashed border-border/60 p-2 transition-colors",
+                  section.columns === 2 ? "grid-cols-2" : "grid-cols-1",
+                  (dragField?.sectionId === section.id || dragUnassigned) &&
+                    "border-primary/60 bg-primary/5",
+                )}
+                onDragOver={(e) => handleSectionGridDragOver(e, section.id)}
+                onDragLeave={() => setDropCol(null)}
+                onDrop={(e) => handleSectionGridDrop(e, section.id)}
+              >
+                {section.columns === 2 && (dragField?.sectionId === section.id || dragUnassigned) && (
+                  <>
                     <div
-                      key={field.api_name}
-                      draggable
-                      onDragStart={(e) => {
-                        e.stopPropagation();
-                        e.dataTransfer.effectAllowed = "move";
-                        e.dataTransfer.setData(
-                          "text/plain",
-                          `field:${section.id}:${field.api_name}`,
-                        );
-                        setDragField({ sectionId: section.id, apiName: field.api_name });
-                        setDragSectionId(null);
-                      }}
-                      onDragEnd={() => {
-                        setDragField(null);
-                        setDropFieldTarget(null);
-                        setDropSectionId(null);
-                      }}
-                      onDragOver={(e) => {
-                        if (!dragField || dragField.sectionId !== section.id) return;
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDropFieldTarget({ sectionId: section.id, apiName: field.api_name });
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (dragField && dragField.sectionId === section.id) {
-                          reorderField(section.id, dragField.apiName, field.api_name);
-                        }
-                        setDragField(null);
-                        setDropFieldTarget(null);
-                      }}
                       className={cn(
-                        "flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors",
-                        field.visible
-                          ? "border-border bg-background"
-                          : "border-dashed border-border/50 bg-muted/30 opacity-60",
-                        dragField?.apiName === field.api_name &&
-                          dragField.sectionId === section.id &&
-                          "opacity-60",
-                        dropFieldTarget?.apiName === field.api_name &&
-                          dropFieldTarget.sectionId === section.id &&
-                          dragField &&
-                          dragField.apiName !== field.api_name &&
-                          "ring-2 ring-primary/60",
+                        "pointer-events-none absolute inset-y-0 left-0 w-1/2 rounded-md transition-colors",
+                        dropCol === 0 && "bg-primary/10 ring-1 ring-primary/50",
                       )}
-                    >
-                      <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" />
-                      <span className={cn("flex-1 font-medium", !field.visible && "line-through")}>
-                        {field.label}
-                      </span>
-                      <Badge variant="outline" className="text-[9px]">
-                        {field.api_name}
-                      </Badge>
-                      {section.columns === 2 && (
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() => toggleFieldSpan(section.id, field.api_name)}
-                          className="h-5 w-5 p-0"
-                          title={field.span === 2 ? "Full width" : "Half width"}
-                        >
-                          {field.span === 2 ? (
-                            <Rows3 className="h-3 w-3" />
-                          ) : (
-                            <Columns2 className="h-3 w-3" />
-                          )}
-                        </Button>
+                    />
+                    <div
+                      className={cn(
+                        "pointer-events-none absolute inset-y-0 right-0 w-1/2 rounded-md transition-colors",
+                        dropCol === 1 && "bg-primary/10 ring-1 ring-primary/50",
                       )}
+                    />
+                  </>
+                )}
+                {section.fields.length === 0 && (
+                  <p className="col-span-full py-3 text-center text-xs text-muted-foreground">
+                    No fields assigned. Add fields from the unassigned pool below.
+                  </p>
+                )}
+                {section.fields.map((field, fIdx) => (
+                  <div
+                    key={field.api_name}
+                    draggable
+                    onDragStart={(e) => {
+                      e.stopPropagation();
+                      e.dataTransfer.effectAllowed = "move";
+                      e.dataTransfer.setData(
+                        "text/plain",
+                        `field:${section.id}:${field.api_name}`,
+                      );
+                      setDragField({ sectionId: section.id, apiName: field.api_name });
+                      setDragSectionId(null);
+                    }}
+                    onDragEnd={() => {
+                      setDragField(null);
+                      setDropFieldTarget(null);
+                      setDropSectionId(null);
+                    }}
+                    onDragOver={(e) => {
+                      const isFieldDrag = !!dragField && dragField.sectionId === section.id;
+                      if (!isFieldDrag && !dragUnassigned) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDropFieldTarget({ sectionId: section.id, apiName: field.api_name });
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (dragField && dragField.sectionId === section.id) {
+                        reorderField(section.id, dragField.apiName, field.api_name);
+                      } else if (dragUnassigned) {
+                        addUnassignedField(section.id, dragUnassigned, field.api_name);
+                      }
+                      setDragField(null);
+                      setDragUnassigned(null);
+                      setDropFieldTarget(null);
+                    }}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md border px-2 py-1.5 text-xs transition-colors",
+                      field.visible
+                        ? "border-border bg-background"
+                        : "border-dashed border-border/50 bg-muted/30 opacity-60",
+                      section.columns === 2 && field.span === 2 && "col-span-2",
+                      dragField?.apiName === field.api_name &&
+                        dragField.sectionId === section.id &&
+                        "opacity-60",
+                      dropFieldTarget?.apiName === field.api_name &&
+                        dropFieldTarget.sectionId === section.id &&
+                        (dragField || dragUnassigned) &&
+                        (!dragField || dragField.apiName !== field.api_name) &&
+                        "ring-2 ring-primary/60",
+                    )}
+                  >
+                    <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" />
+                    <span className={cn("flex-1 font-medium", !field.visible && "line-through")}>
+                      {field.label}
+                    </span>
+                    <Badge variant="outline" className="text-[9px]">
+                      {field.api_name}
+                    </Badge>
+                    {section.columns === 2 && (
                       <Button
                         variant="ghost"
                         size="icon-xs"
-                        onClick={() => toggleFieldVisibility(section.id, field.api_name)}
+                        onClick={() => toggleFieldSpan(section.id, field.api_name)}
                         className="h-5 w-5 p-0"
-                        title={field.visible ? "Hide field" : "Show field"}
+                        title={field.span === 2 ? "Full width" : "Half width"}
                       >
-                        {field.visible ? (
-                          <Eye className="h-3 w-3" />
+                        {field.span === 2 ? (
+                          <Rows3 className="h-3 w-3" />
                         ) : (
-                          <EyeOff className="h-3 w-3" />
+                          <Columns2 className="h-3 w-3" />
                         )}
                       </Button>
-                      <div className="flex flex-col gap-px">
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() => moveField(section.id, field.api_name, "up")}
-                          disabled={fIdx === 0}
-                          className="h-4 w-4 p-0"
-                        >
-                          <ChevronUp className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={() => moveField(section.id, field.api_name, "down")}
-                          disabled={fIdx === section.fields.length - 1}
-                          className="h-4 w-4 p-0"
-                        >
-                          <ChevronDown className="h-3 w-3" />
-                        </Button>
-                      </div>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => toggleFieldVisibility(section.id, field.api_name)}
+                      className="h-5 w-5 p-0"
+                      title={field.visible ? "Hide field" : "Show field"}
+                    >
+                      {field.visible ? (
+                        <Eye className="h-3 w-3" />
+                      ) : (
+                        <EyeOff className="h-3 w-3" />
+                      )}
+                    </Button>
+                    <div className="flex flex-col gap-px">
                       <Button
                         variant="ghost"
                         size="icon-xs"
-                        onClick={() => removeFieldFromSection(section.id, field.api_name)}
-                        className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
-                        title="Remove from section"
+                        onClick={() => moveField(section.id, field.api_name, "up")}
+                        disabled={fIdx === 0}
+                        className="h-4 w-4 p-0"
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <ChevronUp className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => moveField(section.id, field.api_name, "down")}
+                        disabled={fIdx === section.fields.length - 1}
+                        className="h-4 w-4 p-0"
+                      >
+                        <ChevronDown className="h-3 w-3" />
                       </Button>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={() => removeFieldFromSection(section.id, field.api_name)}
+                      className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                      title="Remove from section"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -655,8 +844,25 @@ export function LayoutEditor({
               {unassignedFields.map((field) => (
                 <div
                   key={field.api_name}
-                  className="flex items-center gap-1 rounded-md border border-border bg-muted/30 px-2 py-1 text-xs"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", `unassigned:${field.api_name}`);
+                    setDragUnassigned(field.api_name);
+                    setDragField(null);
+                    setDragSectionId(null);
+                  }}
+                  onDragEnd={() => {
+                    setDragUnassigned(null);
+                    setDropFieldTarget(null);
+                    setDropSectionId(null);
+                  }}
+                  className={cn(
+                    "flex cursor-grab items-center gap-1 rounded-md border border-border bg-muted/30 px-2 py-1 text-xs active:cursor-grabbing",
+                    dragUnassigned === field.api_name && "opacity-60",
+                  )}
                 >
+                  <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground" />
                   <span className="font-medium">{field.label}</span>
                   {field.is_system && (
                     <Badge className="border-0 bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[9px]">
@@ -711,6 +917,16 @@ export function LayoutEditor({
                     section.columns === 2 ? "grid-cols-2" : "grid-cols-1"
                   )}
                 >
+                  {section.columns === 2 && (
+                    <>
+                      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Column 1
+                      </span>
+                      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                        Column 2
+                      </span>
+                    </>
+                  )}
                   {section.fields
                     .filter((f) => f.visible)
                     .map((field) => (

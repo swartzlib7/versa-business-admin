@@ -124,9 +124,8 @@ export function LayoutEditorWrapper() {
 
   return (
     <div className="space-y-4 p-4">
-      <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
-        <div className="overflow-x-auto rounded-md border border-border">
-          <table className="w-full min-w-[480px] border-collapse text-left text-sm">
+      <div className="overflow-x-auto rounded-md border border-border">
+        <table className="w-full min-w-[480px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-3 py-2 font-medium">Label</th>
@@ -201,21 +200,6 @@ export function LayoutEditorWrapper() {
             </tbody>
           </table>
         </div>
-        <label className="block text-sm font-medium lg:w-48">
-          Runtime layout
-          <select
-            value={layoutType}
-            onChange={(e) => setLayoutType(e.target.value as LayoutType)}
-            className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="edit">Edit</option>
-            <option value="detail">Detail</option>
-          </select>
-          <span className="mt-1 block text-[11px] font-normal text-muted-foreground">
-            Edit and Detail are separate saved configs.
-          </span>
-        </label>
-      </div>
 
       <div ref={editorAnchorRef}>
         {!selectedType && (
@@ -232,6 +216,7 @@ export function LayoutEditorWrapper() {
             objectApiName={objectKey}
             objectLabel={selectedRecordType?.label || selectedType}
             layoutType={layoutType}
+            onLayoutTypeChange={setLayoutType}
             fields={fields}
             initialConfig={initialConfig}
           />
