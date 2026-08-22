@@ -286,3 +286,21 @@ Applied to:
 
 ### Change Log
 | 2026-08-18 | Task #235 Gate 3 fixes F1–F3: self-hosted Hack, cascade Delete Type, object registry repair-on-read/write. |
+
+
+## Task #235 — Gate 3 slice G1–G4 (Stephen 2026-08-22)
+
+### Behavior
+- **G1** Layouts type table keeps the Actions **Edit** button and Label-click opening the editor; full-row select + keyboard Enter/Space preserved (no regression).
+- **G2** Right-side "Runtime layout" Edit/Detail select removed from `layout-editor-wrapper`. Edit | Detail now render as tabs on the Layout Editor header line ("Layout Editor: {label}"). Tab switch loads/saves the correct `layoutType` through the existing storage keys (wrapper passes `onLayoutTypeChange`).
+- **G3** The always-"Details" section heading UX removed. Default section label is now "General"; multi-section structure unchanged (labels remain editable, no forced Details name).
+- **G4** 1-col / 2-col toggle kept. Section canvas is a real grid: fields are direct grid children (span=2 fields are full-width `col-span-2`), DnD into columns with overlay column highlight while dragging; unassigned pool chips are draggable into sections (drop before a field or into a column). Bottom layout preview kept, with Column 1 / Column 2 labels on 2-col sections.
+
+### Out of scope
+- Production, upgradability, unrelated Records Editor work, A–E rework beyond G1–G4.
+
+### Validation
+- Gate 1: `tsc --noEmit` clean; `npm run build` OK; eslint no new warnings (2 pre-existing warnings unchanged). Commit `72e6e85` on `agent/web-dev`, pushed origin. Base beta `193f079`.
+
+### Change Log
+| 2026-08-22 | Task #235 G1–G4: header Edit/Detail tabs, real column canvas with DnD, drop Details label, keep Edit + Label-click. Commit 72e6e85. |
