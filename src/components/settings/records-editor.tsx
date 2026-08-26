@@ -1050,25 +1050,39 @@ export function RecordsEditor() {
                                   </div>
                                   <div className="space-y-1.5">
                                     <label className="text-xs font-medium text-muted-foreground">Value set</label>
-                                    <select
-                                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                                      value={draft.value_set_api_name ?? f.value_set_api_name ?? ""}
-                                      onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], value_set_api_name: e.target.value || null } }))}
-                                      disabled={!(f.data_type === "picklist" || f.data_type === "multipicklist")}
-                                    >
-                                      <option value="">—</option>
-                                      {valueSets.map((vs) => <option key={vs.api_name} value={vs.api_name}>{vs.label}</option>)}
-                                    </select>
+                                    {f.data_type === "picklist" || f.data_type === "multipicklist" ? (
+                                      <select
+                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                        value={draft.value_set_api_name ?? f.value_set_api_name ?? ""}
+                                        onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], value_set_api_name: e.target.value || null } }))}
+                                      >
+                                        <option value="">—</option>
+                                        {valueSets.map((vs) => <option key={vs.api_name} value={vs.api_name}>{vs.label}</option>)}
+                                      </select>
+                                    ) : (
+                                      <div className="flex w-full items-center justify-between gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                                        <span className="truncate">{f.value_set_api_name || "Not available"}</span>
+                                        <span className="shrink-0 text-[10px] italic">Only for picklist/multipicklist</span>
+                                      </div>
+                                    )}
                                   </div>
                                   <div className="space-y-1.5">
                                     <label className="text-xs font-medium text-muted-foreground">Lookup object</label>
-                                    <input
-                                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring font-mono text-xs"
-                                      value={draft.lookup_object_api_name ?? f.lookup_object_api_name ?? ""}
-                                      onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], lookup_object_api_name: e.target.value || null } }))}
-                                      disabled={f.data_type !== "lookup"}
-                                      placeholder="object_api_name"
-                                    />
+                                    {f.data_type === "lookup" ? (
+                                      <select
+                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                        value={draft.lookup_object_api_name ?? f.lookup_object_api_name ?? ""}
+                                        onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], lookup_object_api_name: e.target.value || null } }))}
+                                      >
+                                        <option value="">—</option>
+                                        {types.map((t) => <option key={t.object_api_name} value={t.object_api_name}>{t.object_api_name}</option>)}
+                                      </select>
+                                    ) : (
+                                      <div className="flex w-full items-center justify-between gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                                        <span className="truncate">{f.lookup_object_api_name || "Not available"}</span>
+                                        <span className="shrink-0 text-[10px] italic">Only for lookup fields</span>
+                                      </div>
+                                    )}
                                   </div>
                                   <label className="flex items-center gap-2 pt-6">
                                     <input
