@@ -7,6 +7,7 @@ import {
 } from "@/lib/catalog/layout-to-fields";
 import {
   savedLayoutToRuntimeSections,
+  type RuntimeFieldSource,
   type SavedLayoutConfig,
 } from "@/lib/catalog/runtime-layout";
 import type { LayoutSection } from "@/components/catalog/layout-driven-form";
@@ -14,8 +15,15 @@ import type { LayoutSection } from "@/components/catalog/layout-driven-form";
 /**
  * Loads session-saved Layout Editor configs for an object and merges them
  * over catalog defaults. Edit vs detail are distinct layoutType keys.
+ *
+ * For dynamic record objects, pass `fieldSource` (server-fetched catalog
+ * fields) so saved layouts resolve visible fields against the real field set
+ * instead of the (empty) client fixture list.
  */
-export function useSavedRuntimeLayouts(objectApiName: string): {
+export function useSavedRuntimeLayouts(
+  objectApiName: string,
+  fieldSource?: RuntimeFieldSource[],
+): {
   detail: LayoutSection[];
   edit: LayoutSection[];
   loading: boolean;
@@ -86,16 +94,18 @@ export function useSavedRuntimeLayouts(objectApiName: string): {
           savedLayouts.detail,
           objectApiName,
           "detail",
+          fieldSource,
         ) ?? detail.sections,
       edit:
         savedLayoutToRuntimeSections(
           savedLayouts.edit,
           objectApiName,
           "edit",
+          fieldSource,
         ) ?? edit.sections,
       loading,
     }),
-    [detail.sections, edit.sections, objectApiName, savedLayouts, loading],
+    [detail.sections, edit.sections, objectApiName, savedLayouts, loading, fieldSource],
   );
 
   return runtime;

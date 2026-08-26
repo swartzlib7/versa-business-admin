@@ -457,8 +457,11 @@ function FormPanel({
   type CatalogField = { api_name: string; label: string; data_type: string; active?: boolean };
   const isDynamic = !!panel.recordTypeApiName;
   const objectApiName = panel.objectApiName || panel.recordTypeApiName || "";
-  const runtime = useSavedRuntimeLayouts(isDynamic ? objectApiName : "");
   const [catalogFields, setCatalogFields] = useState<CatalogField[]>([]);
+  const runtime = useSavedRuntimeLayouts(
+    isDynamic ? objectApiName : "",
+    isDynamic ? catalogFields : undefined,
+  );
   const [fieldsLoading, setFieldsLoading] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
 
@@ -516,7 +519,7 @@ function FormPanel({
     return [
       {
         id: "zone-default",
-        label: panel.label || "Details",
+        label: panel.label || "General",
         columns: 2 as const,
         fields,
       },
@@ -524,7 +527,10 @@ function FormPanel({
   }, [isDynamic, catalogFields, panel.fields, panel.label]);
 
   const sections =
-    isDynamic && objectApiName && runtime.detail.length
+    isDynamic &&
+    objectApiName &&
+    runtime.detail.length &&
+    runtime.detail.some((sec) => sec.fields.length > 0)
       ? runtime.detail
       : fallbackSections;
 
