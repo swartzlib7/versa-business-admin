@@ -48,6 +48,8 @@ export type ZoneTab = {
    * listing = multi-row table + collapsible New form (I5.6.10 default for entity tabs).
    */
   presentation?: "form" | "listing";
+  /** Runtime structure mode for dynamic record types (I2). */
+  structure?: "list" | "header" | "header_lines";
   /** Column headers for listing tables (defaults derived from fields). */
   listColumns?: string[];
   /** Seed rows for listing mocks. */
@@ -173,12 +175,16 @@ function ListingPanel({
     data_type: string;
     value_set_api_name?: string | null;
     active?: boolean;
+    is_required?: boolean;
   };
 
   const isDynamic = !!panel.recordTypeApiName;
   const objectApiName = panel.objectApiName || panel.recordTypeApiName || "";
-  const runtime = useSavedRuntimeLayouts(isDynamic ? objectApiName : "");
   const [catalogFields, setCatalogFields] = useState<CatalogField[]>([]);
+  const runtime = useSavedRuntimeLayouts(
+    isDynamic ? objectApiName : "",
+    isDynamic ? catalogFields : undefined,
+  );
   const [fieldsLoading, setFieldsLoading] = useState(false);
 
   useEffect(() => {
@@ -235,6 +241,12 @@ function ListingPanel({
       for (const f of catalogFields) {
         if (!orderedApis.includes(f.api_name)) orderedApis.push(f.api_name);
       }
+      const spanByApi = new Map<string, 1 | 2>();
+      for (const sec of runtime.edit) {
+        for (const f of sec.fields) {
+          if (f.span === 2) spanByApi.set(f.key, 2);
+        }
+      }
       return orderedApis.map((api) => {
         const f = byApi.get(api)!;
         return {
@@ -247,6 +259,8 @@ function ListingPanel({
                 ? ("select" as const)
                 : ("text" as const),
           column: colSet.has(f.label) || colSet.has(f.api_name),
+          span: spanByApi.get(api) ?? 1,
+          required: f.is_required,
         };
       });
     }
@@ -336,10 +350,43 @@ function ListingPanel({
       });
   }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, seedRows, catalogFields]);
 
+  const validateRequired = (draft: Record<string, string>): string => {
+    if (!isDynamic) return "";
+    for (const f of catalogFields) {
+      if (f.is_required) {
+        const v = (draft[f.api_name] ?? "").trim();
+        if (!v) return f.label + " is required.";
+      }
+    }
+    return "";
+  };
+
+  const onDelete = async (id: string) => {
+    if (!isDynamic || id.startsWith(panel.id)) {
+      setRows((prev) => prev.filter((r) => r.id !== id));
+      return;
+    }
+    try {
+      const res = await fetch("/api/records/" + id, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to delete record");
+      setRows((prev) => prev.filter((r) => r.id !== id));
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   const onAdd = async (draft: Record<string, string>) => {
     if (!isDynamic) {
       const id = panel.id + "-row-" + (rows.length + 1);
       setRows((prev) => [...prev, { id, cells: draft }]);
+      return;
+    }
+    const requiredError = validateRequired(draft);
+    if (requiredError) {
+      alert(requiredError);
       return;
     }
     try {
@@ -383,6 +430,11 @@ function ListingPanel({
   const onUpdate = async (id: string, draft: Record<string, string>) => {
     if (!isDynamic || id.startsWith(panel.id)) {
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, cells: draft } : r)));
+      return;
+    }
+    const requiredError = validateRequired(draft);
+    if (requiredError) {
+      alert(requiredError);
       return;
     }
     try {
@@ -439,6 +491,7 @@ function ListingPanel({
           getCell={(r, k) => r.cells[k] ?? ""}
           onAdd={onAdd}
           onUpdate={onUpdate}
+          onDelete={onDelete}
           badgeLabel={isDynamic ? "Dynamic Record" : "Listing"}
         />
       )}
@@ -454,7 +507,7 @@ function FormPanel({
   panel: ZoneTab;
   accent: string;
 }) {
-  type CatalogField = { api_name: string; label: string; data_type: string; active?: boolean };
+  type CatalogField = { api_name: string; label: string; data_type: string; active?: boolean; is_required?: boolean };
   const isDynamic = !!panel.recordTypeApiName;
   const objectApiName = panel.objectApiName || panel.recordTypeApiName || "";
   const [catalogFields, setCatalogFields] = useState<CatalogField[]>([]);
@@ -464,6 +517,10 @@ function FormPanel({
   );
   const [fieldsLoading, setFieldsLoading] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
+  const [instanceId, setInstanceId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [saveStatus, setSaveStatus] = useState("");
 
   useEffect(() => {
     if (!isDynamic || !panel.recordTypeApiName) {
@@ -499,6 +556,36 @@ function FormPanel({
     return () => controller.abort();
   }, [isDynamic, panel.recordTypeApiName]);
 
+  // I2: load existing header instance (single record per parent+type) if present.
+  useEffect(() => {
+    if (!isDynamic || !panel.recordTypeApiName) {
+      return;
+    }
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    params.set("type", panel.recordTypeApiName);
+    params.set("parent_kind", panel.parentKind!);
+    params.set("parent", panel.parentApiName!);
+    void fetch("/api/records?" + params.toString(), { credentials: "include", signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((json) => {
+        const rows = (json.data ?? []) as Array<{ id: string; name?: string; status?: string; data?: Record<string, string> }>;
+        if (rows.length > 0) {
+          const inst = rows[0];
+          setInstanceId(inst.id);
+          const data = (inst.data ?? {}) as Record<string, string>;
+          const draft: Record<string, string> = { ...data };
+          draft.name = inst.name ?? data.name ?? "";
+          draft.status = inst.status ?? data.status ?? "";
+          setValues(draft);
+        }
+      })
+      .catch(() => {
+        /* header load failure is non-fatal; user can still save a new record */
+      });
+    return () => controller.abort();
+  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName]);
+
   const fallbackSections = useMemo(() => {
     const fields = (isDynamic && catalogFields.length > 0
       ? catalogFields.map((f) => ({
@@ -509,6 +596,7 @@ function FormPanel({
             : f.data_type === "picklist" || f.data_type === "multipicklist"
               ? "select"
               : "text") as "text" | "textarea" | "select",
+          required: f.is_required,
         }))
       : panel.fields.map((f) => ({
           key: f.label,
@@ -536,6 +624,69 @@ function FormPanel({
 
   const loading = fieldsLoading || (isDynamic && runtime.loading);
 
+  const validateRequired = (): string => {
+    if (!isDynamic) return "";
+    for (const f of catalogFields) {
+      if (f.is_required) {
+        const v = (values[f.api_name] ?? "").trim();
+        if (!v) return f.label + " is required.";
+      }
+    }
+    return "";
+  };
+
+  const onSave = async () => {
+    if (!isDynamic) return;
+    const requiredError = validateRequired();
+    if (requiredError) {
+      setSaveError(requiredError);
+      setSaveStatus("");
+      return;
+    }
+    setSaving(true);
+    setSaveError("");
+    setSaveStatus("");
+    try {
+      const data: Record<string, string> = { ...values };
+      const name = data.name || data.Name || panel.label;
+      const status = data.status || data.Status || "active";
+      delete data.Name;
+      delete data.Status;
+      let res: Response;
+      if (instanceId) {
+        res = await fetch("/api/records/" + instanceId, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ name, status, data }),
+        });
+      } else {
+        res = await fetch("/api/records", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            type_api_name: panel.recordTypeApiName,
+            parent_kind: panel.parentKind,
+            parent_api_name: panel.parentApiName,
+            name,
+            status,
+            data,
+          }),
+        });
+      }
+      if (!res.ok) throw new Error("Failed to save record");
+      const json = await res.json();
+      const inst = json.data;
+      setInstanceId(inst.id);
+      setSaveStatus("Saved");
+    } catch (e: unknown) {
+      setSaveError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="border-b bg-muted/30">
@@ -555,12 +706,33 @@ function FormPanel({
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading fields...</p>
         ) : (
-          <LayoutDrivenForm
-            sections={sections}
-            values={values}
-            onChange={(key, value) => setValues((d) => ({ ...d, [key]: value }))}
-            accent={accent}
-          />
+          <>
+            <LayoutDrivenForm
+              sections={sections}
+              values={values}
+              onChange={(key, value) => setValues((d) => ({ ...d, [key]: value }))}
+              accent={accent}
+            />
+            {isDynamic && (
+              <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
+                <button
+                  type="button"
+                  onClick={() => void onSave()}
+                  disabled={saving}
+                  className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                  style={{ backgroundColor: accent }}
+                >
+                  {saving ? "Saving..." : instanceId ? "Save changes" : "Save"}
+                </button>
+                {saveStatus && (
+                  <span className="text-sm text-emerald-600">{saveStatus}</span>
+                )}
+                {saveError && (
+                  <span className="text-sm text-destructive">{saveError}</span>
+                )}
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
@@ -611,6 +783,10 @@ function TabPanel({
 
   const panel = activeChild ?? tab;
   const presentation = panel.presentation ?? "form";
+  const structure = panel.structure;
+
+  // I2: header_lines = saveable header FormPanel ABOVE a lines ListingPanel.
+  const isHeaderLines = structure === "header_lines";
 
   // I5.6.34 — sub-tab strip + description in stable position; body only changes
   return (
@@ -622,7 +798,12 @@ function TabPanel({
         onSelect={setChildId}
         ariaLabel={`${tab.label} sub-elements`}
       />
-      {presentation === "listing" ? (
+      {isHeaderLines ? (
+        <div className="space-y-4">
+          <FormPanel panel={panel} accent={accent} />
+          <ListingPanel panel={panel} accent={accent} />
+        </div>
+      ) : presentation === "listing" ? (
         <ListingPanel panel={panel} accent={accent} />
       ) : (
         <FormPanel panel={panel} accent={accent} />

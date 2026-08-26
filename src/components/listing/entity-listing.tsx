@@ -16,6 +16,8 @@ export type ListingField = {
   optionLabels?: string[];
   /** Show in table columns (default true for first fields) */
   column?: boolean;
+  /** Runtime saved-layout preference; defaults to one grid column. */
+  span?: 1 | 2;
 };
 
 export type EntityListingProps<T extends Record<string, unknown>> = {
@@ -34,6 +36,8 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   /** Called when user adds a mock/local row (optional persistence later) */
   onAdd?: (draft: Record<string, string>) => void;
   onUpdate?: (id: string, draft: Record<string, string>) => void;
+  /** Optional delete handler (dynamic records). Shows a Delete control per row. */
+  onDelete?: (id: string) => void;
   emptyLabel?: string;
   headerExtra?: ReactNode;
   /** Optional href for a "View" button on each row */
@@ -109,7 +113,7 @@ function InlineForm({
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {fields.map((f) => (
-          <div key={f.key} className={f.kind === "textarea" ? "sm:col-span-2" : undefined}>
+          <div key={f.key} className={(f.span === 2 || f.kind === "textarea") ? "sm:col-span-2" : undefined}>
             <FieldInput
               field={f}
               value={draft[f.key] ?? ""}
@@ -155,6 +159,7 @@ export function EntityListing<T extends Record<string, unknown>>({
   renderCell,
   onAdd,
   onUpdate,
+  onDelete,
   emptyLabel,
   headerExtra,
   viewHref,
@@ -274,7 +279,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                     {c.label}
                   </th>
                 ))}
-                {(onAdd || onUpdate || viewHref) && (
+                {(onAdd || onUpdate || onDelete || viewHref) && (
                   <th className="px-4 py-2.5 text-right font-medium">Actions</th>
                 )}
               </tr>
@@ -292,7 +297,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                           </span>
                         </td>
                       ))}
-                      {(onAdd || onUpdate || viewHref) && (
+                      {(onAdd || onUpdate || onDelete || viewHref) && (
                         <td className="px-4 py-3 text-right align-top">
                           <div className="flex items-center justify-end gap-1.5">
                             {viewHref && (
@@ -317,6 +322,19 @@ export function EntityListing<T extends Record<string, unknown>>({
                                 {editor === id ? "Close" : "Edit"}
                               </button>
                             )}
+                            {onDelete && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (window.confirm(`Delete this ${singular}? This cannot be undone.`)) {
+                                    onDelete(id);
+                                  }
+                                }}
+                                className="rounded-md border border-destructive/40 px-2.5 py-1 text-xs font-medium text-destructive hover:bg-destructive/10"
+                              >
+                                Delete
+                              </button>
+                            )}
                           </div>
                         </td>
                       )}
@@ -324,7 +342,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                     {editor === id && (
                       <tr className="border-b border-border">
                         <td
-                          colSpan={columns.length + (onAdd || onUpdate ? 1 : 0)}
+                          colSpan={columns.length + (onAdd || onUpdate || onDelete ? 1 : 0)}
                           className="p-0"
                         >
                           <InlineForm
@@ -346,7 +364,7 @@ export function EntityListing<T extends Record<string, unknown>>({
               {rows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={columns.length + (onAdd || onUpdate ? 1 : 0)}
+                    colSpan={columns.length + (onAdd || onUpdate || onDelete ? 1 : 0)}
                     className="px-4 py-8 text-center text-muted-foreground"
                   >
                     {emptyLabel ??

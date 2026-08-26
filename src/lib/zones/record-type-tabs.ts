@@ -90,6 +90,7 @@ export function applyRecordTypesToTab(
         t.description ||
         `${t.label} (${t.structure}) — managed in Settings → Records Editor.`,
       presentation: t.structure === "header" ? ("form" as const) : ("listing" as const),
+      structure: t.structure,
       listColumns: listColumns.length ? listColumns : ["Name", "Status"],
       sampleRows,
       fields,

@@ -845,6 +845,13 @@ export function RecordsEditor() {
                                       Delete type
                                     </Button>
                                   )}
+                                  <Button
+                                    variant="outline"
+                                    disabled={busy}
+                                    onClick={() => { setSection("fields"); setSelectedTypeForFields(t.api_name); }}
+                                  >
+                                    Manage Fields
+                                  </Button>
                                 </div>
                                 {typeDeletePending && typeDeletePending.apiName === t.api_name && (
                                   <div className={"mt-4 rounded-md border p-3 text-sm " + (typeDeletePending.mode === "delete" ? "border-destructive/40 bg-destructive/10" : "border-amber-500/40 bg-amber-500/10")}>
@@ -869,15 +876,8 @@ export function RecordsEditor() {
                                   </div>
                                 )}
                                 <div className="mt-6 border-t border-border pt-4">
-                                  <div className="mb-2 flex items-center justify-between">
+                                  <div className="mb-2">
                                     <p className="text-sm font-medium">Fields Preview</p>
-                                    <button
-                                      type="button"
-                                      onClick={() => { setSection("fields"); setSelectedTypeForFields(t.api_name); }}
-                                      className="text-xs text-primary hover:underline"
-                                    >
-                                      Manage Fields
-                                    </button>
                                   </div>
                                   {typeFields[t.api_name]?.length ? (
                                     <div className="flex flex-wrap gap-2">
