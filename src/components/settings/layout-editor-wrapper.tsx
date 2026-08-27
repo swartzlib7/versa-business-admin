@@ -10,6 +10,7 @@ type RecordType = {
   object_api_name: string;
   is_system?: boolean;
   active?: boolean;
+  structure?: "list" | "header" | "header_lines";
 };
 type FieldDef = {
   api_name: string;
@@ -219,6 +220,7 @@ export function LayoutEditorWrapper() {
             onLayoutTypeChange={setLayoutType}
             fields={fields}
             initialConfig={initialConfig}
+            structure={selectedRecordType?.structure}
           />
         )}
       </div>

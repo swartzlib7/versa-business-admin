@@ -28,15 +28,15 @@ const DATA_TYPES = ["text", "long_text", "number", "boolean", "date", "datetime"
 
 /** J3: UI label for a structure value (API value stays header_lines). */
 function structureLabel(value: string): string {
-  if (value === "header_lines") return "Header and list";
+  if (value === "header_lines") return "Header and lines";
   if (value === "header") return "Header";
-  return "List";
+  return "Lines";
 }
 
-/** L1: placement cell for the Fields table (Header and list types only). */
+/** L1: placement cell for the Fields table (Header and lines types only). */
 function placementCell(f: FD): ReactNode {
   if (f.zone_role === "header") return <Badge variant="outline" className="text-[10px]">Header</Badge>;
-  if (f.zone_role === "list") return <Badge variant="outline" className="text-[10px]">List</Badge>;
+  if (f.zone_role === "list") return <Badge variant="outline" className="text-[10px]">Lines</Badge>;
   return <span className="text-xs text-muted-foreground">—</span>;
 }
 /* ── Sample data label prefix helper (I5.6.42 #207 C) ── */
@@ -678,7 +678,7 @@ export function RecordsEditor() {
                     { key: "label", label: "Label", placeholder: "Name" },
                     { key: "description", label: "Description", placeholder: "Description" },
                     { key: "parent", label: "Parent", type: "custom-parent", options: parentOptions },
-                    { key: "structure", label: "Structure", type: "select", options: [{ value: "list", label: "List" }, { value: "header", label: "Header" }, { value: "header_lines", label: "Header and list" }] },
+                    { key: "structure", label: "Structure", type: "select", options: [{ value: "list", label: "Lines" }, { value: "header", label: "Header" }, { value: "header_lines", label: "Header and lines" }] },
                   ]}
                   accent={theme.colors.brand}
                   onSubmit={createType}
@@ -763,9 +763,9 @@ export function RecordsEditor() {
                                       value={draft.structure ?? t.structure}
                                       onChange={(e) => setEditingType((s) => ({ ...s, [t.api_name]: { ...s[t.api_name], structure: e.target.value } }))}
                                     >
-                                      <option value="list">List</option>
+                                      <option value="list">Lines</option>
                                       <option value="header">Header</option>
-                                      <option value="header_lines">Header and list</option>
+                                      <option value="header_lines">Header and lines</option>
                                     </select>
                                   </div>
                                   <div className="space-y-1.5">
@@ -1116,16 +1116,16 @@ export function RecordsEditor() {
                                     const role = draft.zone_role ?? f.zone_role ?? "header";
                                     return (
                                       <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-muted-foreground">Placement (Header and list)</label>
+                                        <label className="text-xs font-medium text-muted-foreground">Placement (Header and lines)</label>
                                         <select
                                           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                                           value={role ?? ""}
                                           onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], zone_role: (e.target.value || null) as "header" | "list" | null } }))}
                                         >
                                           <option value="header">Header</option>
-                                          <option value="list">List</option>
+                                          <option value="list">Lines</option>
                                         </select>
-                                        <p className="text-[10px] italic text-muted-foreground">Header fields show on the header form; List fields show on the lines table.</p>
+                                        <p className="text-[10px] italic text-muted-foreground">Header fields show on the header form; Lines fields show on the lines table.</p>
                                       </div>
                                     );
                                   })()}

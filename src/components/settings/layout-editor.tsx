@@ -29,6 +29,8 @@ export type LayoutSection = {
   label: string;
   columns: 1 | 2;
   fields: LayoutField[];
+  /** M2: zone for header_lines types — header | lines (undefined = single-zone pure type). */
+  zone?: "header" | "lines";
 };
 
 export type LayoutField = {
@@ -49,6 +51,8 @@ type FieldDef = {
   label: string;
   data_type: string;
   is_system: boolean;
+  /** M2: header_lines placement — header | list (null = single-zone pure type). */
+  zone_role?: "header" | "list" | null;
 };
 
 type LayoutEditorProps = {
@@ -60,6 +64,8 @@ type LayoutEditorProps = {
   onSave?: (config: LayoutConfig) => void;
   onReset?: () => void;
   onLayoutTypeChange?: (layoutType: "detail" | "edit") => void;
+  /** M2: record type structure — drives zone-aware layout for header_lines. */
+  structure?: "list" | "header" | "header_lines";
 };
 
 /* ── Helpers ── */
@@ -89,19 +95,35 @@ function insertionIndexForColumn(fields: LayoutField[], columns: 1 | 2, targetCo
   return fields.length;
 }
 
-function buildDefaultSections(fields: FieldDef[]): LayoutSection[] {
-  const visible = fields.map((f) => ({
+function buildDefaultSections(fields: FieldDef[], structure?: "list" | "header" | "header_lines"): LayoutSection[] {
+  const toField = (f: FieldDef): LayoutField => ({
     api_name: f.api_name,
     label: f.label,
     visible: true,
     span: (f.data_type === "long_text" ? 2 : 1) as 1 | 2,
-  }));
+  });
+  if (structure === "header_lines") {
+    const headerFields = fields
+      .filter((f) => f.zone_role == null || f.zone_role === "header")
+      .map(toField);
+    const linesFields = fields
+      .filter((f) => f.zone_role === "list")
+      .map(toField);
+    const sections: LayoutSection[] = [];
+    if (headerFields.length) {
+      sections.push({ id: newSectionId(), label: "Header", columns: 2, fields: headerFields, zone: "header" });
+    }
+    if (linesFields.length) {
+      sections.push({ id: newSectionId(), label: "Lines", columns: 2, fields: linesFields, zone: "lines" });
+    }
+    if (sections.length) return sections;
+  }
   return [
     {
       id: newSectionId(),
       label: "General",
       columns: 2,
-      fields: visible,
+      fields: fields.map(toField),
     },
   ];
 }
@@ -116,9 +138,11 @@ export function LayoutEditor({
   onSave,
   onReset,
   onLayoutTypeChange,
+  structure,
 }: LayoutEditorProps) {
+  const isHeaderLines = structure === "header_lines";
   const [sections, setSections] = useState<LayoutSection[]>(() =>
-    initialConfig?.sections ?? buildDefaultSections(fields)
+    initialConfig?.sections ?? buildDefaultSections(fields, structure)
   );
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -152,12 +176,17 @@ export function LayoutEditor({
 
   /* ── Section operations ── */
   const addSection = useCallback(() => {
-    setSections((prev) => [
-      ...prev,
-      { id: newSectionId(), label: "New Section", columns: 2, fields: [] },
-    ]);
+    setSections((prev) => {
+      const zone = isHeaderLines
+        ? (prev[prev.length - 1]?.zone ?? "header")
+        : undefined;
+      return [
+        ...prev,
+        { id: newSectionId(), label: "New Section", columns: 2, fields: [], zone },
+      ];
+    });
     setDirty(true);
-  }, []);
+  }, [isHeaderLines]);
 
   const removeSection = useCallback((sectionId: string) => {
     setSections((prev) => {
@@ -257,26 +286,29 @@ export function LayoutEditor({
   const addFieldToSection = useCallback(
     (sectionId: string, field: FieldDef) => {
       setSections((prev) =>
-        prev.map((s) =>
-          s.id === sectionId
-            ? {
-                ...s,
-                fields: [
-                  ...s.fields,
-                  {
-                    api_name: field.api_name,
-                    label: field.label,
-                    visible: true,
-                    span: (field.data_type === "long_text" ? 2 : 1) as 1 | 2,
-                  },
-                ],
-              }
-            : s
-        )
+        prev.map((s) => {
+          if (s.id !== sectionId) return s;
+          if (isHeaderLines && s.zone) {
+            const fieldZone = field.zone_role === "list" ? "lines" : "header";
+            if (fieldZone !== s.zone) return s;
+          }
+          return {
+            ...s,
+            fields: [
+              ...s.fields,
+              {
+                api_name: field.api_name,
+                label: field.label,
+                visible: true,
+                span: (field.data_type === "long_text" ? 2 : 1) as 1 | 2,
+              },
+            ],
+          };
+        })
       );
       setDirty(true);
     },
-    []
+    [isHeaderLines]
   );
 
   const removeFieldFromSection = useCallback((sectionId: string, apiName: string) => {
@@ -332,6 +364,10 @@ export function LayoutEditor({
           if (s.id !== sectionId) return s;
           const def = fields.find((f) => f.api_name === apiName);
           if (!def) return s;
+          if (isHeaderLines && s.zone) {
+            const fieldZone = def.zone_role === "list" ? "lines" : "header";
+            if (fieldZone !== s.zone) return s;
+          }
           const newField: LayoutField = {
             api_name: def.api_name,
             label: def.label,
@@ -346,7 +382,7 @@ export function LayoutEditor({
       );
       setDirty(true);
     },
-    [fields],
+    [fields, isHeaderLines],
   );
 
   /** Grid container drag-over: highlight the column under the pointer. */
@@ -377,6 +413,10 @@ export function LayoutEditor({
             if (s.id !== sectionId) return s;
             const def = fields.find((f) => f.api_name === dragUnassigned);
             if (!def) return s;
+            if (isHeaderLines && s.zone) {
+              const fieldZone = def.zone_role === "list" ? "lines" : "header";
+              if (fieldZone !== s.zone) return s;
+            }
             const newField: LayoutField = {
               api_name: def.api_name,
               label: def.label,
@@ -395,7 +435,7 @@ export function LayoutEditor({
       setDragUnassigned(null);
       setDropCol(null);
     },
-    [dragField, dragUnassigned, fields, moveFieldToColumn],
+    [dragField, dragUnassigned, fields, moveFieldToColumn, isHeaderLines],
   );
 
 
@@ -470,12 +510,12 @@ export function LayoutEditor({
     if (initialConfig) {
       setSections(initialConfig.sections);
     } else {
-      setSections(buildDefaultSections(fields));
+      setSections(buildDefaultSections(fields, structure));
     }
     setDirty(false);
     setStatus(null);
     onReset?.();
-  }, [initialConfig, fields, onReset]);
+  }, [initialConfig, fields, onReset, structure]);
 
   return (
     <div className="space-y-4">
@@ -646,6 +686,23 @@ export function LayoutEditor({
                   )}
                   {section.columns === 2 ? "2 Col" : "1 Col"}
                 </Button>
+                {isHeaderLines && section.zone && (
+                  <Badge
+                    className="border-0 text-[10px]"
+                    style={{
+                      backgroundColor:
+                        section.zone === "header"
+                          ? "hsl(var(--primary) / 0.12)"
+                          : "hsl(var(--secondary) / 0.15)",
+                      color:
+                        section.zone === "header"
+                          ? "hsl(var(--primary))"
+                          : "hsl(var(--secondary-foreground))",
+                    }}
+                  >
+                    {section.zone === "header" ? "Header" : "Lines"}
+                  </Badge>
+                )}
                 <Badge variant="outline" className="text-[10px]">
                   {section.fields.filter((f) => f.visible).length}/{section.fields.length} visible
                 </Badge>
@@ -881,11 +938,17 @@ export function LayoutEditor({
                       }}
                     >
                       <option value="">Add to…</option>
-                      {sections.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.label}
-                        </option>
-                      ))}
+                      {sections
+                        .filter((s) => {
+                          if (!isHeaderLines || !s.zone) return true;
+                          const fieldZone = field.zone_role === "list" ? "lines" : "header";
+                          return fieldZone === s.zone;
+                        })
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.label}
+                          </option>
+                        ))}
                     </select>
                   )}
                 </div>
