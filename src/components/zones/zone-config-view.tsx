@@ -171,6 +171,10 @@ function filterByZoneRole<T extends { zoneRole?: "header" | "list" | null }>(
   fields: T[],
   role: "header" | "list",
 ): T[] {
+  // L2: on header_lines, migration guarantees every field is exactly header or
+  // list (never null), so this enforces strict separation. Pure Header/List
+  // types keep null zoneRole, so they must be included (all fields belong to
+  // that single mode).
   return fields.filter((f) => f.zoneRole == null || f.zoneRole === role);
 }
 
@@ -401,7 +405,7 @@ function ListingPanel({
     try {
       if (isHeaderLines) {
         // J2: remove a line from the header record's lines array.
-        if (!headerRecordId) return;
+        if (!headerRecordId) return false;
         const nextLines = rows.filter((r) => r.id !== id).map((r) => r.cells);
         const res = await fetch("/api/records/" + headerRecordId, {
           method: "PATCH",
@@ -417,7 +421,7 @@ function ListingPanel({
           cells: toCells({ id: ln.id, data: ln.data ?? {} }),
         }));
         setRows(lineRows);
-        return;
+        return true;
       }
       const res = await fetch("/api/records/" + id, {
         method: "DELETE",
@@ -430,16 +434,16 @@ function ListingPanel({
     }
   };
 
-  const onAdd = async (draft: Record<string, string>) => {
+  const onAdd = async (draft: Record<string, string>): Promise<boolean> => {
     if (!isDynamic) {
       const id = panel.id + "-row-" + (rows.length + 1);
       setRows((prev) => [...prev, { id, cells: draft }]);
-      return;
+      return true;
     }
     const requiredError = validateRequired(draft);
     if (requiredError) {
       alert(requiredError);
-      return;
+      return false;
     }
     try {
       const name = draft.name || draft.Name || "New Record";
@@ -451,7 +455,7 @@ function ListingPanel({
         // J2: add a line to the header record's lines array (never a new record).
         if (!headerRecordId) {
           alert("Save the header first, then add lines.");
-          return;
+          return false;
         }
         const res = await fetch("/api/records/" + headerRecordId, {
           method: "PATCH",
@@ -467,7 +471,7 @@ function ListingPanel({
           cells: toCells({ id: ln.id, data: ln.data ?? {} }),
         }));
         setRows(lineRows);
-        return;
+        return true;
       }
       const res = await fetch("/api/records", {
         method: "POST",
@@ -498,18 +502,20 @@ function ListingPanel({
       setRows((prev) => [...prev, { id: inst.id, cells }]);
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : String(e));
+      return false;
     }
+    return true;
   };
 
-  const onUpdate = async (id: string, draft: Record<string, string>) => {
+  const onUpdate = async (id: string, draft: Record<string, string>): Promise<boolean> => {
     if (!isDynamic || id.startsWith(panel.id)) {
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, cells: draft } : r)));
-      return;
+      return true;
     }
     const requiredError = validateRequired(draft);
     if (requiredError) {
       alert(requiredError);
-      return;
+      return false;
     }
     try {
       const name = draft.name || draft.Name;
@@ -519,7 +525,7 @@ function ListingPanel({
       delete data.Status;
       if (isHeaderLines) {
         // J2: update a line within the header record's lines array.
-        if (!headerRecordId) return;
+        if (!headerRecordId) return false;
         const nextLines = rows.map((r) => (r.id === id ? data : r.cells));
         const res = await fetch("/api/records/" + headerRecordId, {
           method: "PATCH",
@@ -535,7 +541,7 @@ function ListingPanel({
           cells: toCells({ id: ln.id, data: ln.data ?? {} }),
         }));
         setRows(lineRows);
-        return;
+        return true;
       }
       const res = await fetch("/api/records/" + id, {
         method: "PATCH",
@@ -559,7 +565,9 @@ function ListingPanel({
       setRows((prev) => prev.map((r) => (r.id === id ? { id: inst.id, cells } : r)));
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : String(e));
+      return false;
     }
+    return true;
   };
 
   return (

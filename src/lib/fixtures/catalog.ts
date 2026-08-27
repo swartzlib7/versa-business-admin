@@ -1674,6 +1674,17 @@ export function listAllFieldDefinitions(objectApiName?: string): FieldDefinition
   return rows.sort((a, b) => a.sort_order - b.sort_order || a.api_name.localeCompare(b.api_name));
 }
 
+
+/** L2: normalize zone_role so every field on a header_lines object is exactly header or list (never null/both). */
+export function normalizeZoneRoles(objectApiName: string): void {
+  for (let i = 0; i < mutableFieldDefinitions.length; i++) {
+    const f = mutableFieldDefinitions[i];
+    if (f.object_api_name !== objectApiName) continue;
+    if (f.zone_role !== "header" && f.zone_role !== "list") {
+      mutableFieldDefinitions[i] = { ...f, zone_role: "header" };
+    }
+  }
+}
 export function listAllLayouts(
   objectApiName?: string,
   layoutType?: LayoutDefinition['layout_type'],
@@ -1737,6 +1748,7 @@ export interface ExtendFieldInput {
   default_value?: string | null;
   value_set_api_name?: string | null;
   lookup_object_api_name?: string | null;
+  zone_role?: "header" | "list" | null;
 }
 
 export type ExtendFieldResult =
@@ -1837,6 +1849,7 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
     value_set_api_name: input.value_set_api_name ?? null,
     lookup_object_api_name: input.lookup_object_api_name ?? null,
     sort_order: nextOrder,
+    zone_role: input.zone_role ?? null,
     active: true,
   };
   mutableFieldDefinitions.push(field);

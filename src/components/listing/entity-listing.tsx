@@ -44,8 +44,8 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   /** Optional rich cell renderer (wins over formatCell when provided) */
   renderCell?: (row: T, key: string, raw: string) => ReactNode;
   /** Called when user adds a mock/local row (optional persistence later) */
-  onAdd?: (draft: Record<string, string>) => void;
-  onUpdate?: (id: string, draft: Record<string, string>) => void;
+  onAdd?: (draft: Record<string, string>) => Promise<boolean | void> | boolean | void;
+  onUpdate?: (id: string, draft: Record<string, string>) => Promise<boolean | void> | boolean | void;
   /** Optional delete handler (dynamic records). Shows a Delete control per row. */
   onDelete?: (id: string) => void;
   emptyLabel?: string;
@@ -257,18 +257,21 @@ export function EntityListing<T extends Record<string, unknown>>({
     setDraft(blank());
   };
 
-  const commit = () => {
+  const commit = async () => {
+    let ok = true;
     if (editor === "new") {
-      onAdd?.(draft);
+      ok = (await onAdd?.(draft)) !== false;
     } else if (typeof editor === "string") {
-      onUpdate?.(editor, draft);
+      ok = (await onUpdate?.(editor, draft)) !== false;
     }
-    setEditor(null);
-    setDraft(blank());
+    // L3: keep the draft + editor open when validation failed (handler returned false).
+    if (ok) {
+      setEditor(null);
+      setDraft(blank());
+    }
   };
 
   const singular = title ? (title.endsWith("s") ? title.slice(0, -1) : title) : "item";
-
   return (
     <Card className="overflow-hidden">
       <CardHeader className="border-b bg-muted/30">

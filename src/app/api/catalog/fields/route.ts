@@ -96,6 +96,7 @@ export async function POST(request: Request) {
     default_value: body.default_value,
     value_set_api_name: body.value_set_api_name,
     lookup_object_api_name: body.lookup_object_api_name,
+    zone_role: (() => { const rt = getRecordType(objectApiName); return rt && rt.structure === "header_lines" ? "header" : null; })(),
   });
 
   if (!result.ok) {

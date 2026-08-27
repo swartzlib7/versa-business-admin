@@ -9,6 +9,7 @@ import {
 import {
   listAllFieldDefinitions,
   getObjectSchema,
+  normalizeZoneRoles,
   ensureObjectForRecordType,
 } from '@/lib/fixtures/catalog';
 
@@ -44,6 +45,7 @@ export async function GET(
     description: type.description,
     faculty: type.parent_kind === 'faculty' ? type.parent_api_name : undefined,
   });
+  if (type.structure === "header_lines") normalizeZoneRoles(type.object_api_name);
   const fields = listAllFieldDefinitions(type.object_api_name);
   const schema = getObjectSchema(type.object_api_name);
   return NextResponse.json({ data: { type, fields, schema } });

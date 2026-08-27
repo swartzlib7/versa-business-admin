@@ -32,6 +32,13 @@ function structureLabel(value: string): string {
   if (value === "header") return "Header";
   return "List";
 }
+
+/** L1: placement cell for the Fields table (Header and list types only). */
+function placementCell(f: FD): ReactNode {
+  if (f.zone_role === "header") return <Badge variant="outline" className="text-[10px]">Header</Badge>;
+  if (f.zone_role === "list") return <Badge variant="outline" className="text-[10px]">List</Badge>;
+  return <span className="text-xs text-muted-foreground">—</span>;
+}
 /* ── Sample data label prefix helper (I5.6.42 #207 C) ── */
 function formatSampleLabel(label: string, isSystem: boolean): string {
   return (isSystem ? "(fixed) " : "(db) ") + label;
@@ -998,6 +1005,7 @@ export function RecordsEditor() {
                       <th className="px-4 py-2.5 font-medium">API name</th>
                       <th className="px-4 py-2.5 font-medium">Type</th>
                       <th className="px-4 py-2.5 font-medium">Object</th>
+                      <th className="px-4 py-2.5 font-medium">Placement</th>
                       <th className="px-4 py-2.5 font-medium">Value set / Lookup</th>
                       <th className="px-4 py-2.5 text-right font-medium">Actions</th>
                     </tr>
@@ -1016,6 +1024,7 @@ export function RecordsEditor() {
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.api_name}</td>
                             <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{f.data_type}</Badge></td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.object_api_name || "—"}</td>
+                            <td className="px-4 py-3 align-top">{placementCell(f)}</td>
                             <td className="px-4 py-3 align-top text-muted-foreground">{f.value_set_api_name || f.lookup_object_api_name || "—"}</td>
                             <td className="px-4 py-3 text-right align-top">
                               <button
@@ -1046,7 +1055,7 @@ export function RecordsEditor() {
                             </td>
                           </tr>
                           {isExpanded && (
-                            <ExpandRow colSpan={6}>
+                            <ExpandRow colSpan={7}>
                               <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${theme.colors.brand}` }}>
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                   <div className="space-y-1.5">
@@ -1104,7 +1113,7 @@ export function RecordsEditor() {
                                   {(() => {
                                     const rt = types.find((t) => t.object_api_name === objectApi);
                                     if (!rt || rt.structure !== "header_lines") return null;
-                                    const role = draft.zone_role ?? f.zone_role ?? null;
+                                    const role = draft.zone_role ?? f.zone_role ?? "header";
                                     return (
                                       <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-muted-foreground">Placement (Header and list)</label>
@@ -1113,7 +1122,6 @@ export function RecordsEditor() {
                                           value={role ?? ""}
                                           onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], zone_role: (e.target.value || null) as "header" | "list" | null } }))}
                                         >
-                                          <option value="">Default</option>
                                           <option value="header">Header</option>
                                           <option value="list">List</option>
                                         </select>
@@ -1207,7 +1215,7 @@ export function RecordsEditor() {
                       );
                     })}
                     {filteredFields.length === 0 && (
-                      <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No fields found. Use New Field to add one.</td></tr>
+                      <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No fields found. Use New Field to add one.</td></tr>
                     )}
                   </tbody>
                 </table>
