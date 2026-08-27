@@ -341,6 +341,7 @@ export function RecordsEditor() {
           data_type: vals.data_type || "text",
           value_set_api_name: vals.value_set_api_name || null,
           lookup_object_api_name: vals.lookup_object_api_name || null,
+          zone_role: vals.zone_role || null,
         }),
       });
       setStatus("Added field " + vals.api_name);
@@ -985,6 +986,9 @@ export function RecordsEditor() {
                     { key: "label", label: "Label", placeholder: "Label" },
                     { key: "type", label: "Record type", type: "select", options: types.map((t) => t.api_name) },
                     { key: "data_type", label: "Data type", type: "select", options: DATA_TYPES },
+                    ...(selectedTypeForFields && types.find((t) => t.api_name === selectedTypeForFields)?.structure === "header_lines"
+                      ? [{ key: "zone_role", label: "Placement", type: "select" as const, options: [{ value: "header", label: "Header" }, { value: "list", label: "Lines" }] }]
+                      : []),
                     { key: "value_set_api_name", label: "Value set (picklist)", type: "select", options: valueSets.map((v) => v.api_name) },
                     { key: "lookup_object_api_name", label: "Lookup object", type: "select", options: types.map((t) => t.object_api_name) },
                   ]}

@@ -181,9 +181,13 @@ function filterByZoneRole<T extends { zoneRole?: "header" | "list" | null }>(
 function ListingPanel({
   panel,
   accent,
+  headerRecordId: headerRecordIdProp,
+  onHeaderRecord,
 }: {
   panel: ZoneTab;
   accent: string;
+  headerRecordId?: string | null;
+  onHeaderRecord?: (id: string | null) => void;
 }) {
   type CatalogField = {
     api_name: string;
@@ -322,8 +326,10 @@ function ListingPanel({
   const [rows, setRows] = useState<ZoneListRow[]>(seedRows);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  /** J2: for header_lines, the header record id that owns the lines array. */
-  const [headerRecordId, setHeaderRecordId] = useState<string | null>(null);
+  /** J2/N2: for header_lines, the header record id that owns the lines array.
+   *  Controlled from TabPanel so a header saved in the same session (FormPanel)
+   *  is immediately visible here without a full page refresh. */
+  const headerRecordId = headerRecordIdProp ?? null;
   const isHeaderLines = panel.structure === "header_lines";
 
   const toCells = useCallback(
@@ -367,14 +373,14 @@ function ListingPanel({
           // J2: header_lines — the header record owns the lines array; never
           // surface the header itself as a line row.
           const header = all[0];
-          setHeaderRecordId(header?.id ?? null);
+          onHeaderRecord?.(header?.id ?? null);
           const lineRows: ZoneListRow[] = (header?.lines ?? []).map((ln) => ({
             id: ln.id,
             cells: toCells({ id: ln.id, data: ln.data ?? {} }),
           }));
           setRows(lineRows);
         } else {
-          setHeaderRecordId(null);
+          onHeaderRecord?.(null);
           setRows(all.map((inst) => ({ id: inst.id, cells: toCells(inst) })));
         }
         setLoading(false);
@@ -383,7 +389,7 @@ function ListingPanel({
         setError(e.message);
         setLoading(false);
       });
-  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, seedRows, catalogFields, isHeaderLines, toCells]);
+  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, seedRows, catalogFields, isHeaderLines, toCells, onHeaderRecord]);
 
   const validateRequired = (draft: Record<string, string>): string => {
     if (!isDynamic) return "";
@@ -605,9 +611,11 @@ function ListingPanel({
 function FormPanel({
   panel,
   accent,
+  onHeaderSaved,
 }: {
   panel: ZoneTab;
   accent: string;
+  onHeaderSaved?: (id: string) => void;
 }) {
   type CatalogField = { api_name: string; label: string; data_type: string; value_set_api_name?: string | null; active?: boolean; is_required?: boolean };
   const isDynamic = !!panel.recordTypeApiName;
@@ -623,6 +631,9 @@ function FormPanel({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saveStatus, setSaveStatus] = useState("");
+  // N3: view/edit/save-cancel for field-bearing surfaces.
+  const [editing, setEditing] = useState(false);
+  const [savedValues, setSavedValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!isDynamic || !panel.recordTypeApiName) {
@@ -680,6 +691,7 @@ function FormPanel({
           draft.name = inst.name ?? data.name ?? "";
           draft.status = inst.status ?? data.status ?? "";
           setValues(draft);
+          setSavedValues(draft);
         }
       })
       .catch(() => {
@@ -724,9 +736,9 @@ function FormPanel({
   const sections =
     isDynamic &&
     objectApiName &&
-    runtime.detail.length &&
-    runtime.detail.some((sec) => sec.fields.length > 0)
-      ? runtime.detail
+    runtime.edit.length &&
+    runtime.edit.some((sec) => sec.fields.length > 0)
+      ? runtime.edit
           .map((sec) => ({ ...sec, fields: filterByZoneRole(sec.fields, "header") }))
           .filter((sec) => sec.fields.length > 0)
       : fallbackSections;
@@ -791,6 +803,9 @@ function FormPanel({
       const inst = json.data;
       setInstanceId(inst.id);
       setSaveStatus("Saved");
+      setSavedValues(values);
+      setEditing(false);
+      onHeaderSaved?.(inst.id);
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -822,19 +837,49 @@ function FormPanel({
               sections={sections}
               values={values}
               onChange={(key, value) => setValues((d) => ({ ...d, [key]: value }))}
+              readOnly={!editing}
               accent={accent}
             />
             {isDynamic && (
               <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
-                <button
-                  type="button"
-                  onClick={() => void onSave()}
-                  disabled={saving}
-                  className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-                  style={{ backgroundColor: accent }}
-                >
-                  {saving ? "Saving..." : instanceId ? "Save changes" : "Save"}
-                </button>
+                {!editing ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSavedValues(values);
+                      setEditing(true);
+                    }}
+                    className="rounded-md px-4 py-2 text-sm font-medium text-white"
+                    style={{ backgroundColor: accent }}
+                  >
+                    {instanceId ? "Edit" : "Create"}
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void onSave()}
+                      disabled={saving}
+                      className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                      style={{ backgroundColor: accent }}
+                    >
+                      {saving ? "Saving..." : instanceId ? "Save changes" : "Save"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValues(savedValues);
+                        setSaveError("");
+                        setSaveStatus("");
+                        setEditing(false);
+                      }}
+                      disabled={saving}
+                      className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
                 {saveStatus && (
                   <span className="text-sm text-emerald-600">{saveStatus}</span>
                 )}
@@ -898,6 +943,9 @@ function TabPanel({
 
   // I2: header_lines = saveable header FormPanel ABOVE a lines ListingPanel.
   const isHeaderLines = structure === "header_lines";
+  // N2: header record id lifted here so a header saved in FormPanel (same
+  // session) is immediately visible to ListingPanel without a full refresh.
+  const [headerRecordId, setHeaderRecordId] = useState<string | null>(null);
 
   // I5.6.34 — sub-tab strip + description in stable position; body only changes
   return (
@@ -911,8 +959,17 @@ function TabPanel({
       />
       {isHeaderLines ? (
         <div className="space-y-4">
-          <FormPanel panel={panel} accent={accent} />
-          <ListingPanel panel={panel} accent={accent} />
+          <FormPanel
+            panel={panel}
+            accent={accent}
+            onHeaderSaved={(id) => setHeaderRecordId(id)}
+          />
+          <ListingPanel
+            panel={panel}
+            accent={accent}
+            headerRecordId={headerRecordId}
+            onHeaderRecord={setHeaderRecordId}
+          />
         </div>
       ) : presentation === "listing" ? (
         <ListingPanel panel={panel} accent={accent} />
