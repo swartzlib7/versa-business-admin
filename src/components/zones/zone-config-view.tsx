@@ -13,7 +13,7 @@ import { EntityListing, type ListingField } from "@/components/listing/entity-li
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
 import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
-import { dataTypeToUiKind } from "@/lib/catalog/layout-to-fields";
+import { dataTypeToUiKind, optionsForField } from "@/lib/catalog/layout-to-fields";
 import type { CatalogDataType } from "@/lib/fixtures/catalog";
 
 /**
@@ -600,7 +600,7 @@ function FormPanel({
   panel: ZoneTab;
   accent: string;
 }) {
-  type CatalogField = { api_name: string; label: string; data_type: string; active?: boolean; is_required?: boolean };
+  type CatalogField = { api_name: string; label: string; data_type: string; value_set_api_name?: string | null; active?: boolean; is_required?: boolean };
   const isDynamic = !!panel.recordTypeApiName;
   const objectApiName = panel.objectApiName || panel.recordTypeApiName || "";
   const [catalogFields, setCatalogFields] = useState<CatalogField[]>([]);
@@ -681,22 +681,24 @@ function FormPanel({
 
   const fallbackSections = useMemo(() => {
     const fields = (isDynamic && catalogFields.length > 0
-      ? catalogFields.map((f) => ({
-          key: f.api_name,
-          label: f.label,
-          kind: (f.data_type === "long_text"
-            ? "textarea"
-            : f.data_type === "picklist" || f.data_type === "multipicklist"
-              ? "select"
-              : "text") as "text" | "textarea" | "select",
-          required: f.is_required,
-          zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
-        }))
+      ? catalogFields.map((f) => {
+          const { options, optionLabels } = optionsForField(f);
+          return {
+            key: f.api_name,
+            label: f.label,
+            kind: dataTypeToUiKind(f.data_type as CatalogDataType),
+            options,
+            optionLabels,
+            required: f.is_required,
+            zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
+          };
+        })
       : panel.fields.map((f) => ({
           key: f.label,
           label: f.label,
           kind: (f.kind ?? "text") as "text" | "textarea" | "select",
           options: f.options,
+          optionLabels: undefined,
           required: undefined,
           zoneRole: null,
         })));
@@ -724,11 +726,13 @@ function FormPanel({
 
   const validateRequired = (): string => {
     if (!isDynamic) return "";
+    const isHeaderLines = panel.structure === "header_lines";
     for (const f of catalogFields) {
-      if (f.is_required) {
-        const v = (values[f.api_name] ?? "").trim();
-        if (!v) return f.label + " is required.";
-      }
+      if (!f.is_required) continue;
+      // J4 hygiene: on header_lines, list-only fields are not part of the header form.
+      if (isHeaderLines && (f as { zone_role?: "header" | "list" | null }).zone_role === "list") continue;
+      const v = (values[f.api_name] ?? "").trim();
+      if (!v) return f.label + " is required.";
     }
     return "";
   };

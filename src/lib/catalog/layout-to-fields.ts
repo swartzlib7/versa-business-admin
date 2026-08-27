@@ -65,7 +65,14 @@ export function dataTypeToUiKind(dt: CatalogDataType): UiFieldKind {
   }
 }
 
-function optionsForField(fd: FieldDefinition): {
+export type OptionsFieldSource = {
+  data_type: string;
+  api_name?: string;
+  object_api_name?: string;
+  value_set_api_name?: string | null;
+};
+
+export function optionsForField(fd: OptionsFieldSource): {
   options?: string[];
   optionLabels?: string[];
 } {
