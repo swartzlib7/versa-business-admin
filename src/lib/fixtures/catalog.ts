@@ -50,6 +50,8 @@ export interface FieldDefinition {
   lookup_object_api_name: string | null;
   sort_order: number;
   active: boolean;
+  /** J4: header_lines placement - header | list (null = default). */
+  zone_role?: 'header' | 'list' | null;
 }
 
 export interface LayoutDefinition {
@@ -1847,7 +1849,7 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
 
 export type UpdateFieldInput = Partial<Pick<FieldDefinition,
   'label' | 'is_required' | 'default_value' | 'value_set_api_name' |
-  'lookup_object_api_name' | 'sort_order' | 'active'
+  'lookup_object_api_name' | 'sort_order' | 'active' | 'zone_role'
 >>;
 
 export type FieldMutationResult =

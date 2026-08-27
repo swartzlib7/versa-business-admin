@@ -10,9 +10,19 @@ import Link from "next/link";
 export type ListingField = {
   key: string;
   label: string;
-  kind?: "text" | "textarea" | "select";
+  kind?:
+    | "text"
+    | "textarea"
+    | "select"
+    | "boolean"
+    | "number"
+    | "date"
+    | "datetime"
+    | "email"
+    | "url"
+    | "phone";
   options?: string[];
-  /** Display labels parallel to options (api codes stay as values) */
+  /** Display labels (api codes stay as values) */
   optionLabels?: string[];
   /** Show in table columns (default true for first fields) */
   column?: boolean;
@@ -58,6 +68,7 @@ function FieldInput({
   const base =
     "w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
   const kind = field.kind ?? "text";
+  const isChecked = value === "true" || value === "1";
   return (
     <label className="flex flex-col gap-1.5">
       <span className="text-xs font-medium text-muted-foreground">{field.label}</span>
@@ -76,8 +87,39 @@ function FieldInput({
             </option>
           ))}
         </select>
+      ) : kind === "boolean" ? (
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-input accent-[var(--primary)]"
+            checked={isChecked}
+            onChange={(e) => onChange(e.target.checked ? "true" : "false")}
+          />
+          <span className="text-sm text-muted-foreground">
+            {isChecked ? "Yes" : "No"}
+          </span>
+        </div>
       ) : (
-        <input className={base} value={value} onChange={(e) => onChange(e.target.value)} />
+        <input
+          className={base}
+          type={
+            kind === "number"
+              ? "number"
+              : kind === "date"
+                ? "date"
+                : kind === "datetime"
+                  ? "datetime-local"
+                  : kind === "email"
+                    ? "email"
+                    : kind === "url"
+                      ? "url"
+                      : kind === "phone"
+                        ? "tel"
+                        : "text"
+          }
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
       )}
     </label>
   );

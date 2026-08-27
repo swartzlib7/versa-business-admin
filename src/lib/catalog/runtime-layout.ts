@@ -1,6 +1,6 @@
 /** Runtime adapter for the saved Layout Editor pilot. */
-import { listFieldDefinitions, type FieldDefinition } from "@/lib/fixtures/catalog";
-import { fieldDefinitionToUi, type UiListingField } from "@/lib/catalog/layout-to-fields";
+import { listFieldDefinitions, type CatalogDataType, type FieldDefinition } from "@/lib/fixtures/catalog";
+import { dataTypeToUiKind, fieldDefinitionToUi, type UiListingField } from "@/lib/catalog/layout-to-fields";
 import type { LayoutSection } from "@/components/catalog/layout-driven-form";
 
 export type SavedLayoutField = { api_name?: unknown; label?: unknown; visible?: unknown; span?: unknown };
@@ -19,24 +19,19 @@ export type RuntimeFieldSource = {
   is_system?: boolean;
   is_required?: boolean;
   value_set_api_name?: string | null;
+  /** J4: header_lines placement — "header" | "list" (undefined = default). */
+  zone_role?: "header" | "list" | null;
 };
 
 /** Converts a server-supplied dynamic field into a UI field (no picklist options). */
 function runtimeFieldToUi(field: RuntimeFieldSource): UiListingField {
-  const kind: UiListingField["kind"] =
-    field.data_type === "long_text"
-      ? "textarea"
-      : field.data_type === "picklist" ||
-          field.data_type === "multipicklist" ||
-          field.data_type === "boolean"
-        ? "select"
-        : "text";
   return {
     key: field.api_name,
     label: field.label,
-    kind,
+    kind: dataTypeToUiKind(field.data_type as CatalogDataType),
     required: field.is_required,
     isSystem: field.is_system,
+    zoneRole: field.zone_role ?? null,
   };
 }
 

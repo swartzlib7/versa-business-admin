@@ -18,6 +18,7 @@ function FieldInput({
   const base =
     "w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
   const kind = field.kind ?? "text";
+  const isChecked = value === "true" || value === "1";
 
   if (readOnly) {
     const display =
@@ -58,10 +59,36 @@ function FieldInput({
             </option>
           ))}
         </select>
+      ) : kind === "boolean" ? (
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-input accent-[var(--primary)]"
+            checked={isChecked}
+            onChange={(e) => onChange?.(e.target.checked ? "true" : "false")}
+          />
+          <span className="text-sm text-muted-foreground">
+            {isChecked ? "Yes" : "No"}
+          </span>
+        </div>
       ) : (
         <input
           className={base}
-          type={field.dataType === "email" ? "email" : "text"}
+          type={
+            kind === "number"
+              ? "number"
+              : kind === "date"
+                ? "date"
+                : kind === "datetime"
+                  ? "datetime-local"
+                  : kind === "email"
+                    ? "email"
+                    : kind === "url"
+                      ? "url"
+                      : kind === "phone"
+                        ? "tel"
+                        : "text"
+          }
           value={value}
           onChange={(e) => onChange?.(e.target.value)}
         />

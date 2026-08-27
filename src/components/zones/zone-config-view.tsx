@@ -13,6 +13,8 @@ import { EntityListing, type ListingField } from "@/components/listing/entity-li
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
 import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
+import { dataTypeToUiKind } from "@/lib/catalog/layout-to-fields";
+import type { CatalogDataType } from "@/lib/fixtures/catalog";
 
 /**
  * I5.6.10 zone config UI pattern (Stephen):
@@ -162,6 +164,16 @@ function RelationsCard({
 /** I5.6.11 — zone entity tabs use shared EntityListing (parity with Users). */
 type ZoneListRow = { id: string; cells: Record<string, string> };
 
+/** J4: filter a field list by header_lines placement. role "header" keeps
+ *  header-placed + unassigned (default) fields; "list" keeps list-placed +
+ *  unassigned. Explicit opposite placement is excluded. */
+function filterByZoneRole<T extends { zoneRole?: "header" | "list" | null }>(
+  fields: T[],
+  role: "header" | "list",
+): T[] {
+  return fields.filter((f) => f.zoneRole == null || f.zoneRole === role);
+}
+
 function ListingPanel({
   panel,
   accent,
@@ -247,22 +259,20 @@ function ListingPanel({
           if (f.span === 2) spanByApi.set(f.key, 2);
         }
       }
-      return orderedApis.map((api) => {
-        const f = byApi.get(api)!;
-        return {
-          key: f.api_name,
-          label: f.label,
-          kind:
-            f.data_type === "long_text"
-              ? ("textarea" as const)
-              : f.data_type === "picklist" || f.data_type === "multipicklist"
-                ? ("select" as const)
-                : ("text" as const),
-          column: colSet.has(f.label) || colSet.has(f.api_name),
-          span: spanByApi.get(api) ?? 1,
-          required: f.is_required,
-        };
-      });
+      return orderedApis
+        .map((api) => {
+          const f = byApi.get(api)!;
+          return {
+            key: f.api_name,
+            label: f.label,
+            kind: dataTypeToUiKind(f.data_type as CatalogDataType),
+            column: colSet.has(f.label) || colSet.has(f.api_name),
+            span: spanByApi.get(api) ?? 1,
+            required: f.is_required,
+            zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
+          };
+        })
+        .filter((f) => f.zoneRole == null || f.zoneRole === "list");
     }
     const colSet = new Set(columns);
     const fromFields: ListingField[] = panel.fields.map((f) => ({
@@ -308,6 +318,29 @@ function ListingPanel({
   const [rows, setRows] = useState<ZoneListRow[]>(seedRows);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  /** J2: for header_lines, the header record id that owns the lines array. */
+  const [headerRecordId, setHeaderRecordId] = useState<string | null>(null);
+  const isHeaderLines = panel.structure === "header_lines";
+
+  const toCells = useCallback(
+    (inst: { id: string; name?: string; status?: string; data?: Record<string, string> }) => {
+      const data = (inst.data ?? {}) as Record<string, string>;
+      const cells: Record<string, string> = { ...data };
+      cells.Name = inst.name ?? data.Name ?? data.name ?? "";
+      cells.name = cells.Name;
+      cells.Status = inst.status ?? data.Status ?? data.status ?? "";
+      cells.status = cells.Status;
+      for (const f of catalogFields) {
+        if (f.api_name === "name") cells[f.api_name] = cells.Name;
+        else if (f.api_name === "status") cells[f.api_name] = cells.Status;
+        else if (cells[f.api_name] == null) {
+          cells[f.api_name] = data[f.api_name] ?? data[f.label] ?? "";
+        }
+      }
+      return cells;
+    },
+    [catalogFields],
+  );
 
   useEffect(() => {
     if (!isDynamic) {
@@ -325,30 +358,28 @@ function ListingPanel({
         return r.json();
       })
       .then((json) => {
-        const apiRows = (json.data ?? []).map((inst: { id: string; name?: string; status?: string; data?: Record<string, string> }) => {
-          const data = (inst.data ?? {}) as Record<string, string>;
-          const cells: Record<string, string> = { ...data };
-          cells.Name = inst.name ?? data.Name ?? data.name ?? "";
-          cells.name = cells.Name;
-          cells.Status = inst.status ?? data.Status ?? data.status ?? "";
-          cells.status = cells.Status;
-          for (const f of catalogFields) {
-            if (f.api_name === "name") cells[f.api_name] = cells.Name;
-            else if (f.api_name === "status") cells[f.api_name] = cells.Status;
-            else if (cells[f.api_name] == null) {
-              cells[f.api_name] = data[f.api_name] ?? data[f.label] ?? "";
-            }
-          }
-          return { id: inst.id, cells };
-        });
-        setRows(apiRows);
+        const all = (json.data ?? []) as Array<{ id: string; name?: string; status?: string; data?: Record<string, string>; lines?: Array<{ id: string; data?: Record<string, string> }> }>;
+        if (isHeaderLines) {
+          // J2: header_lines — the header record owns the lines array; never
+          // surface the header itself as a line row.
+          const header = all[0];
+          setHeaderRecordId(header?.id ?? null);
+          const lineRows: ZoneListRow[] = (header?.lines ?? []).map((ln) => ({
+            id: ln.id,
+            cells: toCells({ id: ln.id, data: ln.data ?? {} }),
+          }));
+          setRows(lineRows);
+        } else {
+          setHeaderRecordId(null);
+          setRows(all.map((inst) => ({ id: inst.id, cells: toCells(inst) })));
+        }
         setLoading(false);
       })
       .catch((e) => {
         setError(e.message);
         setLoading(false);
       });
-  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, seedRows, catalogFields]);
+  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, seedRows, catalogFields, isHeaderLines, toCells]);
 
   const validateRequired = (draft: Record<string, string>): string => {
     if (!isDynamic) return "";
@@ -367,6 +398,26 @@ function ListingPanel({
       return;
     }
     try {
+      if (isHeaderLines) {
+        // J2: remove a line from the header record's lines array.
+        if (!headerRecordId) return;
+        const nextLines = rows.filter((r) => r.id !== id).map((r) => r.cells);
+        const res = await fetch("/api/records/" + headerRecordId, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ lines: nextLines }),
+        });
+        if (!res.ok) throw new Error("Failed to delete line");
+        const json = await res.json();
+        const inst = json.data;
+        const lineRows: ZoneListRow[] = (inst.lines ?? []).map((ln: { id: string; data?: Record<string, string> }) => ({
+          id: ln.id,
+          cells: toCells({ id: ln.id, data: ln.data ?? {} }),
+        }));
+        setRows(lineRows);
+        return;
+      }
       const res = await fetch("/api/records/" + id, {
         method: "DELETE",
         credentials: "include",
@@ -395,6 +446,28 @@ function ListingPanel({
       const data: Record<string, string> = { ...draft };
       delete data.Name;
       delete data.Status;
+      if (isHeaderLines) {
+        // J2: add a line to the header record's lines array (never a new record).
+        if (!headerRecordId) {
+          alert("Save the header first, then add lines.");
+          return;
+        }
+        const res = await fetch("/api/records/" + headerRecordId, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ lines: [...rows.map((r) => r.cells), data] }),
+        });
+        if (!res.ok) throw new Error("Failed to add line");
+        const json = await res.json();
+        const inst = json.data;
+        const lineRows: ZoneListRow[] = (inst.lines ?? []).map((ln: { id: string; data?: Record<string, string> }) => ({
+          id: ln.id,
+          cells: toCells({ id: ln.id, data: ln.data ?? {} }),
+        }));
+        setRows(lineRows);
+        return;
+      }
       const res = await fetch("/api/records", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -443,6 +516,26 @@ function ListingPanel({
       const data: Record<string, string> = { ...draft };
       delete data.Name;
       delete data.Status;
+      if (isHeaderLines) {
+        // J2: update a line within the header record's lines array.
+        if (!headerRecordId) return;
+        const nextLines = rows.map((r) => (r.id === id ? data : r.cells));
+        const res = await fetch("/api/records/" + headerRecordId, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ lines: nextLines }),
+        });
+        if (!res.ok) throw new Error("Failed to update line");
+        const json = await res.json();
+        const inst = json.data;
+        const lineRows: ZoneListRow[] = (inst.lines ?? []).map((ln: { id: string; data?: Record<string, string> }) => ({
+          id: ln.id,
+          cells: toCells({ id: ln.id, data: ln.data ?? {} }),
+        }));
+        setRows(lineRows);
+        return;
+      }
       const res = await fetch("/api/records/" + id, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -597,19 +690,22 @@ function FormPanel({
               ? "select"
               : "text") as "text" | "textarea" | "select",
           required: f.is_required,
+          zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
         }))
       : panel.fields.map((f) => ({
           key: f.label,
           label: f.label,
           kind: (f.kind ?? "text") as "text" | "textarea" | "select",
           options: f.options,
+          required: undefined,
+          zoneRole: null,
         })));
     return [
       {
         id: "zone-default",
         label: panel.label || "General",
         columns: 2 as const,
-        fields,
+        fields: filterByZoneRole(fields, "header"),
       },
     ];
   }, [isDynamic, catalogFields, panel.fields, panel.label]);
@@ -620,6 +716,8 @@ function FormPanel({
     runtime.detail.length &&
     runtime.detail.some((sec) => sec.fields.length > 0)
       ? runtime.detail
+          .map((sec) => ({ ...sec, fields: filterByZoneRole(sec.fields, "header") }))
+          .filter((sec) => sec.fields.length > 0)
       : fallbackSections;
 
   const loading = fieldsLoading || (isDynamic && runtime.loading);

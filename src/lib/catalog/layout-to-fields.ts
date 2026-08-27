@@ -11,7 +11,17 @@ import {
   type LayoutDefinition,
 } from "@/lib/fixtures/catalog";
 
-export type UiFieldKind = "text" | "textarea" | "select";
+export type UiFieldKind =
+  | "text"
+  | "textarea"
+  | "select"
+  | "boolean"
+  | "number"
+  | "date"
+  | "datetime"
+  | "email"
+  | "url"
+  | "phone";
 
 export type UiListingField = {
   key: string;
@@ -25,14 +35,34 @@ export type UiListingField = {
   isSystem?: boolean;
   /** Runtime saved-layout preference; defaults to one grid column. */
   span?: 1 | 2;
+  /** J4: header_lines placement — "header" | "list" (undefined = default). */
+  zoneRole?: "header" | "list" | null;
 };
 
-function dataTypeToKind(dt: CatalogDataType): UiFieldKind {
-  if (dt === "long_text") return "textarea";
-  if (dt === "picklist" || dt === "multipicklist" || dt === "boolean") {
-    return "select";
+export function dataTypeToUiKind(dt: CatalogDataType): UiFieldKind {
+  switch (dt) {
+    case "long_text":
+      return "textarea";
+    case "picklist":
+    case "multipicklist":
+      return "select";
+    case "boolean":
+      return "boolean";
+    case "number":
+      return "number";
+    case "date":
+      return "date";
+    case "datetime":
+      return "datetime";
+    case "email":
+      return "email";
+    case "url":
+      return "url";
+    case "phone":
+      return "phone";
+    default:
+      return "text";
   }
-  return "text";
 }
 
 function optionsForField(fd: FieldDefinition): {
@@ -62,12 +92,13 @@ export function fieldDefinitionToUi(fd: FieldDefinition): UiListingField {
   return {
     key: fd.api_name,
     label: fd.label,
-    kind: dataTypeToKind(fd.data_type),
+    kind: dataTypeToUiKind(fd.data_type),
     options,
     optionLabels,
     required: fd.is_required,
     dataType: fd.data_type,
     isSystem: fd.is_system,
+    zoneRole: fd.zone_role ?? null,
   };
 }
 

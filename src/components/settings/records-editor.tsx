@@ -13,7 +13,7 @@ import { theme } from "@/lib/theme";
 type Parent = { parent_kind: string; parent_api_name: string; label: string; group?: string; baked_in_tabs: string[] };
 type SelectOption = string | { value: string; label: string; group?: string };
 type RT = { id?: string; api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string; is_system?: boolean; active?: boolean; show_as_tab?: boolean; sort_order?: number };
-type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean };
+type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean; zone_role?: "header" | "list" | null };
 type VS = { id?: string; api_name: string; label: string; description?: string; is_system?: boolean };
 type VSI = { id: string; api_value: string; label: string; sort_order: number; active: boolean };
 
@@ -25,6 +25,13 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 const DATA_TYPES = ["text", "long_text", "number", "boolean", "date", "datetime", "picklist", "multipicklist", "lookup", "email", "url", "phone"];
+
+/** J3: UI label for a structure value (API value stays header_lines). */
+function structureLabel(value: string): string {
+  if (value === "header_lines") return "Header list";
+  if (value === "header") return "Header";
+  return "List";
+}
 /* ── Sample data label prefix helper (I5.6.42 #207 C) ── */
 function formatSampleLabel(label: string, isSystem: boolean): string {
   return (isSystem ? "(fixed) " : "(db) ") + label;
@@ -351,6 +358,7 @@ export function RecordsEditor() {
           value_set_api_name: patch.value_set_api_name ?? null,
           lookup_object_api_name: patch.lookup_object_api_name ?? null,
           active: patch.active,
+          zone_role: patch.zone_role ?? null,
         }),
       });
       setStatus("Updated field " + apiName);
@@ -663,7 +671,7 @@ export function RecordsEditor() {
                     { key: "label", label: "Label", placeholder: "Name" },
                     { key: "description", label: "Description", placeholder: "Description" },
                     { key: "parent", label: "Parent", type: "custom-parent", options: parentOptions },
-                    { key: "structure", label: "Structure", type: "select", options: [{ value: "list", label: "List" }, { value: "header", label: "Header" }, { value: "header_lines", label: "Header + Lines" }] },
+                    { key: "structure", label: "Structure", type: "select", options: [{ value: "list", label: "List" }, { value: "header", label: "Header" }, { value: "header_lines", label: "Header list" }] },
                   ]}
                   accent={theme.colors.brand}
                   onSubmit={createType}
@@ -698,7 +706,7 @@ export function RecordsEditor() {
                             <td className="px-4 py-3 align-top"><StandardBadge isSystem={!!t.is_system} /></td>
                             <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{t.api_name}</td>
                             <td className="px-4 py-3 align-top text-muted-foreground">{parentLabel}</td>
-                            <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{t.structure}</Badge></td>
+                            <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{structureLabel(t.structure)}</Badge></td>
                             <td className="px-4 py-3 align-top">{t.is_system ? <span className="text-xs font-medium text-amber-600">System</span> : <span className="text-xs text-muted-foreground">—</span>}</td>
                             <td className="px-4 py-3 text-right align-top">
                               <button
@@ -750,7 +758,7 @@ export function RecordsEditor() {
                                     >
                                       <option value="list">List</option>
                                       <option value="header">Header</option>
-                                      <option value="header_lines">Header + Lines</option>
+                                      <option value="header_lines">Header list</option>
                                     </select>
                                   </div>
                                   <div className="space-y-1.5">
@@ -1025,6 +1033,7 @@ export function RecordsEditor() {
                                         lookup_object_api_name: f.lookup_object_api_name ?? null,
                                         is_required: f.is_required,
                                         active: f.active !== false,
+                                        zone_role: f.zone_role ?? null,
                                       },
                                     }));
                                   }
@@ -1092,6 +1101,26 @@ export function RecordsEditor() {
                                     />
                                     <span className="text-sm font-medium">Required</span>
                                   </label>
+                                  {(() => {
+                                    const rt = types.find((t) => t.object_api_name === objectApi);
+                                    if (!rt || rt.structure !== "header_lines") return null;
+                                    const role = draft.zone_role ?? f.zone_role ?? null;
+                                    return (
+                                      <div className="space-y-1.5">
+                                        <label className="text-xs font-medium text-muted-foreground">Placement (Header list)</label>
+                                        <select
+                                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                          value={role ?? ""}
+                                          onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], zone_role: (e.target.value || null) as "header" | "list" | null } }))}
+                                        >
+                                          <option value="">Default</option>
+                                          <option value="header">Header</option>
+                                          <option value="list">List</option>
+                                        </select>
+                                        <p className="text-[10px] italic text-muted-foreground">Header fields show on the header form; List fields show on the lines table.</p>
+                                      </div>
+                                    );
+                                  })()}
                                   <div className="space-y-1 text-sm sm:col-span-2 lg:col-span-3">
                                     <p><span className="text-muted-foreground">API name:</span> <span className="font-mono text-xs">{f.api_name}</span> (read-only)</p>
                                     <p><span className="text-muted-foreground">Data type:</span> {f.data_type} (read-only)</p>
@@ -1110,6 +1139,7 @@ export function RecordsEditor() {
                                       lookup_object_api_name: draft.lookup_object_api_name ?? f.lookup_object_api_name,
                                       is_required: draft.is_required ?? f.is_required,
                                       active: draft.active ?? f.active,
+                                      zone_role: draft.zone_role ?? f.zone_role ?? null,
                                     })}
                                     style={{ backgroundColor: theme.colors.brand }}
                                     className="text-white"
