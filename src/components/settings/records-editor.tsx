@@ -28,7 +28,7 @@ const DATA_TYPES = ["text", "long_text", "number", "boolean", "date", "datetime"
 
 /** J3: UI label for a structure value (API value stays header_lines). */
 function structureLabel(value: string): string {
-  if (value === "header_lines") return "Header list";
+  if (value === "header_lines") return "Header and list";
   if (value === "header") return "Header";
   return "List";
 }
@@ -671,7 +671,7 @@ export function RecordsEditor() {
                     { key: "label", label: "Label", placeholder: "Name" },
                     { key: "description", label: "Description", placeholder: "Description" },
                     { key: "parent", label: "Parent", type: "custom-parent", options: parentOptions },
-                    { key: "structure", label: "Structure", type: "select", options: [{ value: "list", label: "List" }, { value: "header", label: "Header" }, { value: "header_lines", label: "Header list" }] },
+                    { key: "structure", label: "Structure", type: "select", options: [{ value: "list", label: "List" }, { value: "header", label: "Header" }, { value: "header_lines", label: "Header and list" }] },
                   ]}
                   accent={theme.colors.brand}
                   onSubmit={createType}
@@ -758,7 +758,7 @@ export function RecordsEditor() {
                                     >
                                       <option value="list">List</option>
                                       <option value="header">Header</option>
-                                      <option value="header_lines">Header list</option>
+                                      <option value="header_lines">Header and list</option>
                                     </select>
                                   </div>
                                   <div className="space-y-1.5">
@@ -1107,7 +1107,7 @@ export function RecordsEditor() {
                                     const role = draft.zone_role ?? f.zone_role ?? null;
                                     return (
                                       <div className="space-y-1.5">
-                                        <label className="text-xs font-medium text-muted-foreground">Placement (Header list)</label>
+                                        <label className="text-xs font-medium text-muted-foreground">Placement (Header and list)</label>
                                         <select
                                           className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                                           value={role ?? ""}

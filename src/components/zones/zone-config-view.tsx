@@ -384,10 +384,11 @@ function ListingPanel({
   const validateRequired = (draft: Record<string, string>): string => {
     if (!isDynamic) return "";
     for (const f of catalogFields) {
-      if (f.is_required) {
-        const v = (draft[f.api_name] ?? "").trim();
-        if (!v) return f.label + " is required.";
-      }
+      if (!f.is_required) continue;
+      // K2: on header_lines, header-placed required fields must NOT block the list editor.
+      if (isHeaderLines && (f as { zone_role?: "header" | "list" | null }).zone_role === "header") continue;
+      const v = (draft[f.api_name] ?? "").trim();
+      if (!v) return f.label + " is required.";
     }
     return "";
   };
