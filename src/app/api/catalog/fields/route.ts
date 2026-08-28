@@ -101,6 +101,8 @@ export async function POST(request: Request) {
     zone_role: body.zone_role === "list" || body.zone_role === "header"
       ? body.zone_role
       : (() => { const rt = getRecordType(objectApiName); return rt && rt.structure === "header_lines" ? "header" : null; })(),
+    // O1: explicit lines-table column flag (list-zone fields).
+    show_in_column: body.show_in_column,
   });
 
   if (!result.ok) {

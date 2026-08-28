@@ -52,6 +52,8 @@ export interface FieldDefinition {
   active: boolean;
   /** J4: header_lines placement - header | list (null = default). */
   zone_role?: 'header' | 'list' | null;
+  /** O1: explicit lines-table column flag (header_lines list-zone fields). */
+  show_in_column?: boolean;
 }
 
 export interface LayoutDefinition {
@@ -1749,6 +1751,8 @@ export interface ExtendFieldInput {
   value_set_api_name?: string | null;
   lookup_object_api_name?: string | null;
   zone_role?: "header" | "list" | null;
+  /** O1: explicit lines-table column flag for list-zone fields. */
+  show_in_column?: boolean;
 }
 
 export type ExtendFieldResult =
@@ -1850,6 +1854,7 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
     lookup_object_api_name: input.lookup_object_api_name ?? null,
     sort_order: nextOrder,
     zone_role: input.zone_role ?? null,
+    show_in_column: input.show_in_column,
     active: true,
   };
   mutableFieldDefinitions.push(field);
@@ -1862,7 +1867,8 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
 
 export type UpdateFieldInput = Partial<Pick<FieldDefinition,
   'label' | 'is_required' | 'default_value' | 'value_set_api_name' |
-  'lookup_object_api_name' | 'sort_order' | 'active' | 'zone_role'
+  'lookup_object_api_name' | 'sort_order' | 'active' | 'zone_role' |
+  'show_in_column'
 >>;
 
 export type FieldMutationResult =

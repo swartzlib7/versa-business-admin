@@ -196,6 +196,8 @@ function ListingPanel({
     value_set_api_name?: string | null;
     active?: boolean;
     is_required?: boolean;
+    zone_role?: "header" | "list" | null;
+    show_in_column?: boolean;
   };
 
   const isDynamic = !!panel.recordTypeApiName;
@@ -239,13 +241,23 @@ function ListingPanel({
 
   const columns = useMemo(() => {
     if (isDynamic && catalogFields.length > 0) {
+      // O1: explicit per-field column control. A list-zone field is a column
+      // only when show_in_column is true (explicit, not first-only). Header
+      // fields never appear as lines-table columns. Non-header_lines types
+      // keep the legacy first-four behavior.
+      const isHeaderLines = panel.structure === "header_lines";
+      if (isHeaderLines) {
+        return catalogFields
+          .filter((f) => f.zone_role === "list" && f.show_in_column === true)
+          .map((f) => f.label);
+      }
       return catalogFields.slice(0, 4).map((f) => f.label);
     }
     if (panel.listColumns && panel.listColumns.length > 0) {
       return panel.listColumns;
     }
     return panel.fields.slice(0, 4).map((f) => f.label);
-  }, [isDynamic, catalogFields, panel.listColumns, panel.fields]);
+  }, [isDynamic, catalogFields, panel.listColumns, panel.fields, panel.structure]);
 
   const fields: ListingField[] = useMemo(() => {
     if (isDynamic && catalogFields.length > 0) {
@@ -669,6 +681,31 @@ function FormPanel({
     return () => controller.abort();
   }, [isDynamic, panel.recordTypeApiName]);
 
+  // O2: built-in config tabs persist edits to localStorage (view/edit/save-cancel).
+  const configStorageKey = `mc.config.${panel.id}`;
+  useEffect(() => {
+    if (isDynamic) return;
+    try {
+      const raw = localStorage.getItem(configStorageKey);
+      if (raw) {
+        const saved = JSON.parse(raw) as Record<string, string>;
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate built-in config from localStorage once
+        setValues(saved);
+        setSavedValues(saved);
+      } else {
+        const seed: Record<string, string> = {};
+        for (const f of panel.fields) seed[f.label] = "";
+        setValues(seed);
+        setSavedValues(seed);
+      }
+    } catch {
+      const seed: Record<string, string> = {};
+      for (const f of panel.fields) seed[f.label] = "";
+      setValues(seed);
+      setSavedValues(seed);
+    }
+  }, [isDynamic, configStorageKey, panel.fields]);
+
   // I2: load existing header instance (single record per parent+type) if present.
   useEffect(() => {
     if (!isDynamic || !panel.recordTypeApiName) {
@@ -759,7 +796,18 @@ function FormPanel({
   };
 
   const onSave = async () => {
-    if (!isDynamic) return;
+    if (!isDynamic) {
+      // O2: built-in config tabs persist to localStorage.
+      try {
+        localStorage.setItem(configStorageKey, JSON.stringify(values));
+      } catch {
+        /* ignore quota/security errors */
+      }
+      setSavedValues(values);
+      setEditing(false);
+      setSaveStatus("Saved");
+      return;
+    }
     const requiredError = validateRequired();
     if (requiredError) {
       setSaveError(requiredError);
@@ -840,54 +888,52 @@ function FormPanel({
               readOnly={!editing}
               accent={accent}
             />
-            {isDynamic && (
-              <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
-                {!editing ? (
+            <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
+              {!editing ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSavedValues(values);
+                    setEditing(true);
+                  }}
+                  className="rounded-md px-4 py-2 text-sm font-medium text-white"
+                  style={{ backgroundColor: accent }}
+                >
+                  {isDynamic ? (instanceId ? "Edit" : "Create") : "Edit"}
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void onSave()}
+                    disabled={saving}
+                    className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+                    style={{ backgroundColor: accent }}
+                  >
+                    {saving ? "Saving..." : isDynamic ? (instanceId ? "Save changes" : "Save") : "Save changes"}
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
-                      setSavedValues(values);
-                      setEditing(true);
+                      setValues(savedValues);
+                      setSaveError("");
+                      setSaveStatus("");
+                      setEditing(false);
                     }}
-                    className="rounded-md px-4 py-2 text-sm font-medium text-white"
-                    style={{ backgroundColor: accent }}
+                    disabled={saving}
+                    className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
                   >
-                    {instanceId ? "Edit" : "Create"}
+                    Cancel
                   </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => void onSave()}
-                      disabled={saving}
-                      className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-                      style={{ backgroundColor: accent }}
-                    >
-                      {saving ? "Saving..." : instanceId ? "Save changes" : "Save"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setValues(savedValues);
-                        setSaveError("");
-                        setSaveStatus("");
-                        setEditing(false);
-                      }}
-                      disabled={saving}
-                      className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted"
-                    >
-                      Cancel
-                    </button>
-                  </>
-                )}
-                {saveStatus && (
-                  <span className="text-sm text-emerald-600">{saveStatus}</span>
-                )}
-                {saveError && (
-                  <span className="text-sm text-destructive">{saveError}</span>
-                )}
-              </div>
-            )}
+                </>
+              )}
+              {saveStatus && (
+                <span className="text-sm text-emerald-600">{saveStatus}</span>
+              )}
+              {saveError && (
+                <span className="text-sm text-destructive">{saveError}</span>
+              )}
+            </div>
           </>
         )}
       </CardContent>

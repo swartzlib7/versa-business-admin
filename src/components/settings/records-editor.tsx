@@ -13,7 +13,7 @@ import { theme } from "@/lib/theme";
 type Parent = { parent_kind: string; parent_api_name: string; label: string; group?: string; baked_in_tabs: string[] };
 type SelectOption = string | { value: string; label: string; group?: string };
 type RT = { id?: string; api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string; is_system?: boolean; active?: boolean; show_as_tab?: boolean; sort_order?: number };
-type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean; zone_role?: "header" | "list" | null };
+type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean; zone_role?: "header" | "list" | null; show_in_column?: boolean };
 type VS = { id?: string; api_name: string; label: string; description?: string; is_system?: boolean };
 type VSI = { id: string; api_value: string; label: string; sort_order: number; active: boolean };
 
@@ -63,7 +63,7 @@ function RecordIdDisplay({ id }: { id?: string }) {
 
 /* ── Inline create form ── */
 function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel, initialValues }: {
-  fields: { key: string; label: string; type?: "text" | "select" | "textarea" | "custom-parent"; options?: SelectOption[]; placeholder?: string }[];
+  fields: { key: string; label: string; type?: "text" | "select" | "textarea" | "custom-parent" | "checkbox"; options?: SelectOption[]; placeholder?: string; showWhen?: (vals: Record<string, string>) => boolean }[];
   accent: string;
   onSubmit: (vals: Record<string, string>) => void;
   onCancel: () => void;
@@ -76,7 +76,22 @@ function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel, ini
     <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${accent}` }}>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {fields.map((f) => {
+          if (f.showWhen && !f.showWhen(vals)) return null;
           const v = vals[f.key] ?? "";
+          if (f.type === "checkbox") {
+            const checked = v === "true" || v === "on";
+            return (
+              <label key={f.key} className="flex items-center gap-2 self-end pb-2">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-input accent-[var(--primary)]"
+                  checked={checked}
+                  onChange={(e) => setVals((s) => ({ ...s, [f.key]: e.target.checked ? "true" : "" }))}
+                />
+                <span className="text-sm font-medium">{f.label}</span>
+              </label>
+            );
+          }
           if (f.type === "select") {
             return (
               <label key={f.key} className="flex flex-col gap-1.5">
@@ -342,6 +357,7 @@ export function RecordsEditor() {
           value_set_api_name: vals.value_set_api_name || null,
           lookup_object_api_name: vals.lookup_object_api_name || null,
           zone_role: vals.zone_role || null,
+          show_in_column: vals.show_in_column === "true" || vals.show_in_column === "on",
         }),
       });
       setStatus("Added field " + vals.api_name);
@@ -367,6 +383,7 @@ export function RecordsEditor() {
           lookup_object_api_name: patch.lookup_object_api_name ?? null,
           active: patch.active,
           zone_role: patch.zone_role ?? null,
+          show_in_column: patch.show_in_column,
         }),
       });
       setStatus("Updated field " + apiName);
@@ -987,7 +1004,10 @@ export function RecordsEditor() {
                     { key: "type", label: "Record type", type: "select", options: types.map((t) => t.api_name) },
                     { key: "data_type", label: "Data type", type: "select", options: DATA_TYPES },
                     ...(selectedTypeForFields && types.find((t) => t.api_name === selectedTypeForFields)?.structure === "header_lines"
-                      ? [{ key: "zone_role", label: "Placement", type: "select" as const, options: [{ value: "header", label: "Header" }, { value: "list", label: "Lines" }] }]
+                      ? [
+                          { key: "zone_role", label: "Placement", type: "select" as const, options: [{ value: "header", label: "Header" }, { value: "list", label: "Lines" }] },
+                          { key: "show_in_column", label: "Show as column in lines table", type: "checkbox" as const, showWhen: (vals: Record<string, string>) => vals.zone_role === "list" },
+                        ]
                       : []),
                     { key: "value_set_api_name", label: "Value set (picklist)", type: "select", options: valueSets.map((v) => v.api_name) },
                     { key: "lookup_object_api_name", label: "Lookup object", type: "select", options: types.map((t) => t.object_api_name) },
@@ -1047,6 +1067,7 @@ export function RecordsEditor() {
                                         is_required: f.is_required,
                                         active: f.active !== false,
                                         zone_role: f.zone_role ?? null,
+                                        show_in_column: f.show_in_column,
                                       },
                                     }));
                                   }
@@ -1130,6 +1151,16 @@ export function RecordsEditor() {
                                           <option value="list">Lines</option>
                                         </select>
                                         <p className="text-[10px] italic text-muted-foreground">Header fields show on the header form; Lines fields show on the lines table.</p>
+                                        {role === "list" && (
+                                          <label className="flex items-center gap-2 pt-1">
+                                            <input
+                                              type="checkbox"
+                                              checked={draft.show_in_column ?? f.show_in_column ?? false}
+                                              onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], show_in_column: e.target.checked } }))}
+                                            />
+                                            <span className="text-sm font-medium">Show as column in lines table</span>
+                                          </label>
+                                        )}
                                       </div>
                                     );
                                   })()}
@@ -1152,6 +1183,7 @@ export function RecordsEditor() {
                                       is_required: draft.is_required ?? f.is_required,
                                       active: draft.active ?? f.active,
                                       zone_role: draft.zone_role ?? f.zone_role ?? null,
+                                      show_in_column: draft.show_in_column ?? f.show_in_column ?? false,
                                     })}
                                     style={{ backgroundColor: theme.colors.brand }}
                                     className="text-white"

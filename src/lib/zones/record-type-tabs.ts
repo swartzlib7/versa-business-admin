@@ -54,7 +54,17 @@ export function applyRecordTypesToTab(
   const baked = (tab.children ?? []).filter((c) => BAKED_IN_CHILD_IDS.has(c.id));
   const dynamicChildren: ZoneTab[] = types.map((t) => {
     const fieldDefs = listFieldDefinitions(t.object_api_name);
-    const listColumns = fieldDefs.slice(0, 4).map((f) => f.label);
+    // O1: header_lines types show only list-zone fields explicitly flagged as
+    // columns (show_in_column). Other structures keep the legacy first-four.
+    const columnDefs =
+      t.structure === "header_lines"
+        ? fieldDefs.filter(
+            (f) =>
+              (f as { zone_role?: "header" | "list" | null }).zone_role === "list" &&
+              (f as { show_in_column?: boolean }).show_in_column === true,
+          )
+        : fieldDefs.slice(0, 4);
+    const listColumns = (columnDefs.length ? columnDefs : fieldDefs.slice(0, 4)).map((f) => f.label);
     const fields = fieldsFromCatalog(t.object_api_name);
 
     // Fetch instance data for this type + parent (32c.5)
