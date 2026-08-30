@@ -154,7 +154,7 @@ Applied to:
 | RE-UX-4 | Picklists: New + table + expand options visible | RE-UX-1 | web-dev | PU | planned | #205 |
 | RE-UX-5 | Glossary: blue accent + left align + tab label-only | RE-UX-0 | web-dev | PU | planned | #205 |
 | RE-UX-6 | Gate 2 COA + Gate 3 Stephen on :3200 | RE-UX-1..5 | COA | PU | planned | #205 |
-| RUNTIME-1 | User runtime saved edit/detail layouts plus catalog fallback | Slice 3 Layout Editor | web-dev tsc/build | COA Gate 2, PU Gate 3 | Gate 1 complete | #230 |
+| RUNTIME-1 | User runtime saved edit/detail layouts plus catalog fallback | Slice 3 Layout Editor | web-dev tsc/build | COA Gate 2, PU Gate 3 | DELIVERED-BY-PRIOR-WORK (83622af + fde68b3 N1); #230 cancelled 2026-08-30 | #230 |
 
 ## 5. Results Feedback
 | Date | Result |
@@ -206,6 +206,7 @@ Applied to:
 - Targeted ESLint is blocked by two pre-existing `react-hooks/set-state-in-effect` errors in Records Editor's existing load effects; the changed zone/runtime files lint clean apart from that inherited file-level result.
 
 ## 6. Change Log
+| 2026-08-30 | I5.6.32 Slice 4 #230 CANCELLED as delivered-by-prior-work: users/[id]/page.tsx drives edit AND detail via useSavedRuntimeLayouts(user) to LayoutDrivenForm sections (83622af wiring + fde68b3 N1 runtime.edit), catalog defaults as fallback, save explicitly mock - matches WBS RUNTIME-1. Residual RUNTIME-1 requirement check: none found - ordering, visibility, columns, span, edit/detail separation, and catalog fallback all covered by prior work. Task closed by COA. |
 | 2026-08-05 | I5.6.32 #233 bounded Parent-picker follow-up: New Record Type Parent uses clean individual labels with native non-selectable Organization, Collaboration, and Environment headings. Stored `kind:api` values plus prefill/filter/create behavior remain unchanged. |
 | 2026-08-03 | I5.6.32 Slice 4 #230 corrective pass: Layout Editor now clears prior state on object/mode changes, remounts each selection from its saved config or catalog default, and ignores aborted/superseded async fetch responses. Focused ESLint and TypeScript validation clean; Gate 2 re-review requested. |
 | 2026-08-03 | I5.6.32 Slice 4 #230: Layout Editor now selects and persists separate edit/detail configurations; User detail/edit consumes saved User layouts at runtime and safely falls back to catalog defaults. Saved layout sections honor ordering, visibility, columns, and field span. User writes remain mock/session-local. tsc clean. |
