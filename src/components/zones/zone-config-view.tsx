@@ -1202,13 +1202,12 @@ function TabPanel({
   // N2: header record id lifted here so a header saved in FormPanel (same
   // session) is immediately visible to ListingPanel without a full refresh.
   const [headerRecordId, setHeaderRecordId] = useState<string | null>(null);
-  // #185 Slice A (rev E section 7.3): list-to-detail for the 4 corrected
-  // header_lines types (policy keeps its direct header+lines rendering per
-  // COA ruling D3). null = list view (instance list); set = detail view.
-  const isListToDetail =
-    isHeaderLines &&
-    panel.recordTypeApiName != null &&
-    panel.recordTypeApiName !== "executive_policy";
+  // #185 Slice A (rev E section 7.3): list-to-detail for header_lines types.
+  // #247 Slice B (Gate 3 amendment, 2026-08-31): the shape rule is UNIVERSAL -
+  // no header/config forms anywhere; policy renders list-to-detail exactly
+  // like projects/tasks (COA ruling D3 superseded). null = list view
+  // (instance list); set = detail view.
+  const isListToDetail = isHeaderLines && panel.recordTypeApiName != null;
   const [detailRecordId, setDetailRecordId] = useState<string | null>(null);
   const detailPanel = useMemo(
     () => (detailRecordId ? { ...panel, id: panel.id + "-detail" } : panel),

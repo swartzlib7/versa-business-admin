@@ -1,4 +1,5 @@
 // #185 Slice A sanity — rev E §7.2/§7.3/§4.2 fixture-level assertions
+import { readFileSync } from 'fs';
 import { recordTypes } from '../src/lib/fixtures/record-types';
 import { listFieldDefinitions } from '../src/lib/fixtures/catalog';
 import {
@@ -103,6 +104,16 @@ for (const c of kids) byId[c.id] = c.structure;
 ok(byId['policy'] === 'header_lines', 'wired policy header_lines');
 ok(byId['projects'] === 'header_lines', 'wired projects header_lines');
 ok(byId['tasks'] === 'header_lines', 'wired tasks header_lines');
+
+// 5. #247 Slice B (Gate 3 amendment): policy renders list-to-detail like the
+// other header_lines types - no executive_policy exclusion remains.
+const zcv = readFileSync('src/components/zones/zone-config-view.tsx', 'utf8');
+ok(!zcv.includes('panel.recordTypeApiName !== "executive_policy"'), 'policy exclusion removed from isListToDetail');
+ok(zcv.includes('const isListToDetail = isHeaderLines && panel.recordTypeApiName != null;'), 'list-to-detail gate universal for header_lines');
+ok(zcv.includes('#247 Slice B'), 'Slice B marker present in zone-config-view');
+ok(struct['executive_policy'] === 'header_lines', 'policy still header_lines (rendering precondition)');
+const policyListFields = listFieldDefinitions('executive_policy').filter((f) => (f as { zone_role?: string }).zone_role === 'list');
+ok(policyListFields.length >= 2, 'policy line fields still seeded for detail lines panel');
 
 console.log('SANITY: ' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail > 0 ? 1 : 0);

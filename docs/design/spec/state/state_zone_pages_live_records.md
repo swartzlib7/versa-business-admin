@@ -94,6 +94,7 @@ All other zone surfaces (Public, Communications, Dissemination, Treasury, Qualif
 | 2026-08-30 | Gate 1 discovery plan delivered: mock-vs-live map, Option A proposal (seed 6 system types + wire baked tabs), risks. Awaiting COA lock. |
 | 2026-08-30 | COA review PASS with 2 amendments; implementation slice LOCKED and delivered: 6 system types seeded (record-types.ts), 24 fields seeded (catalog.ts facultyRecordFieldSeed, 7 value sets), baked tabs wired via BAKED_TAB_SYSTEM_TYPES in record-type-tabs.ts (structure carried; wiring runs before show_as_tab early return), sampleRows removed from the 6 baked children. Amendment 1 doc fix + 8-parent residual added to Out of scope; Amendment 2 no-seed-instances recorded. |
 | 2026-08-31 | I5.6.33 Slice A (rev E §7.2/§7.3/§4.2) delivered on top of #218 — see §5. |
+| 2026-08-31 | I5.6.33 Slice B (Gate 3 amendment) — universal shape rule: policy renders list→detail, ruling D3 superseded — see §6. |
 
 ## 5. I5.6.33 Slice A — rev E structure corrections + list→detail (2026-08-31)
 
@@ -136,5 +137,34 @@ wiring). Single Gate 1 commit on agent/web-dev re-based on d4659b7.
 ### 5.3 Out of scope (unchanged)
 
 vendor_integration → vendor lines migration (C3 slice); multi-group lines UI (Horizon 1
-record_line persistence); policy rendering unification (Stephen's Gate 3 call); 8 parent
-tabs wiring (next zone-pages slice).
+record_line persistence); 8 parent tabs wiring (next zone-pages slices C–G). Policy rendering unification was resolved by the Gate 3 amendment — delivered in Slice B (§6).
+
+## 6. I5.6.33 Slice B — policy list→detail (Gate 3 amendment, 2026-08-31)
+
+The Stephen Gate 3 verdict: the shape rule is UNIVERSAL — no header forms or config forms
+anywhere. Every tab renders as a list of records, each record with optional lines. Policy
+renders exactly like projects/tasks (list→detail). This supersedes COA ruling D3
+(policy keeps its current direct header+lines rendering).
+
+### 6.1 Delivered
+
+Rendering-only change in zone-config-view.tsx: the isListToDetail gate no longer
+excludes executive_policy. executive_policy was already header_lines in the seed
+(#218) with its baked policy tab wired to the system type, so removing the exclusion
+puts policy on the identical list→detail path as projects/tasks/product/service:
+instance list (header fields as columns, record-level Add/Edit/Delete) → row click opens
+detail = header FormPanel editing that record by id + lines ListingPanel bound to it +
+Back control. No fixture, catalog, or API changes. The policy lines group stays the
+legacy default group (line_title/line_notes prefix line_ maps to the default group),
+consistent with the Slice A derivation rule.
+
+### 6.2 Validation
+
+tsc --noEmit clean; npm run build clean; eslint no new errors; 43-assertion tsx fixture
+sanity pass (Slice A suite + policy list→detail gate assertions). Single Gate 1 commit on
+agent/web-dev re-based on beta d098a66.
+
+### 6.3 Out of scope (unchanged)
+
+vendor_integration → vendor lines migration (C3 slice); multi-group lines UI (Horizon 1
+record_line persistence); 8 parent tabs wiring (next zone-pages slices C–G).
