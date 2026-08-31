@@ -403,9 +403,21 @@ Locked decisions:
   + element_config.
 - 40-hint cross-element matrix: **HELD by Stephen** (returns after these changes settle).
 
-Resume order (web-dev, #185): structure corrections first (executive_project/task,
-production_product/service list→header_lines with list→detail views), then new system-type seed
-(communication_message + message_type VS, communication_report, communication_staff,
-dissemination_sales, dissemination_promotion_marketing, treasury_transaction + income/disbursement
-VS, treasury_records_assets_materiel, qualification_examination/review/certifications_awards,
-contact). Gate flow: Gate 1 commit → Gate 2 COA review → beta FF + :3200 → Stephen Gate 3 brief.
+Slice progress (web-dev, #185/#246, rev E locked):
+- **Slice A DONE** (285c139, Gate 2 PASS): structure corrections executive_project/task,
+  production_product/service list→header_lines + list→detail views; rev E §4.2 line fields.
+- **Slice B DONE** (0e8dda3, Gate 3 amendment): policy renders list-to-detail like all
+  header_lines types (COA ruling D3 superseded the executive_policy exclusion).
+- **Slice C DONE** (#246, 2026-08-31): 15 new system types seeded (all structure=list) +
+  fields for all 15 objects; value sets message_type, treasury_transaction_classification
+  (income|disbursement), contact_kind (staff|public — flagged decision F1, from the rev D
+  Distribution note); baked listing children wired for Communications (messages/reports/staff),
+  Dissemination (sales/promotion-marketing), Treasury (transactions/records-assets-materiel),
+  Qualifications (examinations/reviews/certifications-awards), Distribution (contacts);
+  environment element tabs (locations/events/knowledge/schedules) wire at element level
+  (§7.6 — the tab itself carries the dynamic path; selfPanel keeps it on the self panel);
+  Public renamed to Distribution (rev D; tab id stays `public` per C8). vendor_integration
+  stays seeded+wired per D1 until Slice F cutover. Sanity: 166 assertions pass.
+- **NEXT Slice D** (#248): organizations extension (is_person/org_type/parent_organization_id)
+  + collaboration rendering by org_type + default org (§4.3/§2.7, C5/C6).
+Gate flow per slice: Gate 1 commit → Gate 2 COA review → beta FF + :3200 → Stephen Gate 3 brief.

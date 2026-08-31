@@ -128,8 +128,11 @@ export const organizationZone: ZoneConfig = {
     },
     {
       id: "public",
-      label: "Public",
-      summary: "Public-facing faculty - Configuration. Named record tabs come from Settings - Records Editor.",
+      // Rev D (2026-08-31): Public renamed to Distribution - centralized
+      // contacts; staff-type contacts belong to an organization, public-type
+      // do not. Tab id stays "public" (api_name namespace stability, C8).
+      label: "Distribution",
+      summary: "Distribution - centralized contacts (renamed from Public). Configuration. Named record tabs come from Settings - Records Editor.",
       // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Public" },
@@ -145,7 +148,60 @@ export const organizationZone: ZoneConfig = {
         { zone: "Collaboration", label: "Audience parties", hint: "Customers and partners who see the public face." },
         { zone: "Environment", label: "Public knowledge", hint: "Published materials and brand assets." },
       ],
-      children: [],
+
+      children: [
+        {
+          id: "messages",
+          label: "Messages",
+          summary: "Messages sent and received across channels, typed by message type.",
+          presentation: "listing",
+          listColumns: ["Message subject", "Message type", "Status"],
+          fields: [
+            { label: "Message subject", placeholder: "Subject" },
+            { label: "Message type", placeholder: "Select type", kind: "select", options: getVsOptions("message_type") },
+            { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Collaboration", label: "Audiences", hint: "Customers, partners, vendors as message targets." },
+            { zone: "Environment", label: "Campaign knowledge", hint: "Templates and brand assets in Knowledge." },
+          ],
+        },
+        {
+          id: "reports",
+          label: "Reports",
+          summary: "Operational and status reports produced by Communications.",
+          presentation: "listing",
+          listColumns: ["Report title", "Status"],
+          fields: [
+            { label: "Report title", placeholder: "Report name" },
+            { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
+            { label: "Summary", placeholder: "Intent and findings...", kind: "textarea" },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Executive", hint: "Reporting line to the executive function." },
+            { zone: "Collaboration", label: "Audiences", hint: "Report recipients among parties." },
+          ],
+        },
+        {
+          id: "staff",
+          label: "Staff",
+          summary: "Communications staff assignments and contacts.",
+          presentation: "listing",
+          listColumns: ["Staff member", "Role", "Status"],
+          fields: [
+            { label: "Staff member", placeholder: "Name" },
+            { label: "Role", placeholder: "Role or title" },
+            { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Distribution", hint: "Staff-type contacts centralize under Distribution." },
+            { zone: "Collaboration", label: "Parties", hint: "Staff liaisons to parties." },
+          ],
+        },
+      ],
     },
     {
       id: "communications",
@@ -161,7 +217,43 @@ export const organizationZone: ZoneConfig = {
         { zone: "Collaboration", label: "Audiences", hint: "Customers, partners, vendors as message targets." },
         { zone: "Environment", label: "Campaign knowledge", hint: "Templates and brand assets in Knowledge." },
       ],
-      children: [],
+
+      children: [
+        {
+          id: "sales",
+          label: "Sales",
+          summary: "Sales materials and publications for dissemination channels.",
+          presentation: "listing",
+          listColumns: ["Sales item", "Status"],
+          fields: [
+            { label: "Sales item", placeholder: "Item name" },
+            { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
+            { label: "Description", placeholder: "...", kind: "textarea" },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Products", hint: "What Production owns is disseminated here." },
+            { zone: "Collaboration", label: "Distribution partners", hint: "Partner and vendor channels." },
+          ],
+        },
+        {
+          id: "promotion-marketing",
+          label: "Promotion & Marketing",
+          summary: "Promotion and marketing campaigns and assets (campaigns fold under this type per C7).",
+          presentation: "listing",
+          listColumns: ["Campaign name", "Status"],
+          fields: [
+            { label: "Campaign name", placeholder: "Campaign or asset name" },
+            { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
+            { label: "Description", placeholder: "...", kind: "textarea" },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Products", hint: "Promoted products and services." },
+            { zone: "Environment", label: "Knowledge", hint: "Brand assets and templates." },
+          ],
+        },
+      ],
     },
     {
       id: "dissemination",
@@ -177,7 +269,44 @@ export const organizationZone: ZoneConfig = {
         { zone: "Organization", label: "Products", hint: "What Production owns is disseminated here." },
         { zone: "Collaboration", label: "Distribution partners", hint: "Partner and vendor channels." },
       ],
-      children: [],
+
+      children: [
+        {
+          id: "transactions",
+          label: "Transactions",
+          summary: "Treasury transactions classified as income or disbursement.",
+          presentation: "listing",
+          listColumns: ["Transaction", "Classification", "Amount", "Status"],
+          fields: [
+            { label: "Transaction", placeholder: "Transaction name" },
+            { label: "Classification", placeholder: "Income or disbursement", kind: "select", options: getVsOptions("treasury_transaction_classification") },
+            { label: "Amount", placeholder: "0.00" },
+            { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Collaboration", label: "Billing parties", hint: "Customers and vendors for AR/AP." },
+            { zone: "Organization", label: "Priced offerings", hint: "Product and service rate cards under Production." },
+          ],
+        },
+        {
+          id: "records-assets-materiel",
+          label: "Records, Assets and Materiel",
+          summary: "Records, assets and materiel entries for Treasury (single RAM type, spelling per Stephen).",
+          presentation: "listing",
+          listColumns: ["Item", "Status"],
+          fields: [
+            { label: "Item", placeholder: "Item name" },
+            { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
+            { label: "Description", placeholder: "...", kind: "textarea" },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Treasury", hint: "Records, assets and materiel owned by Treasury." },
+            { zone: "Environment", label: "Locations", hint: "Where assets and materiel are held." },
+          ],
+        },
+      ],
     },
     {
       id: "treasury",
@@ -194,7 +323,57 @@ export const organizationZone: ZoneConfig = {
         { zone: "Collaboration", label: "Billing parties", hint: "Customers and vendors for AR/AP." },
         { zone: "Organization", label: "Priced offerings", hint: "Product and service rate cards under Production." },
       ],
-      children: [],
+
+      children: [
+        {
+          id: "examinations",
+          label: "Examinations",
+          summary: "Examinations administered by Qualifications.",
+          presentation: "listing",
+          listColumns: ["Examination", "Status"],
+          fields: [
+            { label: "Examination", placeholder: "Examination name" },
+            { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Certifications & Awards", hint: "Pass routes to certifications and awards." },
+            { zone: "Organization", label: "Reviews", hint: "Issues route to review." },
+          ],
+        },
+        {
+          id: "reviews",
+          label: "Reviews",
+          summary: "Reviews raised when examinations do not pass.",
+          presentation: "listing",
+          listColumns: ["Review", "Status"],
+          fields: [
+            { label: "Review", placeholder: "Review name" },
+            { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Examinations", hint: "Review of a failed examination." },
+            { zone: "Organization", label: "Certifications & Awards", hint: "Outcome after remediation." },
+          ],
+        },
+        {
+          id: "certifications-awards",
+          label: "Certifications & Awards",
+          summary: "Certifications and awards issued on examination pass.",
+          presentation: "listing",
+          listColumns: ["Certification or award", "Status"],
+          fields: [
+            { label: "Certification or award", placeholder: "Name" },
+            { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Examinations", hint: "Granted on examination pass." },
+            { zone: "Collaboration", label: "Parties", hint: "Awards involving external parties." },
+          ],
+        },
+      ],
     },
     {
       id: "production",
@@ -281,7 +460,28 @@ export const organizationZone: ZoneConfig = {
         { zone: "Environment", label: "Policies & knowledge", hint: "Standards documentation." },
         { zone: "Collaboration", label: "Auditors / partners", hint: "External qualification parties." },
       ],
-      children: [],
+
+      children: [
+        {
+          id: "contacts",
+          label: "Contacts",
+          summary: "Contact records centralized under Distribution; staff-type contacts belong to an organization, public-type do not.",
+          presentation: "listing",
+          listColumns: ["Contact name", "Contact kind", "Email"],
+          fields: [
+            { label: "Contact name", placeholder: "Full name" },
+            { label: "Contact kind", placeholder: "Staff or public", kind: "select", options: getVsOptions("contact_kind") },
+            { label: "Email", placeholder: "name@example.com" },
+            { label: "Phone", placeholder: "+1 555 000 0000" },
+            { label: "Organization", placeholder: "Organization for staff-type contacts" },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Organization", label: "Divisions", hint: "Staff-type contacts belong to an organization." },
+            { zone: "Collaboration", label: "Parties", hint: "Public-type contacts stand alone." },
+          ],
+        },
+      ],
     },
   ],
 };

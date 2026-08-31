@@ -13,6 +13,20 @@ const BAKED_IN_CHILD_IDS = new Set([
   "product",
   "service",
   "integrations",
+  // #246 Slice C (rev E section 3/7.4, 2026-08-31): baked listing children for
+  // the new system-type divisions (Communications, Dissemination, Treasury,
+  // Qualifications, Distribution).
+  "messages",
+  "reports",
+  "staff",
+  "sales",
+  "promotion-marketing",
+  "transactions",
+  "records-assets-materiel",
+  "examinations",
+  "reviews",
+  "certifications-awards",
+  "contacts",
 ]);
 
 // #218 Zone Pages Live Dynamic Records (COA-locked slice, 2026-08-30):
@@ -26,6 +40,30 @@ const BAKED_TAB_SYSTEM_TYPES: Record<string, string> = {
   product: "production_product",
   service: "production_service",
   integrations: "vendor_integration",
+  // #246 Slice C (rev E section 3/7.4): new division children. All structure
+  // =list; vendor_integration stays seeded+wired per D1 until Slice F cutover.
+  messages: "communication_message",
+  reports: "communication_report",
+  staff: "communication_staff",
+  sales: "dissemination_sales",
+  "promotion-marketing": "dissemination_promotion_marketing",
+  transactions: "treasury_transaction",
+  "records-assets-materiel": "treasury_records_assets_materiel",
+  examinations: "qualification_examination",
+  reviews: "qualification_review",
+  "certifications-awards": "qualification_certifications_awards",
+  contacts: "contact",
+};
+
+// #246 Slice C (rev E section 7.6): environment element tabs ARE record lists
+// (Locations, Events, Knowledge, Schedules stay list-structure per rev A
+// section 4.4). The tab itself wires to its system type so the live listing
+// renders on the element tab instead of a static Configuration form.
+const BAKED_ELEMENT_TAB_SYSTEM_TYPES: Record<string, string> = {
+  locations: "location",
+  events: "event",
+  knowledge: "knowledge",
+  schedules: "schedule",
 };
 
 export type ZoneRecordType = {
@@ -96,20 +134,47 @@ export function applyRecordTypesToTab(
   parentKind: "faculty" | "collaboration" | "environment",
   recordTypes: ZoneRecordType[],
 ): ZoneTab {
+  // #246 Slice C (rev E section 7.6): element-level wiring for environment
+  // lists. When the element tab's system type exists and is active, the tab
+  // itself carries the dynamic-path props (the live listing renders on the
+  // element tab; TabPanel keeps those props on the self-panel).
+  const elementApiName = BAKED_ELEMENT_TAB_SYSTEM_TYPES[tab.id];
+  let wiredTab = tab;
+  if (elementApiName && parentKind === "environment") {
+    const elementType = recordTypes.find(
+      (t) =>
+        t.api_name === elementApiName &&
+        t.active &&
+        t.parent_kind === parentKind &&
+        t.parent_api_name === tab.id,
+    );
+    if (elementType) {
+      wiredTab = {
+        ...tab,
+        structure: elementType.structure,
+        recordTypeApiName: elementType.api_name,
+        objectApiName: elementType.object_api_name,
+        parentKind,
+        parentApiName: tab.id,
+        sampleRows: undefined,
+      };
+    }
+  }
+
   const types = recordTypes.filter((t) => t.parent_kind === parentKind && t.parent_api_name === tab.id && t.active && t.show_as_tab);
 
   // #218: baked children wire to system types even when the parent has no
   // show_as_tab types (system types are show_as_tab=false by design), so the
   // wiring runs before the dynamic-tabs early return.
-  const wiredChildren = (tab.children ?? []).map((c) =>
+  const wiredChildren = (wiredTab.children ?? []).map((c) =>
     BAKED_IN_CHILD_IDS.has(c.id)
       ? wireBakedChildToSystemType(c, tab.id, parentKind, recordTypes)
       : c,
   );
 
   if (!types.length) {
-    if (tab.children?.length) return { ...tab, children: wiredChildren };
-    return tab;
+    if (wiredTab.children?.length) return { ...wiredTab, children: wiredChildren };
+    return wiredTab;
   }
 
   const baked = wiredChildren.filter((c) => BAKED_IN_CHILD_IDS.has(c.id));
@@ -174,7 +239,7 @@ export function applyRecordTypesToTab(
   });
 
   return {
-    ...tab,
+    ...wiredTab,
     children: [...baked, ...dynamicChildren],
   };
 }

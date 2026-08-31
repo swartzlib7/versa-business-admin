@@ -1175,8 +1175,24 @@ function TabPanel({
         ...(tab.links ?? []),
         { href: `/records-editor?parent=${tab.parentKind}:${tab.parentApiName}`, label: "record types" },
       ],
-      presentation: undefined,
-      listColumns: undefined,
+      // #246 Slice C (rev E section 7.6): element tabs wired to a system type
+      // (environment lists) keep the dynamic-path props + presentation on the
+      // self panel so the live listing renders on the element tab itself.
+      // Unwired tabs keep the Configuration form (I5.6.9).
+      ...(tab.recordTypeApiName
+        ? {
+            structure: tab.structure,
+            presentation: tab.presentation,
+            listColumns: tab.listColumns,
+            recordTypeApiName: tab.recordTypeApiName,
+            objectApiName: tab.objectApiName,
+            parentKind: tab.parentKind,
+            parentApiName: tab.parentApiName,
+          }
+        : {
+            presentation: undefined,
+            listColumns: undefined,
+          }),
       sampleRows: undefined,
     }),
     [tab]
