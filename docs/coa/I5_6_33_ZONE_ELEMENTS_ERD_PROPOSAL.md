@@ -1,9 +1,27 @@
-# I5.6.33 — Zone Elements, Record Types & Schema ERD (rev D)
+# I5.6.33 — Zone Elements, Record Types & Schema ERD (rev E)
 
 > Owner: Versa (COA) | Product: Mission Control (project #26) | Game #109
-> Task: #241 | Status: REDRAFT for Stephen review — supersedes rev C (d1daa1d, 2026-08-31)
+> Task: #241 | Status: LOCKED pending Stephen final look — supersedes rev D (1886e5b, 2026-08-31)
 > Date: 2026-08-31 | Branch: beta | Base: 7cc408f (#218 Gate 2 PASS)
-> Review basis: Stephen's 5-message feedback (2026-08-31 ~05:21) + inline doc comment + organizing-board context (docs/design/org_board/)
+> Review basis: Stephen's C1–C8 verdict (2026-08-31 05:59) + rev D feedback (5 messages ~05:21) + organizing-board context (docs/design/org_board/)
+
+---
+
+## 0. Rev E — Stephen's C1–C8 verdict applied (2026-08-31 05:59)
+
+All eight confirm points are resolved; the schema is **locked** pending Stephen's final look at
+this revision:
+
+- **Executive division corrected (§3):** rev D's table listed only executive_policy — Projects
+  and Tasks were missing. Executive = **Policy + Projects + Tasks** (all header_lines, all
+  already seeded by #218).
+- **C3 — vendor integrations become a lines group** on vendor instances (e.g. a 'Gmail'
+  integration line on vendor Google). vendor_integration leaves the standalone seed list
+  (§7.1) and §7.7 is updated.
+- **C4 — policy version control removed** (too complex for this release): the new_version
+  checkbox and the supersedes lookup are dropped (§3.1).
+- **C1, C2, C5, C6, C7, C8 — confirmed** as written; §9 records the resolutions.
+- **§10 next steps updated:** web-dev resumes #185 slices on the locked schema.
 
 ---
 
@@ -139,12 +157,12 @@ Implementation notes:
 
 ## 3. Locked element content (rev D — one row per element)
 
-All decisions below are locked from Stephen's 2026-08-31 rev D feedback. Element content = the
+All decisions below are locked from Stephen's 2026-08-31 rev D feedback and his C1–C8 verdict (rev E). Element content = the
 element's record types. "Seeded" = already seeded by #218 on beta (7cc408f).
 
 | Zone | Element (division) | Record types (system, locked) | Structure | Notes |
 |---|---|---|---|---|
-| Org | Executive | executive_policy *(seeded)* | header_lines | Fields §3.1; one-to-many to all 4 parties + 4 env nodes |
+| Org | Executive | executive_policy *(seeded)*, executive_project *(seeded)*, executive_task *(seeded)* | header_lines | Fields §3.1; one-to-many to all 4 parties + 4 env nodes |
 | Org | Communications | communication_message *(new)*, communication_report *(new)*, communication_staff *(new)* | list | Messages typed via `message_type` value set; reports; staff |
 | Org | Dissemination | dissemination_sales *(new)*, dissemination_promotion_marketing *(new)* | list | Publications scratched; campaigns fold under promotion & marketing |
 | Org | Treasury | treasury_transaction *(new)*, treasury_records_assets_materiel *(new)* | list | Transactions classified income \| disbursement; single RAM entry; budget + account scratched |
@@ -152,7 +170,7 @@ element's record types. "Seeded" = already seeded by #218 on beta (7cc408f).
 | Org | Qualifications | qualification_examination *(new)*, qualification_review *(new)*, qualification_certifications_awards *(new)* | list | Exam → pass: certifications & awards; issues: review |
 | Org | Distribution | contact *(new)* | list | Renamed from Public; staff-type contacts belong to an organization, public-type do not; person orgs link to contact records |
 | Collab | Vendor | — | rendering | Organization type `vendor` — rendered from organizations (§2.7) |
-| Collab | Vendor ▸ Integrations | vendor_integration *(seeded)* | list | Shown under Vendor like every other record type; stays a record type related to vendor, or becomes a lines group — §7.6 / C3 |
+| Collab | Vendor ▸ Integrations | — (lines group on vendor instances) | lines | C3 locked: integrations are lines on a vendor record (e.g. a 'Gmail' integration line on vendor Google); no standalone record type |
 | Collab | Customer | — | rendering | Organization type `customer` |
 | Collab | Partner | — | rendering | Organization type `partner` |
 | Collab | Branch | — | rendering | Organization type `branch` = parent_organization_id set |
@@ -166,18 +184,14 @@ instance now carries its own header + lines. See §7.
 
 ### 3.1 Policy (executive_policy) — header fields
 
-Per Stephen (rev C review): created / last-modified / review / effective datetimes + optional
-new-version checkbox.
+Per Stephen (rev C review): created / last-modified / review / effective datetimes. Version
+control removed per C4 (rev E) — too complex for this release.
 
 - `created_at`, `updated_at` — system timestamps on every record (no per-type definition needed)
 - `effective_date` (datetime), `review_date` (datetime)
-- `new_version` (boolean, optional checkbox)
 - Plus rev A baseline: name, status, scope (picklist), owner (lookup → users), summary
 - Lines: policy lines (per #218 seed — zone_role=list, show_in_column)
 
-Interpretation flag: if the new-version checkbox is meant to **link a policy to its predecessor**,
-we add an optional `supersedes` lookup (plain lookup, orphan) revealed when the checkbox is set.
-Confirm with your next review (C4).
 
 ### 3.2 Executive one-to-many (locked)
 
@@ -345,7 +359,8 @@ these changes settle.
 1. **Done (#218, beta 7cc408f):** 6 system record types seeded (executive_policy header_lines;
    executive_project, executive_task, production_product, production_service, vendor_integration
    as list) + 26-field catalog seed wired to 7 value sets; baked listing tabs wired to system
-   types; sampleRows mocks removed from the 6 baked children.
+   types; sampleRows mocks removed from the 6 baked children. Rev E: vendor_integration leaves
+   the seed — integrations become a lines group on vendor instances (C3).
 2. **Structure corrections (⚠ in §3):** executive_project, executive_task, production_product,
    production_service move `list` → `header_lines` (each instance = header + lines). Lines groups
    per §3 table (rev A carry-over, now per-instance). executive_policy already header_lines.
@@ -364,8 +379,9 @@ these changes settle.
    branch, locations, events, knowledge, schedules) still render sampleRows mocks — vendor /
    customer / partner / branch now wire to organizations-by-type; locations / events / knowledge /
    schedules wire to the new system types.
-7. **vendor_integration:** stays a record type related to vendor (lookup), or becomes a lines
-   group on vendor — see confirm point C3 (§9).
+7. **vendor_integration → lines group (C3 locked):** integrations are lines on a vendor record
+   (e.g. a 'Gmail' integration line on vendor Google). The standalone vendor_integration record
+   type is retired from the seed; existing seeded rows migrate to vendor lines.
 8. **Organization auto-preset:** Records Editor / API creation paths prefill `org_id` from the
    logged-in user's default organization; editable per record where multiple organizations exist
    (§2.5). Single-org users see it read-only.
@@ -386,32 +402,34 @@ these changes settle.
 
 ## 9. Confirm points (only genuine ambiguities — everything else is locked)
 
-- **C1 — Party instances as records:** superseded by rev D §2.7 — parties are organizations of
+- **C1 — Party instances as records — CONFIRMED:** superseded by rev D §2.7 — parties are organizations of
   type vendor/customer/partner/branch (typed table), not record instances. The typed `parties`
-  table serves legacy surfaces until cutover. Confirm the retirement reading.
-- **C2 — Lookup delete-rule default:** `orphan` (plain lookup) as default, `cascade`
-  (master-detail) opt-in per field. Confirm.
-- **C3 — vendor_integration:** stays a record type related to vendor (lookup), or becomes a
-  lines group on vendor instances. Confirm.
-- **C4 — Policy new-version checkbox:** if it should link the new version to its predecessor, we
-  add an optional `supersedes` lookup (plain lookup). Confirm intent.
-- **C5 — Organizations as core system table (tenant root):** recommended reading — `organizations`
+  table serves legacy surfaces until cutover.
+- **C2 — Lookup delete-rule default — CONFIRMED:** `orphan` (plain lookup) as default, `cascade`
+  (master-detail) opt-in per field.
+- **C3 — vendor_integration — RESOLVED: lines group.** Integrations are lines on a vendor
+  instance (e.g. a 'Gmail' integration line on vendor Google); no standalone record type (§7.7).
+- **C4 — Policy new-version checkbox — RESOLVED: removed.** Version control is too complex for
+  this release; the checkbox and any supersedes lookup are dropped (§3.1).
+- **C5 — Organizations as core system table (tenant root) — CONFIRMED:** `organizations`
   stays a typed core platform table, now extended with is_person / org_type /
-  parent_organization_id (§4.3). Alternative: model organizations as record types. Confirm.
-- **C6 — Collaboration zone rendering mechanics:** vendor/customer/partner/branch lists render
-  `organizations WHERE org_type = <type>` filtered by the default organization. Confirm the
-  default-org filter behavior (hide other orgs' entries vs read-only view).
-- **C7 — Dissemination campaigns:** campaigns fold under promotion & marketing as a record type
-  or lines group — rev C's standalone dissemination_campaign is retired. Confirm.
-- **C8 — api_name prefix convention:** keep zone/element prefixes on api_names (labels stay
-  short; §2.4 explains why). Confirm, or propose the alternative you prefer.
+  parent_organization_id (§4.3).
+- **C6 — Collaboration zone rendering mechanics — CONFIRMED:** vendor/customer/partner/branch lists render
+  `organizations WHERE org_type = <type>` filtered by the default organization; the default-org
+  filter hides other orgs' entries.
+- **C7 — Dissemination campaigns — CONFIRMED:** campaigns fold under promotion & marketing as a
+  record type with header records + lines; rev C's standalone dissemination_campaign is retired.
+- **C8 — api_name prefix convention — CONFIRMED:** keep zone/element prefixes on api_names
+  (labels stay short; §2.4 explains why).
 
 ---
 
 ## 10. Next steps
 
-1. Stephen reviews §2.6–§2.7, §3 and §4.3 and ticks confirm points C1–C8.
-2. Lock built-in division definitions + new system types as Horizon 1 seed data.
+1. ~~Stephen reviews §2.6–§2.7, §3 and §4.3 and ticks confirm points C1–C8.~~ DONE — C1–C8
+   resolved (2026-08-31 05:59); schema LOCKED pending his final look at rev E.
+2. Lock built-in division definitions + new system types as Horizon 1 seed data (this document,
+   rev E — Executive now Policy + Projects + Tasks; vendor_integration retired to lines).
 3. Horizon 1 proceeds: record_type, record, record_line, record_relations tables +
    lookup_delete_rule + element_config (head + deputy) + organizations extension
    (is_person / org_type / parent_organization_id) + organization auto-preset + full system-type seed.
