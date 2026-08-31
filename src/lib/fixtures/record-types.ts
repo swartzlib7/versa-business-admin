@@ -29,6 +29,96 @@ export interface RecordTypeDefinition {
 export const recordTypes: RecordTypeDefinition[] = [
   // I5.6.32 Slice 2.1 (#220): unspec faculty seed types removed.
   // Types are created via Records Editor; parents remain in listEditorParents.
+  //
+  // #218 Zone Pages Live Dynamic Records (COA-locked slice, 2026-08-30):
+  // 6 system record types backing the baked-in zone listing tabs. is_system
+  // rows are delete-protected in the Records Editor; show_as_tab=false keeps
+  // them out of the dynamic tab injection (the baked tabs themselves render).
+  // Fields for these objects are seeded in catalog.ts facultyRecordFieldSeed.
+  {
+    id: 'rt-executive_policy',
+    api_name: 'executive_policy',
+    label: 'Policy',
+    description: 'Governing policies and executive directives for the organization.',
+    parent_kind: 'faculty',
+    parent_api_name: 'executive',
+    structure: 'header_lines',
+    show_as_tab: false,
+    sort_order: 10,
+    active: true,
+    is_system: true,
+    object_api_name: 'executive_policy',
+  },
+  {
+    id: 'rt-executive_project',
+    api_name: 'executive_project',
+    label: 'Projects',
+    description: 'Strategic and delivery projects owned by Executive.',
+    parent_kind: 'faculty',
+    parent_api_name: 'executive',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 20,
+    active: true,
+    is_system: true,
+    object_api_name: 'executive_project',
+  },
+  {
+    id: 'rt-executive_task',
+    api_name: 'executive_task',
+    label: 'Tasks',
+    description: 'Executable work items under Executive projects.',
+    parent_kind: 'faculty',
+    parent_api_name: 'executive',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 30,
+    active: true,
+    is_system: true,
+    object_api_name: 'executive_task',
+  },
+  {
+    id: 'rt-production_product',
+    api_name: 'production_product',
+    label: 'Product',
+    description: 'Device, manufactured item, or computer file owned by Production.',
+    parent_kind: 'faculty',
+    parent_api_name: 'production',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 40,
+    active: true,
+    is_system: true,
+    object_api_name: 'production_product',
+  },
+  {
+    id: 'rt-production_service',
+    api_name: 'production_service',
+    label: 'Service',
+    description: 'Faculty for results - e.g. Analysis & Design. Owned by Production.',
+    parent_kind: 'faculty',
+    parent_api_name: 'production',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 50,
+    active: true,
+    is_system: true,
+    object_api_name: 'production_service',
+  },
+  {
+    id: 'rt-vendor_integration',
+    api_name: 'vendor_integration',
+    label: 'Integrations',
+    description: 'Technical and commercial integrations with this vendor.',
+    parent_kind: 'collaboration',
+    parent_api_name: 'vendor',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 60,
+    active: true,
+    is_system: true,
+    object_api_name: 'vendor_integration',
+  },
 ];
 
 let mutableRecordTypes: RecordTypeDefinition[] = [...recordTypes];

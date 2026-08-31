@@ -64,10 +64,6 @@ export const organizationZone: ZoneConfig = {
           summary: "Governing policies and executive directives for the organization.",
           presentation: "listing",
           listColumns: ["Policy title", "Scope", "Owner"],
-          sampleRows: [
-            ["Operating charter", "organization", "Stephen"],
-            ["Data handling", "compliance", "Ops"],
-          ],
           fields: [
             { label: "Policy title", placeholder: "Operating policy name" },
             {
@@ -90,10 +86,6 @@ export const organizationZone: ZoneConfig = {
           summary: "Strategic and delivery projects owned by Executive.",
           presentation: "listing",
           listColumns: ["Project name", "Status", "Owner"],
-          sampleRows: [
-            ["Mission Control beta", "active", "Stephen"],
-            ["Wave accounting", "planned", "Finance"],
-          ],
           fields: [
             { label: "Project name", placeholder: "Mission Control beta" },
             {
@@ -116,10 +108,6 @@ export const organizationZone: ZoneConfig = {
           summary: "Executable work items under Executive projects.",
           presentation: "listing",
           listColumns: ["Task title", "Status", "Assignee"],
-          sampleRows: [
-            ["Ship I5.6.11", "in_progress", "COA"],
-            ["Review hub visuals", "waiting", "Stephen"],
-          ],
           fields: [
             { label: "Task title", placeholder: "Ship I5.6.6" },
             {
@@ -238,10 +226,6 @@ export const organizationZone: ZoneConfig = {
             "Device, manufactured item, or computer file — operating nucleus. Owned by Production (moved from Environment).",
           presentation: "listing",
           listColumns: ["Name", "Kind"],
-          sampleRows: [
-            ["Versa AGi Mission Control", "software"],
-            ["Trophy SKU-12", "manufactured"],
-          ],
           fields: [
             { label: "Name", placeholder: "Versa AGi Mission Control" },
             {
@@ -264,10 +248,6 @@ export const organizationZone: ZoneConfig = {
           summary: "Faculty for results — e.g. Analysis & Design. Nested under Production (I5.6.6).",
           presentation: "listing",
           listColumns: ["Name", "Status"],
-          sampleRows: [
-            ["Analysis & Design", "connected"],
-            ["Managed ops", "active"],
-          ],
           fields: [
             { label: "Name", placeholder: "Analysis & Design" },
             {
@@ -351,11 +331,6 @@ export const collaborationZone: ZoneConfig = {
             "Technical and commercial integrations with this vendor (moved from Product menu).",
           presentation: "listing",
           listColumns: ["Integration name", "Kind", "Status"],
-          sampleRows: [
-            ["Stripe billing", "api", "connected"],
-            ["ShipStation", "webhook", "active"],
-            ["Nightly SFTP export", "sftp", "standby"],
-          ],
           fields: [
             { label: "Integration name", placeholder: "Stripe billing" },
             {

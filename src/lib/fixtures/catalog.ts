@@ -1564,7 +1564,46 @@ export const layoutDefinitions: LayoutDefinition[] = [
 
 // Faculty / dynamic record baseline fields (I5.6.32 Slice 2.1 #220)
 // Unspec seed types removed - fields are created with record types via editor/API.
-const facultyRecordFieldSeed: FieldDefinition[] = [];
+//
+// #218 Zone Pages Live Dynamic Records (COA-locked slice, 2026-08-30):
+// fields for the 6 system record types backing the baked-in zone listing tabs.
+// Picklist fields wire to existing value sets (policy_scope, zone_project_status,
+// zone_task_status, product_category, service_status, integration_kind,
+// integration_status). executive_policy is header_lines: header-placed fields
+// render in the saveable header form; list-placed fields with show_in_column
+// render as lines-table columns (O1 semantics).
+// executive_policy and production_product carry explicit text 'status' fields
+// (no value set exists for them among the locked 7): ensureObjectForRecordType
+// auto-seeds name/status on every registered object, so stating them here keeps
+// the seed deterministic instead of relying on runtime mutation.
+const facultyRecordFieldSeed: FieldDefinition[] = [
+  { id: 'fld-executive_policy-name', object_api_name: 'executive_policy', api_name: 'name', label: 'Policy title', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true, zone_role: 'header' },
+  { id: 'fld-executive_policy-scope', object_api_name: 'executive_policy', api_name: 'scope', label: 'Scope', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'policy_scope', lookup_object_api_name: null, sort_order: 20, active: true, zone_role: 'header' },
+  { id: 'fld-executive_policy-owner', object_api_name: 'executive_policy', api_name: 'owner', label: 'Owner', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true, zone_role: 'header' },
+  { id: 'fld-executive_policy-summary', object_api_name: 'executive_policy', api_name: 'summary', label: 'Summary', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true, zone_role: 'header' },
+  { id: 'fld-executive_policy-line_title', object_api_name: 'executive_policy', api_name: 'line_title', label: 'Line title', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-executive_policy-status', object_api_name: 'executive_policy', api_name: 'status', label: 'Status', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true, zone_role: 'header' },
+  { id: 'fld-executive_policy-line_notes', object_api_name: 'executive_policy', api_name: 'line_notes', label: 'Line notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-executive_project-name', object_api_name: 'executive_project', api_name: 'name', label: 'Project name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-executive_project-status', object_api_name: 'executive_project', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'zone_project_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-executive_project-owner', object_api_name: 'executive_project', api_name: 'owner', label: 'Owner', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-executive_project-description', object_api_name: 'executive_project', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
+  { id: 'fld-executive_task-name', object_api_name: 'executive_task', api_name: 'name', label: 'Task title', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-executive_task-status', object_api_name: 'executive_task', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'zone_task_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-executive_task-assignee', object_api_name: 'executive_task', api_name: 'assignee', label: 'Assignee', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-executive_task-notes', object_api_name: 'executive_task', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
+  { id: 'fld-production_product-name', object_api_name: 'production_product', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-production_product-category', object_api_name: 'production_product', api_name: 'category', label: 'Category', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'product_category', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-production_product-description', object_api_name: 'production_product', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-production_product-status', object_api_name: 'production_product', api_name: 'status', label: 'Status', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
+  { id: 'fld-production_service-name', object_api_name: 'production_service', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-production_service-status', object_api_name: 'production_service', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'service_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-production_service-description', object_api_name: 'production_service', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-vendor_integration-name', object_api_name: 'vendor_integration', api_name: 'name', label: 'Integration name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-vendor_integration-kind', object_api_name: 'vendor_integration', api_name: 'kind', label: 'Kind', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'integration_kind', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-vendor_integration-status', object_api_name: 'vendor_integration', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'integration_status', lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-vendor_integration-notes', object_api_name: 'vendor_integration', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
+];
 
 // ---------------------------------------------------------------------------
 // Object registry (typed cores + faculty record types) — I5.6.32b

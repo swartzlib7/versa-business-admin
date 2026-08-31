@@ -15,6 +15,19 @@ const BAKED_IN_CHILD_IDS = new Set([
   "integrations",
 ]);
 
+// #218 Zone Pages Live Dynamic Records (COA-locked slice, 2026-08-30):
+// baked-in listing tabs backed by system record types. When the system type
+// exists and is active, the baked child goes live through the existing dynamic
+// ListingPanel/FormPanel path (records API) instead of mock sampleRows.
+const BAKED_TAB_SYSTEM_TYPES: Record<string, string> = {
+  policy: "executive_policy",
+  projects: "executive_project",
+  tasks: "executive_task",
+  product: "production_product",
+  service: "production_service",
+  integrations: "vendor_integration",
+};
+
 export type ZoneRecordType = {
   api_name: string; label: string; description: string; parent_kind: string; parent_api_name: string;
   structure: "list" | "header" | "header_lines"; show_as_tab: boolean; active: boolean; object_api_name: string;
@@ -41,6 +54,42 @@ function fieldsFromCatalog(objectApiName: string) {
   }));
 }
 
+/**
+ * #218: attach a backing system record type to a baked-in listing child.
+ * Sets the dynamic-path fields (recordTypeApiName/objectApiName/parentKind/
+ * parentApiName) plus structure from the type, and drops mock sampleRows so
+ * ListingPanel fetches live records. Baked fields/listColumns stay as fallback
+ * when the catalog has no fields for the object (ListingPanel fallback path).
+ * structure is carried from the type so header_lines types (policy) render the
+ * saveable header FormPanel above the lines ListingPanel (I2 semantics).
+ */
+function wireBakedChildToSystemType(
+  child: ZoneTab,
+  tabId: string,
+  parentKind: "faculty" | "collaboration" | "environment",
+  recordTypes: ZoneRecordType[],
+): ZoneTab {
+  const apiName = BAKED_TAB_SYSTEM_TYPES[child.id];
+  if (!apiName) return child;
+  const systemType = recordTypes.find(
+    (t) =>
+      t.api_name === apiName &&
+      t.active &&
+      t.parent_kind === parentKind &&
+      t.parent_api_name === tabId,
+  );
+  if (!systemType) return child;
+  return {
+    ...child,
+    structure: systemType.structure,
+    recordTypeApiName: systemType.api_name,
+    objectApiName: systemType.object_api_name,
+    parentKind,
+    parentApiName: tabId,
+    sampleRows: undefined,
+  };
+}
+
 /** Replace generic "Records" placeholders with named types from Records Editor. */
 export function applyRecordTypesToTab(
   tab: ZoneTab,
@@ -49,9 +98,21 @@ export function applyRecordTypesToTab(
 ): ZoneTab {
   const types = recordTypes.filter((t) => t.parent_kind === parentKind && t.parent_api_name === tab.id && t.active && t.show_as_tab);
 
-  if (!types.length) return tab;
+  // #218: baked children wire to system types even when the parent has no
+  // show_as_tab types (system types are show_as_tab=false by design), so the
+  // wiring runs before the dynamic-tabs early return.
+  const wiredChildren = (tab.children ?? []).map((c) =>
+    BAKED_IN_CHILD_IDS.has(c.id)
+      ? wireBakedChildToSystemType(c, tab.id, parentKind, recordTypes)
+      : c,
+  );
 
-  const baked = (tab.children ?? []).filter((c) => BAKED_IN_CHILD_IDS.has(c.id));
+  if (!types.length) {
+    if (tab.children?.length) return { ...tab, children: wiredChildren };
+    return tab;
+  }
+
+  const baked = wiredChildren.filter((c) => BAKED_IN_CHILD_IDS.has(c.id));
   const dynamicChildren: ZoneTab[] = types.map((t) => {
     const fieldDefs = listFieldDefinitions(t.object_api_name);
     // O1: header_lines types show only list-zone fields explicitly flagged as

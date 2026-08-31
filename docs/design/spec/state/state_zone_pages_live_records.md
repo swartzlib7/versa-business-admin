@@ -6,7 +6,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | I5.6.32 Slice 1 residual - baked-in zone tabs live records |
-| **Status** | Gate 1 discovery plan delivered 2026-08-30; awaiting COA lock of implementation slice |
+| **Status** | Implementation-locked slice delivered 2026-08-30 (Gate 1 implementation); awaiting COA Gate 2 |
 | **Task** | #218 |
 
 ---
@@ -39,7 +39,9 @@ All six baked-in listing tabs (no recordTypeApiName, isDynamic=false, seedRows m
 | Organization | Production | Service | Name, Status | 2 |
 | Collaboration | Vendor | Integrations | Integration name, Kind, Status | 3 |
 
-All other zone surfaces (Public, Communications, Dissemination, Treasury, Qualification, Customer, Partner, Branch, Locations, Events, Knowledge, Schedules) have no baked listing children - they render the Configuration form plus any editor-created record-type tabs (already live).
+All other zone surfaces (Public, Communications, Dissemination, Treasury, Qualification) have no baked listing children - they render the Configuration form plus any editor-created record-type tabs (already live).
+
+**Amendment 1 (COA review, 2026-08-30):** 8 PARENT tabs are themselves presentation:listing with sampleRows mocks and remain mock under this slice: vendor, customer, partner, branch, locations, events, knowledge, schedules (zone-definitions.ts ~lines 323-557). They are a named out-of-scope residual - see section 3.
 
 ### 2.3 Why they were left mock
 
@@ -73,7 +75,7 @@ All other zone surfaces (Public, Communications, Dissemination, Treasury, Qualif
 | Risk | Mitigation |
 |---|---|
 | System types appear in Records Editor and confuse Stephen | is_system rows are delete-protected (records-editor.tsx line 449); clear labeling; show_as_tab=false keeps them out of zone tab injection (baked tabs already render) |
-| Empty DB means empty tables where mocks showed 2-3 rows | Acceptable: live-but-empty beats mock rows; fallback columns from baked definitions; COA may prefer a seed-instances option - flag for decision |
+| Empty DB means empty tables where mocks showed 2-3 rows | Acceptable: live-but-empty beats mock rows; fallback columns from baked definitions. COA decision (Amendment 2, 2026-08-30): NO seed instances - tables start empty by design |
 | Baked tab id to type api_name mapping drift | Single mapping table in record-type-tabs.ts; single commit; beta only |
 | Records Editor field management on system types | Fields editable (zone roles/columns) - feature not bug; delete-protected only |
 | ERD proposal (2f53a31) may change storage | Build on shipped schema per COA; ERD is with Stephen; slice is fixture-layer, no DB migration |
@@ -83,9 +85,11 @@ All other zone surfaces (Public, Communications, Dissemination, Treasury, Qualif
 - Production deployment (beta only per COA discipline).
 - I5.6.33 ERD proposal (with Stephen).
 - Option B typed-table migration (policy/service/integration objects).
+- **8-parent listing-tab residual (Amendment 1):** vendor, customer, partner, branch, locations, events, knowledge, schedules stay mock in this slice. Follow-up slice proposal: seed 8 more system record types (vendor_integration is taken; e.g. vendor, customer, partner, branch, location, event, knowledge_asset, schedule) OR wire to core objects where they exist in the baseline ERD (Party covers customer/partner/vendor, Location, Event, KnowledgeAsset, Schedule). Do NOT expand the locked slice to cover them.
 
 ## 4. Change Log
 
 | Date | Change |
 |---|---|
 | 2026-08-30 | Gate 1 discovery plan delivered: mock-vs-live map, Option A proposal (seed 6 system types + wire baked tabs), risks. Awaiting COA lock. |
+| 2026-08-30 | COA review PASS with 2 amendments; implementation slice LOCKED and delivered: 6 system types seeded (record-types.ts), 24 fields seeded (catalog.ts facultyRecordFieldSeed, 7 value sets), baked tabs wired via BAKED_TAB_SYSTEM_TYPES in record-type-tabs.ts (structure carried; wiring runs before show_as_tab early return), sampleRows removed from the 6 baked children. Amendment 1 doc fix + 8-parent residual added to Out of scope; Amendment 2 no-seed-instances recorded. |
