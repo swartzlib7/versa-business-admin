@@ -1,22 +1,31 @@
-# I5.6.33 — Zone Elements, Record Types & Schema ERD (rev B)
+# I5.6.33 — Zone Elements, Record Types & Schema ERD (rev C)
 
 > Owner: Versa (COA) | Product: Mission Control (project #26) | Game #109
-> Task: #241 | Status: REDRAFT for Stephen review — supersedes rev A (2026-08-30)
+> Task: #241 | Status: REDRAFT for Stephen review — supersedes rev B (e895502, 2026-08-31)
 > Date: 2026-08-31 | Branch: beta | Base: 7cc408f (#218 Gate 2 PASS)
-> Review basis: Stephen's 6-message review (2026-08-31) + alignment restatement (erd_review_alignment_2026-08-31.md)
+> Review basis: Stephen's rev B feedback (2026-08-31 02:59) + 6-message review (2026-08-31) + alignment restatement (erd_review_alignment_2026-08-31.md)
 
 ---
 
-## 1. What changed since rev A
+## 1. What changed since rev B
 
-Stephen's review corrected the foundation: elements like Policy are **record TYPES holding many
-record instances** — each instance carries its own header fields and its own lines. Rev A modeled
-Policy as one header_lines record; that is replaced here by the record-type-centric model.
+Stephen's rev B feedback flagged the **'Config Form' column** in the element table as confusing.
+It was a rev-A UI-shape leftover — in the record-type-centric model the faculty Configuration
+forms are a separate, already-settled concern (§4.5), so the column is **removed entirely** (§3).
 
-- Rev A §4 (element definitions) and §7 (ERD) — superseded by this revision.
-- Rev A §5 (40-hint cross-element matrix) — **HELD by Stephen**; not re-litigated here (§8).
-- All 5 rev A open questions — answered in review and folded in (§3, §4).
-- Record relations — **HORIZON 1, LOCKED** (was rev A open question 5).
+New in rev C — the **multi-organization pattern** (locked by Stephen, 2026-08-31):
+
+- Multiple organizations are definable in the system.
+- The logged-in user sets a **default organization**.
+- Every new record **auto-presets its organization field** from that default (user-changeable
+  per record where multiple organizations exist).
+- **All data relates to organization records** (§2.5, §4.2, §5).
+
+Plus one new confirm point: **C5 — organizations as core system table** (§9).
+
+Rev A §4/§7 superseded by rev B; rev B §3 table superseded by this revision's §3. The senior
+pattern (§2), locked relation decisions (§6), and implementation realignment (§7) carry forward
+unchanged except where the organization pattern threads through.
 
 Nothing here changes the UI by itself. This is the data-model contract Horizon 1 persistence implements.
 
@@ -63,30 +72,51 @@ elements** (two elements can each have a "Contacts" type). `api_name` remains gl
 This resolves the vendor problem: Vendor is a list of vendor records, each with its own contacts /
 contracts / integrations — same for customer, partner, branch.
 
+### 2.5 Multi-organization pattern (LOCKED, 2026-08-31)
+
+- **Multiple organizations** are definable in the system.
+- The logged-in user selects a **default organization** (a user-level setting).
+- **Every new record auto-presets its `org_id` from the user's default organization** at creation.
+  The field is **user-changeable per record** wherever multiple organizations exist.
+- **All data relates to organization records** — organization is the tenant root every content
+  record hangs from (see §4.2 and §5).
+
+Implementation notes:
+- `record_type.org_id` and `record.org_id` are the concrete carriers (§4.2).
+- Catalog tables that already carry `org_id` (value_set, field_definition, layout_definition)
+  keep it — same pattern, no change.
+- The default-organization selection is a **user preference** (users table or user_settings),
+  not a record-type concern.
+- Auto-preset is **creation-time behavior** in the Records Editor / API layer: prefill `org_id`
+  from the user default; the field renders editable (dropdown of organizations) when the user
+  has more than one organization available, read-only when only one exists.
+
 ---
 
 ## 3. Locked element content (from Stephen's review)
 
 All decisions below are locked from the 2026-08-31 review. Element content = the element's
 record types. "Seeded" = already seeded by #218 on beta (7cc408f).
+(The rev-A/rev-B 'Config Form' column is removed — faculty Configuration forms are settled
+separately as singleton `element_config` records, §4.5.)
 
-| Zone | Element | Config form | Record types (system, locked) | Structure | Notes |
-|---|---|---|---|---|---|
-| Org | Executive | Yes | executive_policy *(seeded)* | header_lines | Fields §3.1; one-to-many to all 4 parties + 4 env nodes |
-| Org | Executive |  | executive_project *(seeded)* | header_lines ⚠ | Lines: milestones, budget lines, risks (rev A carry-over) |
-| Org | Executive |  | executive_task *(seeded)* | header_lines ⚠ | Lines: subtasks, time entries, attachments (rev A carry-over) |
-| Org | Public | Yes | public_contact *(new)* | list | Contacts list |
-| Org | Communications | Yes | communication_message *(new)* | list | Messages list, **typed** — `message_type` picklist value set |
-| Org | Dissemination | Yes | dissemination_campaign *(new)* | header_lines ⚠ | Campaigns — relatable to parties + environment nodes |
-| Org | Treasury | Yes | treasury_account, treasury_transaction, treasury_budget *(new)* | list | Purchase orders deferred (Stephen's call later) |
-| Org | Production | Yes (not a listing) | production_product *(seeded)*, production_service *(seeded)* | header_lines ⚠ | Referenced by quotes, invoices, campaigns (lookups) |
-| Org | Qualification | Yes | qualification_record *(new)* | list | QC records relating to all organization-zone children |
-| Collab | Vendor | — | vendor *(new)* | header_lines | Lines: contacts, contracts, integrations |
-| Collab | Customer | — | customer *(new)* | header_lines | Lines: contacts, orders, contracts |
-| Collab | Partner | — | partner *(new)* | header_lines | Lines: contacts, agreements, investments |
-| Collab | Branch | — | branch *(new)* | header_lines | Lines: **contacts only** (staff = a type of contact; sub-branches out) |
-| Collab | Vendor ▸ Integrations | — | vendor_integration *(seeded)* | list | Stays a record type related to vendor, or becomes a lines group — see §7 |
-| Env | Locations / Events / Knowledge / Schedules | — | location, event, knowledge, schedule *(new)* | **list** | Environment nodes stay lists (locked) |
+| Zone | Element | Record types (system, locked) | Structure | Notes |
+|---|---|---|---|---|
+| Org | Executive | executive_policy *(seeded)* | header_lines | Fields §3.1; one-to-many to all 4 parties + 4 env nodes |
+| Org | Executive | executive_project *(seeded)* | header_lines ⚠ | Lines: milestones, budget lines, risks (rev A carry-over) |
+| Org | Executive | executive_task *(seeded)* | header_lines ⚠ | Lines: subtasks, time entries, attachments (rev A carry-over) |
+| Org | Public | public_contact *(new)* | list | Contacts list |
+| Org | Communications | communication_message *(new)* | list | Messages list, **typed** — `message_type` picklist value set |
+| Org | Dissemination | dissemination_campaign *(new)* | header_lines ⚠ | Campaigns — relatable to parties + environment nodes |
+| Org | Treasury | treasury_account, treasury_transaction, treasury_budget *(new)* | list | Purchase orders deferred (Stephen's call later) |
+| Org | Production | production_product *(seeded)*, production_service *(seeded)* | header_lines ⚠ | Referenced by quotes, invoices, campaigns (lookups) |
+| Org | Qualification | qualification_record *(new)* | list | QC records relating to all organization-zone children |
+| Collab | Vendor | vendor *(new)* | header_lines | Lines: contacts, contracts, integrations |
+| Collab | Customer | customer *(new)* | header_lines | Lines: contacts, orders, contracts |
+| Collab | Partner | partner *(new)* | header_lines | Lines: contacts, agreements, investments |
+| Collab | Branch | branch *(new)* | header_lines | Lines: **contacts only** (staff = a type of contact; sub-branches out) |
+| Collab | Vendor ▸ Integrations | vendor_integration *(seeded)* | list | Stays a record type related to vendor, or becomes a lines group — see §7.6 |
+| Env | Locations / Events / Knowledge / Schedules | location, event, knowledge, schedule *(new)* | **list** | Environment nodes stay lists (locked) |
 
 ⚠ = structure change required from the current #218 seed (`list` → `header_lines`), because each
 instance now carries its own header + lines. See §7.
@@ -103,7 +133,7 @@ Per Stephen: created / last-modified / review / effective datetimes + optional n
 
 Interpretation flag: if the new-version checkbox is meant to **link a policy to its predecessor**,
 we add an optional `supersedes` lookup (plain lookup, orphan) revealed when the checkbox is set.
-Confirm with your next review.
+Confirm with your next review (C4).
 
 ### 3.2 Executive one-to-many (locked)
 
@@ -124,7 +154,7 @@ value sets.
 ### 4.2 New record tables (Horizon 1 scope)
 
     record_type (
-      id, org_id,
+      id, org_id → organizations.id,
       api_name  UNIQUE,          -- globally unique
       label,
       parent_kind,               -- faculty | collaboration | environment | baked_in
@@ -136,52 +166,52 @@ value sets.
     )
 
     record (
-      id, org_id,
+      id, org_id → organizations.id,
       type_api_name → record_type.api_name,
       name, status,
-      data JSONB,                -- header fields per field_definition
+      data JSONB,                -- header field values (field_definition-driven)
+      created_by → users.id,
       created_at, updated_at
     )
 
     record_line (
-      id, org_id,
-      record_id → record.id ON DELETE CASCADE,   -- structural ownership, always cascade
-      data JSONB, sort_order
+      id, record_id → record.id (CASCADE),
+      line_group_api_name,       -- groups per the type's line groups
+      seq,
+      data JSONB,
+      created_at, updated_at
     )
-
-Note: today's fixtures carry `parent_kind`/`parent_api_name` on each instance (denormalized).
-Horizon 1 canonical parent is the **record type**; instances inherit placement from their type.
-
-### 4.3 Lookup fields and delete rules
-
-`field_definition` gains one column:
-
-    lookup_delete_rule TEXT CHECK (lookup_delete_rule IN ('cascade','orphan')) DEFAULT 'orphan'
-
-- `cascade` = master-detail (delete parent → children deleted)
-- `orphan` = plain lookup (delete referenced → referencing rows keep living, reference cleared)
-
-`lookup_object_api_name` targets extend to **any recordable element** (system or custom type).
-
-### 4.4 record_relations — HORIZON 1 (LOCKED)
 
     record_relations (
-      id, org_id,
-      source_type, source_id, source_kind,   -- record | record_type | <typed table>
-      target_type, target_id, target_kind,
-      relation_kind,                         -- value_set-backed picklist (extensible, no DDL)
-      sort_order, data JSONB, created_at
+      id, org_id → organizations.id,
+      source_record_id → record.id,
+      target_record_id → record.id,
+      relation_kind → value_set (relation_kind),
+      created_by, created_at,
+      UNIQUE (source_record_id, target_record_id, relation_kind)
     )
 
-- Polymorphic addressing (type + id + kind) — same pattern as record parents; no hard FKs to typed
-  tables; integrity enforced at the API layer.
-- `relation_kind` from a value_set so the relation vocabulary grows without DDL.
-- Two indexes (source, target) for bidirectional queries.
+Organization pattern (§2.5): `org_id` on record_type, record and record_relations is the
+concrete carrier; **auto-preset at creation from the user's default organization**, editable
+per record where multiple organizations exist. Record lines inherit their parent record's
+organization — no separate org_id on record_line.
+
+### 4.3 Lookup delete rule
+
+`field_definition` gains `lookup_object_api_name` + `lookup_delete_rule`
+(`cascade` = master-detail | `orphan` = plain lookup; default per confirm point C2).
+Structural record → lines ownership stays built-in cascade.
+
+### 4.4 record_relations
+
+Already sketched in rev A; carried unchanged — relation_kind from the locked `relation_kind`
+value set; both directions navigable on detail pages.
 
 ### 4.5 element_config (faculty config singletons)
 
 The 7 faculty Configuration forms persist as singleton `element_config` records (one per faculty)
 instead of hardcoded form mocks. Config is per-faculty settings — distinct from content record types.
+(This is why the §3 table no longer carries a Config Form column — config is settled here.)
 
 ### 4.6 Typed tables vs record types (cutover note)
 
@@ -189,13 +219,15 @@ Zone content (policy, projects, tasks, product, service, parties, integrations, 
 **record-type-centric** per this document. The existing typed tables (projects, tasks, products,
 integrations, parties) remain for current admin surfaces until the cutover decision recorded in
 docs/design/spec/state/state_db_cutover_checklist.md. Platform primitives (organizations,
-departments, users) stay typed. See confirm point C1 (§9).
+departments, users) stay typed. See confirm points C1 and C5 (§9).
 
 ---
 
-## 5. ERD (Mermaid, rev B)
+## 5. ERD (Mermaid, rev C)
 
-    ORGANIZATION ||--o{ ELEMENT_CONFIG : "faculty config singleton"
+    ORGANIZATION ||--o{ RECORD_TYPE : "tenant root (org_id)"
+    ORGANIZATION ||--o{ RECORD : "tenant root (org_id)"
+    ORGANIZATION ||--o{ RECORD_RELATION : "tenant root (org_id)"
     ELEMENT ||--o{ RECORD_TYPE : "declares (parent_kind + parent_api_name)"
     RECORD_TYPE ||--o{ FIELD_DEFINITION : "defines (object_api_name)"
     RECORD_TYPE ||--o{ RECORD : "instantiates"
@@ -208,9 +240,12 @@ departments, users) stay typed. See confirm point C1 (§9).
     LAYOUT_DEFINITION }o--|| RECORD_TYPE : "detail / edit / list"
 
 Notes:
+- ORGANIZATION is the tenant root: every content row (record_type, record, record_relations)
+  carries org_id, auto-preset from the user's default organization at creation (§2.5).
 - ELEMENT is polymorphic: faculty | collaboration | environment | baked_in (three-zone landing).
 - RECORD parent is the record TYPE (canonical); no per-instance parent in Horizon 1.
-- Core platform tables (organizations, departments, users) stay typed per locked philosophy.
+- Core platform tables (organizations, departments, users) stay typed per locked philosophy —
+  see confirm point C5 on organizations as the core system table.
 
 ---
 
@@ -225,6 +260,7 @@ Notes:
 | Treasury | Accounts, transactions, budgets (POs deferred) |
 | Branch | Contacts only |
 | Environment nodes | Stay lists; relate cross-element (matrix held) |
+| All data | Relates to organization records (§2.5) |
 
 The full 40-hint cross-element matrix remains **HELD by Stephen** — it returns for review after
 these changes settle.
@@ -251,6 +287,9 @@ these changes settle.
    the new system types is the follow-up proposal after this document is locked.
 6. **vendor_integration:** stays a record type related to vendor (lookup), or becomes a lines group
    on vendor instances — see confirm point C3 (§9).
+7. **Organization auto-preset:** Records Editor / API creation paths prefill `org_id` from the
+   logged-in user's default organization; editable per record where multiple organizations exist
+   (§2.5). Single-org users see it read-only.
 
 ---
 
@@ -276,14 +315,18 @@ these changes settle.
   pattern, so records is the recommended reading. Confirm.
 - **C4 — Policy new-version checkbox:** if it should link the new version to its predecessor, we
   add an optional `supersedes` lookup (plain lookup). Confirm intent.
+- **C5 — Organizations as core system table (tenant root):** recommended reading — `organizations`
+  stays a typed core platform table (tenant root); record_type / record / record_relations
+  reference it via org_id with the §2.5 auto-preset behavior. Alternative: model organizations
+  themselves as record types. Confirm.
 
 ---
 
 ## 10. Next steps
 
-1. Stephen reviews §2–§5 and ticks confirm points C1–C4.
+1. Stephen reviews §2.5, §3 and §5 and ticks confirm points C1–C5.
 2. Lock built-in element definitions + new system types as Horizon 1 seed data.
 3. Horizon 1 proceeds: record_type, record, record_line, record_relations tables +
-   lookup_delete_rule + element_config + full system-type seed.
+   lookup_delete_rule + element_config + organization auto-preset + full system-type seed.
 4. Web-dev resumes dynamic-records slices (#185) on the locked schema; 8 parent tabs wiring
    follows as the next zone-pages slice.
