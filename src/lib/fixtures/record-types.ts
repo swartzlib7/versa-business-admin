@@ -35,6 +35,12 @@ export const recordTypes: RecordTypeDefinition[] = [
   // rows are delete-protected in the Records Editor; show_as_tab=false keeps
   // them out of the dynamic tab injection (the baked tabs themselves render).
   // Fields for these objects are seeded in catalog.ts facultyRecordFieldSeed.
+  //
+  // #185 Slice A (rev E §7.2, 2026-08-31): executive_project, executive_task,
+  // production_product, production_service move list -> header_lines (each
+  // instance = header + lines; rev A §4.2 line groups). executive_policy was
+  // already header_lines; vendor_integration stays list until the C3
+  // vendor-lines slice retires it to a lines group on vendor instances.
   {
     id: 'rt-executive_policy',
     api_name: 'executive_policy',
@@ -56,7 +62,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     description: 'Strategic and delivery projects owned by Executive.',
     parent_kind: 'faculty',
     parent_api_name: 'executive',
-    structure: 'list',
+    structure: 'header_lines',
     show_as_tab: false,
     sort_order: 20,
     active: true,
@@ -70,7 +76,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     description: 'Executable work items under Executive projects.',
     parent_kind: 'faculty',
     parent_api_name: 'executive',
-    structure: 'list',
+    structure: 'header_lines',
     show_as_tab: false,
     sort_order: 30,
     active: true,
@@ -84,7 +90,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     description: 'Device, manufactured item, or computer file owned by Production.',
     parent_kind: 'faculty',
     parent_api_name: 'production',
-    structure: 'list',
+    structure: 'header_lines',
     show_as_tab: false,
     sort_order: 40,
     active: true,
@@ -98,7 +104,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     description: 'Faculty for results - e.g. Analysis & Design. Owned by Production.',
     parent_kind: 'faculty',
     parent_api_name: 'production',
-    structure: 'list',
+    structure: 'header_lines',
     show_as_tab: false,
     sort_order: 50,
     active: true,

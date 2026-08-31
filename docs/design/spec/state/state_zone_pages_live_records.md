@@ -93,3 +93,48 @@ All other zone surfaces (Public, Communications, Dissemination, Treasury, Qualif
 |---|---|
 | 2026-08-30 | Gate 1 discovery plan delivered: mock-vs-live map, Option A proposal (seed 6 system types + wire baked tabs), risks. Awaiting COA lock. |
 | 2026-08-30 | COA review PASS with 2 amendments; implementation slice LOCKED and delivered: 6 system types seeded (record-types.ts), 24 fields seeded (catalog.ts facultyRecordFieldSeed, 7 value sets), baked tabs wired via BAKED_TAB_SYSTEM_TYPES in record-type-tabs.ts (structure carried; wiring runs before show_as_tab early return), sampleRows removed from the 6 baked children. Amendment 1 doc fix + 8-parent residual added to Out of scope; Amendment 2 no-seed-instances recorded. |
+| 2026-08-31 | I5.6.33 Slice A (rev E §7.2/§7.3/§4.2) delivered on top of #218 — see §5. |
+
+## 5. I5.6.33 Slice A — rev E structure corrections + list→detail (2026-08-31)
+
+Scope per COA scope lock (rev E d4659b7 §7.2/§7.3/§4.2; rulings D1/D2/D3 approved).
+
+### 5.1 Delivered
+
+1. **Structure corrections (§7.2):** executive_project, executive_task, production_product,
+   production_service move `list` → `header_lines` in record-types.ts (policy already
+   header_lines; vendor_integration stays `list` per D1 until the C3 vendor-lines slice).
+2. **Catalog re-roling:** existing fields on the 4 objects re-roled `zone_role: 'header'`
+   (deterministic, #218 pattern); line fields seeded per rev A §4.2 first group per type —
+   Projects = milestones (milestone_title, milestone_date), Tasks = subtasks (subtask_title,
+   subtask_done), Product = variants (variant_name, variant_price), Service = rate lines
+   (rate_item, rate_amount) — all `zone_role: 'list'` + `show_in_column: true`, policy
+   line-field pattern.
+3. **Fixture lines model (§4.2):** `RecordInstanceLine.line_group?: string` (optional,
+   backward-compatible); create/update inputs take wrapped lines
+   `{ line_group?, data }`; API routes re-typed to match. Group api_name derived from the
+   first list-zone field prefix (milestones / subtasks / variants; rate_ → default group
+   since 'rates' is not a spec group name); policy keeps its legacy default group. Per D2
+   the group key is populated from the start so multi-group later is a pure addition.
+4. **List→detail views (§7.3):** TabPanel renders list→detail for the 4 corrected types
+   (policy keeps direct header+lines rendering per D3; vendor_integration stays a plain
+   list per D1). List view = instance list (header fields as columns, record-level
+   Add/Edit/Delete); row click opens detail view = header FormPanel editing that record
+   (GET/PATCH by id) + lines ListingPanel bound to it, with a Back control. TabPanel is
+   keyed per tab+child so detail state resets on navigation. ListingPanel gained
+   `viewMode` ('instances' | 'lines') + `onRowOpen`; EntityListing gained `onRowOpen`
+   (row click ignores clicks on action controls). Detail-view lines fetch targets the
+   bound record by id (not first-instance assumption).
+
+### 5.2 Validation
+
+tsc --noEmit clean; npm run build clean; eslint: no new errors (1 pre-existing
+set-state-in-effect error + pre-existing warnings unchanged); 42-assertion tsx fixture
+sanity pass (structures, re-roling, line groups, wrapped-lines create/update, baked-tab
+wiring). Single Gate 1 commit on agent/web-dev re-based on d4659b7.
+
+### 5.3 Out of scope (unchanged)
+
+vendor_integration → vendor lines migration (C3 slice); multi-group lines UI (Horizon 1
+record_line persistence); policy rendering unification (Stephen's Gate 3 call); 8 parent
+tabs wiring (next zone-pages slice).

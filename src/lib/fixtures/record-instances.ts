@@ -19,6 +19,9 @@ export interface RecordInstance {
 export interface RecordInstanceLine {
   id: string;
   record_id: string;
+  /** #185 Slice A (rev E section 4.2): lines-group key (e.g. 'milestones').
+   *  Optional for backward compatibility - undefined reads as the default group. */
+  line_group?: string;
   data: Record<string, string>;
   sort_order: number;
 }
@@ -55,7 +58,8 @@ export interface CreateInstanceInput {
   name: string;
   status?: string;
   data?: Record<string, string>;
-  lines?: Array<Record<string, string>>;
+  /** #185 Slice A: structured line entries carrying an optional lines-group key. */
+  lines?: Array<{ line_group?: string; data: Record<string, string> }>;
 }
 
 export type CreateInstanceResult =
@@ -77,7 +81,8 @@ export function createInstance(input: CreateInstanceInput): CreateInstanceResult
   const lines: RecordInstanceLine[] = (input.lines || []).map((lineData, idx) => ({
     id: `rec-line-${nextId++}`,
     record_id: id,
-    data: lineData,
+    line_group: lineData.line_group,
+    data: lineData.data,
     sort_order: (idx + 1) * 10,
   }));
 
@@ -100,7 +105,8 @@ export interface UpdateInstanceInput {
   name?: string;
   status?: string;
   data?: Record<string, string>;
-  lines?: Array<Record<string, string>>;
+  /** #185 Slice A: structured line entries carrying an optional lines-group key. */
+  lines?: Array<{ line_group?: string; data: Record<string, string> }>;
 }
 
 export type UpdateInstanceResult =
@@ -118,7 +124,8 @@ export function updateInstance(id: string, input: UpdateInstanceInput): UpdateIn
     lines = input.lines.map((lineData, idx2) => ({
       id: `rec-line-${nextId++}`,
       record_id: id,
-      data: lineData,
+      line_group: lineData.line_group,
+      data: lineData.data,
       sort_order: (idx2 + 1) * 10,
     }));
     if (lines.length === 0) lines = undefined;

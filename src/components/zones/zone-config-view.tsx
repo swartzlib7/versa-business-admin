@@ -183,11 +183,19 @@ function ListingPanel({
   accent,
   headerRecordId: headerRecordIdProp,
   onHeaderRecord,
+  viewMode = "lines",
+  onRowOpen,
 }: {
   panel: ZoneTab;
   accent: string;
   headerRecordId?: string | null;
   onHeaderRecord?: (id: string | null) => void;
+  /** #185 Slice A (rev E section 7.3): "instances" renders the header-instance
+   *  list (list view of list-to-detail); "lines" renders the lines table of
+   *  the bound header record (I2 default). */
+  viewMode?: "instances" | "lines";
+  /** #185 Slice A: row-click detail navigation (instances view only). */
+  onRowOpen?: (recordId: string) => void;
 }) {
   type CatalogField = {
     api_name: string;
@@ -247,6 +255,13 @@ function ListingPanel({
       // keep the legacy first-four behavior.
       const isHeaderLines = panel.structure === "header_lines";
       if (isHeaderLines) {
+        // #185 Slice A: instances view (list-to-detail list view) shows the
+        // header fields as columns; lines view keeps the O1 list columns.
+        if (viewMode === "instances") {
+          return catalogFields
+            .filter((f) => f.zone_role === "header")
+            .map((f) => f.label);
+        }
         return catalogFields
           .filter((f) => f.zone_role === "list" && f.show_in_column === true)
           .map((f) => f.label);
@@ -257,7 +272,7 @@ function ListingPanel({
       return panel.listColumns;
     }
     return panel.fields.slice(0, 4).map((f) => f.label);
-  }, [isDynamic, catalogFields, panel.listColumns, panel.fields, panel.structure]);
+  }, [isDynamic, catalogFields, panel.listColumns, panel.fields, panel.structure, viewMode]);
 
   const fields: ListingField[] = useMemo(() => {
     if (isDynamic && catalogFields.length > 0) {
@@ -292,9 +307,40 @@ function ListingPanel({
             zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
           };
         })
-        .filter((f) => f.zoneRole == null || f.zoneRole === "list");
-    }
-    const colSet = new Set(columns);
+        // #185 Slice A: instances view keeps header fields (the instance form);
+        // lines view filters to list-zone fields (the line editor).
+        if (viewMode === "instances") {
+          return orderedApis
+            .map((api) => {
+              const f = byApi.get(api)!;
+              return {
+                key: f.api_name,
+                label: f.label,
+                kind: dataTypeToUiKind(f.data_type as CatalogDataType),
+                column: colSet.has(f.label) || colSet.has(f.api_name),
+                span: spanByApi.get(api) ?? 1,
+                required: f.is_required,
+                zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
+              };
+            })
+            .filter((f) => f.zoneRole == null || f.zoneRole === "header");
+        }
+        return orderedApis
+          .map((api) => {
+            const f = byApi.get(api)!;
+            return {
+              key: f.api_name,
+              label: f.label,
+              kind: dataTypeToUiKind(f.data_type as CatalogDataType),
+              column: colSet.has(f.label) || colSet.has(f.api_name),
+              span: spanByApi.get(api) ?? 1,
+              required: f.is_required,
+              zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
+            };
+          })
+          .filter((f) => f.zoneRole == null || f.zoneRole === "list");
+      }
+      const colSet = new Set(columns);
     const fromFields: ListingField[] = panel.fields.map((f) => ({
       key: f.label,
       label: f.label,
@@ -316,7 +362,7 @@ function ListingPanel({
       if (!columns.includes(f.key)) ordered.push({ ...f, column: false });
     }
     return ordered;
-  }, [isDynamic, catalogFields, panel.fields, columns, runtime.edit]);
+  }, [isDynamic, catalogFields, panel.fields, columns, runtime.edit, viewMode]);
 
   const seedRows: ZoneListRow[] = useMemo(() => {
     const seed: string[][] =
@@ -343,6 +389,15 @@ function ListingPanel({
    *  is immediately visible here without a full page refresh. */
   const headerRecordId = headerRecordIdProp ?? null;
   const isHeaderLines = panel.structure === "header_lines";
+  // #185 Slice A (rev E section 4.2): the lines group this tab edits. First
+  // list-zone field's api_name prefix (milestone_/subtask_/variant_/rate_)
+  // names the group; policy keeps its legacy default group.
+  const linesGroupApiName = useMemo(() => {
+    const firstList = catalogFields.find((f) => f.zone_role === "list");
+    if (!firstList) return undefined;
+    const prefix = firstList.api_name.split("_")[0];
+    return prefix === "line" ? undefined : prefix + "s";
+  }, [catalogFields]);
 
   const toCells = useCallback(
     (inst: { id: string; name?: string; status?: string; data?: Record<string, string> }) => {
@@ -370,6 +425,30 @@ function ListingPanel({
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- kick loading flag before async records fetch
     setLoading(true);
+    // #185 Slice A: when the header record is already bound (list-to-detail
+    // detail view), fetch it directly - the bound record is not necessarily
+    // the first instance of the type.
+    if (isHeaderLines && headerRecordId) {
+      fetch("/api/records/" + headerRecordId, { credentials: "include" })
+        .then((r) => {
+          if (!r.ok) throw new Error("Failed to fetch record");
+          return r.json();
+        })
+        .then((json) => {
+          const inst = json.data as { id: string; lines?: Array<{ id: string; data?: Record<string, string> }> } | null;
+          const lineRows: ZoneListRow[] = (inst?.lines ?? []).map((ln) => ({
+            id: ln.id,
+            cells: toCells({ id: ln.id, data: ln.data ?? {} }),
+          }));
+          setRows(lineRows);
+          setLoading(false);
+        })
+        .catch((e) => {
+          setError(e.message);
+          setLoading(false);
+        });
+      return;
+    }
     const params = new URLSearchParams();
     params.set("type", panel.recordTypeApiName!);
     params.set("parent_kind", panel.parentKind!);
@@ -381,7 +460,12 @@ function ListingPanel({
       })
       .then((json) => {
         const all = (json.data ?? []) as Array<{ id: string; name?: string; status?: string; data?: Record<string, string>; lines?: Array<{ id: string; data?: Record<string, string> }> }>;
-        if (isHeaderLines) {
+        if (viewMode === "instances") {
+          // #185 Slice A (rev E section 7.3): list view of list-to-detail —
+          // every instance is a row; row click opens the detail view.
+          onHeaderRecord?.(null);
+          setRows(all.map((inst) => ({ id: inst.id, cells: toCells(inst) })));
+        } else if (isHeaderLines) {
           // J2: header_lines — the header record owns the lines array; never
           // surface the header itself as a line row.
           const header = all[0];
@@ -401,14 +485,22 @@ function ListingPanel({
         setError(e.message);
         setLoading(false);
       });
-  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, seedRows, catalogFields, isHeaderLines, toCells, onHeaderRecord]);
+  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, seedRows, catalogFields, isHeaderLines, toCells, onHeaderRecord, viewMode, headerRecordId]);
 
   const validateRequired = (draft: Record<string, string>): string => {
     if (!isDynamic) return "";
     for (const f of catalogFields) {
       if (!f.is_required) continue;
-      // K2: on header_lines, header-placed required fields must NOT block the list editor.
-      if (isHeaderLines && (f as { zone_role?: "header" | "list" | null }).zone_role === "header") continue;
+      // K2: on header_lines, header-placed required fields must NOT block the
+      // lines editor. In instances view (list-to-detail list view) the draft
+      // IS the header record, so required header fields apply normally.
+      if (
+        isHeaderLines &&
+        viewMode !== "instances" &&
+        (f as { zone_role?: "header" | "list" | null }).zone_role === "header"
+      ) {
+        continue;
+      }
       const v = (draft[f.api_name] ?? "").trim();
       if (!v) return f.label + " is required.";
     }
@@ -420,11 +512,29 @@ function ListingPanel({
       setRows((prev) => prev.filter((r) => r.id !== id));
       return;
     }
+    if (viewMode === "instances") {
+      // #185 Slice A (rev E section 7.3): instances view deletes the header
+      // record (its lines cascade with it).
+      try {
+        const res = await fetch("/api/records/" + id, {
+          method: "DELETE",
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to delete record");
+        setRows((prev) => prev.filter((r) => r.id !== id));
+      } catch (e: unknown) {
+        alert(e instanceof Error ? e.message : String(e));
+      }
+      return;
+    }
     try {
       if (isHeaderLines) {
         // J2: remove a line from the header record's lines array.
         if (!headerRecordId) return false;
-        const nextLines = rows.filter((r) => r.id !== id).map((r) => r.cells);
+        // #185 Slice A (rev E section 4.2): lines carry their group api_name.
+        const nextLines = rows
+          .filter((r) => r.id !== id)
+          .map((r) => ({ line_group: linesGroupApiName, data: r.cells }));
         const res = await fetch("/api/records/" + headerRecordId, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -463,6 +573,38 @@ function ListingPanel({
       alert(requiredError);
       return false;
     }
+    if (viewMode === "instances") {
+      // #185 Slice A (rev E section 7.3): instances view creates a new header
+      // record (list-to-detail), not a line on a shared header.
+      try {
+        const name = draft.name || draft.Name || "New Record";
+        const status = draft.status || draft.Status || "active";
+        const data: Record<string, string> = { ...draft };
+        delete data.Name;
+        delete data.Status;
+        const res = await fetch("/api/records", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            type_api_name: panel.recordTypeApiName,
+            parent_kind: panel.parentKind,
+            parent_api_name: panel.parentApiName,
+            name,
+            status,
+            data,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed to create record");
+        const json = await res.json();
+        const inst = json.data;
+        setRows((prev) => [...prev, { id: inst.id, cells: toCells(inst) }]);
+      } catch (e: unknown) {
+        alert(e instanceof Error ? e.message : String(e));
+        return false;
+      }
+      return true;
+    }
     try {
       const name = draft.name || draft.Name || "New Record";
       const status = draft.status || draft.Status || "active";
@@ -479,7 +621,13 @@ function ListingPanel({
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ lines: [...rows.map((r) => r.cells), data] }),
+          // #185 Slice A (rev E section 4.2): lines carry their group api_name.
+          body: JSON.stringify({
+            lines: [
+              ...rows.map((r) => ({ line_group: linesGroupApiName, data: r.cells })),
+              { line_group: linesGroupApiName, data },
+            ],
+          }),
         });
         if (!res.ok) throw new Error("Failed to add line");
         const json = await res.json();
@@ -535,6 +683,30 @@ function ListingPanel({
       alert(requiredError);
       return false;
     }
+    if (viewMode === "instances") {
+      // #185 Slice A (rev E section 7.3): instances view edits the header record.
+      try {
+        const name = draft.name || draft.Name;
+        const status = draft.status || draft.Status;
+        const data: Record<string, string> = { ...draft };
+        delete data.Name;
+        delete data.Status;
+        const res = await fetch("/api/records/" + id, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ name, status, data }),
+        });
+        if (!res.ok) throw new Error("Failed to update record");
+        const json = await res.json();
+        const inst = json.data;
+        setRows((prev) => prev.map((r) => (r.id === id ? { id: inst.id, cells: toCells(inst) } : r)));
+      } catch (e: unknown) {
+        alert(e instanceof Error ? e.message : String(e));
+        return false;
+      }
+      return true;
+    }
     try {
       const name = draft.name || draft.Name;
       const status = draft.status || draft.Status;
@@ -544,7 +716,12 @@ function ListingPanel({
       if (isHeaderLines) {
         // J2: update a line within the header record's lines array.
         if (!headerRecordId) return false;
-        const nextLines = rows.map((r) => (r.id === id ? data : r.cells));
+        // #185 Slice A (rev E section 4.2): lines carry their group api_name.
+        const nextLines = rows.map((r) =>
+          r.id === id
+            ? { line_group: linesGroupApiName, data }
+            : { line_group: linesGroupApiName, data: r.cells },
+        );
         const res = await fetch("/api/records/" + headerRecordId, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -612,6 +789,11 @@ function ListingPanel({
           onAdd={onAdd}
           onUpdate={onUpdate}
           onDelete={onDelete}
+          onRowOpen={
+            viewMode === "instances" && onRowOpen
+              ? (row) => onRowOpen(row.id)
+              : undefined
+          }
           badgeLabel={isDynamic ? "Dynamic Record" : "Listing"}
         />
       )}
@@ -624,10 +806,14 @@ function FormPanel({
   panel,
   accent,
   onHeaderSaved,
+  detailRecordId,
 }: {
   panel: ZoneTab;
   accent: string;
   onHeaderSaved?: (id: string) => void;
+  /** #185 Slice A (rev E section 7.3): when set, the form edits THIS record
+   *  (list-to-detail detail view) instead of the parent-shared header. */
+  detailRecordId?: string | null;
 }) {
   type CatalogField = { api_name: string; label: string; data_type: string; value_set_api_name?: string | null; active?: boolean; is_required?: boolean };
   const isDynamic = !!panel.recordTypeApiName;
@@ -707,9 +893,32 @@ function FormPanel({
   }, [isDynamic, configStorageKey, panel.fields]);
 
   // I2: load existing header instance (single record per parent+type) if present.
+  // #185 Slice A: in list-to-detail detail view, load the selected record
+  // directly by id instead of the parent-shared first record.
   useEffect(() => {
     if (!isDynamic || !panel.recordTypeApiName) {
       return;
+    }
+    if (detailRecordId) {
+      const controller = new AbortController();
+      void fetch("/api/records/" + detailRecordId, { credentials: "include", signal: controller.signal })
+        .then((r) => (r.ok ? r.json() : { data: null }))
+        .then((json) => {
+          const inst = json.data as { id: string; name?: string; status?: string; data?: Record<string, string> } | null;
+          if (inst) {
+            setInstanceId(inst.id);
+            const data = (inst.data ?? {}) as Record<string, string>;
+            const draft: Record<string, string> = { ...data };
+            draft.name = inst.name ?? data.name ?? "";
+            draft.status = inst.status ?? data.status ?? "";
+            setValues(draft);
+            setSavedValues(draft);
+          }
+        })
+        .catch(() => {
+          /* detail load failure is non-fatal; user can still save */
+        });
+      return () => controller.abort();
     }
     const controller = new AbortController();
     const params = new URLSearchParams();
@@ -735,7 +944,7 @@ function FormPanel({
         /* header load failure is non-fatal; user can still save a new record */
       });
     return () => controller.abort();
-  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName]);
+  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, detailRecordId]);
 
   const fallbackSections = useMemo(() => {
     const fields = (isDynamic && catalogFields.length > 0
@@ -824,8 +1033,9 @@ function FormPanel({
       delete data.Name;
       delete data.Status;
       let res: Response;
-      if (instanceId) {
-        res = await fetch("/api/records/" + instanceId, {
+      if (instanceId || detailRecordId) {
+        const targetId = instanceId ?? detailRecordId;
+        res = await fetch("/api/records/" + targetId, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -992,6 +1202,18 @@ function TabPanel({
   // N2: header record id lifted here so a header saved in FormPanel (same
   // session) is immediately visible to ListingPanel without a full refresh.
   const [headerRecordId, setHeaderRecordId] = useState<string | null>(null);
+  // #185 Slice A (rev E section 7.3): list-to-detail for the 4 corrected
+  // header_lines types (policy keeps its direct header+lines rendering per
+  // COA ruling D3). null = list view (instance list); set = detail view.
+  const isListToDetail =
+    isHeaderLines &&
+    panel.recordTypeApiName != null &&
+    panel.recordTypeApiName !== "executive_policy";
+  const [detailRecordId, setDetailRecordId] = useState<string | null>(null);
+  const detailPanel = useMemo(
+    () => (detailRecordId ? { ...panel, id: panel.id + "-detail" } : panel),
+    [panel, detailRecordId],
+  );
 
   // I5.6.34 — sub-tab strip + description in stable position; body only changes
   return (
@@ -1003,7 +1225,37 @@ function TabPanel({
         onSelect={setChildId}
         ariaLabel={`${tab.label} sub-elements`}
       />
-      {isHeaderLines ? (
+      {isListToDetail ? (
+        detailRecordId ? (
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setDetailRecordId(null)}
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              &larr; Back to {panel.label}
+            </button>
+            <FormPanel
+              key={detailRecordId}
+              panel={detailPanel}
+              accent={accent}
+              detailRecordId={detailRecordId}
+            />
+            <ListingPanel
+              panel={detailPanel}
+              accent={accent}
+              headerRecordId={detailRecordId}
+            />
+          </div>
+        ) : (
+          <ListingPanel
+            panel={panel}
+            accent={accent}
+            viewMode="instances"
+            onRowOpen={(recordId) => setDetailRecordId(recordId)}
+          />
+        )
+      ) : isHeaderLines ? (
         <div className="space-y-4">
           <FormPanel
             panel={panel}
@@ -1212,6 +1464,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
         >
           {tab && (
             <TabPanel
+              key={active + ":" + childId}
               tab={tab}
               accent={config.accent}
               childId={childId}

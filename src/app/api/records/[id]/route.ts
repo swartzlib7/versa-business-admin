@@ -60,7 +60,7 @@ export async function PATCH(
     name: body.name != null ? String(body.name) : undefined,
     status: body.status != null ? String(body.status) : undefined,
     data: body.data as Record<string, string> | undefined,
-    lines: body.lines as Array<Record<string, string>> | undefined,
+    lines: body.lines as Array<{ line_group?: string; data: Record<string, string> }> | undefined,
   } satisfies UpdateInstanceInput);
   if (!result.ok) {
     const status = result.code === 'NOT_FOUND' ? 404 : 400;

@@ -52,6 +52,9 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   headerExtra?: ReactNode;
   /** Optional href for a "View" button on each row */
   viewHref?: (row: T) => string;
+  /** #185 Slice A (rev E section 7.3): row-click detail navigation. When set,
+   *  clicking a row (outside its action controls) opens the record detail. */
+  onRowOpen?: (row: T) => void;
   /** Optional badge text (default Listing) */
   badgeLabel?: string;
 };
@@ -205,6 +208,7 @@ export function EntityListing<T extends Record<string, unknown>>({
   emptyLabel,
   headerExtra,
   viewHref,
+  onRowOpen,
   badgeLabel = "Listing",
 }: EntityListingProps<T>) {
   const displayCell = (row: T, key: string): ReactNode => {
@@ -334,7 +338,21 @@ export function EntityListing<T extends Record<string, unknown>>({
                 const id = getRowId(row);
                 return (
                   <Fragment key={id}>
-                    <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
+                    <tr
+                      className={
+                        "border-b border-border/70 transition-colors hover:bg-muted/30" +
+                        (onRowOpen ? " cursor-pointer" : "")
+                      }
+                      onClick={
+                        onRowOpen
+                          ? (e) => {
+                              // Ignore clicks on action controls inside the row.
+                              if ((e.target as HTMLElement).closest("button, a, input, select, textarea, label")) return;
+                              onRowOpen(row);
+                            }
+                          : undefined
+                      }
+                    >
                       {columns.map((c) => (
                         <td key={c.key} className="px-4 py-3 align-top text-foreground">
                           <span className="line-clamp-3 whitespace-pre-wrap">

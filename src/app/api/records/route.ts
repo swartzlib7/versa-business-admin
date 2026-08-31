@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     name: String(body.name || ''),
     status: body.status != null ? String(body.status) : undefined,
     data: body.data as Record<string, string> | undefined,
-    lines: body.lines as Array<Record<string, string>> | undefined,
+    lines: body.lines as Array<{ line_group?: string; data: Record<string, string> }> | undefined,
   } satisfies CreateInstanceInput);
   if (!result.ok) {
     return NextResponse.json(
