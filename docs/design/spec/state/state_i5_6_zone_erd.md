@@ -421,3 +421,29 @@ Slice progress (web-dev, #185/#246, rev E locked):
 - **NEXT Slice D** (#248): organizations extension (is_person/org_type/parent_organization_id)
   + collaboration rendering by org_type + default org (§4.3/§2.7, C5/C6).
 Gate flow per slice: Gate 1 commit → Gate 2 COA review → beta FF + :3200 → Stephen Gate 3 brief.
+
+## I5.6.33 - Gate 3 verdict + full WBS (2026-08-31 16:55 EDT)
+
+**Stephen Gate 3 verdict (msg j10tvs2UgJy0JMsR6DrL):**
+- UNIVERSAL shape rule: no header/config forms anywhere - every tab = list of records, each
+  with optional lines. Policy renders like projects/tasks (supersedes ruling D3).
+- Executive hosts the organizations list (no header form there either).
+- Collaboration tabs = organization-type lists (views on organizations, default-org filter) -
+  as rev E section 2.7 / C6 already designed.
+- Full-WBS authorization: do WHATEVER is needed to get through all the work, multiple passes
+  if needed, the most reliable way. Drip-feed ended; continuous run mode.
+
+**WBS (web-dev, sequenced, COA reviews batched per pass):**
+- #247 Slice B - policy list-to-detail rendering (D3 superseded). Due Sep 1
+- #246 Slice C - 15 new system types + 2 value sets, baked-tab wiring. Due Sep 2
+- #248 Slice D - organizations extension (is_person / org_type / parent_organization_id) +
+  collaboration rendering + default org + Executive organizations list. Due Sep 3
+- #245 Slice E1 - Horizon 1 core persistence (record_type / record / record_line /
+  record_relations + lookup_field; org-attached lines design note at Gate 1). Due Sep 4
+- #249 Slice E2 - element_config (head + deputy) + org auto-preset + executive relations. Due Sep 5
+- #244 Slice F - custom record types + three-zone landing + integrations cutover
+  (D1 pairing: retire seed + wiring in same commit). Due Sep 7
+- #250 Slice G - final smoke + docs to implemented + Stephen final review. Due Sep 8
+
+Gate flow: Gate 1 commit -> Gate 2 COA review (batched per pass) -> beta FF + :3200 ->
+Stephen briefs at pass boundaries. Beta only, no production.
