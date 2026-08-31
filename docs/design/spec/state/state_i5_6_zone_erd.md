@@ -379,3 +379,33 @@ Agents/UI can **read** object schema via authenticated `/api/catalog` (objects, 
 
 Living layout chrome detail: `state_layout_mission_ui.md` § I5.6.35.
 
+
+## I5.6.33 — Zone elements, record types & schema ERD (2026-08-31, LOCKED rev E)
+
+**Schema LOCKED at rev E** (d4659b7, beta) after Stephen's C1–C8 verdict. Full spec:
+\`docs/coa/I5_6_33_ZONE_ELEMENTS_ERD_PROPOSAL.md\`. #218 (7cc408f) seeded 6 system record types +
+26-field catalog + 7 value sets; baked listing tabs wired; sampleRows mocks removed.
+
+Locked decisions:
+- **Senior pattern:** elements are record TYPES (many instances, each header + lines); lookups
+  between definitions (cascade = master-detail | orphan = plain, default orphan); system types
+  locked (\`is_system\`), custom types via the same mechanism, three-zone landing.
+- **Multi-org:** multiple organizations; user default-org; every new record auto-presets its org
+  field (editable per record); all data relates to organization records; ORGANIZATION = tenant root.
+- **Executive division** = Policy + Projects + Tasks (one-to-many to all 4 parties + 4 env nodes).
+- **C3:** standalone vendor_integration RETIRED → lines group on vendor instances.
+- **C4:** policy version control dropped (no new_version checkbox / supersedes lookup).
+- **C5:** organizations stay typed core table, extended is_person / org_type / parent_organization_id.
+- **C6:** collaboration zone renders organizations by org_type, filtered by default organization.
+- **C7:** no dissemination_campaign — campaigns fold under promotion & marketing (header + lines).
+- **C8:** zone/element api_name prefixes kept.
+- **Horizon 1 tables:** record_type, record, record_line, record_relations + lookup_delete_rule
+  + element_config.
+- 40-hint cross-element matrix: **HELD by Stephen** (returns after these changes settle).
+
+Resume order (web-dev, #185): structure corrections first (executive_project/task,
+production_product/service list→header_lines with list→detail views), then new system-type seed
+(communication_message + message_type VS, communication_report, communication_staff,
+dissemination_sales, dissemination_promotion_marketing, treasury_transaction + income/disbursement
+VS, treasury_records_assets_materiel, qualification_examination/review/certifications_awards,
+contact). Gate flow: Gate 1 commit → Gate 2 COA review → beta FF + :3200 → Stephen Gate 3 brief.
