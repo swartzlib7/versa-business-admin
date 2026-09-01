@@ -5,6 +5,11 @@ import {
   createInstance,
   type CreateInstanceInput,
 } from '@/lib/fixtures/record-instances';
+import { adapter, type RecordFilters } from '@/lib/data/adapter';
+
+// #245 Slice E1 (rev E section 4.2): Horizon 1 persistence. When the adapter
+// implements the record methods (DATA_SOURCE=postgres), reads/writes go through
+// record_type/record/record_line; otherwise the fixture path is unchanged.
 
 export async function GET(request: Request) {
   const session = getSessionFromRequest(request);
@@ -18,7 +23,12 @@ export async function GET(request: Request) {
   const type_api_name = searchParams.get('type') ?? undefined;
   const parent_kind = searchParams.get('parent_kind') ?? undefined;
   const parent_api_name = searchParams.get('parent') ?? undefined;
-  const data = listInstances({ type_api_name, parent_kind, parent_api_name });
+  const filters: RecordFilters = { type_api_name, parent_kind, parent_api_name };
+  if (adapter.listRecords) {
+    const data = await adapter.listRecords(filters);
+    return NextResponse.json({ data, count: data.length, meta: { persistence: 'horizon1_db' } });
+  }
+  const data = listInstances(filters);
   return NextResponse.json({ data, count: data.length });
 }
 
@@ -45,7 +55,7 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const result = createInstance({
+  const input = {
     type_api_name: String(body.type_api_name || ''),
     parent_kind: String(body.parent_kind || ''),
     parent_api_name: String(body.parent_api_name || ''),
@@ -53,7 +63,23 @@ export async function POST(request: Request) {
     status: body.status != null ? String(body.status) : undefined,
     data: body.data as Record<string, string> | undefined,
     lines: body.lines as Array<{ line_group?: string; data: Record<string, string> }> | undefined,
-  } satisfies CreateInstanceInput);
+  } satisfies CreateInstanceInput;
+  if (adapter.createRecord) {
+    const result = await adapter.createRecord(input, {
+      createdBy: session?.userId ?? null,
+    });
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: { code: result.code, message: result.message } },
+        { status: 400 },
+      );
+    }
+    return NextResponse.json(
+      { data: result.instance, meta: { persistence: 'horizon1_db' } },
+      { status: 201 },
+    );
+  }
+  const result = createInstance(input);
   if (!result.ok) {
     return NextResponse.json(
       { error: { code: result.code, message: result.message } },

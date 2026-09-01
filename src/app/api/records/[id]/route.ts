@@ -6,6 +6,11 @@ import {
   deleteInstance,
   type UpdateInstanceInput,
 } from '@/lib/fixtures/record-instances';
+import { adapter } from '@/lib/data/adapter';
+
+// #245 Slice E1 (rev E section 4.2): Horizon 1 persistence. When the adapter
+// implements the record methods (DATA_SOURCE=postgres), reads/writes go through
+// record_type/record/record_line; otherwise the fixture path is unchanged.
 
 export async function GET(
   request: Request,
@@ -19,6 +24,16 @@ export async function GET(
     );
   }
   const { id } = await context.params;
+  if (adapter.getRecord) {
+    const instance = await adapter.getRecord(id);
+    if (!instance) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: `Instance '${id}' not found.` } },
+        { status: 404 },
+      );
+    }
+    return NextResponse.json({ data: instance, meta: { persistence: 'horizon1_db' } });
+  }
   const instance = getInstance(id);
   if (!instance) {
     return NextResponse.json(
@@ -56,12 +71,24 @@ export async function PATCH(
       { status: 400 },
     );
   }
-  const result = updateInstance(id, {
+  const input = {
     name: body.name != null ? String(body.name) : undefined,
     status: body.status != null ? String(body.status) : undefined,
     data: body.data as Record<string, string> | undefined,
     lines: body.lines as Array<{ line_group?: string; data: Record<string, string> }> | undefined,
-  } satisfies UpdateInstanceInput);
+  } satisfies UpdateInstanceInput;
+  if (adapter.updateRecord) {
+    const result = await adapter.updateRecord(id, input);
+    if (!result.ok) {
+      const status = result.code === 'NOT_FOUND' ? 404 : 400;
+      return NextResponse.json(
+        { error: { code: result.code, message: result.message } },
+        { status },
+      );
+    }
+    return NextResponse.json({ data: result.instance, meta: { persistence: 'horizon1_db' } });
+  }
+  const result = updateInstance(id, input);
   if (!result.ok) {
     const status = result.code === 'NOT_FOUND' ? 404 : 400;
     return NextResponse.json(
@@ -90,6 +117,16 @@ export async function DELETE(
     );
   }
   const { id } = await context.params;
+  if (adapter.deleteRecord) {
+    const deleted = await adapter.deleteRecord(id);
+    if (!deleted) {
+      return NextResponse.json(
+        { error: { code: 'NOT_FOUND', message: `Instance '${id}' not found.` } },
+        { status: 404 },
+      );
+    }
+    return NextResponse.json({ data: { deleted: true, id }, meta: { persistence: 'horizon1_db' } });
+  }
   const deleted = deleteInstance(id);
   if (!deleted) {
     return NextResponse.json(

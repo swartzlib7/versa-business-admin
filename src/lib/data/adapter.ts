@@ -1,4 +1,23 @@
 import type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember, User, OtherSystem, SupportTicket, Metric, KnowledgeArticle, Organization, CreateOrganizationInput, UpdateOrganizationInput } from './types';
+// #245 Slice E1 (rev E section 4.2): Horizon 1 record persistence contract.
+// Type-only import - the instance shape stays the canonical API contract.
+import type {
+  CreateInstanceInput,
+  CreateInstanceResult,
+  RecordInstance,
+  UpdateInstanceInput,
+  UpdateInstanceResult,
+} from '@/lib/fixtures/record-instances';
+
+export interface RecordFilters {
+  type_api_name?: string;
+  parent_kind?: string;
+  parent_api_name?: string;
+}
+
+export interface CreateRecordOptions {
+  createdBy?: string | null;
+}
 
 // ---------------------------------------------------------------------------
 // DataAdapter — the modular boundary between route handlers and data sources.
@@ -136,6 +155,17 @@ export interface DataAdapter {
   listSupportTickets(): Promise<SupportTicket[]>;
   listMetrics(): Promise<Metric[]>;
   listKnowledgeArticles(): Promise<KnowledgeArticle[]>;
+  // #245 Slice E1 (rev E section 4.2): Horizon 1 record persistence. Optional
+  // until the postgres path implements it; fixture routes fall back to the
+  // in-process record-instances fixture when absent.
+  listRecords?(filters?: RecordFilters): Promise<RecordInstance[]>;
+  getRecord?(id: string): Promise<RecordInstance | null>;
+  createRecord?(
+    input: CreateInstanceInput,
+    opts?: CreateRecordOptions,
+  ): Promise<CreateInstanceResult>;
+  updateRecord?(id: string, input: UpdateInstanceInput): Promise<UpdateInstanceResult>;
+  deleteRecord?(id: string): Promise<boolean>;
   // Phase 1: DB health check
   healthCheck(): Promise<{ connected: boolean; latencyMs?: number; error?: string }>;
 }
@@ -523,6 +553,13 @@ export const fixtureAdapter: DataAdapter = {
 // Next.js bundling: dynamic import would be ideal but adapter is used
 // synchronously in route handlers. We use a conditional re-export pattern.
 import { postgresAdapter } from '../db/postgres-adapter';
+import {
+  createRecordDb,
+  deleteRecordDb,
+  getRecordDb,
+  listRecordsDb,
+  updateRecordDb,
+} from '../db/records-store';
 
 function createAdapter(): DataAdapter {
   const dataSource = process.env.DATA_SOURCE ?? "fixture";
@@ -572,6 +609,12 @@ function createAdapter(): DataAdapter {
       return postgresAdapter.updateTask(id, input);
     },
     healthCheck: () => postgresAdapter.healthCheck(),
+    // #245 Slice E1: Horizon 1 record persistence (record_type/record/record_line).
+    listRecords: (filters?: RecordFilters) => listRecordsDb(filters ?? {}),
+    getRecord: (id: string) => getRecordDb(id),
+    createRecord: (input, opts) => createRecordDb(input, opts),
+    updateRecord: (id, input) => updateRecordDb(id, input),
+    deleteRecord: (id: string) => deleteRecordDb(id),
   };
 }
 

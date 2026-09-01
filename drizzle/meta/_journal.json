@@ -15,6 +15,13 @@
       "when": 1788217561968,
       "tag": "0001_i5_6_33_slice_d_organizations_extension",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788224317924,
+      "tag": "0002_i5_6_33_slice_e1_horizon1_record_tables",
+      "breakpoints": true
     }
   ]
 }

@@ -426,9 +426,18 @@ Slice progress (web-dev, #185/#246, rev E locked):
   org; vendor/customer/partner unfiltered until record.org_id lands (Slice E2 - FLAGGED to COA).
   Executive self tab renders OrganizationsPanel (Gate 3 verdict 2: list replaces header form)
   with CRUD + user default_organization_id setting (PATCH /api/users/:id). Sanity 44/44.
-- **NEXT Slice E1** (#245): Horizon 1 core persistence (record_type/record/record_line/
-  record_relations + lookup_field); migrate system types into record_type rows; backfill
-  fixture line_groups; propose organization-attached lines (nullable organization_id) at Gate 1.
+- **Slice E1 DONE** (#245, Gate 1 delivered 2026-08-31): Horizon 1 core persistence -
+  record_type/record/record_line/record_relations tables + field_definition.lookup_delete_rule
+  (C2: NULL reads orphan, cascade opt-in) in migration 0002; seeded system types migrate into
+  record_type rows on first records read/write (21/21, is_system=true, idempotent upsert);
+  fixture-era NULL line_group rows backfill to the type's first group on read (COA note 3827;
+  policy keeps its legacy NULL default group); records API persists through the new tables
+  behind DATA_SOURCE=postgres (fixture path unchanged, meta.persistence=horizon1_db);
+  record_line carries nullable organization_id (C3 design note - exactly-one-parent CHECK)
+  pending Gate 1 confirmation. Sanity 60/60; live smoke 22/22 against VM Postgres (migrated,
+  verified, environment restored).
+- **NEXT Slice E2** (#249): element_config (head + deputy) + org auto-preset + executive
+  relations.
 Gate flow per slice: Gate 1 commit → Gate 2 COA review → beta FF + :3200 → Stephen Gate 3 brief.
 
 ## I5.6.33 - Gate 3 verdict + full WBS (2026-08-31 16:55 EDT)

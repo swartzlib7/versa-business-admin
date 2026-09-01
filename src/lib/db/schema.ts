@@ -19,6 +19,7 @@ import {
   integer,
   boolean,
   uniqueIndex,
+  index,
   check,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
@@ -261,11 +262,19 @@ export const fieldDefinition = pgTable(
     defaultValue: text('default_value'),
     valueSetApiName: text('value_set_api_name'),
     lookupObjectApiName: text('lookup_object_api_name'),
+    // #245 Slice E1 (rev E section 4.2 lookup_field, C2): delete rule for lookup
+    // fields. NULL reads as the locked default 'orphan' (plain lookup);
+    // 'cascade' (master-detail) is opt-in per field.
+    lookupDeleteRule: text('lookup_delete_rule'),
     sortOrder: integer('sort_order').notNull().default(0),
     active: boolean('active').notNull().default(true),
   },
   (table) => [
     uniqueIndex('field_def_obj_api_idx').on(table.objectApiName, table.apiName),
+    check(
+      'field_def_lookup_delete_rule_check',
+      sql`${table.lookupDeleteRule} IS NULL OR ${table.lookupDeleteRule} IN ('cascade', 'orphan')`,
+    ),
     check(
       'field_def_data_type_check',
       sql`${table.dataType} IN ('text', 'long_text', 'number', 'boolean', 'date', 'datetime', 'picklist', 'multipicklist', 'lookup', 'email', 'url', 'phone', 'currency')`,
@@ -295,5 +304,117 @@ export const layoutDefinition = pgTable(
       'layout_def_type_check',
       sql`${table.layoutType} IN ('detail', 'edit', 'list')`,
     ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Horizon 1 core persistence (#245 Slice E1, rev E section 4.2, 2026-08-31)
+// record_type / record / record_line / record_relations - the data-model
+// contract the zone elements spec locks. Elements are record TYPES; instances
+// carry a header JSONB + lines; lookups between definitions via field
+// definitions (lookup_object_api_name + lookup_delete_rule).
+// ---------------------------------------------------------------------------
+
+// Record type - one row per element/record definition. api_name is globally
+// unique (spec section 4.2). parent_kind uses the codebase zone kinds:
+// 'faculty' is the executive division (C8 keeps the legacy zone api_name
+// prefix), alongside collaboration | environment | baked_in.
+export const recordType = pgTable(
+  'record_type',
+  {
+    id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
+    orgId: text('org_id').notNull().references(() => organizations.id),
+    apiName: text('api_name').notNull().unique(),
+    label: text('label').notNull(),
+    parentKind: text('parent_kind').notNull(),
+    parentApiName: text('parent_api_name').notNull(),
+    structure: text('structure').notNull(),
+    isSystem: boolean('is_system').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'record_type_parent_kind_check',
+      sql`${table.parentKind} IN ('faculty', 'collaboration', 'environment', 'baked_in')`,
+    ),
+    check(
+      'record_type_structure_check',
+      sql`${table.structure} IN ('list', 'header', 'header_lines')`,
+    ),
+  ],
+);
+
+// Record - one instance of a record type. header JSONB carries the field
+// values per the type's field definitions (name/status included so the
+// fixture-shaped API contract maps 1:1).
+export const record = pgTable(
+  'record',
+  {
+    id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
+    orgId: text('org_id').notNull().references(() => organizations.id),
+    recordTypeId: text('record_type_id')
+      .notNull()
+      .references(() => recordType.id),
+    header: jsonb('header').notNull().default({}),
+    createdBy: text('created_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('record_type_idx').on(table.recordTypeId)],
+);
+
+// Record line - lines under a record (structural, always cascade). #245 E1
+// design note (C3 vendor integrations): the parent may alternatively be an
+// organization - exactly one of record_id / organization_id is set. line_group
+// is the lines-group api_name (e.g. 'milestones'); NULL reads as the legacy
+// default group (policy) and is backfilled per COA note 3827.
+export const recordLine = pgTable(
+  'record_line',
+  {
+    id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
+    recordId: text('record_id').references(() => record.id, { onDelete: 'cascade' }),
+    organizationId: text('organization_id').references(() => organizations.id, {
+      onDelete: 'cascade',
+    }),
+    lineGroup: text('line_group'),
+    position: integer('position').notNull().default(0),
+    data: jsonb('data').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('record_line_record_idx').on(table.recordId),
+    index('record_line_organization_idx').on(table.organizationId),
+    check(
+      'record_line_parent_check',
+      sql`(${table.recordId} IS NULL) <> (${table.organizationId} IS NULL)`,
+    ),
+  ],
+);
+
+// Record relations - cross-record relations (executive one-to-many to parties
+// + environment nodes, dissemination/qualification/product relations - spec
+// section 6). relation_kind values come from the locked relation-kind value
+// sets; stored as text per the field_definition.value_set_api_name soft-
+// reference pattern (concrete kind seed arrives with the held matrix).
+export const recordRelations = pgTable(
+  'record_relations',
+  {
+    id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
+    orgId: text('org_id').notNull().references(() => organizations.id),
+    sourceRecordId: text('source_record_id')
+      .notNull()
+      .references(() => record.id, { onDelete: 'cascade' }),
+    targetRecordId: text('target_record_id')
+      .notNull()
+      .references(() => record.id, { onDelete: 'cascade' }),
+    relationKind: text('relation_kind').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('record_relations_source_idx').on(table.sourceRecordId),
+    index('record_relations_target_idx').on(table.targetRecordId),
   ],
 );
