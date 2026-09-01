@@ -503,3 +503,49 @@ Stephen briefs at pass boundaries. Beta only, no production.
 
 Rule: no piecemeal dispatches; all items ride the remaining slices (E2 → F → G) + a Settings
 functionality slice slotted before G. Stephen gets the consolidated smoke brief at completion.
+
+## I5.6.33 - Slice F delivery (2026-09-01, commit ab34558, #244)
+
+Custom record types + org-attached integrations lines + D1 cutover. Branch agent/web-dev
+(on 664b378), pushed origin. Beta only, nothing to production.
+
+**Delivered:**
+- D1 cutover: vendor_integration record type retired (seed, 4 catalog field defs, BAKED
+  wiring). Vendor integrations = org-attached record_line rows (line_group=integrations)
+  per C3 design note. Migration 0004 migrates existing rows to the owning org
+  (record.org_id) and retires the record_type row (records cascade). Applied on VM
+  Postgres: type row retired, zero records existed to migrate.
+- Org-attached lines stack: records-store CRUD (keyed org+group; E1 XOR CHECK guarantees
+  single parent), adapter interface + fixture + postgres implementations,
+  GET/POST/PATCH/DELETE /api/organizations/[id]/lines (admin-gated writes).
+- OrgLinesPanel on vendor Integrations child: aggregates lines across orgs of the parent
+  tab type; Vendor select chooses owning org; render/add/update/delete via ListingPanel.
+- Latent Slice D bug 1: TabPanel selfPanel forwards orgTypePanel (was unreachable - collab
+  tabs rendered legacy form) + orgLinesGroup; self label Configuration -> Records
+  (Stephen round-2 item 3, zone pages).
+- Latent Slice D bug 2: fixtureAdapter organizations methods (in-memory store mirroring
+  postgres VALIDATION semantics) - /api/organizations no longer 501 in fixture mode
+  (beta :3200 runs fixture mode).
+- Zone children off-by-one rotation fixed (public<-contacts, communications<-messages/
+  reports/staff, dissemination<-sales/promotion-marketing, treasury<-transactions/
+  records-assets-materiel, qualification<-examinations/reviews/certifications-awards) -
+  Stephen round-2 item 4; restores live-records wiring (BAKED_TAB_SYSTEM_TYPES matches
+  parent_api_name===tab.id).
+- F1 custom types: label-unique-within-parent check in createRecordType (rev E 2.4,
+  LABEL_EXISTS).
+- F4 lookup_delete_rule: FieldDefinition + ExtendFieldInput + validation (cascade|orphan,
+  default orphan per C2), fields route passthrough, Records Editor create + edit selects.
+- E2-3 deep-link consumer: /records-editor?record=<id> expands owning type.
+
+**Validation:** tsc clean; build clean; lint rule-clean on new code (pre-existing errors
+unchanged: 3 in records-editor/zcv, 1 localStorage effect pre-existing); sanity A47 /
+C166 / D44 / E1-60 (scope-guard updated: record-types.ts now F-owned) / E2-45 / F-56;
+live smoke 7/7 on VM Postgres (migrate, CRUD, XOR CHECK, zero residue).
+
+**Flags for Gate 2 (F1-F4):** F1 OrgLinesPanel fetches lines per-org in parallel (N+1
+fetches, acceptable at current org counts; batch endpoint if org counts grow). F2
+migration 0004 deletes the vendor_integration record_type row directly (records cascade)
+- applied on VM already; COA confirm no other environments hold vendor_integration
+records. F3 fixtureAdapter org store is session-memory only (resets on restart) - matches
+existing fixture semantics. F4 sanity E1 scope-guard now asserts record-types.ts carries
+#244 markers (F-owned) instead of untouched.
