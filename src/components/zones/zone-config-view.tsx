@@ -12,10 +12,23 @@ import { MissionControlScene } from "@/components/r3f/mission-control-scene";
 import { EntityListing, type ListingField } from "@/components/listing/entity-listing";
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { OrganizationsPanel, OrgTypeListingPanel } from "@/components/organizations/organizations-panel";
+import { DivisionConfigPanel, RecordRelationsPanel } from "@/components/zones/element-config-panel";
 import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
 import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
 import { dataTypeToUiKind, optionsForField } from "@/lib/catalog/layout-to-fields";
 import type { CatalogDataType } from "@/lib/fixtures/catalog";
+
+// #249 Slice E2 (rev E section 2.6): the 7 organization-zone elements are
+// divisions; element_config keys on the tab id (element_api_name).
+const DIVISION_IDS = [
+  "executive",
+  "communications",
+  "dissemination",
+  "treasury",
+  "production",
+  "qualification",
+  "public",
+];
 
 /**
  * I5.6.10 zone config UI pattern (Stephen):
@@ -835,6 +848,22 @@ function FormPanel({
   // N3: view/edit/save-cancel for field-bearing surfaces.
   const [editing, setEditing] = useState(false);
   const [savedValues, setSavedValues] = useState<Record<string, string>>({});
+  // #249 Slice E2 (rev E section 2.5): owning organization per record -
+  // auto-preset at creation (store resolves user default org); editable here
+  // where multiple organizations exist, read-only when only one.
+  const [orgOptions, setOrgOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const [orgId, setOrgId] = useState<string>("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/organizations", { credentials: "include", signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((json: { data?: Array<{ id: string; name?: string }> }) => {
+        setOrgOptions((json.data ?? []).map((o) => ({ id: o.id, name: o.name ?? o.id })));
+      })
+      .catch(() => setOrgOptions([]));
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     if (!isDynamic || !panel.recordTypeApiName) {
@@ -907,7 +936,7 @@ function FormPanel({
       void fetch("/api/records/" + detailRecordId, { credentials: "include", signal: controller.signal })
         .then((r) => (r.ok ? r.json() : { data: null }))
         .then((json) => {
-          const inst = json.data as { id: string; name?: string; status?: string; data?: Record<string, string> } | null;
+          const inst = json.data as { id: string; name?: string; status?: string; data?: Record<string, string>; org_id?: string } | null;
           if (inst) {
             setInstanceId(inst.id);
             const data = (inst.data ?? {}) as Record<string, string>;
@@ -916,6 +945,7 @@ function FormPanel({
             draft.status = inst.status ?? data.status ?? "";
             setValues(draft);
             setSavedValues(draft);
+            setOrgId(inst.org_id ?? "");
           }
         })
         .catch(() => {
@@ -1042,7 +1072,13 @@ function FormPanel({
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ name, status, data }),
+          body: JSON.stringify({
+            name,
+            status,
+            data,
+            // #249 Slice E2 (rev E section 2.5): org move per record.
+            org_id: orgId || undefined,
+          }),
         });
       } else {
         res = await fetch("/api/records", {
@@ -1101,6 +1137,36 @@ function FormPanel({
               readOnly={!editing}
               accent={accent}
             />
+            {isDynamic && detailRecordId && orgOptions.length > 0 && (
+              <div className="mt-4">
+                <label className="space-y-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Organization
+                  </span>
+                  {orgOptions.length > 1 ? (
+                    <select
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      value={orgId}
+                      disabled={!editing}
+                      onChange={(e) => setOrgId(e.target.value)}
+                    >
+                      <option value="">- unset -</option>
+                      {orgOptions.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
+                      value={orgOptions[0]?.name ?? ""}
+                      readOnly
+                    />
+                  )}
+                </label>
+              </div>
+            )}
             <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
               {!editing ? (
                 <button
@@ -1170,6 +1236,9 @@ function TabPanel({
   // organizations list - the Executive self panel IS the organizations list
   // (no header/config form there). Policy/projects/tasks stay as sub-tabs.
   const isOrganizationsSelf = tab.id === "executive";
+  // #249 Slice E2 (rev E section 4.5/2.6): division self panels render the
+  // element_config singleton (head + deputy) under the division content.
+  const isDivisionSelf = DIVISION_IDS.includes(tab.id);
   /** I5.6.9 / board 2026-07-22 - parent default sub-tab is Configuration (form), not a parent records list. */
   const selfPanel: ZoneTab = useMemo(
     () => ({
@@ -1267,6 +1336,9 @@ function TabPanel({
               accent={accent}
               detailRecordId={detailRecordId}
             />
+            {/* #249 Slice E2 (rev E section 3.2): both-way relation navigation
+                on executive detail pages (policy/projects/tasks). */}
+            <RecordRelationsPanel key={detailRecordId} recordId={detailRecordId} accent={accent} />
             <ListingPanel
               panel={detailPanel}
               accent={accent}
@@ -1299,6 +1371,13 @@ function TabPanel({
         <ListingPanel panel={panel} accent={accent} />
       ) : (
         <FormPanel panel={panel} accent={accent} />
+      )}
+      {isDivisionSelf && (
+        <DivisionConfigPanel
+          divisionId={tab.id}
+          divisionLabel={tab.label}
+          accent={accent}
+        />
       )}
     </div>
   );

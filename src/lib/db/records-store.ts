@@ -12,8 +12,9 @@
  *   the lines-group api_name; NULL reads as the legacy default group and is
  *   backfilled to the type's first group per COA note 3827 (Horizon 1 note
  *   from Slice A Gate 2) so fixture-era rows never split-group on read.
- * - record_relations + organization-attached lines (C3 design note) are
- *   schema-ready; their write paths arrive with E2/F.
+ * - record_relations write paths land with #249 Slice E2 (executive
+ *   one-to-many to organizations + record targets); organization-attached
+ *   lines (C3 design note) stay schema-ready for the Slice F cutover.
  */
 
 import { and, eq, inArray } from 'drizzle-orm';
@@ -23,7 +24,9 @@ import {
   organizations as organizationsTable,
   record as recordTable,
   recordLine as recordLineTable,
+  recordRelations as recordRelationsTable,
   recordType as recordTypeTable,
+  users as usersTable,
 } from './schema';
 import { recordTypes } from '@/lib/fixtures/record-types';
 import { listFieldDefinitions } from '@/lib/fixtures/catalog';
@@ -32,6 +35,7 @@ import type {
   CreateInstanceResult,
   RecordInstance,
   RecordInstanceLine,
+  RecordInstanceRelation,
   UpdateInstanceInput,
   UpdateInstanceResult,
 } from '@/lib/fixtures/record-instances';
@@ -160,10 +164,90 @@ async function loadLines(recordIds: string[]): Promise<Map<string, RecordInstanc
   return map;
 }
 
+/**
+ * #249 Slice E2 (rev E section 3.2): load outbound relations for a batch of
+ * records. Target display names are resolved in the same pass (record header
+ * name or organization name) so the UI renders navigation without a second
+ * fetch per relation.
+ */
+async function loadRelations(
+  recordIds: string[],
+): Promise<Map<string, RecordInstanceRelation[]>> {
+  const map = new Map<string, RecordInstanceRelation[]>();
+  if (!recordIds.length) return map;
+  const db = getDb();
+  const rows = await db
+    .select({
+      id: recordRelationsTable.id,
+      sourceRecordId: recordRelationsTable.sourceRecordId,
+      targetRecordId: recordRelationsTable.targetRecordId,
+      targetOrganizationId: recordRelationsTable.targetOrganizationId,
+      relationKind: recordRelationsTable.relationKind,
+    })
+    .from(recordRelationsTable)
+    .where(inArray(recordRelationsTable.sourceRecordId, recordIds))
+    .orderBy(recordRelationsTable.createdAt);
+  if (!rows.length) return map;
+  // Batch-resolve target display names (records carry name in header JSONB).
+  const recordTargetIds = [
+    ...new Set(rows.map((r) => r.targetRecordId).filter((v): v is string => !!v)),
+  ];
+  const orgTargetIds = [
+    ...new Set(
+      rows.map((r) => r.targetOrganizationId).filter((v): v is string => !!v),
+    ),
+  ];
+  const recordNames = new Map<string, string>();
+  if (recordTargetIds.length) {
+    const recRows = await db
+      .select({ id: recordTable.id, header: recordTable.header })
+      .from(recordTable)
+      .where(inArray(recordTable.id, recordTargetIds));
+    for (const rec of recRows) {
+      const header = headerToStrings(rec.header);
+      recordNames.set(rec.id, header.name ?? header.Name ?? rec.id);
+    }
+  }
+  const orgNames = new Map<string, string>();
+  if (orgTargetIds.length) {
+    const orgRows = await db
+      .select({ id: organizationsTable.id, name: organizationsTable.name })
+      .from(organizationsTable)
+      .where(inArray(organizationsTable.id, orgTargetIds));
+    for (const org of orgRows) orgNames.set(org.id, org.name);
+  }
+  for (const r of rows) {
+    if (!r.sourceRecordId) continue;
+    const list = map.get(r.sourceRecordId) ?? [];
+    if (r.targetRecordId) {
+      list.push({
+        id: r.id,
+        record_id: r.sourceRecordId,
+        target_record_id: r.targetRecordId,
+        target_name: recordNames.get(r.targetRecordId) ?? r.targetRecordId,
+        target_kind: 'record',
+        relation_kind: r.relationKind,
+      });
+    } else if (r.targetOrganizationId) {
+      list.push({
+        id: r.id,
+        record_id: r.sourceRecordId,
+        target_organization_id: r.targetOrganizationId,
+        target_name: orgNames.get(r.targetOrganizationId) ?? r.targetOrganizationId,
+        target_kind: 'organization',
+        relation_kind: r.relationKind,
+      });
+    }
+    map.set(r.sourceRecordId, list);
+  }
+  return map;
+}
+
 function toInstance(
   row: typeof recordTable.$inferSelect,
   type: typeof recordTypeTable.$inferSelect,
   lines: RecordInstanceLine[],
+  relations: RecordInstanceRelation[] = [],
 ): RecordInstance {
   const header = headerToStrings(row.header);
   const name = header.name ?? header.Name ?? '';
@@ -177,8 +261,55 @@ function toInstance(
     status,
     data: header,
     lines: lines.length ? lines : undefined,
+    relations: relations.length ? relations : undefined,
+    org_id: row.orgId,
     created_at: row.createdAt.toISOString(),
   };
+}
+
+/**
+ * #249 Slice E2 (rev E section 2.5): organization auto-preset. Resolution
+ * order: explicit body org_id (validated), then the creating user's default
+ * organization (users.data JSONB), then the record type's org (tenant root).
+ */
+async function resolveOrgIdForCreate(
+  explicitOrgId: string | undefined,
+  createdBy: string | null,
+  typeOrgId: string,
+): Promise<{ ok: true; orgId: string } | { ok: false; code: string; message: string }> {
+  const db = getDb();
+  if (explicitOrgId) {
+    const rows = await db
+      .select({ id: organizationsTable.id })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, explicitOrgId))
+      .limit(1);
+    if (!rows.length)
+      return {
+        ok: false,
+        code: 'ORG_NOT_FOUND',
+        message: 'org_id does not reference an existing organization.',
+      };
+    return { ok: true, orgId: explicitOrgId };
+  }
+  if (createdBy) {
+    const rows = await db
+      .select({ data: usersTable.data })
+      .from(usersTable)
+      .where(eq(usersTable.id, createdBy))
+      .limit(1);
+    const data = (rows[0]?.data ?? {}) as Record<string, unknown>;
+    const defaultOrgId = typeof data.default_organization_id === 'string' ? data.default_organization_id : null;
+    if (defaultOrgId) {
+      const org = await db
+        .select({ id: organizationsTable.id })
+        .from(organizationsTable)
+        .where(eq(organizationsTable.id, defaultOrgId))
+        .limit(1);
+      if (org.length) return { ok: true, orgId: defaultOrgId };
+    }
+  }
+  return { ok: true, orgId: typeOrgId };
 }
 
 export type DbRecordFilters = {
@@ -206,9 +337,16 @@ export async function listRecordsDb(
     .innerJoin(recordTypeTable, eq(recordTable.recordTypeId, recordTypeTable.id))
     .where(conds.length ? and(...conds) : undefined)
     .orderBy(recordTable.createdAt);
-  const linesMap = await loadLines(rows.map((r) => r.record.id));
+  const ids = rows.map((r) => r.record.id);
+  const linesMap = await loadLines(ids);
+  const relationsMap = await loadRelations(ids);
   return rows.map((r) =>
-    toInstance(r.record, r.type, linesMap.get(r.record.id) ?? []),
+    toInstance(
+      r.record,
+      r.type,
+      linesMap.get(r.record.id) ?? [],
+      relationsMap.get(r.record.id) ?? [],
+    ),
   );
 }
 
@@ -224,7 +362,13 @@ export async function getRecordDb(id: string): Promise<RecordInstance | null> {
     .limit(1);
   if (!rows.length) return null;
   const linesMap = await loadLines([id]);
-  return toInstance(rows[0].record, rows[0].type, linesMap.get(id) ?? []);
+  const relationsMap = await loadRelations([id]);
+  return toInstance(
+    rows[0].record,
+    rows[0].type,
+    linesMap.get(id) ?? [],
+    relationsMap.get(id) ?? [],
+  );
 }
 
 export async function createRecordDb(
@@ -255,6 +399,15 @@ export async function createRecordDb(
       message: `Record type '${input.type_api_name}' is not registered.`,
     };
 
+  const orgResolved = await resolveOrgIdForCreate(
+    input.org_id,
+    opts?.createdBy ?? null,
+    type.orgId,
+  );
+  if (!orgResolved.ok) {
+    return { ok: false, code: orgResolved.code, message: orgResolved.message };
+  }
+
   const header: Record<string, string> = { ...(input.data ?? {}) };
   header.name = input.name.trim();
   header.status = input.status || 'active';
@@ -262,7 +415,7 @@ export async function createRecordDb(
   const inserted = await db
     .insert(recordTable)
     .values({
-      orgId: type.orgId,
+      orgId: orgResolved.orgId,
       recordTypeId: type.id,
       header,
       createdBy: opts?.createdBy ?? null,
@@ -280,6 +433,29 @@ export async function createRecordDb(
         data: lineData.data,
       })),
     );
+  }
+
+  // #249 Slice E2 (rev E section 3.2): executive one-to-many relations.
+  // Exactly one of record_id / organization_id per relation row (CHECK).
+  const relations = input.relations ?? [];
+  if (relations.length) {
+    for (const rel of relations) {
+      if (rel.record_id) {
+        await db.insert(recordRelationsTable).values({
+          orgId: orgResolved.orgId,
+          sourceRecordId: recordId,
+          targetRecordId: rel.record_id,
+          relationKind: rel.relation_kind ?? 'related',
+        });
+      } else if (rel.organization_id) {
+        await db.insert(recordRelationsTable).values({
+          orgId: orgResolved.orgId,
+          sourceRecordId: recordId,
+          targetOrganizationId: rel.organization_id,
+          relationKind: rel.relation_kind ?? 'related',
+        });
+      }
+    }
   }
 
   const instance = await getRecordDb(recordId);
@@ -310,9 +486,39 @@ export async function updateRecordDb(
   if (input.name !== undefined) nextHeader.name = input.name.trim();
   if (input.status !== undefined) nextHeader.status = input.status;
 
+  // #249 Slice E2 (rev E section 2.5): org field is user-changeable per record.
+  // Validate the target organization exists before moving the record.
+  let orgUpdate: { orgId: string } | undefined;
+  if (input.org_id !== undefined) {
+    if (!input.org_id.trim()) {
+      return {
+        ok: false,
+        code: 'ORG_REQUIRED',
+        message: 'org_id cannot be empty; omit it to keep the current organization.',
+      };
+    }
+    const orgRows = await db
+      .select({ id: organizationsTable.id })
+      .from(organizationsTable)
+      .where(eq(organizationsTable.id, input.org_id.trim()))
+      .limit(1);
+    if (!orgRows.length) {
+      return {
+        ok: false,
+        code: 'ORG_NOT_FOUND',
+        message: 'org_id does not reference an existing organization.',
+      };
+    }
+    orgUpdate = { orgId: orgRows[0].id };
+  }
+
   await db
     .update(recordTable)
-    .set({ header: nextHeader, updatedAt: new Date() })
+    .set({
+      header: nextHeader,
+      updatedAt: new Date(),
+      ...(orgUpdate ? { orgId: orgUpdate.orgId } : {}),
+    })
     .where(eq(recordTable.id, id));
 
   if (input.lines !== undefined) {
@@ -327,6 +533,30 @@ export async function updateRecordDb(
           data: lineData.data,
         })),
       );
+    }
+  }
+
+  // #249 Slice E2: relations replace-in-full (same fixture semantics as lines).
+  if (input.relations !== undefined) {
+    await db
+      .delete(recordRelationsTable)
+      .where(eq(recordRelationsTable.sourceRecordId, id));
+    for (const rel of input.relations) {
+      if (rel.record_id) {
+        await db.insert(recordRelationsTable).values({
+          orgId: cur[0].orgId,
+          sourceRecordId: id,
+          targetRecordId: rel.record_id,
+          relationKind: rel.relation_kind ?? 'related',
+        });
+      } else if (rel.organization_id) {
+        await db.insert(recordRelationsTable).values({
+          orgId: cur[0].orgId,
+          sourceRecordId: id,
+          targetOrganizationId: rel.organization_id,
+          relationKind: rel.relation_kind ?? 'related',
+        });
+      }
     }
   }
 

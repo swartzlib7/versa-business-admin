@@ -13,6 +13,14 @@ export interface RecordInstance {
   status: string;
   data: Record<string, string>;
   lines?: RecordInstanceLine[];
+  /** #249 Slice E2 (rev E section 3.2): outbound relations (record + org targets). */
+  relations?: RecordInstanceRelation[];
+  /**
+   * #249 Slice E2 (rev E section 2.5): owning organization (auto-preset at
+   * creation from the user default; user-changeable per record). Fixture path
+   * leaves this undefined (single-tenant in-process store).
+   */
+  org_id?: string;
   created_at: string;
 }
 
@@ -24,6 +32,22 @@ export interface RecordInstanceLine {
   line_group?: string;
   data: Record<string, string>;
   sort_order: number;
+}
+
+/**
+ * #249 Slice E2 (rev E section 3.2): executive one-to-many relation row.
+ * Exactly one of target_record_id / target_organization_id is set (DB CHECK);
+ * target_name carries the resolved display name (record name or org name) so
+ * the UI renders navigation without a second fetch.
+ */
+export interface RecordInstanceRelation {
+  id: string;
+  record_id: string;
+  target_record_id?: string;
+  target_organization_id?: string;
+  target_name?: string;
+  target_kind?: 'record' | 'organization';
+  relation_kind: string;
 }
 
 let mutableInstances: RecordInstance[] = [];
@@ -60,6 +84,22 @@ export interface CreateInstanceInput {
   data?: Record<string, string>;
   /** #185 Slice A: structured line entries carrying an optional lines-group key. */
   lines?: Array<{ line_group?: string; data: Record<string, string> }>;
+  /**
+   * #249 Slice E2 (rev E section 2.5): explicit organization override for the
+   * record (auto-preset resolves user default organization when omitted).
+   * Fixture path ignores this (single-tenant in-process store).
+   */
+  org_id?: string;
+  /**
+   * #249 Slice E2 (rev E section 3.2): executive one-to-many relations.
+   * Exactly one of record_id / organization_id per entry. Fixture path
+   * ignores this (relations persist only in the Horizon 1 store).
+   */
+  relations?: Array<{
+    record_id?: string;
+    organization_id?: string;
+    relation_kind?: string;
+  }>;
 }
 
 export type CreateInstanceResult =
@@ -107,6 +147,21 @@ export interface UpdateInstanceInput {
   data?: Record<string, string>;
   /** #185 Slice A: structured line entries carrying an optional lines-group key. */
   lines?: Array<{ line_group?: string; data: Record<string, string> }>;
+  /**
+   * #249 Slice E2: relations replace-in-full (same semantics as lines).
+   * Fixture path ignores this (relations persist only in the Horizon 1 store).
+   */
+  relations?: Array<{
+    record_id?: string;
+    organization_id?: string;
+    relation_kind?: string;
+  }>;
+  /**
+   * #249 Slice E2 (rev E section 2.5): move the record to another organization
+   * (user-changeable per record). Fixture path ignores this (single-tenant
+   * in-process store).
+   */
+  org_id?: string;
 }
 
 export type UpdateInstanceResult =

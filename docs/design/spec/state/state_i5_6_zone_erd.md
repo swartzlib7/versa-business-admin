@@ -436,8 +436,26 @@ Slice progress (web-dev, #185/#246, rev E locked):
   record_line carries nullable organization_id (C3 design note - exactly-one-parent CHECK)
   pending Gate 1 confirmation. Sanity 60/60; live smoke 22/22 against VM Postgres (migrated,
   verified, environment restored).
-- **NEXT Slice E2** (#249): element_config (head + deputy) + org auto-preset + executive
-  relations.
+- **Slice E2 DONE** (#249, Gate 1 delivered 2026-09-01): element_config table (singleton per
+  org + element_api_name, head_user_id + deputy_user_id + config JSONB, migration 0003) +
+  element-config store + GET/PUT /api/element-config/[element] (admin-gated writes);
+  DivisionConfigPanel on all 7 division self panels (Executive keeps OrganizationsPanel per
+  Gate 3 verdict 2, config panel renders beneath); org auto-preset (rev E section 2.5) -
+  create resolves explicit org_id > user default_organization_id (users.data JSONB) > type org,
+  org_id user-changeable per record (PATCH validated, ORG_NOT_FOUND/ORG_REQUIRED), instance
+  shape carries org_id, FormPanel detail view renders org dropdown (editable when multiple
+  orgs, read-only when one); executive one-to-many relations (rev E section 3.2 + C5) -
+  record_relations.target_record_id now nullable + target_organization_id column + XOR CHECK
+  (exactly one target), relations write paths on create/update (replace-in-full), batched
+  read path with resolved target names, GET /api/records/[id]/relations returns outbound +
+  inbound with type labels, RecordRelationsPanel renders both ways on executive detail pages
+  (policy/projects/tasks) with record deep-links to /records-editor?record=<id>. tsc/build
+  clean, lint clean on touched files (15 pre-existing errors remain), sanity 45/45, live
+  smoke 10/10 on VM Postgres (migrated, verified, environment restored, zero residue).
+  E1 sanity scope guards updated: record-instances.ts + zone-config-view.tsx are E2-owned
+  (marker-checked), record-types.ts still untouched.
+- **NEXT Slice F** (#244): custom record types + three-zone landing + integrations cutover
+  (D1 pairing: retire vendor_integration seed + wiring in same commit).
 Gate flow per slice: Gate 1 commit → Gate 2 COA review → beta FF + :3200 → Stephen Gate 3 brief.
 
 ## I5.6.33 - Gate 3 verdict + full WBS (2026-08-31 16:55 EDT)

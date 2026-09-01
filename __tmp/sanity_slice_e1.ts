@@ -79,9 +79,14 @@ ok(idRoute.includes('updateInstance(id, input)'), 'record PATCH fixture fallback
 // 6. Scope guard — fixture files untouched (registry stays source of truth)
 import { execSync } from 'child_process';
 const changed = execSync('git diff --name-only HEAD').toString().split('\n');
-ok(!changed.some((f: string) => f.includes('src/lib/fixtures/record-instances.ts')), 'scope: record-instances.ts untouched');
+// #249 Slice E2 now owns record-instances.ts + zone-config-view.tsx (relations
+// contract + UI). Guard updated: those files may change, but only with #249
+// markers (drift check), and record-types.ts stays untouched.
 ok(!changed.some((f: string) => f.includes('src/lib/fixtures/record-types.ts')), 'scope: record-types.ts untouched');
-ok(!changed.some((f: string) => f.includes('zone-config-view')), 'scope: no UI drift into E2 territory');
+const ri = rd('src/lib/fixtures/record-instances.ts');
+ok(ri.includes('#249 Slice E2'), 'scope: record-instances.ts changes carry #249 markers (E2-owned)');
+const zcvGuard = rd('src/components/zones/zone-config-view.tsx');
+ok(zcvGuard.includes('#249 Slice E2'), 'scope: zone-config-view changes carry #249 markers (E2-owned)');
 
 // 7. Journal updated
 const journal = rd('drizzle/meta/_journal.json');

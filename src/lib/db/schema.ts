@@ -406,9 +406,17 @@ export const recordRelations = pgTable(
     sourceRecordId: text('source_record_id')
       .notNull()
       .references(() => record.id, { onDelete: 'cascade' }),
-    targetRecordId: text('target_record_id')
-      .notNull()
-      .references(() => record.id, { onDelete: 'cascade' }),
+    targetRecordId: text('target_record_id').references(() => record.id, {
+      onDelete: 'cascade',
+    }),
+    // #249 Slice E2 (rev E section 3.2 + C5): executive records relate to
+    // organizations (vendor/customer/partner/branch) - organizations stay a
+    // typed core table, so the org target is a column. Exactly one of
+    // target_record_id / target_organization_id is set (CHECK below).
+    targetOrganizationId: text('target_organization_id').references(
+      () => organizations.id,
+      { onDelete: 'cascade' },
+    ),
     relationKind: text('relation_kind').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -416,5 +424,34 @@ export const recordRelations = pgTable(
   (table) => [
     index('record_relations_source_idx').on(table.sourceRecordId),
     index('record_relations_target_idx').on(table.targetRecordId),
+    index('record_relations_target_org_idx').on(table.targetOrganizationId),
+    check(
+      'record_relations_target_check',
+      sql`(${table.targetRecordId} IS NULL) <> (${table.targetOrganizationId} IS NULL)`,
+    ),
+  ],
+);
+
+// Element config - division configuration singleton (rev E section 4.5,
+// section 2.6): the appointed staff member in charge of the division and
+// their deputy, plus division-specific configuration JSONB. Unique per
+// organization + division (element_api_name).
+export const elementConfig = pgTable(
+  'element_config',
+  {
+    id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
+    orgId: text('org_id').notNull().references(() => organizations.id),
+    elementApiName: text('element_api_name').notNull(),
+    headUserId: text('head_user_id').references(() => users.id),
+    deputyUserId: text('deputy_user_id').references(() => users.id),
+    config: jsonb('config').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('element_config_org_element_idx').on(
+      table.orgId,
+      table.elementApiName,
+    ),
   ],
 );

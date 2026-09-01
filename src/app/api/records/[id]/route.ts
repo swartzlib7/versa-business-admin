@@ -76,6 +76,14 @@ export async function PATCH(
     status: body.status != null ? String(body.status) : undefined,
     data: body.data as Record<string, string> | undefined,
     lines: body.lines as Array<{ line_group?: string; data: Record<string, string> }> | undefined,
+    // #249 Slice E2 (rev E section 2.5/3.2): org move + relations replace-in-full
+    // (fixture path ignores both).
+    org_id: body.org_id != null ? String(body.org_id) : undefined,
+    relations: body.relations as Array<{
+      record_id?: string;
+      organization_id?: string;
+      relation_kind?: string;
+    }> | undefined,
   } satisfies UpdateInstanceInput;
   if (adapter.updateRecord) {
     const result = await adapter.updateRecord(id, input);

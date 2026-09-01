@@ -63,6 +63,14 @@ export async function POST(request: Request) {
     status: body.status != null ? String(body.status) : undefined,
     data: body.data as Record<string, string> | undefined,
     lines: body.lines as Array<{ line_group?: string; data: Record<string, string> }> | undefined,
+    // #249 Slice E2 (rev E section 2.5/3.2): explicit org override + executive
+    // relations (fixture path ignores both).
+    org_id: body.org_id != null ? String(body.org_id) : undefined,
+    relations: body.relations as Array<{
+      record_id?: string;
+      organization_id?: string;
+      relation_kind?: string;
+    }> | undefined,
   } satisfies CreateInstanceInput;
   if (adapter.createRecord) {
     const result = await adapter.createRecord(input, {

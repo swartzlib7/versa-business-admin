@@ -22,6 +22,13 @@
       "when": 1788224317924,
       "tag": "0002_i5_6_33_slice_e1_horizon1_record_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788225240564,
+      "tag": "0003_i5_6_33_slice_e2_element_config_relations",
+      "breakpoints": true
     }
   ]
 }
