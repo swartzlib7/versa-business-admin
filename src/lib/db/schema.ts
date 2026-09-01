@@ -10,6 +10,7 @@
 //   7. /api/agents*: REMOVE (Phase 4, not Phase 1). Schema must NOT invent an agents table.
 
 import {
+  type AnyPgColumn,
   pgTable,
   text,
   jsonb,
@@ -26,14 +27,32 @@ import { sql } from 'drizzle-orm';
 // Core entities (baseline ERD locked)
 // ---------------------------------------------------------------------------
 
-// Organization (singleton for v1; multi-tenant later)
-export const organizations = pgTable('organizations', {
-  id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
-  name: text('name').notNull(),
-  data: jsonb('data').notNull().default({}),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+// Organization — typed core platform table, extended per rev E section 4.3
+// (#248 Slice D, 2026-08-31): is_person (person organization or not, section
+// 2.7), org_type (vendor | customer | partner | branch | internal value set),
+// parent_organization_id (set => branch, section 2.7). Multi-organization
+// pattern locked (section 2.5): every content record hangs from an org.
+export const organizations = pgTable(
+  'organizations',
+  {
+    id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
+    name: text('name').notNull(),
+    isPerson: boolean('is_person').notNull().default(false),
+    orgType: text('org_type').notNull().default('internal'),
+    parentOrganizationId: text('parent_organization_id').references(
+      (): AnyPgColumn => organizations.id,
+    ),
+    data: jsonb('data').notNull().default({}),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'organizations_org_type_check',
+      sql`${table.orgType} IN ('vendor', 'customer', 'partner', 'branch', 'internal')`,
+    ),
+  ],
+);
 
 // Department
 export const departments = pgTable(

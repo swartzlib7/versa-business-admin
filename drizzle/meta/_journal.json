@@ -8,6 +8,13 @@
       "when": 1784656814090,
       "tag": "0000_fuzzy_nehzno",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788217561968,
+      "tag": "0001_i5_6_33_slice_d_organizations_extension",
+      "breakpoints": true
     }
   ]
 }

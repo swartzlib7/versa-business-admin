@@ -497,14 +497,11 @@ export const collaborationZone: ZoneConfig = {
     {
       id: "vendor",
       label: "Vendor",
-      summary: "Service provider — external supplier. Integrations nest here (I5.6.6).",
+      summary: "Organizations of type vendor (rev E section 2.7 / C6) — external suppliers. Integrations nest here (I5.6.6).",
       presentation: "listing",
-      listColumns: ["Legal name", "Category", "Status"],
-      sampleRows: [
-        ["Cloudflare", "Cloud / CDN", "connected"],
-        ["AWS", "Cloud / infra", "active"],
-        ["Local print shop", "Materials", "standby"],
-      ],
+      listColumns: ["Name", "Person organization"],
+      // #248 Slice D (C6): renders organizations WHERE org_type=vendor via OrgTypeListingPanel (TabPanel special-case below). sampleRows removed - the live organizations list replaces the mock.
+      orgTypePanel: "vendor",
       fields: [
         { label: "Legal name", placeholder: "Vendor Co." },
         { label: "Category", placeholder: "Cloud, materials, freelancers..." },
@@ -557,13 +554,11 @@ export const collaborationZone: ZoneConfig = {
     {
       id: "customer",
       label: "Customer",
-      summary: "Person or business that receives products or services.",
+      summary: "Organizations of type customer (rev E section 2.7 / C6) — they receive products or services.",
       presentation: "listing",
-      listColumns: ["Name", "Kind", "Tier"],
-      sampleRows: [
-        ["Acme Ltd", "business", "priority"],
-        ["Jordan Lee", "person", "standard"],
-      ],
+      listColumns: ["Name", "Person organization"],
+      // #248 Slice D (C6): renders organizations WHERE org_type=customer.
+      orgTypePanel: "customer",
       fields: [
         { label: "Name", placeholder: "Acme Ltd" },
         {
@@ -586,13 +581,11 @@ export const collaborationZone: ZoneConfig = {
     {
       id: "partner",
       label: "Partner",
-      summary: "Business or investor in a collaborative relationship.",
+      summary: "Organizations of type partner (rev E section 2.7 / C6) — collaborative relationships and investors.",
       presentation: "listing",
-      listColumns: ["Name", "Kind"],
-      sampleRows: [
-        ["Northwind Ventures", "investor"],
-        ["Regional Chamber", "association"],
-      ],
+      listColumns: ["Name", "Person organization"],
+      // #248 Slice D (C6): renders organizations WHERE org_type=partner.
+      orgTypePanel: "partner",
       fields: [
         { label: "Name", placeholder: "Partner name" },
         {
@@ -614,13 +607,11 @@ export const collaborationZone: ZoneConfig = {
     {
       id: "branch",
       label: "Branch",
-      summary: "Subsidiary — subordinate operating unit of the organization.",
+      summary: "Organizations of type branch (rev E section 2.7 / C6) — parent_organization_id points at the parent organization.",
       presentation: "listing",
-      listColumns: ["Branch name", "Code"],
-      sampleRows: [
-        ["Southeast hub", "BR-SE"],
-        ["Remote ops", "BR-RMT"],
-      ],
+      listColumns: ["Name", "Person organization"],
+      // #248 Slice D (C6): renders organizations WHERE org_type=branch, filtered to parent_organization_id = user default organization.
+      orgTypePanel: "branch",
       fields: [
         { label: "Branch name", placeholder: "Region / unit" },
         { label: "Code", placeholder: "BR-01" },

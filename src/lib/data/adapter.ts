@@ -1,4 +1,4 @@
-import type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember, User, OtherSystem, SupportTicket, Metric, KnowledgeArticle } from './types';
+import type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember, User, OtherSystem, SupportTicket, Metric, KnowledgeArticle, Organization, CreateOrganizationInput, UpdateOrganizationInput } from './types';
 
 // ---------------------------------------------------------------------------
 // DataAdapter — the modular boundary between route handlers and data sources.
@@ -31,6 +31,8 @@ export interface CreateUserInput {
   department_id?: string;
   bio?: string;
   password?: string;
+  // #248 Slice D (rev E section 2.5): user-level default organization setting.
+  default_organization_id?: string | null;
   data?: Record<string, unknown>;
 }
 
@@ -45,6 +47,8 @@ export interface UpdateUserInput {
   department_id?: string | null;
   bio?: string;
   password?: string;
+  // #248 Slice D (rev E section 2.5): user-level default organization setting.
+  default_organization_id?: string | null;
   data?: Record<string, unknown>;
 }
 
@@ -116,6 +120,12 @@ export interface DataAdapter {
   getUser(id: string): Promise<User | null>;
   createUser?(input: CreateUserInput): Promise<User>;
   updateUser?(id: string, input: UpdateUserInput): Promise<User | null>;
+  // #248 Slice D (rev E section 4.3): organizations CRUD for the Executive
+  // organizations list + Collaboration zone rendering (C6).
+  listOrganizations?(orgType?: string): Promise<Organization[]>;
+  getOrganization?(id: string): Promise<Organization | null>;
+  createOrganization?(input: CreateOrganizationInput): Promise<Organization>;
+  updateOrganization?(id: string, input: UpdateOrganizationInput): Promise<Organization | null>;
   // Phase 3 — project + task writes
   createProject?(input: CreateProjectInput): Promise<Project>;
   updateProject?(id: string, input: UpdateProjectInput): Promise<Project | null>;

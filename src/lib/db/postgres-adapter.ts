@@ -16,6 +16,10 @@ import type {
   SupportTicket,
   Metric,
   KnowledgeArticle,
+  Organization,
+  OrgType,
+  CreateOrganizationInput,
+  UpdateOrganizationInput,
 } from "../data/types";
 import { healthCheck as dbHealthCheck, getDb } from "./client";
 import {
@@ -48,6 +52,19 @@ function mapUserRow(
     department_id: row.departmentId ?? undefined,
     bio: typeof data.bio === "string" ? data.bio : "",
     status: row.status as User["status"],
+    data,
+  };
+}
+
+// #248 Slice D (rev E section 4.3): snake_case API shape for organizations.
+function mapOrganizationRow(row: typeof organizationsTable.$inferSelect): Organization {
+  const data = (row.data ?? {}) as Record<string, unknown>;
+  return {
+    id: row.id,
+    name: row.name,
+    is_person: row.isPerson,
+    org_type: row.orgType as OrgType,
+    parent_organization_id: row.parentOrganizationId ?? null,
     data,
   };
 }
@@ -548,6 +565,20 @@ export const postgresAdapter: DataAdapter = {
     if (input.password !== undefined && input.password.length > 0) {
       patch.passwordHash = bcrypt.hashSync(input.password, 10);
     }
+    // #248 Slice D (rev E section 2.5): user-level default organization.
+    if (input.default_organization_id !== undefined) {
+      if (input.default_organization_id !== null) {
+        const org = await db
+          .select({ id: organizationsTable.id })
+          .from(organizationsTable)
+          .where(eq(organizationsTable.id, input.default_organization_id))
+          .limit(1);
+        if (!org.length) throw new Error("VALIDATION: default_organization_id does not reference an existing organization");
+      }
+      const data = { ...((row.data ?? {}) as Record<string, unknown>) };
+      data.default_organization_id = input.default_organization_id;
+      patch.data = data;
+    }
     const data = { ...((row.data ?? {}) as Record<string, unknown>) };
     if (input.data) Object.assign(data, input.data);
     if (input.bio !== undefined) data.bio = input.bio;
@@ -561,6 +592,87 @@ export const postgresAdapter: DataAdapter = {
       throw e;
     }
     return postgresAdapter.getUser(id);
+  },
+
+  // --- Organizations (#248 Slice D, rev E section 4.3) ---
+  async listOrganizations(orgType?: string): Promise<Organization[]> {
+    const db = getDb();
+    const rows = await db.select().from(organizationsTable);
+    let mapped = rows.map(mapOrganizationRow);
+    if (orgType) mapped = mapped.filter((o) => o.org_type === orgType);
+    return mapped;
+  },
+  async getOrganization(id: string): Promise<Organization | null> {
+    const db = getDb();
+    const rows = await db.select().from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
+    return rows.length ? mapOrganizationRow(rows[0]) : null;
+  },
+  async createOrganization(input: CreateOrganizationInput): Promise<Organization> {
+    const db = getDb();
+    const name = input.name.trim();
+    if (!name) throw new Error("VALIDATION: name cannot be empty");
+    const orgType = input.org_type ?? "internal";
+    if (!["vendor", "customer", "partner", "branch", "internal"].includes(orgType)) {
+      throw new Error("VALIDATION: invalid org_type");
+    }
+    if (input.parent_organization_id) {
+      const parent = await db
+        .select({ id: organizationsTable.id })
+        .from(organizationsTable)
+        .where(eq(organizationsTable.id, input.parent_organization_id))
+        .limit(1);
+      if (!parent.length) throw new Error("VALIDATION: parent_organization_id does not reference an existing organization");
+    }
+    const inserted = await db
+      .insert(organizationsTable)
+      .values({
+        name,
+        isPerson: input.is_person ?? false,
+        orgType,
+        parentOrganizationId: input.parent_organization_id ?? null,
+        data: input.data ?? {},
+      })
+      .returning();
+    return mapOrganizationRow(inserted[0]);
+  },
+  async updateOrganization(id: string, input: UpdateOrganizationInput): Promise<Organization | null> {
+    const db = getDb();
+    const existing = await db.select().from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
+    if (!existing.length) return null;
+    const row = existing[0];
+    const patch: Partial<typeof organizationsTable.$inferInsert> = { updatedAt: new Date() };
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      if (!name) throw new Error("VALIDATION: name cannot be empty");
+      patch.name = name;
+    }
+    if (input.is_person !== undefined) patch.isPerson = input.is_person;
+    if (input.org_type !== undefined) {
+      if (!["vendor", "customer", "partner", "branch", "internal"].includes(input.org_type)) {
+        throw new Error("VALIDATION: invalid org_type");
+      }
+      patch.orgType = input.org_type;
+    }
+    if (input.parent_organization_id !== undefined) {
+      if (input.parent_organization_id !== null) {
+        if (input.parent_organization_id === id) throw new Error("VALIDATION: organization cannot be its own parent");
+        const parent = await db
+          .select({ id: organizationsTable.id })
+          .from(organizationsTable)
+          .where(eq(organizationsTable.id, input.parent_organization_id))
+          .limit(1);
+        if (!parent.length) throw new Error("VALIDATION: parent_organization_id does not reference an existing organization");
+      }
+      patch.parentOrganizationId = input.parent_organization_id;
+    }
+    if (input.data) {
+      const data = { ...((row.data ?? {}) as Record<string, unknown>) };
+      Object.assign(data, input.data);
+      patch.data = data;
+    }
+    await db.update(organizationsTable).set(patch).where(eq(organizationsTable.id, id));
+    const updated = await db.select().from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
+    return updated.length ? mapOrganizationRow(updated[0]) : null;
   },
 
   // --- Mission Control facets (fixture-only, no DB tables) ---

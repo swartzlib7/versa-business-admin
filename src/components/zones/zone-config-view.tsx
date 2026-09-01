@@ -11,6 +11,7 @@ import { theme } from "@/lib/theme";
 import { MissionControlScene } from "@/components/r3f/mission-control-scene";
 import { EntityListing, type ListingField } from "@/components/listing/entity-listing";
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
+import { OrganizationsPanel, OrgTypeListingPanel } from "@/components/organizations/organizations-panel";
 import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
 import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
 import { dataTypeToUiKind, optionsForField } from "@/lib/catalog/layout-to-fields";
@@ -60,6 +61,8 @@ export type ZoneTab = {
   objectApiName?: string;
   parentKind?: string;
   parentApiName?: string;
+  /** #248 Slice D (C6): collaboration tabs render organizations of this type. */
+  orgTypePanel?: "vendor" | "customer" | "partner" | "branch";
 };
 
 export type ZoneConfig = {
@@ -1163,11 +1166,15 @@ function TabPanel({
   childId: string;
   setChildId: (id: string) => void;
 }) {
+  // #248 Slice D (Gate 3 verdict 2, 2026-08-31): Executive hosts the
+  // organizations list - the Executive self panel IS the organizations list
+  // (no header/config form there). Policy/projects/tasks stay as sub-tabs.
+  const isOrganizationsSelf = tab.id === "executive";
   /** I5.6.9 / board 2026-07-22 - parent default sub-tab is Configuration (form), not a parent records list. */
   const selfPanel: ZoneTab = useMemo(
     () => ({
       id: tab.id,
-      label: "Configuration",
+      label: isOrganizationsSelf ? "Organizations" : "Configuration",
       summary: tab.summary,
       fields: tab.fields,
       relations: tab.relations,
@@ -1195,7 +1202,7 @@ function TabPanel({
           }),
       sampleRows: undefined,
     }),
-    [tab]
+    [tab, isOrganizationsSelf]
   );
 
   const subTabs = useMemo(() => {
@@ -1240,7 +1247,11 @@ function TabPanel({
         onSelect={setChildId}
         ariaLabel={`${tab.label} sub-elements`}
       />
-      {isListToDetail ? (
+      {panel.orgTypePanel ? (
+        <OrgTypeListingPanel orgType={panel.orgTypePanel} accent={accent} summary={panel.summary} />
+      ) : isOrganizationsSelf ? (
+        <OrganizationsPanel accent={accent} />
+      ) : isListToDetail ? (
         detailRecordId ? (
           <div className="space-y-4">
             <button

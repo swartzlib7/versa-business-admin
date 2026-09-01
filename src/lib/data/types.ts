@@ -151,3 +151,34 @@ export interface Session {
   role: "admin" | "member";
   type: "human" | "agent";
 }
+
+// #248 Slice D (rev E section 4.3, 2026-08-31): organizations is the typed
+// core platform table. Person organizations (is_person) may hold a lookup to
+// their contact record (section 2.7); org_type drives the Collaboration zone
+// rendering (C6); parent_organization_id set => branch (section 2.7).
+export type OrgType = "vendor" | "customer" | "partner" | "branch" | "internal";
+
+export interface Organization {
+  id: string;
+  name: string;
+  is_person: boolean;
+  org_type: OrgType;
+  parent_organization_id?: string | null;
+  data?: Record<string, unknown>;
+}
+
+export interface CreateOrganizationInput {
+  name: string;
+  is_person?: boolean;
+  org_type?: OrgType;
+  parent_organization_id?: string | null;
+  data?: Record<string, unknown>;
+}
+
+export interface UpdateOrganizationInput {
+  name?: string;
+  is_person?: boolean;
+  org_type?: OrgType;
+  parent_organization_id?: string | null;
+  data?: Record<string, unknown>;
+}
