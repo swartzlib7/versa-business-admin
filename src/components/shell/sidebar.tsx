@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { theme } from "@/lib/theme";
+import { useBrand, brandInitials } from "@/components/shell/brand-provider";
 import {
   LayoutDashboard,
   Users,
@@ -54,6 +55,7 @@ const navEntries: NavEntry[] = [
 ];
 
 export function Sidebar() {
+  const brand = useBrand();
   const pathname = usePathname();
 
   // Auto-expand group if a child route is active
@@ -82,14 +84,14 @@ export function Sidebar() {
         <div
           className="flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold"
           style={{
-            backgroundColor: theme.colors.brand,
+            backgroundColor: brand.brand_color,
             color: theme.colors.brandForeground,
           }}
         >
-          {theme.brand.shortName}
+          {brandInitials(brand.brand_name)}
         </div>
         <span className="text-sm font-semibold tracking-tight">
-          {theme.brand.name}
+          {brand.brand_name}
         </span>
       </div>
       <nav className="flex-1 overflow-y-auto px-2 py-3">
@@ -198,7 +200,7 @@ export function Sidebar() {
       </nav>
       <div className="border-t border-sidebar-border px-4 py-3">
         <p className="text-xs text-sidebar-foreground/50">
-          {theme.brand.name} v{process.env.NEXT_PUBLIC_APP_VERSION ?? '0.7.64'}
+          {brand.brand_name} v{process.env.NEXT_PUBLIC_APP_VERSION ?? '0.7.64'}
         </p>
       </div>
     </aside>

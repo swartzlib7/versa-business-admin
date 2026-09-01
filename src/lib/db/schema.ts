@@ -455,3 +455,17 @@ export const elementConfig = pgTable(
     ),
   ],
 );
+
+// Site settings - instance-wide white-label singleton (#252 Settings
+// functionality slice, Stephen round-2 item 10). Persisted branding:
+// brand.name + colors.brand only (COA ruling S1 - exactly the 2 exposed
+// controls; full token set is scope creep). Single row keyed by id='site'.
+export const siteSettings = pgTable(
+  'site_settings',
+  {
+    id: text('id').primaryKey(),
+    brandName: text('brand_name').notNull(),
+    brandColor: text('brand_color').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+);

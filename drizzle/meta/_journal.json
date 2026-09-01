@@ -36,6 +36,13 @@
       "when": 1788225300564,
       "tag": "0004_i5_6_33_slice_f_vendor_integration_cutover",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788251802958,
+      "tag": "0005_i5_6_33_slice_settings_site_settings",
+      "breakpoints": true
     }
   ]
 }

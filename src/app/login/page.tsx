@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { theme } from "@/lib/theme";
+import { useBrand, brandInitials } from "@/components/shell/brand-provider";
 import { ArrowRight, Lock, Mail } from "lucide-react";
 
 function LoginForm() {
+  const brand = useBrand();
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/dashboard";
@@ -65,14 +67,14 @@ function LoginForm() {
           <div
             className="flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold"
             style={{
-              backgroundColor: theme.colors.brand,
+              backgroundColor: brand.brand_color,
               color: theme.colors.brandForeground,
             }}
           >
-            {theme.brand.shortName}
+            {brandInitials(brand.brand_name)}
           </div>
           <h1 className="text-2xl font-bold tracking-tight">
-            {theme.brand.name}
+            {brand.brand_name}
           </h1>
           <p className="text-sm text-muted-foreground">
             Sign in to Mission Control

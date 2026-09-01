@@ -1,20 +1,17 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import {
   Card,
   CardContent,
   CardHeader,
-  CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { theme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
+import { useBrand } from "@/components/shell/brand-provider";
 import { PageHeader } from "@/components/ui/page-header";
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { Moon, Sun, Compass, Cloud } from "lucide-react";
@@ -68,6 +65,7 @@ function PanelShell({
   badge?: string;
   children: ReactNode;
 }) {
+  const brand = useBrand();
   return (
     <Card className="overflow-hidden">
       <CardHeader className="border-b bg-muted/30">
@@ -78,7 +76,7 @@ function PanelShell({
           {badge ? (
             <Badge
               className="shrink-0 border-0 text-white"
-              style={{ backgroundColor: theme.colors.brand }}
+              style={{ backgroundColor: brand.brand_color }}
             >
               {badge}
             </Badge>
@@ -149,18 +147,54 @@ export default function SettingsPage() {
     return 'branding';
   });
   const [subTab, setSubTab] = useState<string>("configuration");
-  const [brandName, setBrandName] = useState<string>(theme.brand.name);
-  const [brandColor, setBrandColor] = useState<string>(theme.colors.brand);
+  const brand = useBrand();
+  const [brandName, setBrandName] = useState<string>(brand.brand_name);
+  const [brandColor, setBrandColor] = useState<string>(brand.brand_color);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const hydrated = useRef(false);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  // Sync local editors when the server-read brand arrives/changes.
+  useEffect(() => {
+    if (!hydrated.current) {
+      setBrandName(brand.brand_name);
+      setBrandColor(brand.brand_color);
+      hydrated.current = true;
+    }
+  }, [brand.brand_name, brand.brand_color]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch("/api/settings/branding", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brand_name: brandName.trim(),
+          brand_color: brandColor,
+        }),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        const message =
+          payload?.error?.message ?? "Save failed. Please try again.";
+        setSaveError(message);
+        return;
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      setSaveError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleReset = () => {
-    setBrandName(theme.brand.name);
-    setBrandColor(theme.colors.brand);
+    setBrandName(brand.brand_name);
+    setBrandColor(brand.brand_color);
   };
 
   return (
@@ -170,7 +204,7 @@ export default function SettingsPage() {
           title="Settings"
           subtitle="White-label configuration and system preferences."
           badge="Settings"
-          accent={theme.colors.brand}
+          accent={brand.brand_color}
           tabs={TABS}
           tabsValue={tab}
           onTabChange={(id) => setTab(id as SettingsTab)}
@@ -180,9 +214,9 @@ export default function SettingsPage() {
         {tab === "branding" && (
           <div role="tabpanel" className="space-y-4">
             <SubTabBar
-              items={[{ id: "configuration", label: "Configuration" }]}
+              items={[{ id: "configuration", label: "Records" }]}
               activeId={subTab}
-              accent={theme.colors.brand}
+              accent={brand.brand_color}
               onSelect={setSubTab}
               ariaLabel="Branding sub-sections"
             />
@@ -194,25 +228,27 @@ export default function SettingsPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Brand Name</label>
-                    <Input
+                    <input
                       value={brandName}
                       onChange={(e) => setBrandName(e.target.value)}
                       placeholder="Your brand name"
+                      className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Brand Color</label>
                     <div className="flex gap-2">
-                      <Input
+                      <input
                         type="color"
                         value={brandColor}
                         onChange={(e) => setBrandColor(e.target.value)}
                         className="h-10 w-14 cursor-pointer p-1"
                       />
-                      <Input
+                      <input
                         value={brandColor}
                         onChange={(e) => setBrandColor(e.target.value)}
                         placeholder="#6366f1"
+                        className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                       />
                     </div>
                   </div>
@@ -239,15 +275,21 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
+                {saveError ? (
+                  <p className="text-sm text-destructive" role="alert">
+                    {saveError}
+                  </p>
+                ) : null}
                 <Separator />
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={handleSave}
-                    className="rounded-md px-4 py-2 text-sm font-medium text-white"
-                    style={{ backgroundColor: theme.colors.brand }}
+                    disabled={saving}
+                    className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                    style={{ backgroundColor: brand.brand_color }}
                   >
-                    {saved ? "Saved" : "Save changes"}
+                    {saved ? "Saved" : saving ? "Saving..." : "Save changes"}
                   </button>
                   <button
                     type="button"
@@ -265,9 +307,9 @@ export default function SettingsPage() {
         {tab === "appearance" && (
           <div role="tabpanel" className="space-y-4">
             <SubTabBar
-              items={[{ id: "configuration", label: "Configuration" }]}
+              items={[{ id: "configuration", label: "Records" }]}
               activeId={subTab}
-              accent={theme.colors.brand}
+              accent={brand.brand_color}
               onSelect={setSubTab}
               ariaLabel="Appearance sub-sections"
             />
@@ -280,7 +322,7 @@ export default function SettingsPage() {
             <SubTabBar
               items={[{ id: "information", label: "Information" }]}
               activeId={subTab === "information" ? "information" : "information"}
-              accent={theme.colors.brand}
+              accent={brand.brand_color}
               onSelect={setSubTab}
               ariaLabel="System sub-sections"
             />
