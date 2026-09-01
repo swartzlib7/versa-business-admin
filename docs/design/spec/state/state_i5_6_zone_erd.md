@@ -204,10 +204,10 @@ Mission Control needs one conceptual ERD (zones + entities + relationships) and 
 | Area | Today | Contract |
 |------|-------|----------|
 | 3D hub zones/entities | Implemented through I5.6.28 on **beta** | Matches keystone + I5.6 IA with accepted hub tweaks |
-| Zone tabbed mocks | Present on org/collab/env routes | Listing pattern documented; Executive form lag OK |
+| Zone tabbed mocks | **Implemented 2026-09-01**: live records via Records Editor + org-type lists (I5.6.33) | Listing pattern documented; Executive form lag OK |
 | Baseline ERD | Folded baseline content | **LOCKED 2026-07-20**; A1–A4 optional defaults apply |
 | Catalog / User pilot layout | catalog.ts + layout-to-fields + /users pilot | ERD-C shipped; session-local mock write |
-| Storage tech | Undecided (JSON-in-DB for flexible attrs **locked**) | Postgres JSONB vs fixture files open |
+| Storage tech | **Implemented 2026-09-01**: Postgres (migrations 0001-0005 applied on VM) + fixture mode for beta :3200 | JSON-in-DB for flexible attrs (locked) |
 
 ### 2.3 Code anchors
 
@@ -286,7 +286,7 @@ erDiagram
 | ERD-D | Roll pattern to Project/Task/Product | Same pattern | ✅ catalog+list/detail |
 | UI-Z | Zone listing pattern parity (non-Executive) | Matches ZONE pattern | ✅ shared EntityListing |
 | DOC-S | Point handoffs/checklists at this state doc | No parallel live ERD specs | done 2026-07-20 |
-| DB-CUT | DB cutover checklist (fixture to Postgres) | Living checklist drafted, Stephen review | [state_db_cutover_checklist.md](state_db_cutover_checklist.md) -- awaiting Phase 0 sign-off |
+| DB-CUT | DB cutover checklist (fixture to Postgres) | Living checklist drafted, Stephen review | [state_db_cutover_checklist.md](state_db_cutover_checklist.md) -- **implemented 2026-09-01** (I5.6.33: migrations 0001-0005 on VM Postgres; fixture mode retained for beta :3200) |
 
 ---
 
@@ -595,3 +595,37 @@ persistence is process-lifetime only - resets on :3200 restart (matches fixture
 semantics; postgres path is durable). (2) brandInitials derives 2-letter initials
 for custom names, keeps static shortName for the default brand (matches settings
 preview). (3) metadata.title stays static this slice (S6).
+
+## I5.6.33 - Slice G delivery (2026-09-01, #250) - final integration pass
+
+Final slice of the I5.6.33 train. Carried scope from Stephen round-2 + integration
+closeout. ERD proposal status flipped to implemented (see section 2.2 + backlog
+DB-CUT row).
+
+**Delivered:**
+- Item 1 (hub height): Mission Control hub scene now fills to the viewport bottom -
+  scene Card grows (flex min-h-0 flex-1), CardContent flex column, scene
+  min-h-[375px] flex-1 (375px floor kept, hardcoded fixed height removed). Matches
+  the zone-page fill pattern (min-h-0 flex-1 wrapper + scene fill mode).
+- Item 6 (Records Editor field form): DATA_TYPES now labeled + grouped (Text /
+  Numeric / Date and time / Choice / Relation optgroups; wire values unchanged);
+  picklist naming clarified (single choice / multiple choices suffixes); Value set
+  field shows only for picklist/multipicklist, Lookup object only for lookup
+  (showWhen pattern, same as delete rule); createField nulls stale conditional
+  values when data_type switches.
+- Items 7/8/9 (rename sweep): glossary 2 + users 1 + records-editor 4 sub-tab
+  labels Configuration -> Records; ids stay configuration (deep-link stable).
+  With Settings (#252) the global rename is complete.
+- Version bump 0.7.70 -> 0.7.71 (package.json; sidebar footer reads it).
+
+**Validation:** tsc clean; build clean; lint on 5 touched files adds zero new
+problems (6 pre-existing verified via stash test); sanity G-20 (new suite) + prior
+suites A47 / C166 / D44 / E1-60 / E2-45 / F-56 / Settings-49 all green; live smoke
+on :3305 (prod build, fixture mode): login 200, glossary/users/records-editor SSR
+shows Records labels with zero Configuration labels, dashboard SSR carries the new
+flex classes and no hardcoded fixed height; server shut down cleanly (no orphans).
+
+**Integration status:** Slices B/C (Gate 2 passed pre-round-2), D (#248), E1 (#245),
+E2 (#249), F (#244), Settings (#252) all Gate-2-passed and FF'd to beta through
+d8c6c51; Slice G is the final train slice. Next: COA Gate 2 on Slice G -> beta FF +
+:3200 rebuild -> consolidated smoke brief to Stephen (Gate 3 covers the full train).
