@@ -418,8 +418,17 @@ Slice progress (web-dev, #185/#246, rev E locked):
   (§7.6 — the tab itself carries the dynamic path; selfPanel keeps it on the self panel);
   Public renamed to Distribution (rev D; tab id stays `public` per C8). vendor_integration
   stays seeded+wired per D1 until Slice F cutover. Sanity: 166 assertions pass.
-- **NEXT Slice D** (#248): organizations extension (is_person/org_type/parent_organization_id)
-  + collaboration rendering by org_type + default org (§4.3/§2.7, C5/C6).
+- **Slice D DONE** (#248, 8137ea0 on 3f65be0, Gate 1 delivered): organizations extended
+  is_person / org_type (vendor|customer|partner|branch|internal VS + CHECK) /
+  parent_organization_id self-FK (set => branch); migration 0001 defaults existing orgs to
+  internal. Collaboration vendor/customer/partner/branch tabs render live organizations via
+  OrgTypeListingPanel (mocks removed); branch filters by parent_organization_id = user default
+  org; vendor/customer/partner unfiltered until record.org_id lands (Slice E2 - FLAGGED to COA).
+  Executive self tab renders OrganizationsPanel (Gate 3 verdict 2: list replaces header form)
+  with CRUD + user default_organization_id setting (PATCH /api/users/:id). Sanity 44/44.
+- **NEXT Slice E1** (#245): Horizon 1 core persistence (record_type/record/record_line/
+  record_relations + lookup_field); migrate system types into record_type rows; backfill
+  fixture line_groups; propose organization-attached lines (nullable organization_id) at Gate 1.
 Gate flow per slice: Gate 1 commit → Gate 2 COA review → beta FF + :3200 → Stephen Gate 3 brief.
 
 ## I5.6.33 - Gate 3 verdict + full WBS (2026-08-31 16:55 EDT)
