@@ -520,7 +520,7 @@ export default function GlossaryPage() {
         {activeTab === "sections" && (
         <div className="space-y-3">
         <SubTabBar
-          items={[{ id: "configuration", label: "Configuration" }]}
+          items={[{ id: "configuration", label: "Records" }]}
           activeId={subTab}
           accent={ACCENT}
           onSelect={setSubTab}
@@ -627,7 +627,7 @@ export default function GlossaryPage() {
         {activeTab === "entries" && (
         <div className="space-y-3">
         <SubTabBar
-          items={[{ id: "configuration", label: "Configuration" }]}
+          items={[{ id: "configuration", label: "Records" }]}
           activeId={subTab}
           accent={ACCENT}
           onSelect={setSubTab}

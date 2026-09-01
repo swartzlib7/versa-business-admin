@@ -9,8 +9,8 @@ import { theme } from "@/lib/theme";
 /**
  * I5.6.43 #209 — Records Editor as top-level page (moved out of Settings).
  * Main tabs: Types | Fields | Picklists are handled by RecordsEditor's internal SectionTabs.
- * Sub-tab: Configuration under each main tab (also inside RecordsEditor).
- * No page-level SubTabBar — avoids double Configuration chrome.
+ * Sub-tab: Records under each main tab (also inside RecordsEditor) - id stays "configuration".
+ * No page-level SubTabBar — avoids double Records chrome.
  */
 export default function RecordsEditorPage() {
   return (

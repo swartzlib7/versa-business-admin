@@ -24,7 +24,22 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return json as T;
 }
 
-const DATA_TYPES = ["text", "long_text", "number", "boolean", "date", "datetime", "picklist", "multipicklist", "lookup", "email", "url", "phone"];
+// I5.6.33 round-2 item 6 - labeled data types, grouped (CreateForm renders optgroups
+// when every option carries a group). Plain values stay the wire format.
+const DATA_TYPES: SelectOption[] = [
+  { value: "text", label: "Text", group: "Text" },
+  { value: "long_text", label: "Long text", group: "Text" },
+  { value: "email", label: "Email", group: "Text" },
+  { value: "url", label: "URL", group: "Text" },
+  { value: "phone", label: "Phone", group: "Text" },
+  { value: "number", label: "Number", group: "Numeric" },
+  { value: "boolean", label: "Checkbox (true/false)", group: "Numeric" },
+  { value: "date", label: "Date", group: "Date & time" },
+  { value: "datetime", label: "Date & time", group: "Date & time" },
+  { value: "picklist", label: "Picklist (single choice)", group: "Choice" },
+  { value: "multipicklist", label: "Multi-picklist (multiple choices)", group: "Choice" },
+  { value: "lookup", label: "Lookup (link to another record type)", group: "Relation" },
+];
 
 /** J3: UI label for a structure value (API value stays header_lines). */
 function structureLabel(value: string): string {
@@ -379,8 +394,8 @@ export function RecordsEditor() {
           api_name: vals.api_name,
           label: vals.label,
           data_type: vals.data_type || "text",
-          value_set_api_name: vals.value_set_api_name || null,
-          lookup_object_api_name: vals.lookup_object_api_name || null,
+          value_set_api_name: vals.data_type === "picklist" || vals.data_type === "multipicklist" ? (vals.value_set_api_name || null) : null,
+          lookup_object_api_name: vals.data_type === "lookup" ? (vals.lookup_object_api_name || null) : null,
           lookup_delete_rule: vals.lookup_delete_rule || null,
           zone_role: vals.zone_role || null,
           show_in_column: vals.show_in_column === "true" || vals.show_in_column === "on",
@@ -680,7 +695,7 @@ export function RecordsEditor() {
       {section === "types" && (
         <div role="tabpanel" className="space-y-3">
           <SubTabBar
-            items={[{ id: "configuration", label: "Configuration" }]}
+            items={[{ id: "configuration", label: "Records" }]}
             activeId={subTab}
             accent={theme.colors.brand}
             onSelect={setSubTab}
@@ -975,7 +990,7 @@ export function RecordsEditor() {
       {section === "fields" && (
         <div role="tabpanel" className="space-y-3">
           <SubTabBar
-            items={[{ id: "configuration", label: "Configuration" }]}
+            items={[{ id: "configuration", label: "Records" }]}
             activeId={subTab}
             accent={theme.colors.brand}
             onSelect={setSubTab}
@@ -1003,7 +1018,7 @@ export function RecordsEditor() {
                     onChange={(e) => setFieldTypeFilter(e.target.value)}
                   >
                     <option value="">All data types</option>
-                    {DATA_TYPES.map((dt) => <option key={dt} value={dt}>{dt}</option>)}
+                    {DATA_TYPES.map((dt) => typeof dt === "string" ? <option key={dt} value={dt}>{dt}</option> : <option key={dt.value} value={dt.value}>{dt.label}</option>)}
                   </select>
                   <input
                     className="w-32 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -1036,8 +1051,10 @@ export function RecordsEditor() {
                           { key: "show_in_column", label: "Show as column in lines table", type: "checkbox" as const, showWhen: (vals: Record<string, string>) => vals.zone_role === "list" },
                         ]
                       : []),
-                    { key: "value_set_api_name", label: "Value set (picklist)", type: "select", options: valueSets.map((v) => v.api_name) },
-                    { key: "lookup_object_api_name", label: "Lookup object", type: "select", options: types.map((t) => t.object_api_name) },
+                    // I5.6.33 round-2 item 6 - Value set only for picklist/multipicklist;
+                    // Lookup object only for lookup (same showWhen pattern as delete rule).
+                    { key: "value_set_api_name", label: "Value set", type: "select", options: valueSets.map((v) => ({ value: v.api_name, label: v.label || v.api_name })), showWhen: (vals: Record<string, string>) => vals.data_type === "picklist" || vals.data_type === "multipicklist" },
+                    { key: "lookup_object_api_name", label: "Lookup object", type: "select", options: types.map((t) => ({ value: t.object_api_name, label: t.label })), showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" },
                     { key: "lookup_delete_rule", label: "Lookup delete rule", type: "select", options: [{ value: "orphan", label: "Orphan (plain lookup)" }, { value: "cascade", label: "Cascade (master-detail)" }], showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" },
                   ]}
                   accent={theme.colors.brand}
@@ -1312,7 +1329,7 @@ export function RecordsEditor() {
       {section === "picklists" && (
         <div role="tabpanel" className="space-y-3">
           <SubTabBar
-            items={[{ id: "configuration", label: "Configuration" }]}
+            items={[{ id: "configuration", label: "Records" }]}
             activeId={subTab}
             accent={theme.colors.brand}
             onSelect={setSubTab}
@@ -1510,7 +1527,7 @@ export function RecordsEditor() {
       {section === "layouts" && (
         <div role="tabpanel" className="space-y-3">
           <SubTabBar
-            items={[{ id: "configuration", label: "Configuration" }]}
+            items={[{ id: "configuration", label: "Records" }]}
             activeId={subTab}
             accent={theme.colors.brand}
             onSelect={setSubTab}

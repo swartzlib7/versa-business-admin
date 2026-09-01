@@ -9,7 +9,7 @@ import { theme } from "@/lib/theme";
 
 /**
  * I5.6.43 #209 — Users as top-level page (moved out of Settings).
- * Sub-tab: Configuration (wrapping UsersPanel).
+ * Sub-tab: Records (wrapping UsersPanel) - id stays "configuration" for deep links.
  */
 export default function UsersPage() {
   const [subTab, setSubTab] = useState("configuration");
@@ -24,7 +24,7 @@ export default function UsersPage() {
           accent={theme.colors.brand}
         />
         <SubTabBar
-          items={[{ id: "configuration", label: "Configuration" }]}
+          items={[{ id: "configuration", label: "Records" }]}
           activeId={subTab}
           accent={theme.colors.brand}
           onSelect={setSubTab}

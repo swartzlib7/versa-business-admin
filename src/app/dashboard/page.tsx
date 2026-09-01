@@ -154,7 +154,7 @@ const [ringsMode, setRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>(()
         </div>
 
         {/* 3D Scene — inline (hidden chrome when fullscreen so one canvas owns the view) */}
-        <Card className={expanded ? "invisible h-0 overflow-hidden p-0 border-0 shadow-none" : "w-full overflow-visible"}>
+        <Card className={expanded ? "invisible h-0 overflow-hidden p-0 border-0 shadow-none" : "flex min-h-0 w-full flex-1 flex-col overflow-visible"}>
           <CardHeader>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <CardTitle>Mission Control Hub</CardTitle>
@@ -251,10 +251,10 @@ const [ringsMode, setRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>(()
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="flex min-h-0 flex-1 flex-col pt-0">
             {!expanded && (
               <MissionControlScene
-                className="h-[375px] w-full"
+                className="min-h-[375px] w-full flex-1"
                 onNodeClick={handleNodeClick}
                 focusedNodeId={focusedNodeId}
                 expanded={false}
