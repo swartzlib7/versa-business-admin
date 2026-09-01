@@ -549,3 +549,49 @@ migration 0004 deletes the vendor_integration record_type row directly (records 
 records. F3 fixtureAdapter org store is session-memory only (resets on restart) - matches
 existing fixture semantics. F4 sanity E1 scope-guard now asserts record-types.ts carries
 #244 markers (F-owned) instead of untouched.
+
+
+## I5.6.33 - Settings functionality slice delivery (2026-09-01, commit d0c94d2, #252)
+
+**Scope (Stephen round-2 item 10, slotted before G per locked sequence):** make the
+exposed Branding controls real + 2 Settings sub-tab label renames. COA GO on flags
+S1-S6 (int_48f133a0f89b45c1).
+
+**Delivered:**
+- site_settings singleton (migration 0005: id text PK, brand_name, brand_color,
+  updated_at; single row keyed id=site). Applied on VM Postgres, zero residue.
+- settings-store (postgres) + fixture singleton (S5: seeded from static theme when
+  unset). Fixture store is globalThis-backed - Next.js server bundles duplicate
+  module-level state across layout/route bundles (observed live: PUT updated the
+  route bundle copy while the layout rendered its own stale copy); globalThis is
+  shared across bundle instances in one server process, so PUT -> hard reload sees
+  the new brand.
+- GET auth'd + PUT admin-gated /api/settings/branding (S3, element-config precedent):
+  hex color validation (INVALID_BRAND_COLOR), non-empty brand_name
+  (INVALID_BRAND_NAME), partial updates merge over current values.
+- S4 server-read: root layout is force-dynamic, reads brand per-request (try/catch
+  fallback to static theme - branding failure never takes the app down), passes to
+  BrandProvider. Acceptance: PUT a new brand, hard-reload login + sidebar, new brand
+  appears WITHOUT rebuild/restart.
+- S2 identity surfaces only: sidebar (logo box, name, footer version line), login
+  (logo box, name), settings (badge, accent, preview, Save). 88 static
+  theme.colors.brand usages in 27 files untouched (full dynamic theming = future
+  slice if Stephen asks).
+- Branding Save is now REAL: PUT /api/settings/branding, error surface
+  (role=alert), saving state, disabled while saving. Plain inputs replace base-ui
+  Input on the Branding controls (base_ui_input_focus_bug reminder).
+- Rename: both Settings sub-tab labels Configuration -> Records (branding +
+  appearance panels), ids stable. Glossary 2 + users 1 + records-editor 4 labels
+  stay Slice G per locked scope.
+
+**Validation:** tsc clean; build clean (all routes dynamic - force-dynamic verified
+at build level); lint clean on all 9 touched files; sanity 49/49 (new
+sanity_slice_settings.ts); VM Postgres smoke 8/8 (table shape, S5 unset-defaults,
+insert + update paths, zero residue); prior suites green: A47 / C166 / D44 / E1-60 /
+E2-45 / F-56.
+
+**Flags for Gate 2 (S1-S6 already ruled; new observations):** (1) fixture branding
+persistence is process-lifetime only - resets on :3200 restart (matches fixture
+semantics; postgres path is durable). (2) brandInitials derives 2-letter initials
+for custom names, keeps static shortName for the default brand (matches settings
+preview). (3) metadata.title stays static this slice (S6).
