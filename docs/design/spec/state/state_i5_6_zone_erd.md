@@ -483,3 +483,23 @@ Gate flow per slice: Gate 1 commit → Gate 2 COA review → beta FF + :3200 →
 
 Gate flow: Gate 1 commit -> Gate 2 COA review (batched per pass) -> beta FF + :3200 ->
 Stephen briefs at pass boundaries. Beta only, no production.
+
+## I5.6.33 — Stephen beta feedback round 2 (2026-09-01, msg int_5ffc02458e2a426a)
+
+10-item list, dispositioned and committed to the WBS. Full text preserved in message log.
+
+| # | Item | Disposition |
+|---|------|-------------|
+| 1 | Hub element height fill to viewport bottom | NEW — UI fix, fold into remaining slices |
+| 2 | Executive shows 'Not authorized', no org records | Covered — orgs list lands with Slice E2 (due Sep 5); auth gate. Re-check post-E2 |
+| 3 | Rename 'Configuration' → 'Records' on all zone sub-tabs (incl. Executive) | ACCEPTED — global rename, folded into remaining slices |
+| 4 | Sub-tab mislabeling: Distribution shows Communication's tabs; Communication shows Dissemination's; Dissemination shows Treasury's; Treasury shows Qualifications'; Qualifications shows Distribution's | BUG CONFIRMED — off-by-one wiring in baked-tab wiring (Slice C); fix in next slice |
+| 5 | Collaboration: 'Records' under each org-type tab (Org/Vendor/Customer/Partner/Branch) | COVERED — Slice E2/F per rev E §2.5/C6 (org-type lists, default-org filter) |
+| 6 | Records Editor New Field: proper data-type labels; Value set + Lookup fields conditional on Lookup/Picklist/Multi-Picklist; clarify multipicklist naming | ACCEPTED — UX refinement, fold into remaining slices |
+| 7 | Glossary: UX consistent with other sections; rename Configuration → Records on both tabs | ACCEPTED — rename global; glossary UX polish folded in |
+| 8 | Users: rename Configuration → Records | ACCEPTED — global rename |
+| 9 | Records Editor: rename Configuration → Records | ACCEPTED — global rename |
+| 10 | Settings: rename Configuration → Records AND implement functionality | NEW SCOPE — size + slot after current build, before final smoke (Slice G) |
+
+Rule: no piecemeal dispatches; all items ride the remaining slices (E2 → F → G) + a Settings
+functionality slice slotted before G. Stephen gets the consolidated smoke brief at completion.
