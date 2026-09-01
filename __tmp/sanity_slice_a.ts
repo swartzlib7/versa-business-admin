@@ -23,7 +23,7 @@ ok(struct['executive_project'] === 'header_lines', 'project header_lines');
 ok(struct['executive_task'] === 'header_lines', 'task header_lines');
 ok(struct['production_product'] === 'header_lines', 'product header_lines');
 ok(struct['production_service'] === 'header_lines', 'service header_lines');
-ok(struct['vendor_integration'] === 'list', 'vendor_integration stays list (D1)');
+ok(struct['vendor_integration'] === undefined, 'vendor_integration retired (Slice F D1 cutover)');
 
 // 2. Catalog re-roling: existing fields = header; line fields = list + show_in_column
 for (const obj of ['executive_project', 'executive_task', 'production_product', 'production_service']) {

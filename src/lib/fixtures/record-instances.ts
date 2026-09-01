@@ -203,3 +203,73 @@ export function deleteInstance(id: string): boolean {
   mutableInstances.splice(idx, 1);
   return true;
 }
+
+// ---------------------------------------------------------------------------
+// #244 Slice F (D1 cutover): organization-attached lines (fixture path).
+// Vendor integrations are org-attached record_line rows
+// (line_group='integrations'); the vendor_integration record type is retired.
+// Mirrors the postgres org-lines store shape (records-store.ts).
+// ---------------------------------------------------------------------------
+
+export interface OrgLineRow {
+  id: string;
+  organization_id: string;
+  line_group: string;
+  data: Record<string, string>;
+  sort_order: number;
+}
+
+let mutableOrgLines: OrgLineRow[] = [];
+let nextOrgLineId = 1;
+
+export function resetOrgLines(): void {
+  mutableOrgLines = [];
+  nextOrgLineId = 1;
+}
+
+export function listOrgLines(organizationId: string, lineGroup: string): OrgLineRow[] {
+  return mutableOrgLines
+    .filter((ln) => ln.organization_id === organizationId && ln.line_group === lineGroup)
+    .sort((a, b) => a.sort_order - b.sort_order);
+}
+
+export function createOrgLine(
+  organizationId: string,
+  lineGroup: string,
+  data: Record<string, string>,
+): OrgLineRow {
+  const next = mutableOrgLines
+    .filter((ln) => ln.organization_id === organizationId && ln.line_group === lineGroup)
+    .reduce((m, ln) => Math.max(m, ln.sort_order), -1) + 1;
+  const line: OrgLineRow = {
+    id: 'orgline-' + String(nextOrgLineId++),
+    organization_id: organizationId,
+    line_group: lineGroup,
+    data: { ...data },
+    sort_order: next,
+  };
+  mutableOrgLines.push(line);
+  return { ...line };
+}
+
+export function updateOrgLine(
+  organizationId: string,
+  lineId: string,
+  lineGroup: string,
+  data: Record<string, string>,
+): OrgLineRow | null {
+  const line = mutableOrgLines.find(
+    (ln) => ln.id === lineId && ln.organization_id === organizationId && ln.line_group === lineGroup,
+  );
+  if (!line) return null;
+  line.data = { ...data };
+  return { ...line };
+}
+
+export function deleteOrgLine(organizationId: string, lineId: string, lineGroup: string): boolean {
+  const before = mutableOrgLines.length;
+  mutableOrgLines = mutableOrgLines.filter(
+    (ln) => !(ln.id === lineId && ln.organization_id === organizationId && ln.line_group === lineGroup),
+  );
+  return mutableOrgLines.length < before;
+}

@@ -574,3 +574,128 @@ export async function deleteRecordDb(id: string): Promise<boolean> {
     .returning({ id: recordTable.id });
   return deleted.length > 0;
 }
+
+// ---------------------------------------------------------------------------
+// #244 Slice F (D1 cutover): organization-attached lines (C3 design note).
+// Vendor integrations are record_line rows attached to the parent vendor
+// organization (record_line.organization_id + line_group='integrations'); the
+// vendor_integration record type is retired (seed removed this slice,
+// migration 0004 migrates any existing rows). The E1 XOR CHECK
+// (record_line_parent_check) guarantees exactly one of record_id /
+// organization_id per row, so org-attached lines never collide with
+// record-attached lines.
+// ---------------------------------------------------------------------------
+
+export interface OrgLineRow {
+  id: string;
+  organization_id: string;
+  line_group: string;
+  data: Record<string, string>;
+  sort_order: number;
+}
+
+function mapOrgLineRow(ln: typeof recordLineTable.$inferSelect): OrgLineRow {
+  return {
+    id: ln.id,
+    organization_id: ln.organizationId ?? '',
+    line_group: ln.lineGroup ?? '',
+    data: (ln.data ?? {}) as Record<string, string>,
+    sort_order: ln.position,
+  };
+}
+
+export async function listOrgLinesDb(
+  organizationId: string,
+  lineGroup: string,
+): Promise<OrgLineRow[]> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(recordLineTable)
+    .where(
+      and(
+        eq(recordLineTable.organizationId, organizationId),
+        eq(recordLineTable.lineGroup, lineGroup),
+      ),
+    )
+    .orderBy(recordLineTable.position, recordLineTable.createdAt);
+  return rows.map(mapOrgLineRow);
+}
+
+export async function createOrgLineDb(
+  organizationId: string,
+  lineGroup: string,
+  data: Record<string, string>,
+): Promise<{ ok: true; line: OrgLineRow } | { ok: false; code: string; message: string }> {
+  const db = getDb();
+  const org = await db
+    .select({ id: organizationsTable.id })
+    .from(organizationsTable)
+    .where(eq(organizationsTable.id, organizationId))
+    .limit(1);
+  if (!org.length) {
+    return { ok: false, code: 'ORG_NOT_FOUND', message: 'Organization not found.' };
+  }
+  const next = await db
+    .select({ m: sql`coalesce(max(${recordLineTable.position}), -1) + 1` })
+    .from(recordLineTable)
+    .where(
+      and(
+        eq(recordLineTable.organizationId, organizationId),
+        eq(recordLineTable.lineGroup, lineGroup),
+      ),
+    );
+  const inserted = await db
+    .insert(recordLineTable)
+    .values({
+      organizationId,
+      lineGroup,
+      position: Number(next[0]?.m ?? 0),
+      data,
+    })
+    .returning();
+  return { ok: true, line: mapOrgLineRow(inserted[0]) };
+}
+
+export async function updateOrgLineDb(
+  organizationId: string,
+  lineId: string,
+  lineGroup: string,
+  data: Record<string, string>,
+): Promise<{ ok: true; line: OrgLineRow } | { ok: false; code: string; message: string }> {
+  const db = getDb();
+  const updated = await db
+    .update(recordLineTable)
+    .set({ data, updatedAt: new Date() })
+    .where(
+      and(
+        eq(recordLineTable.id, lineId),
+        eq(recordLineTable.organizationId, organizationId),
+        eq(recordLineTable.lineGroup, lineGroup),
+      ),
+    )
+    .returning();
+  if (!updated.length) {
+    return { ok: false, code: 'NOT_FOUND', message: 'Line not found.' };
+  }
+  return { ok: true, line: mapOrgLineRow(updated[0]) };
+}
+
+export async function deleteOrgLineDb(
+  organizationId: string,
+  lineId: string,
+  lineGroup: string,
+): Promise<boolean> {
+  const db = getDb();
+  const deleted = await db
+    .delete(recordLineTable)
+    .where(
+      and(
+        eq(recordLineTable.id, lineId),
+        eq(recordLineTable.organizationId, organizationId),
+        eq(recordLineTable.lineGroup, lineGroup),
+      ),
+    )
+    .returning({ id: recordLineTable.id });
+  return deleted.length > 0;
+}

@@ -1,4 +1,7 @@
 import type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember, User, OtherSystem, SupportTicket, Metric, KnowledgeArticle, Organization, CreateOrganizationInput, UpdateOrganizationInput } from './types';
+import type { OrgLineRow } from '@/lib/fixtures/record-instances';
+import { listOrgLines, createOrgLine, updateOrgLine, deleteOrgLine } from '@/lib/fixtures/record-instances';
+import type { OrgLineRow as OrgLineRowDb } from '@/lib/db/records-store';
 // #245 Slice E1 (rev E section 4.2): Horizon 1 record persistence contract.
 // Type-only import - the instance shape stays the canonical API contract.
 import type {
@@ -145,6 +148,11 @@ export interface DataAdapter {
   getOrganization?(id: string): Promise<Organization | null>;
   createOrganization?(input: CreateOrganizationInput): Promise<Organization>;
   updateOrganization?(id: string, input: UpdateOrganizationInput): Promise<Organization | null>;
+  // #244 Slice F (D1 cutover): org-attached lines (vendor integrations).
+  listOrgLines?(organizationId: string, lineGroup: string): Promise<OrgLineRow[]>;
+  createOrgLine?(organizationId: string, lineGroup: string, data: Record<string, string>): Promise<OrgLineRow>;
+  updateOrgLine?(organizationId: string, lineId: string, lineGroup: string, data: Record<string, string>): Promise<OrgLineRow | null>;
+  deleteOrgLine?(organizationId: string, lineId: string, lineGroup: string): Promise<boolean>;
   // Phase 3 — project + task writes
   createProject?(input: CreateProjectInput): Promise<Project>;
   updateProject?(id: string, input: UpdateProjectInput): Promise<Project | null>;
@@ -194,6 +202,21 @@ let mutableProjects: Project[] = [...projectFixtures];
 let mutableTasks: Task[] = [...taskFixtures];
 const mutableUsers = userFixtures.map((u) => ({ ...u, data: u.data ? { ...u.data } : {} }));
 
+// Slice F latent-bug repair: fixtureAdapter had NO organizations methods, so
+// /api/organizations returned 501 in fixture mode (what beta :3200 runs) and
+// the collab org-type tabs + Executive organizations list were dead. In-memory
+// store mirrors the postgres-adapter shape (Slice D rev E section 4.3).
+let orgSeq = 0;
+const mutableOrganizations: Organization[] = [
+  { id: "org-fixture-1", name: "Sample Maker Workspace", is_person: false, org_type: "internal", parent_organization_id: null, data: {} },
+  { id: "org-fixture-v1", name: "Acme Cloud Services", is_person: false, org_type: "vendor", parent_organization_id: null, data: {} },
+  { id: "org-fixture-c1", name: "Northwind Retail", is_person: false, org_type: "customer", parent_organization_id: null, data: {} },
+  { id: "org-fixture-p1", name: "Bright Channel Partners", is_person: false, org_type: "partner", parent_organization_id: null, data: {} },
+  { id: "org-fixture-b1", name: "Riverside Branch", is_person: false, org_type: "branch", parent_organization_id: null, data: {} },
+];
+const ORG_TYPES = ["vendor", "customer", "partner", "branch", "internal"];
+
+
 export function resetAgents(): void {
   mutableAgents = [...agentFixtures];
 }
@@ -207,6 +230,86 @@ export function resetTasks(): void {
 }
 
 export const fixtureAdapter: DataAdapter = {
+  // --- Organizations (Slice F latent-bug repair, rev E section 4.3) ---
+  async listOrganizations(orgType?: string): Promise<Organization[]> {
+    let result = mutableOrganizations;
+    if (orgType) result = result.filter((o) => o.org_type === orgType);
+    return result;
+  },
+
+  async getOrganization(id: string): Promise<Organization | null> {
+    return mutableOrganizations.find((o) => o.id === id) ?? null;
+  },
+
+  async createOrganization(input: CreateOrganizationInput): Promise<Organization> {
+    const name = (input.name ?? "").trim();
+    if (!name) throw new Error("VALIDATION: name cannot be empty");
+    const orgType = input.org_type ?? "internal";
+    if (!ORG_TYPES.includes(orgType)) throw new Error("VALIDATION: invalid org_type");
+    if (input.parent_organization_id) {
+      const parent = mutableOrganizations.find((o) => o.id === input.parent_organization_id);
+      if (!parent) throw new Error("VALIDATION: parent_organization_id does not reference an existing organization");
+    }
+    orgSeq += 1;
+    const org: Organization = {
+      id: "org-fixture-" + String(orgSeq),
+      name,
+      is_person: input.is_person ?? false,
+      org_type: orgType,
+      parent_organization_id: input.parent_organization_id ?? null,
+      data: input.data ?? {},
+    };
+    mutableOrganizations.push(org);
+    return { ...org };
+  },
+
+  async updateOrganization(id: string, input: UpdateOrganizationInput): Promise<Organization | null> {
+    const org = mutableOrganizations.find((o) => o.id === id);
+    if (!org) return null;
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      if (!name) throw new Error("VALIDATION: name cannot be empty");
+      org.name = name;
+    }
+    if (input.is_person !== undefined) org.is_person = input.is_person;
+    if (input.org_type !== undefined) {
+      if (!ORG_TYPES.includes(input.org_type)) throw new Error("VALIDATION: invalid org_type");
+      org.org_type = input.org_type;
+    }
+    if (input.parent_organization_id !== undefined) {
+      if (input.parent_organization_id !== null) {
+        if (input.parent_organization_id === id) throw new Error("VALIDATION: organization cannot be its own parent");
+        const parent = mutableOrganizations.find((o) => o.id === input.parent_organization_id);
+        if (!parent) throw new Error("VALIDATION: parent_organization_id does not reference an existing organization");
+      }
+      org.parent_organization_id = input.parent_organization_id;
+    }
+    if (input.data) {
+      const data = { ...(org.data ?? {}) };
+      Object.assign(data, input.data);
+      org.data = data;
+    }
+    return { ...org };
+  },
+
+  // --- Org-attached lines (Slice F D1 cutover, fixture path) ---
+  async listOrgLines(organizationId: string, lineGroup: string): Promise<OrgLineRow[]> {
+    return listOrgLines(organizationId, lineGroup);
+  },
+
+  async createOrgLine(organizationId: string, lineGroup: string, data: Record<string, string>): Promise<OrgLineRow> {
+    const org = mutableOrganizations.find((o) => o.id === organizationId);
+    if (!org) throw new Error('VALIDATION: organization not found');
+    return createOrgLine(organizationId, lineGroup, data);
+  },
+
+  async updateOrgLine(organizationId: string, lineId: string, lineGroup: string, data: Record<string, string>): Promise<OrgLineRow | null> {
+    return updateOrgLine(organizationId, lineId, lineGroup, data);
+  },
+
+  async deleteOrgLine(organizationId: string, lineId: string, lineGroup: string): Promise<boolean> {
+    return deleteOrgLine(organizationId, lineId, lineGroup);
+  },
   async listAgents(status?: string) {
     let result = mutableAgents;
     if (status) {
@@ -554,10 +657,14 @@ export const fixtureAdapter: DataAdapter = {
 // synchronously in route handlers. We use a conditional re-export pattern.
 import { postgresAdapter } from '../db/postgres-adapter';
 import {
+  createOrgLineDb,
   createRecordDb,
   deleteRecordDb,
   getRecordDb,
+  deleteOrgLineDb,
+  listOrgLinesDb,
   listRecordsDb,
+  updateOrgLineDb,
   updateRecordDb,
 } from '../db/records-store';
 
@@ -610,6 +717,17 @@ function createAdapter(): DataAdapter {
     },
     healthCheck: () => postgresAdapter.healthCheck(),
     // #245 Slice E1: Horizon 1 record persistence (record_type/record/record_line).
+    listOrgLines: (organizationId: string, lineGroup: string) => listOrgLinesDb(organizationId, lineGroup),
+    createOrgLine: async (organizationId: string, lineGroup: string, data: Record<string, string>) => {
+      const res = await createOrgLineDb(organizationId, lineGroup, data);
+      if (!res.ok) throw new Error(res.message);
+      return res.line;
+    },
+    updateOrgLine: async (organizationId: string, lineId: string, lineGroup: string, data: Record<string, string>) => {
+      const res = await updateOrgLineDb(organizationId, lineId, lineGroup, data);
+      return res.ok ? res.line : null;
+    },
+    deleteOrgLine: (organizationId: string, lineId: string, lineGroup: string) => deleteOrgLineDb(organizationId, lineId, lineGroup),
     listRecords: (filters?: RecordFilters) => listRecordsDb(filters ?? {}),
     getRecord: (id: string) => getRecordDb(id),
     createRecord: (input, opts) => createRecordDb(input, opts),

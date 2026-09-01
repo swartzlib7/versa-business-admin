@@ -29,6 +29,13 @@
       "when": 1788225240564,
       "tag": "0003_i5_6_33_slice_e2_element_config_relations",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788225300564,
+      "tag": "0004_i5_6_33_slice_f_vendor_integration_cutover",
+      "breakpoints": true
     }
   ]
 }

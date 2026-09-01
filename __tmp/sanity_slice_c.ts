@@ -39,8 +39,9 @@ for (const [api, parent, kind] of expected) {
   ok(t.show_as_tab === false, api + ' show_as_tab=false');
   ok(t.parent_api_name === parent && t.parent_kind === kind, api + ' parent=' + kind + ':' + parent);
 }
-// D1: vendor_integration stays seeded + list until Slice F cutover
-ok(byApi['vendor_integration']?.structure === 'list', 'vendor_integration stays list (D1)');
+// Slice F (D1 cutover): vendor_integration retired - vendor integrations are
+// org-attached record_line rows (line_group=integrations), not a record type.
+ok(byApi['vendor_integration'] === undefined, 'vendor_integration retired (Slice F D1 cutover)');
 // Existing header_lines corrections intact (Slice A baseline)
 ok(byApi['executive_policy']?.structure === 'header_lines', 'policy still header_lines');
 ok(byApi['production_product']?.structure === 'header_lines', 'product still header_lines');
@@ -81,7 +82,7 @@ ok(tabs.includes('"records-assets-materiel": "treasury_records_assets_materiel"'
 ok(tabs.includes('"certifications-awards": "qualification_certifications_awards"'), 'wiring: certifications-awards');
 ok(tabs.includes('contacts: "contact"'), 'wiring: contacts');
 ok(tabs.includes('BAKED_ELEMENT_TAB_SYSTEM_TYPES'), 'element-level wiring map present');
-ok(tabs.includes('integrations: "vendor_integration"'), 'vendor_integration stays wired (D1)');
+ok(!tabs.includes('integrations: "vendor_integration"'), 'vendor_integration unwired (Slice F D1 cutover)');
 
 const toZone = (t: typeof recordTypes[number]) => ({
   api_name: t.api_name, label: t.label, description: t.description ?? '',

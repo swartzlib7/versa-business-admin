@@ -96,6 +96,8 @@ export async function POST(request: Request) {
     default_value: body.default_value,
     value_set_api_name: body.value_set_api_name,
     lookup_object_api_name: body.lookup_object_api_name,
+    // Slice F (C2): lookup delete rule - cascade | orphan (default orphan).
+    lookup_delete_rule: body.lookup_delete_rule,
     // N4: honor explicit placement from the create flow; default to Header on
     // header_lines types (L2) so a new field is never left unassigned.
     zone_role: body.zone_role === "list" || body.zone_role === "header"

@@ -13,7 +13,7 @@ import { theme } from "@/lib/theme";
 type Parent = { parent_kind: string; parent_api_name: string; label: string; group?: string; baked_in_tabs: string[] };
 type SelectOption = string | { value: string; label: string; group?: string };
 type RT = { id?: string; api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string; is_system?: boolean; active?: boolean; show_as_tab?: boolean; sort_order?: number };
-type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean; zone_role?: "header" | "list" | null; show_in_column?: boolean };
+type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; lookup_delete_rule?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean; zone_role?: "header" | "list" | null; show_in_column?: boolean };
 type VS = { id?: string; api_name: string; label: string; description?: string; is_system?: boolean };
 type VSI = { id: string; api_value: string; label: string; sort_order: number; active: boolean };
 
@@ -256,6 +256,31 @@ export function RecordsEditor() {
     void load();
   }, [load]);
 
+  // Slice F (E2-3): deep-link consumer - /records-editor?record=<id> expands
+  // the owning record type row so the linked record's type is immediately
+  // editable (links live on element-config-panel relation chips).
+  useEffect(() => {
+    const recordId = searchParams.get('record');
+    if (!recordId) return;
+    let cancelled = false;
+    fetch('/api/records/' + encodeURIComponent(recordId), { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (cancelled || !json?.data) return;
+        const inst = json.data as { type_api_name?: string };
+        if (inst.type_api_name) {
+          setSection('types');
+          setExpandedType(inst.type_api_name);
+        }
+      })
+      .catch(() => {
+        /* record unavailable - editor still loads normally */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
+
   // Load all fields for the Fields tab
   const loadAllFields = useCallback(async () => {
     setError(null);
@@ -356,6 +381,7 @@ export function RecordsEditor() {
           data_type: vals.data_type || "text",
           value_set_api_name: vals.value_set_api_name || null,
           lookup_object_api_name: vals.lookup_object_api_name || null,
+          lookup_delete_rule: vals.lookup_delete_rule || null,
           zone_role: vals.zone_role || null,
           show_in_column: vals.show_in_column === "true" || vals.show_in_column === "on",
         }),
@@ -381,6 +407,7 @@ export function RecordsEditor() {
           is_required: patch.is_required,
           value_set_api_name: patch.value_set_api_name ?? null,
           lookup_object_api_name: patch.lookup_object_api_name ?? null,
+          lookup_delete_rule: patch.lookup_delete_rule ?? null,
           active: patch.active,
           zone_role: patch.zone_role ?? null,
           show_in_column: patch.show_in_column,
@@ -1011,6 +1038,7 @@ export function RecordsEditor() {
                       : []),
                     { key: "value_set_api_name", label: "Value set (picklist)", type: "select", options: valueSets.map((v) => v.api_name) },
                     { key: "lookup_object_api_name", label: "Lookup object", type: "select", options: types.map((t) => t.object_api_name) },
+                    { key: "lookup_delete_rule", label: "Lookup delete rule", type: "select", options: [{ value: "orphan", label: "Orphan (plain lookup)" }, { value: "cascade", label: "Cascade (master-detail)" }], showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" },
                   ]}
                   accent={theme.colors.brand}
                   onSubmit={createField}
@@ -1127,6 +1155,24 @@ export function RecordsEditor() {
                                       </div>
                                     )}
                                   </div>
+                                  <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-muted-foreground">Lookup delete rule</label>
+                                    {f.data_type === "lookup" ? (
+                                      <select
+                                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                        value={draft.lookup_delete_rule ?? f.lookup_delete_rule ?? "orphan"}
+                                        onChange={(e) => setEditingField((st) => ({ ...st, [fid]: { ...st[fid], lookup_delete_rule: e.target.value || null } }))}
+                                      >
+                                        <option value="orphan">Orphan (plain lookup)</option>
+                                        <option value="cascade">Cascade (master-detail)</option>
+                                      </select>
+                                    ) : (
+                                      <div className="flex w-full items-center justify-between gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                                        <span className="truncate">{f.lookup_delete_rule || "orphan (default)"}</span>
+                                        <span className="shrink-0 text-[10px] italic">Only for lookup fields</span>
+                                      </div>
+                                    )}
+                                  </div>
                                   <label className="flex items-center gap-2 pt-6">
                                     <input
                                       type="checkbox"
@@ -1180,6 +1226,7 @@ export function RecordsEditor() {
                                       label: draft.label ?? f.label,
                                       value_set_api_name: draft.value_set_api_name ?? f.value_set_api_name,
                                       lookup_object_api_name: draft.lookup_object_api_name ?? f.lookup_object_api_name,
+                                      lookup_delete_rule: draft.lookup_delete_rule ?? f.lookup_delete_rule ?? null,
                                       is_required: draft.is_required ?? f.is_required,
                                       active: draft.active ?? f.active,
                                       zone_role: draft.zone_role ?? f.zone_role ?? null,

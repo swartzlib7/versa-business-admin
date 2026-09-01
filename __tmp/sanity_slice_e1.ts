@@ -81,8 +81,10 @@ import { execSync } from 'child_process';
 const changed = execSync('git diff --name-only HEAD').toString().split('\n');
 // #249 Slice E2 now owns record-instances.ts + zone-config-view.tsx (relations
 // contract + UI). Guard updated: those files may change, but only with #249
-// markers (drift check), and record-types.ts stays untouched.
-ok(!changed.some((f: string) => f.includes('src/lib/fixtures/record-types.ts')), 'scope: record-types.ts untouched');
+// markers (drift check). #244 Slice F now owns record-types.ts (D1 cutover):
+// if it changes, it must carry #244 markers.
+const rt = rd('src/lib/fixtures/record-types.ts');
+ok(rt.includes('#244 Slice F'), 'scope: record-types.ts changes carry #244 Slice F markers (F-owned)');
 const ri = rd('src/lib/fixtures/record-instances.ts');
 ok(ri.includes('#249 Slice E2'), 'scope: record-instances.ts changes carry #249 markers (E2-owned)');
 const zcvGuard = rd('src/components/zones/zone-config-view.tsx');

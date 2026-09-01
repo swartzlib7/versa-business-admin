@@ -48,6 +48,10 @@ export interface FieldDefinition {
   default_value: string | null;
   value_set_api_name: string | null;
   lookup_object_api_name: string | null;
+  /** Slice F (rev E section 4.2 lookup_field, C2): delete rule for lookup
+   *  fields. NULL reads as the locked default 'orphan' (plain lookup);
+   *  'cascade' (master-detail) is opt-in per field. */
+  lookup_delete_rule?: 'cascade' | 'orphan' | null;
   sort_order: number;
   active: boolean;
   /** J4: header_lines placement - header | list (null = default). */
@@ -1710,10 +1714,6 @@ const facultyRecordFieldSeed: FieldDefinition[] = [
   { id: 'fld-production_product-variant_price', object_api_name: 'production_product', api_name: 'variant_price', label: 'Variant price', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true, zone_role: 'list', show_in_column: true },
   { id: 'fld-production_service-rate_item', object_api_name: 'production_service', api_name: 'rate_item', label: 'Rate item', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true, zone_role: 'list', show_in_column: true },
   { id: 'fld-production_service-rate_amount', object_api_name: 'production_service', api_name: 'rate_amount', label: 'Rate amount', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true, zone_role: 'list', show_in_column: true },
-  { id: 'fld-vendor_integration-name', object_api_name: 'vendor_integration', api_name: 'name', label: 'Integration name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fld-vendor_integration-kind', object_api_name: 'vendor_integration', api_name: 'kind', label: 'Kind', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'integration_kind', lookup_object_api_name: null, sort_order: 20, active: true },
-  { id: 'fld-vendor_integration-status', object_api_name: 'vendor_integration', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'integration_status', lookup_object_api_name: null, sort_order: 30, active: true },
-  { id: 'fld-vendor_integration-notes', object_api_name: 'vendor_integration', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
 
   // #246 Slice C (rev E section 3, 2026-08-31): fields for the 15 new system
   // record types. All are structure=list, so no zone_role placement (fields
@@ -1971,6 +1971,8 @@ export interface ExtendFieldInput {
   default_value?: string | null;
   value_set_api_name?: string | null;
   lookup_object_api_name?: string | null;
+  /** Slice F (C2): lookup delete rule - cascade or orphan (default orphan). */
+  lookup_delete_rule?: 'cascade' | 'orphan' | null;
   zone_role?: "header" | "list" | null;
   /** O1: explicit lines-table column flag for list-zone fields. */
   show_in_column?: boolean;
@@ -2043,6 +2045,24 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
       message: 'lookup fields require lookup_object_api_name.',
     };
   }
+  // Slice F (C2): lookup_delete_rule only applies to lookup fields and must be
+  // cascade or orphan. NULL/undefined reads as the locked default 'orphan'.
+  if (input.lookup_delete_rule != null) {
+    if (input.data_type !== 'lookup') {
+      return {
+        ok: false,
+        code: 'DELETE_RULE_NOT_LOOKUP',
+        message: 'lookup_delete_rule applies only to lookup fields.',
+      };
+    }
+    if (input.lookup_delete_rule !== 'cascade' && input.lookup_delete_rule !== 'orphan') {
+      return {
+        ok: false,
+        code: 'INVALID_DELETE_RULE',
+        message: 'lookup_delete_rule must be cascade or orphan.',
+      };
+    }
+  }
   if (input.lookup_object_api_name && !getObject(input.lookup_object_api_name)) {
     return {
       ok: false,
@@ -2073,6 +2093,7 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
     default_value: input.default_value ?? null,
     value_set_api_name: input.value_set_api_name ?? null,
     lookup_object_api_name: input.lookup_object_api_name ?? null,
+    lookup_delete_rule: input.lookup_delete_rule ?? null,
     sort_order: nextOrder,
     zone_role: input.zone_role ?? null,
     show_in_column: input.show_in_column,
@@ -2088,7 +2109,7 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
 
 export type UpdateFieldInput = Partial<Pick<FieldDefinition,
   'label' | 'is_required' | 'default_value' | 'value_set_api_name' |
-  'lookup_object_api_name' | 'sort_order' | 'active' | 'zone_role' |
+  'lookup_object_api_name' | 'lookup_delete_rule' | 'sort_order' | 'active' | 'zone_role' |
   'show_in_column'
 >>;
 

@@ -12,7 +12,6 @@ const BAKED_IN_CHILD_IDS = new Set([
   "tasks",
   "product",
   "service",
-  "integrations",
   // #246 Slice C (rev E section 3/7.4, 2026-08-31): baked listing children for
   // the new system-type divisions (Communications, Dissemination, Treasury,
   // Qualifications, Distribution).
@@ -39,9 +38,9 @@ const BAKED_TAB_SYSTEM_TYPES: Record<string, string> = {
   tasks: "executive_task",
   product: "production_product",
   service: "production_service",
-  integrations: "vendor_integration",
   // #246 Slice C (rev E section 3/7.4): new division children. All structure
-  // =list; vendor_integration stays seeded+wired per D1 until Slice F cutover.
+  // =list. vendor_integration retired in Slice F (D1 cutover): the vendor
+  // Integrations child renders org-attached record_line rows (line_group=integrations).
   messages: "communication_message",
   reports: "communication_report",
   staff: "communication_staff",

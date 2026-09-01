@@ -39,8 +39,8 @@ export const recordTypes: RecordTypeDefinition[] = [
   // #185 Slice A (rev E §7.2, 2026-08-31): executive_project, executive_task,
   // production_product, production_service move list -> header_lines (each
   // instance = header + lines; rev A §4.2 line groups). executive_policy was
-  // already header_lines; vendor_integration stays list until the C3
-  // vendor-lines slice retires it to a lines group on vendor instances.
+  // already header_lines. vendor_integration retired in #244 Slice F (D1 cutover):
+  // vendor integrations are org-attached record_line rows, not a record type.
   {
     id: 'rt-executive_policy',
     api_name: 'executive_policy',
@@ -111,25 +111,12 @@ export const recordTypes: RecordTypeDefinition[] = [
     is_system: true,
     object_api_name: 'production_service',
   },
-  {
-    id: 'rt-vendor_integration',
-    api_name: 'vendor_integration',
-    label: 'Integrations',
-    description: 'Technical and commercial integrations with this vendor.',
-    parent_kind: 'collaboration',
-    parent_api_name: 'vendor',
-    structure: 'list',
-    show_as_tab: false,
-    sort_order: 60,
-    active: true,
-    is_system: true,
-    object_api_name: 'vendor_integration',
-  },
   // #246 Slice C (rev E section 3, 2026-08-31): 15 new system record types for
   // the locked element table - Communications (3), Dissemination (2), Treasury
   // (2, single RAM type per Stephen spelling), Qualifications (3),
   // Distribution/contacts (1), Environment (4). All structure=list (rev E
-  // section 3). vendor_integration stays seeded+wired per D1 until Slice F.
+  // section 3). vendor_integration retired in #244 Slice F (D1 cutover): vendor
+  // integrations are org-attached record_line rows (line_group=integrations).
   {
     id: 'rt-communication_message',
     api_name: 'communication_message',
@@ -418,6 +405,15 @@ export function createRecordType(input: CreateRecordTypeInput): CreateRecordType
   const siblings = mutableRecordTypes.filter(
     (r) => r.parent_kind === input.parent_kind && r.parent_api_name === parent,
   );
+  // Slice F (rev E section 2.4): labels must be unique within the parent -
+  // tab strips key on label display, so duplicate sibling labels are ambiguous.
+  if (siblings.some((r) => r.label.toLowerCase() === label.toLowerCase())) {
+    return {
+      ok: false,
+      code: 'LABEL_EXISTS',
+      message: `A record type labeled '${label}' already exists under this parent.`,
+    };
+  }
   const nextOrder =
     input.sort_order ?? siblings.reduce((m, r) => Math.max(m, r.sort_order), 0) + 10;
   const type: RecordTypeDefinition = {
