@@ -121,6 +121,7 @@ export default async function HomePage() {
   return (
     <PublicLayout business={business} demo={demo}>
       <PublicSection
+        id="top"
         nextId={demo ? "facets" : "integrations"}
         className="bg-transparent"
       >

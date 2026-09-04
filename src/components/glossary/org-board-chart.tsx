@@ -71,13 +71,13 @@ function BranchT({ columns }: { columns: number }) {
 
 function DeptCell({ dept }: { dept: BoardDepartment }) {
   return (
-    <div className="flex min-h-52 flex-1 flex-col border border-foreground/40 bg-background">
-      <div className="border-b border-foreground/40 py-1 text-center text-[10px] font-semibold tabular-nums">
+    <div className="flex min-h-52 flex-1 flex-col border border-foreground/25 bg-muted/55">
+      <div className="border-b border-foreground/25 py-1 text-center text-[12px] font-semibold tabular-nums text-foreground/85">
         {dept.number}
       </div>
       <div className="flex flex-1 items-center justify-center px-0.5 py-3">
         <span
-          className="text-[11px] font-medium leading-tight"
+          className="text-[13px] font-semibold leading-tight text-foreground"
           style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
         >
           {dept.name}
@@ -94,10 +94,10 @@ function DivisionHeader({ division, accent }: { division: BoardDivision; accent:
       className="h-full border border-b-0 border-foreground/50 bg-card px-2 py-2 text-center"
       style={{ boxShadow: `inset 0 2px 0 ${accent}` }}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+      <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-foreground/75">
         Division {meta.number}
       </p>
-      <p className="mt-0.5 text-[11px] font-bold uppercase leading-tight tracking-wide">
+      <p className="mt-0.5 text-[13px] font-bold uppercase leading-tight tracking-wide text-foreground">
         {meta.name}
       </p>
     </div>
@@ -116,8 +116,8 @@ function DivisionDepartments({ division }: { division: BoardDivision }) {
 
 function DivisionFunction({ division }: { division: BoardDivision }) {
   return (
-    <div className="flex h-full border border-t-0 border-foreground/40 bg-muted/20 px-2 py-3">
-      <p className="text-[11px] leading-relaxed text-foreground/90">{division.function}</p>
+    <div className="flex h-full border border-t-0 border-foreground/25 bg-muted/40 px-2 py-3">
+      <p className="text-[13px] leading-relaxed text-foreground">{division.function}</p>
     </div>
   );
 }

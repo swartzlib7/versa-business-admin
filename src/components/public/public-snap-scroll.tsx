@@ -5,6 +5,21 @@ import { useEffect } from "react";
 const THRESHOLD = 0.25;
 const SETTLE_MS = 700;
 
+let programmaticLock = false;
+let programmaticTimer = 0;
+
+export function scrollPublicToTop() {
+  programmaticLock = true;
+  window.clearTimeout(programmaticTimer);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  const unlock = () => {
+    programmaticLock = false;
+    window.removeEventListener("scrollend", unlock);
+  };
+  window.addEventListener("scrollend", unlock, { once: true });
+  programmaticTimer = window.setTimeout(unlock, 2000);
+}
+
 /**
  * Snap the visitor homepage to the next/previous full-viewport section once
  * native scroll has crossed 25% of the distance between section tops.
@@ -38,7 +53,7 @@ export function PublicSnapScroll() {
     }
 
     function onScroll() {
-      if (snapping) return;
+      if (snapping || programmaticLock) return;
       const y = window.scrollY;
       const delta = y - lastY;
       if (delta !== 0) lastDir = delta > 0 ? 1 : -1;

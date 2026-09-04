@@ -51,7 +51,8 @@ This instance currently has **Demo Off** in `.data/site-settings.json`.
 - Constellation: full-viewport star field, milky-way **star band only** (no halo/glow rings), flicker on ~40% of stars, shooting stars, cursor parallax, theme RGB via `rgba()`. No connecting lines.
 - Public theme cycle: **Architect (default) → Slate → Dark** only. Light/Dusk stay on Mission Control. Keys: `versa-public-ui-theme` vs `versa-ui-theme`.
 - Header links are **nowrap**. Desktop nav starts at `xl`; below that the hamburger menu is used so labels do not wrap.
-- Footer: three columns — Mission Control links **split into two sub-columns**, centered brand + slogan/tagline, Contact right-aligned with address segments on own lines.
+- Footer: **50% opacity** `bg-background/50` bar; back-to-top chevron sits on the top edge (same control as next-section). Three columns — Mission Control links **split into two sub-columns**, centered brand + slogan/tagline, Contact right-aligned with address segments on own lines.
+- **Glossary (`/terms`):** 3D drum/scroll — wheel or drag over the cylinder turns terms to the reading line. Operator Glossary listing is unchanged.
 
 ### Persist
 

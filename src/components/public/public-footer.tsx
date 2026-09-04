@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronUp } from "lucide-react";
 import type { BusinessProfile } from "@/lib/data";
 import { BrandMark, useBrand } from "@/components/shell/brand-provider";
 import { useSiteMode } from "@/components/shell/site-mode-provider";
+import { scrollPublicToTop } from "./public-snap-scroll";
 
 const WIRED_LINKS = [
   { href: "/#integrations", label: "Integrations" },
@@ -48,8 +50,17 @@ export function PublicFooter({
   const linkCols = [links.slice(0, splitAt), links.slice(splitAt)];
 
   return (
-    <footer className="border-t border-border bg-background/20">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <div className="relative">
+      <button
+        type="button"
+        aria-label="Back to top"
+        onClick={scrollPublicToTop}
+        className="absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-border bg-background/75 p-2 text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-background hover:text-foreground"
+      >
+        <ChevronUp className="h-5 w-5" />
+      </button>
+      <footer className="border-t border-border bg-background/50">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-3 md:items-start">
           <div className="space-y-3">
             <h4 className="text-sm font-semibold">Mission Control</h4>
@@ -112,7 +123,8 @@ export function PublicFooter({
             © {year} {brand.brand_name}. All rights reserved.
           </p>
         </div>
-      </div>
-    </footer>
+        </div>
+      </footer>
+    </div>
   );
 }
