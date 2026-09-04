@@ -14,11 +14,13 @@ import { theme } from "@/lib/theme";
 export interface BrandConfig {
   brand_name: string;
   brand_color: string;
+  brand_logo_url?: string | null;
 }
 
 const DEFAULT_BRAND: BrandConfig = {
   brand_name: theme.brand.name,
   brand_color: theme.colors.brand,
+  brand_logo_url: null,
 };
 
 const BrandContext = createContext<BrandConfig>(DEFAULT_BRAND);
@@ -44,4 +46,36 @@ export function useBrand(): BrandConfig {
 export function brandInitials(brandName: string): string {
   if (brandName === theme.brand.name) return theme.brand.shortName;
   return brandName.slice(0, 2).toUpperCase() || theme.brand.shortName;
+}
+
+export function BrandMark({
+  size = "sm",
+  className,
+}: {
+  size?: "sm" | "md";
+  className?: string;
+}) {
+  const brand = useBrand();
+  const dim = size === "md" ? "h-12 w-12" : "h-8 w-8";
+  if (brand.brand_logo_url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- uploaded/data URL logos
+      <img
+        src={brand.brand_logo_url}
+        alt={brand.brand_name}
+        className={`${dim} shrink-0 rounded-md object-contain ${className ?? ""}`}
+      />
+    );
+  }
+  return (
+    <div
+      className={`${dim} flex shrink-0 items-center justify-center rounded-md text-sm font-bold ${className ?? ""}`}
+      style={{
+        backgroundColor: brand.brand_color,
+        color: theme.colors.brandForeground,
+      }}
+    >
+      {brandInitials(brand.brand_name)}
+    </div>
+  );
 }

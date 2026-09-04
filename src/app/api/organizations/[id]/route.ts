@@ -89,3 +89,48 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = getSessionFromRequest(request);
+  if (!isAuthenticated(session)) {
+    return NextResponse.json(
+      { error: { code: 'UNAUTHORIZED', message: 'Authentication required.' } },
+      { status: 401 },
+    );
+  }
+  if (!isAdmin(session)) {
+    return NextResponse.json(
+      { error: { code: 'FORBIDDEN', message: 'Admin role required to delete organizations.' } },
+      { status: 403 },
+    );
+  }
+  if (!adapter.deleteOrganization) {
+    return NextResponse.json(
+      { error: { code: 'NOT_IMPLEMENTED', message: 'Organization delete is not available.' } },
+      { status: 501 },
+    );
+  }
+
+  const { id } = await params;
+  try {
+    const ok = await adapter.deleteOrganization(id);
+    if (!ok) return notFound(id);
+    return NextResponse.json({ data: { id, deleted: true } });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.startsWith('VALIDATION:')) {
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: msg.replace(/^VALIDATION:\s*/, '') } },
+        { status: 400 },
+      );
+    }
+    console.error('DELETE /api/organizations/[id]', e);
+    return NextResponse.json(
+      { error: { code: 'INTERNAL', message: 'Failed to delete organization.' } },
+      { status: 500 },
+    );
+  }
+}

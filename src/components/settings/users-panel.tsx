@@ -23,10 +23,11 @@ function toCatalogValues(u: LocalUser): Record<string, string> {
   };
 }
 
-export function UsersPanel() {
+const USER_COLUMN_ORDER = ["status", "role", "type", "department_id", "name", "email"];
+
+export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "agent" }) {
   const [users, setUsers] = useState<LocalUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [typeFilter, setTypeFilter] = useState("");
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
 
@@ -82,7 +83,7 @@ export function UsersPanel() {
       id,
       name: draft.name || "New user",
       email: draft.email || "",
-      type: (draft.type as User["type"]) || "human",
+      type: (draft.type as User["type"]) || typeFilter,
       role: (draft.role as User["role"]) || "member",
       department: draft.department_id || "",
       department_id: draft.department_id || "",
@@ -142,7 +143,11 @@ export function UsersPanel() {
   return (
     <>
       <EntityListing<LocalUser & Record<string, unknown>>
-        summary="Directory driven by User list layout catalog. Filter by type; edit expands on the row."
+        summary={
+          typeFilter === "agent"
+            ? "Agent accounts. Click a row to open or close. Drag headers to reorder."
+            : "Human accounts. Click a row to open or close. Drag headers to reorder."
+        }
         accent={theme.colors.brand}
         fields={fields}
         rows={users}
@@ -151,19 +156,8 @@ export function UsersPanel() {
         formatCell={formatCell}
         onAdd={onAdd}
         onUpdate={onUpdate}
-        headerExtra={
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              className="border-input bg-background rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-            >
-              <option value="">All types</option>
-              <option value="human">Human</option>
-              <option value="agent">Agent</option>
-            </select>
-          </div>
-        }
+        columnStorageKey={`mc.listing.users.${typeFilter}`}
+        columnOrder={USER_COLUMN_ORDER}
       />
       {note && <p className="pt-2 text-xs text-muted-foreground">{note}</p>}
     </>

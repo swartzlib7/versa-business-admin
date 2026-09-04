@@ -1,3 +1,4 @@
+import '@/lib/catalog/install-durable';
 import { NextResponse } from 'next/server';
 import { getSessionFromRequest, isAuthenticated } from '@/lib/auth';
 import { getObjectSchema } from '@/lib/fixtures/catalog';

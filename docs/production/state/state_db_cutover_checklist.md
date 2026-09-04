@@ -1,8 +1,9 @@
 # State: DB Cutover Checklist
 
-> **Role:** Sole go-to for the fixture to Postgres cutover plan. Living checklist -- no physical DB, no schema apply, no migrations run until Stephen approves Phase 1.
+> **Role:** Sole go-to for the fixture → Postgres cutover plan and phase results.
 > **Product:** versa-admin-system (Mission Control) - Project #26 - Game #109
-> **Slice:** DB cutover checklist (docs only) -- authorized by Stephen via COA 2026-07-21.
+> **Doc home:** docs/production/state/
+> **Map:** shape_mission_control.md
 
 | Field | Value |
 |-------|-------|

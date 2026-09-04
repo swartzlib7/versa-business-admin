@@ -5,7 +5,9 @@ import {
   upsertSiteSettingsDb,
 } from '@/lib/db/settings-store';
 import {
+  getBrandLogoOverlay,
   getSiteSettingsFixture,
+  upsertBrandLogoFile,
   upsertSiteSettingsFixture,
 } from '@/lib/fixtures/site-settings';
 
@@ -31,7 +33,14 @@ export async function GET(request: Request) {
   const settings = isPostgres()
     ? await getSiteSettingsDb()
     : getSiteSettingsFixture();
-  return NextResponse.json({ data: settings });
+  const fromSettings =
+    'brand_logo_url' in settings
+      ? (settings as { brand_logo_url?: string | null }).brand_logo_url
+      : undefined;
+  const brand_logo_url = fromSettings || getBrandLogoOverlay();
+  return NextResponse.json({
+    data: { ...settings, brand_logo_url: brand_logo_url ?? null },
+  });
 }
 
 export async function PUT(request: Request) {
@@ -61,6 +70,28 @@ export async function PUT(request: Request) {
     body.brand_name != null ? String(body.brand_name).trim() : undefined;
   const brandColor =
     body.brand_color != null ? String(body.brand_color).trim() : undefined;
+  let brandLogoUrl: string | null | undefined;
+  if (body.brand_logo_url === null || body.brand_logo_url === "") {
+    brandLogoUrl = null;
+  } else if (body.brand_logo_url != null) {
+    const raw = String(body.brand_logo_url);
+    const ok =
+      raw.startsWith("data:image/") ||
+      raw.startsWith("https://") ||
+      raw.startsWith("http://");
+    if (!ok || raw.length > 700000) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "INVALID_BRAND_LOGO",
+            message: "Logo must be an image upload (under ~500 KB) or an image URL.",
+          },
+        },
+        { status: 400 },
+      );
+    }
+    brandLogoUrl = raw;
+  }
   if (brandName != null && brandName.length === 0) {
     return NextResponse.json(
       {
@@ -92,8 +123,21 @@ export async function PUT(request: Request) {
       : upsertSiteSettingsFixture({
           brand_name: brandName,
           brand_color: brandColor,
+          brand_logo_url: brandLogoUrl,
         });
-    return NextResponse.json({ data: settings });
+    if (isPostgres() && brandLogoUrl !== undefined) {
+      upsertBrandLogoFile(brandLogoUrl);
+    }
+    const fromSettings =
+      "brand_logo_url" in settings
+        ? (settings as { brand_logo_url?: string | null }).brand_logo_url
+        : undefined;
+    const brand_logo_url =
+      fromSettings ||
+      (brandLogoUrl !== undefined ? brandLogoUrl : getBrandLogoOverlay());
+    return NextResponse.json({
+      data: { ...settings, brand_logo_url: brand_logo_url ?? null },
+    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(

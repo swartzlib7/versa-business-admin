@@ -7,7 +7,8 @@
 **Lead (planning & delivery orchestration):** Versa (COA)  
 **Updated:** 2026-07-18  
 
-**Canonical 3D / zone ERD:** `docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md` (v1.1)
+**Canonical 3D / zone ERD:** `docs/production/state/state_i5_6_zone_erd.md`  
+**Feature map:** `docs/production/state/shape_mission_control.md`
 
 ---
 
@@ -164,10 +165,11 @@ Secure authentication into the backend.
 
 ## 7. Source material
 
-- `docs/_notes/from_stephen.md`  
-- `docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md` (**3D/zone ERD source of truth**)  
+- `docs/_notes/from_stephen_01.md` / `from_stephen_02.md`  
+- `docs/production/state/state_i5_6_zone_erd.md` (**3D/zone ERD source of truth**)  
+- `docs/production/state/shape_mission_control.md` (feature map)  
 - Capability spine 2026-07-16  
-- Iteration handoffs under `docs/handoffs/`  
+- Historical briefs: `docs/production/state/__archive/handoffs/`  
 
 ## 8. Decisions locked
 

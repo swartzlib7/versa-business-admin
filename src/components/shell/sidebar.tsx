@@ -2,28 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { theme } from "@/lib/theme";
-import { useBrand, brandInitials } from "@/components/shell/brand-provider";
-import {
-  LayoutDashboard,
-  Users,
-  Settings,
-  ChevronDown,
-  Building2,
-  Handshake,
-  Globe2,
-  BookOpen,
-  Database,
-  Palette,
-} from "lucide-react";
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
+import { useBrand, BrandMark } from "@/components/shell/brand-provider";
+import { ChevronDown } from "lucide-react";
+import { DEFAULT_NAV_ITEMS, MENU_ORDER_EVENT, orderNavItems, type NavItem } from "@/lib/nav";
 
 interface NavGroup {
   label: string;
@@ -38,25 +22,30 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 }
 
 // I5.6.6 + board + I5.6.32 (Stephen 2026-07-22): zone menus own IA.
-// Executive owns Policy/Projects/Tasks; Production owns Product/Service.
-// Main nav must NOT duplicate Projects/Tasks/Products — those routes stay for deep links
-// and zone panels; shortcuts/favorites are a later item.
-// Integrations under Collaboration→Vendor. Hub spheres exclude Service/Product.
-const navEntries: NavEntry[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/organization", label: "Organization", icon: Building2 },
-  { href: "/collaboration", label: "Collaboration", icon: Handshake },
-  { href: "/environment", label: "Environment", icon: Globe2 },
-  { href: "/glossary", label: "Glossary", icon: BookOpen },
-  { href: "/users", label: "Users", icon: Users },
-  { href: "/records-editor", label: "Records Editor", icon: Database },
-  { href: "/ui-components", label: "UI Components", icon: Palette },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+// Order is Settings → System → Menu (instance persist).
 
 export function Sidebar() {
   const brand = useBrand();
   const pathname = usePathname();
+  const [navItems, setNavItems] = useState<NavItem[]>(DEFAULT_NAV_ITEMS);
+
+  const loadMenu = () => {
+    void fetch("/api/settings/system", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("menu order unavailable"))))
+      .then((json: { data?: { menu_order?: string[] } }) => {
+        setNavItems(orderNavItems(DEFAULT_NAV_ITEMS, json.data?.menu_order));
+      })
+      .catch(() => undefined);
+  };
+
+  useEffect(() => {
+    loadMenu();
+    const onOrder = () => loadMenu();
+    window.addEventListener(MENU_ORDER_EVENT, onOrder);
+    return () => window.removeEventListener(MENU_ORDER_EVENT, onOrder);
+  }, []);
+
+  const navEntries: NavEntry[] = navItems;
 
   // Auto-expand group if a child route is active
   const initialExpanded = () => {
@@ -81,15 +70,7 @@ export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-40 flex w-56 flex-col border-r border-border bg-sidebar text-sidebar-foreground">
       <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
-        <div
-          className="flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold"
-          style={{
-            backgroundColor: brand.brand_color,
-            color: theme.colors.brandForeground,
-          }}
-        >
-          {brandInitials(brand.brand_name)}
-        </div>
+        <BrandMark />
         <span className="text-sm font-semibold tracking-tight">
           {brand.brand_name}
         </span>

@@ -2,16 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { PanelRightClose, PanelRightOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ListingBadge } from "@/components/ui/kind-badge";
 
 import { theme } from "@/lib/theme";
 import { MissionControlScene } from "@/components/r3f/mission-control-scene";
 import { EntityListing, type ListingField } from "@/components/listing/entity-listing";
+import { PageHeader } from "@/components/ui/page-header";
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
-import { OrganizationsPanel, OrgTypeListingPanel } from "@/components/organizations/organizations-panel";
+import { OrganizationsPanel, OrgTypeListingPanel, PrimaryOrgPanel } from "@/components/organizations/organizations-panel";
 import { DivisionConfigPanel, RecordRelationsPanel } from "@/components/zones/element-config-panel";
 import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
 import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
@@ -20,15 +22,37 @@ import type { CatalogDataType } from "@/lib/fixtures/catalog";
 
 // #249 Slice E2 (rev E section 2.6): the 7 organization-zone elements are
 // divisions; element_config keys on the tab id (element_api_name).
-const DIVISION_IDS = [
-  "executive",
+/** Gate 3: these divisions keep named children (Contacts, Messages, …) and do not host a generic Records self-tab. */
+const NO_RECORDS_SELF_TAB = new Set([
+  "public",
   "communications",
   "dissemination",
   "treasury",
   "production",
   "qualification",
-  "public",
-];
+]);
+
+function defaultChildIdForTab(tab: ZoneTab): string {
+  if (tab.id === "org-configuration") return tab.id;
+  if (NO_RECORDS_SELF_TAB.has(tab.id) && tab.children?.[0]) return tab.children[0].id;
+  return tab.id;
+}
+
+function selfTabLabel(tab: ZoneTab): string {
+  if (tab.id === "executive") return "Organizations";
+  if (tab.id === "org-configuration") return "Configuration";
+  const labels: Record<string, string> = {
+    vendor: "Vendors",
+    customer: "Customers",
+    partner: "Partners",
+    branch: "Branches",
+    locations: "Locations",
+    events: "Events",
+    knowledge: "Knowledge",
+    schedules: "Schedules",
+  };
+  return labels[tab.id] ?? "Records";
+}
 
 /**
  * I5.6.10 zone config UI pattern (Stephen):
@@ -81,14 +105,76 @@ export type ZoneTab = {
   orgLinesGroup?: string;
 };
 
+export type ZoneId = "organization" | "collaboration" | "environment";
+
 export type ZoneConfig = {
-  id: "organization" | "collaboration" | "environment";
+  id: ZoneId | "stats";
   title: string;
   subtitle: string;
   accent: string;
   accentSoft: string;
   tabs: ZoneTab[];
 };
+
+function isHubZone(id: ZoneConfig["id"]): id is ZoneId {
+  return id === "organization" || id === "collaboration" || id === "environment";
+}
+
+const ORG_CONFIGURATION_TAB: ZoneTab = {
+  id: "org-configuration",
+  label: "Configuration",
+  summary: "Primary Org and appointed staff for this Mission Control.",
+  fields: [],
+  relations: [],
+};
+
+function makeSelfPanel(tab: ZoneTab): ZoneTab {
+  return {
+    id: tab.id,
+    label: selfTabLabel(tab),
+    summary: tab.summary,
+    fields: tab.fields,
+    relations: tab.relations,
+    orgTypePanel: tab.orgTypePanel,
+    orgLinesGroup: tab.orgLinesGroup,
+    links: [
+      ...(tab.links ?? []),
+      { href: `/records-editor?parent=${tab.parentKind}:${tab.parentApiName}`, label: "record types" },
+    ],
+    ...(tab.recordTypeApiName
+      ? {
+          structure: tab.structure,
+          presentation: tab.presentation,
+          listColumns: tab.listColumns,
+          recordTypeApiName: tab.recordTypeApiName,
+          objectApiName: tab.objectApiName,
+          parentKind: tab.parentKind,
+          parentApiName: tab.parentApiName,
+        }
+      : {
+          presentation: undefined,
+          listColumns: undefined,
+        }),
+    sampleRows: undefined,
+  };
+}
+
+function zoneSubTabs(tab: ZoneTab): ZoneTab[] {
+  if (tab.id === "org-configuration") {
+    return [{ ...tab, label: "Configuration", sampleRows: undefined }];
+  }
+  const hideRecordsSelf = NO_RECORDS_SELF_TAB.has(tab.id);
+  const selfPanel = makeSelfPanel(tab);
+  if (hideRecordsSelf) return tab.children?.length ? tab.children : [];
+  if (!tab.children?.length) return [selfPanel];
+  return [selfPanel, ...tab.children];
+}
+
+function organizationTabs(config: ZoneConfig): ZoneTab[] {
+  if (config.id !== "organization") return config.tabs;
+  const base = config.tabs.filter((t) => t.id !== "org-configuration");
+  return [...base, ORG_CONFIGURATION_TAB];
+}
 
 function FieldMock({
   label,
@@ -449,6 +535,7 @@ function OrgLinesPanel({
         onUpdate={onUpdate}
         onDelete={onDelete}
         emptyLabel={'No ' + lineGroup + ' lines yet - add the first one below.'}
+        columnStorageKey={`mc.listing.zone.lines.${lineGroup}`}
       />
       {note && <p className='pt-2 text-xs text-muted-foreground'>{note}</p>}
     </div>
@@ -1056,7 +1143,6 @@ function ListingPanel({
       )}
       {!loading && !fieldsLoading && (
         <EntityListing
-          title={panel.label}
           summary={panel.summary}
           accent={accent}
           fields={fields}
@@ -1066,6 +1152,7 @@ function ListingPanel({
           onAdd={onAdd}
           onUpdate={onUpdate}
           onDelete={onDelete}
+          columnStorageKey={`mc.listing.zone.${panel.id}`}
           onRowOpen={
             viewMode === "instances" && onRowOpen
               ? (row) => onRowOpen(row.id)
@@ -1110,8 +1197,7 @@ function FormPanel({
   const [editing, setEditing] = useState(false);
   const [savedValues, setSavedValues] = useState<Record<string, string>>({});
   // #249 Slice E2 (rev E section 2.5): owning organization per record -
-  // auto-preset at creation (store resolves user default org); editable here
-  // where multiple organizations exist, read-only when only one.
+  // auto-preset at creation from the Primary Org; shown read-only here.
   const [orgOptions, setOrgOptions] = useState<Array<{ id: string; name: string }>>([]);
   const [orgId, setOrgId] = useState<string>("");
 
@@ -1119,8 +1205,14 @@ function FormPanel({
     const controller = new AbortController();
     void fetch("/api/organizations", { credentials: "include", signal: controller.signal })
       .then((r) => (r.ok ? r.json() : { data: [] }))
-      .then((json: { data?: Array<{ id: string; name?: string }> }) => {
-        setOrgOptions((json.data ?? []).map((o) => ({ id: o.id, name: o.name ?? o.id })));
+      .then((json: { data?: Array<{ id: string; name?: string; is_primary?: boolean; org_type?: string; data?: Record<string, unknown> }> }) => {
+        const rows = json.data ?? [];
+        const primary =
+          rows.find((o) => o.is_primary || o.data?.is_primary === true) ??
+          rows.find((o) => o.org_type === "internal") ??
+          rows[0];
+        setOrgOptions(rows.map((o) => ({ id: o.id, name: o.name ?? o.id })));
+        if (primary) setOrgId(primary.id);
       })
       .catch(() => setOrgOptions([]));
     return () => controller.abort();
@@ -1378,12 +1470,7 @@ function FormPanel({
           <div>
             <p className="text-sm text-muted-foreground">{panel.summary}</p>
           </div>
-          <Badge
-            className="shrink-0 border-0 text-white"
-            style={{ backgroundColor: accent }}
-          >
-            {isDynamic ? "Dynamic Record" : "Configure"}
-          </Badge>
+          <ListingBadge label={isDynamic ? "Dynamic Record" : "Configure"} accent={accent} />
         </div>
       </CardHeader>
       <CardContent className="p-6">
@@ -1398,36 +1485,20 @@ function FormPanel({
               readOnly={!editing}
               accent={accent}
             />
-            {isDynamic && detailRecordId && orgOptions.length > 0 && (
+            {isDynamic && (orgOptions.find((o) => o.id === orgId)?.name || orgOptions[0]?.name) ? (
               <div className="mt-4">
                 <label className="space-y-1.5">
                   <span className="text-xs font-medium text-muted-foreground">
-                    Organization
+                    Primary Org
                   </span>
-                  {orgOptions.length > 1 ? (
-                    <select
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                      value={orgId}
-                      disabled={!editing}
-                      onChange={(e) => setOrgId(e.target.value)}
-                    >
-                      <option value="">- unset -</option>
-                      {orgOptions.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
-                      value={orgOptions[0]?.name ?? ""}
-                      readOnly
-                    />
-                  )}
+                  <input
+                    className="w-full rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
+                    value={orgOptions.find((o) => o.id === orgId)?.name ?? orgOptions[0]?.name ?? ""}
+                    readOnly
+                  />
                 </label>
               </div>
-            )}
+            ) : null}
             <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
               {!editing ? (
                 <button
@@ -1487,66 +1558,17 @@ function TabPanel({
   accent,
   childId,
   setChildId,
+  hideSubTabs = false,
 }: {
   tab: ZoneTab;
   accent: string;
   childId: string;
   setChildId: (id: string) => void;
+  hideSubTabs?: boolean;
 }) {
-  // #248 Slice D (Gate 3 verdict 2, 2026-08-31): Executive hosts the
-  // organizations list - the Executive self panel IS the organizations list
-  // (no header/config form there). Policy/projects/tasks stay as sub-tabs.
   const isOrganizationsSelf = tab.id === "executive";
-  // #249 Slice E2 (rev E section 4.5/2.6): division self panels render the
-  // element_config singleton (head + deputy) under the division content.
-  const isDivisionSelf = DIVISION_IDS.includes(tab.id);
-  /** I5.6.9 / board 2026-07-22 - parent default sub-tab is Configuration (form), not a parent records list. */
-  const selfPanel: ZoneTab = useMemo(
-    () => ({
-      id: tab.id,
-      label: isOrganizationsSelf ? "Organizations" : "Records",
-      summary: tab.summary,
-      fields: tab.fields,
-      relations: tab.relations,
-      // #248 Slice D latent-bug repair (Slice F): collab org-type tabs carry
-      // orgTypePanel; the self panel must forward it or OrgTypeListingPanel is
-      // unreachable and the legacy Configuration form renders instead.
-      orgTypePanel: tab.orgTypePanel,
-      // Slice F (D1 cutover): org-attached lines children need the group key
-      // on the forwarded self panel too (children carry it directly).
-      orgLinesGroup: tab.orgLinesGroup,
-      links: [
-        ...(tab.links ?? []),
-        { href: `/records-editor?parent=${tab.parentKind}:${tab.parentApiName}`, label: "record types" },
-      ],
-      // #246 Slice C (rev E section 7.6): element tabs wired to a system type
-      // (environment lists) keep the dynamic-path props + presentation on the
-      // self panel so the live listing renders on the element tab itself.
-      // Unwired tabs keep the Configuration form (I5.6.9).
-      ...(tab.recordTypeApiName
-        ? {
-            structure: tab.structure,
-            presentation: tab.presentation,
-            listColumns: tab.listColumns,
-            recordTypeApiName: tab.recordTypeApiName,
-            objectApiName: tab.objectApiName,
-            parentKind: tab.parentKind,
-            parentApiName: tab.parentApiName,
-          }
-        : {
-            presentation: undefined,
-            listColumns: undefined,
-          }),
-      sampleRows: undefined,
-    }),
-    [tab, isOrganizationsSelf]
-  );
-
-  const subTabs = useMemo(() => {
-    // I5.6.36 #203 — always show subtab bar, even for tabs without children
-    if (!tab.children?.length) return [selfPanel];
-    return [selfPanel, ...tab.children];
-  }, [tab.children, selfPanel]);
+  const isOrgConfiguration = tab.id === "org-configuration";
+  const subTabs = useMemo(() => zoneSubTabs(tab), [tab]);
 
   const activeChild = useMemo(() => {
     if (!subTabs?.length) return null;
@@ -1577,6 +1599,7 @@ function TabPanel({
   // I5.6.34 — sub-tab strip + description in stable position; body only changes
   return (
     <div className="space-y-3">
+      {!hideSubTabs ? (
       <SubTabBar
         items={subTabs}
         activeId={panel.id}
@@ -1584,7 +1607,17 @@ function TabPanel({
         onSelect={setChildId}
         ariaLabel={`${tab.label} sub-elements`}
       />
-      {panel.orgLinesGroup ? (
+      ) : null}
+      {isOrgConfiguration ? (
+        <div className="space-y-4">
+          <PrimaryOrgPanel accent={accent} />
+          <DivisionConfigPanel
+            divisionId="executive"
+            divisionLabel="Organization"
+            accent={accent}
+          />
+        </div>
+      ) : panel.orgLinesGroup ? (
         <OrgLinesPanel
           orgType={panel.orgTypePanel ?? 'vendor'}
           lineGroup={panel.orgLinesGroup}
@@ -1595,7 +1628,7 @@ function TabPanel({
         />
       ) : panel.orgTypePanel ? (
         <OrgTypeListingPanel orgType={panel.orgTypePanel} accent={accent} summary={panel.summary} />
-      ) : isOrganizationsSelf ? (
+      ) : isOrganizationsSelf && panel.id === tab.id ? (
         <OrganizationsPanel accent={accent} />
       ) : isListToDetail ? (
         detailRecordId ? (
@@ -1649,13 +1682,6 @@ function TabPanel({
       ) : (
         <FormPanel panel={panel} accent={accent} />
       )}
-      {isDivisionSelf && (
-        <DivisionConfigPanel
-          divisionId={tab.id}
-          divisionLabel={tab.label}
-          accent={accent}
-        />
-      )}
     </div>
   );
 }
@@ -1667,7 +1693,7 @@ function resolveNodeToTab(
 ): { tabId: string; childId: string } | null {
   for (const t of config.tabs) {
     if (t.id === nodeId) {
-      return { tabId: t.id, childId: t.id };
+      return { tabId: t.id, childId: defaultChildIdForTab(t) };
     }
     if (t.children?.length) {
       for (const c of t.children) {
@@ -1681,13 +1707,16 @@ function resolveNodeToTab(
 }
 
 export function ZoneConfigView({ config }: { config: ZoneConfig }) {
-  const [active, setActive] = useState(config.tabs[0]?.id ?? "");
-  const [childId, setChildId] = useState(config.tabs[0]?.id ?? "");
+  const tabs = useMemo(() => organizationTabs(config), [config]);
+  const [active, setActive] = useState(tabs[0]?.id ?? "");
+  const [childId, setChildId] = useState(() =>
+    tabs[0] ? defaultChildIdForTab(tabs[0]) : "",
+  );
   const skipChildResetRef = useRef(false);
 
   const tab = useMemo(
-    () => config.tabs.find((t) => t.id === active) ?? config.tabs[0],
-    [active, config.tabs]
+    () => tabs.find((t) => t.id === active) ?? tabs[0],
+    [active, tabs]
   );
 
   useEffect(() => {
@@ -1695,8 +1724,11 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
       skipChildResetRef.current = false;
       return;
     }
-    setChildId(active);
-  }, [active]);
+    const next = tabs.find((t) => t.id === active);
+    setChildId(next ? defaultChildIdForTab(next) : active);
+  }, [active, tabs]);
+
+  const subTabs = useMemo(() => (tab ? zoneSubTabs(tab) : []), [tab]);
 
   const focusedNodeId = useMemo(() => {
     if (childId) return childId;
@@ -1719,7 +1751,8 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
     [config]
   );
 
-  const twinAnimSpeed = 0; // I5.6.35 - all zone twins static (Stephen lock)
+  const twinAnimSpeed = 0;
+  const hubZone = isHubZone(config.id) ? config.id : null;
 
   const twinStorageKey = `mc.spatialTwinOpen.${config.id}`;
   const [twinOpen, setTwinOpen] = useState(true);
@@ -1749,101 +1782,38 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
   );
 
   return (
-    <div className="space-y-4">
-      {/* I5.6.34 — single sticky container: zone header + primary tabs together */}
-      <div className="flex flex-col gap-3 bg-background pb-3 pt-1">
-        {/* Row 1: zone identity + actions */}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight">{config.title}</h1>
-            <p className="max-w-2xl text-muted-foreground">{config.subtitle}</p>
-          </div>
-          <div className="flex flex-wrap gap-2 text-sm">
-            <Link
-              href="/dashboard"
-              className="rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              Full 3D hub
-            </Link>
-            <button
-              type="button"
-              onClick={() => setTwinOpenPersist(!twinOpen)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-pressed={twinOpen}
-              aria-controls={`spatial-twin-drawer-${config.id}`}
-              title={twinOpen ? "Hide spatial twin" : "Show spatial twin"}
-            >
-              {twinOpen ? (
-                <PanelRightClose className="h-4 w-4" aria-hidden />
-              ) : (
-                <PanelRightOpen className="h-4 w-4" aria-hidden />
-              )}
-              {twinOpen ? "Hide twin" : "Show twin"}
-            </button>
-            <span
-              className="rounded-md px-3 py-1.5 font-medium text-white"
-              style={{ backgroundColor: config.accent }}
-            >
-              {config.title}
-            </span>
-          </div>
-        </div>
+    <div className="space-y-3">
+      <PageHeader
+        title={config.title}
+        subtitle={config.subtitle}
+        accent={config.accent}
+        tabs={tabs.map((t) => ({
+          id: t.id,
+          label: t.label,
+          count:
+            t.children && t.children.length > 0
+              ? NO_RECORDS_SELF_TAB.has(t.id)
+                ? t.children.length
+                : t.children.length + 1
+              : undefined,
+        }))}
+        tabsValue={tab?.id ?? ""}
+        onTabChange={selectTab}
+        tabsAriaLabel={`${config.title} elements`}
+      />
 
-        {/* Row 2: primary element tabs — same sticky container, no independent sticky */}
-        <div
-          role="tablist"
-          aria-label={`${config.title} elements`}
-          className="flex flex-wrap gap-1 border-b border-border pb-px"
-        >
-          {config.tabs.map((t) => {
-            const on = t.id === tab?.id;
-            return (
-              <button
-                key={t.id}
-                role="tab"
-                type="button"
-                aria-selected={on}
-                onClick={() => selectTab(t.id)}
-                className={cn(
-                  "-mb-px rounded-t-md border border-transparent px-3 py-2 text-sm font-medium transition-colors",
-                  on
-                    ? "border-border border-b-background bg-background text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-                style={
-                  on
-                    ? {
-                        borderBottomColor: "var(--background)",
-                        boxShadow: `inset 0 2px 0 ${config.accent}`,
-                      }
-                    : undefined
-                }
-              >
-                {t.label}
-                {t.children && t.children.length > 0 ? (
-                  <span className="ml-1 text-xs text-muted-foreground">
-                    ({t.children.length + 1})
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {tab && subTabs.length > 0 ? (
+        <SubTabBar
+          items={subTabs}
+          activeId={subTabs.find((c) => c.id === childId)?.id ?? subTabs[0].id}
+          accent={config.accent}
+          onSelect={setChildId}
+          ariaLabel={`${tab.label} sub-elements`}
+        />
+      ) : null}
 
-      {/* I5.6.31 — twin in collapsible drawer; main column grows when closed */}
-      <div
-        className={cn(
-          "grid gap-4 transition-[grid-template-columns] duration-300 ease-in-out",
-          twinOpen ? "lg:grid-cols-4" : "lg:grid-cols-1"
-        )}
-      >
-        <div
-          className={cn(
-            "min-w-0 transition-all duration-300",
-            twinOpen ? "lg:col-span-2" : "lg:col-span-1"
-          )}
-        >
+      <div className="relative flex flex-col gap-4 lg:flex-row">
+        <div className="min-w-0 flex-1">
           {tab && (
             <TabPanel
               key={active + ":" + childId}
@@ -1851,59 +1821,70 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
               accent={config.accent}
               childId={childId}
               setChildId={setChildId}
+              hideSubTabs
             />
           )}
         </div>
 
-        {twinOpen && (
-          <div
-            id={`spatial-twin-drawer-${config.id}`}
-            className="flex min-h-[200px] flex-col lg:col-span-2 lg:min-h-[260px]"
-            data-hydrated={twinHydrated ? "1" : "0"}
-          >
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Spatial twin · {config.id} only
-              </p>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground">
-                  {twinAnimSpeed === 0
-                    ? "Static · click spheres"
-                    : "Live · click spheres"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setTwinOpenPersist(false)}
-                  className="rounded-md border border-border px-2 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  aria-label="Hide spatial twin drawer"
-                >
-                  Hide
-                </button>
+        {hubZone ? (
+          <>
+            <div className="relative flex shrink-0 items-stretch" style={{ paddingLeft: 10 }}>
+              <button
+                type="button"
+                onClick={() => setTwinOpenPersist(!twinOpen)}
+                className="z-10 flex h-20 w-5 shrink-0 self-center items-center justify-center rounded-md border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
+                aria-pressed={twinOpen}
+                aria-controls={`spatial-twin-drawer-${config.id}`}
+                title={twinOpen ? "Collapse spatial twin" : "Expand spatial twin"}
+              >
+                {twinOpen ? (
+                  <ChevronRight className="h-4 w-4" />
+                ) : (
+                  <ChevronLeft className="h-4 w-4" />
+                )}
+                <span className="sr-only">{twinOpen ? "Collapse twin" : "Expand twin"}</span>
+              </button>
+            </div>
+            {twinOpen ? (
+              <div
+                id={`spatial-twin-drawer-${config.id}`}
+                className="flex min-h-[200px] w-full shrink-0 flex-col lg:min-h-[260px] lg:w-[465px]"
+                data-hydrated={twinHydrated ? "1" : "0"}
+              >
+                <div className="min-h-0 flex-1 overflow-hidden rounded-lg">
+                  <MissionControlScene
+                    showCanvasChrome={false}
+                    showLegend={false}
+                    showViewGizmo={false}
+                    showCameraTelemetry={false}
+                    showAxes={false}
+                    ringsMode='50'
+                    animSpeed={twinAnimSpeed}
+                    ringGap={1}
+                    sphereScale={1}
+                    cameraFitZone={hubZone}
+                    zoneVisible={{
+                      organization: hubZone === 'organization',
+                      collaboration: hubZone === 'collaboration',
+                      environment: hubZone === 'environment',
+                    }}
+                    focusedNodeId={focusedNodeId}
+                    onNodeClick={handleNodeClick}
+                  />
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Spatial Twin · click spheres{" "}
+                  <Link
+                    href="/dashboard"
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
+                  >
+                    [Full 3D Hub]
+                  </Link>
+                </div>
               </div>
-            </div>
-            <div className="min-h-0 flex-1 overflow-hidden rounded-lg">
-              <MissionControlScene
-                showCanvasChrome={false}
-                showLegend={false}
-                showViewGizmo={false}
-                showCameraTelemetry={false}
-                showAxes={false}
-                ringsMode='50'
-                animSpeed={twinAnimSpeed}
-                ringGap={1}
-                sphereScale={1}
-                cameraFitZone={config.id}
-                zoneVisible={{
-                  organization: config.id === 'organization',
-                  collaboration: config.id === 'collaboration',
-                  environment: config.id === 'environment',
-                }}
-                focusedNodeId={focusedNodeId}
-                onNodeClick={handleNodeClick}
-              />
-            </div>
-          </div>
-        )}
+            ) : null}
+          </>
+        ) : null}
       </div>
     </div>
   );

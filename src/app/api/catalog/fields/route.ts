@@ -1,3 +1,4 @@
+import '@/lib/catalog/install-durable';
 import { NextResponse } from 'next/server';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 import {
@@ -118,8 +119,8 @@ export async function POST(request: Request) {
     {
       data: result.field,
       meta: {
-        persistence: 'fixture_process_memory',
-        note: 'Survives until process restart. Phase 2+ will persist catalog tables.',
+        persistence: 'durable_catalog',
+        note: 'Survives process restart via the durable catalog overlay.',
       },
     },
     { status: 201 },

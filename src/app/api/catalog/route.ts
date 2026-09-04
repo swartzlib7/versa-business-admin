@@ -1,3 +1,4 @@
+import '@/lib/catalog/install-durable';
 import { NextResponse } from 'next/server';
 import { getSessionFromRequest, isAuthenticated } from '@/lib/auth';
 import { listObjects } from '@/lib/fixtures/catalog';
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
       method: 'POST /api/catalog/fields',
       body: {
         object_api_name: 'project',
-        api_name: 'custom_score',
+        api_name: 'c_score',
         label: 'Custom score',
         data_type: 'number',
         is_required: false,
@@ -44,8 +45,9 @@ export async function GET(request: Request) {
         lookup_object_api_name: null,
       },
       notes: [
+        'Custom api_name must start with c_ plus lowercase letters, digits, and underscores (D1). System names stay unprefixed.',
         'Custom fields are is_system=false.',
-        'Fixture mode: extensions are in-process until catalog tables are persisted (Phase 2+).',
+        'Custom fields, layouts, and value sets persist via the durable catalog overlay (survives restart).',
         'Does not create DB columns; values intended for entity data JSONB.',
         'Cannot collapse project/task into generic EAV — use faculty record types for free-form lists.',
       ],

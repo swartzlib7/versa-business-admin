@@ -141,6 +141,9 @@ When COA says **“Phase 2”** without other context, it means **Track B — DB
 | `docs/design/spec/state/state_db_cutover_checklist.md` | Full DB cutover checklist & acceptance |
 | `docs/design/spec/state/state_api_contract.md` | API contract |
 | `docs/design/spec/state/state_layout_mission_ui.md` | Layout / Mission UI |
+| `docs/design/spec/state/state_upgradability.md` | Upgrade model D1–D6 |
+| `docs/ops/MISSION_CONTROL_OPS_MANUAL.md` | Ops outline (Horizon 3 / #240) |
+| `docs/coa/MISSION_CONTROL_PRODUCTION_PLAN.md` | Horizons — skill is a Horizon 3 deliverable |
 
 ---
 

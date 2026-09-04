@@ -43,6 +43,13 @@
       "when": 1788251802958,
       "tag": "0005_i5_6_33_slice_settings_site_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788450000000,
+      "tag": "0006_durable_catalog_overlay",
+      "breakpoints": true
     }
   ]
 }

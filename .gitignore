@@ -43,3 +43,6 @@ next-env.d.ts
 # agent logs
 .logs/
 .env.local
+
+# persisted fixture branding (logo + name/color)
+.data/

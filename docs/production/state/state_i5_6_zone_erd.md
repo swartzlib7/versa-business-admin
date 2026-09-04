@@ -2,18 +2,19 @@
 
 > **Role:** Sole go-to for Mission Control zone ERD, baseline data model, and tabbed zone config UI.
 > **Product:** versa-admin-system (Mission Control) · Project #26 · Game #109
+> **Doc home:** docs/production/state/
+> **Map:** shape_mission_control.md
 
 | Field | Value |
 |-------|-------|
 | **Feature** | I5.6 Zone ERD + backend menu tabbed config + User-pilot baseline ERD |
-| **Status** | I5.6 UI wrap COMPLETE. Org-board hub 2026-07-21. Zone config IA 2026-07-22: Production=Configuration (not list); Public/Comms/Dissemination/Treasury=Config+list; Qualification=Config (lists TBD). Phase 1 DB done; Phase 2 held. |
-| **Last verified against code** | 2026-07-21 (org-board hub + zone IA; ERD state) |
+| **Status** | ✅ I5.6.33 Gate 3 accepted 2026-09-02. Hub / org / collab / env + Records Editor train closed. No I5.6.34+ until tasked. |
+| **Last verified against code** | 2026-09-02 (Gate 3 accept; Slice G on beta) |
 | **Primary code** | `mission-control-scene` hub; zone routes `/organization` `/collaboration` `/environment`; users admin |
-| **Task** | #176 |
+| **Task** | #176 (closed); I5.6.33 umbrella #185 closed |
 
-**Folded sources (2026-07-20):**  
-`docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md`, `MISSION_CONTROL_ZONE_ERD_I5.6.md`, `BASELINE_ERD_USER_PILOT_I5.6.23.md`, `ZONE_CONFIG_UI_PATTERN_I5.6.md` → `__archive/` after merge.  
-**Also revisit:** Iteration 5 line notes (`docs/_notes/from_stephen_01.md`, `from_stephen_02.md`) — conceptual ERD origin, not separate living specs.
+**Folded sources (2026-07-20):** keystone / zone ERD / baseline / zone-config → `__archive/pre-statefold/`.  
+**Folded 2026-09-03:** I5.6.32 plans + I5.6.33 proposal + ERD alignment → `__archive/plans/`.
 
 ---
 
@@ -214,7 +215,7 @@ Mission Control needs one conceptual ERD (zones + entities + relationships) and 
 - Hub / scene: Mission Control 3D components (beta `1f9de1a` v0.7.45 line)
 - Zone pages: `/organization`, `/collaboration`, `/environment`
 - Users: admin users path
-- Specs archive: `docs/design/spec/state/__archive/`
+- Specs archive: `docs/production/state/__archive/pre-statefold/`
 
 ### 2.4 Mermaid — baseline + stubs
 
@@ -360,7 +361,7 @@ Spatial twin on zone config pages is optional chrome (drawer + persistence). Doe
 
 **Qualification:** Configuration + Records (parity with Public/Comms/Dissemination/Treasury).
 
-**Dynamic records:** Faculty Records become config-driven types over time. **Projects & Tasks stay first-class tables** (FK/perf) — catalog layouts may still drive their forms. Full plan: `docs/coa/I5_6_32_DYNAMIC_RECORDS_REDESIGN.md`.
+**Dynamic records:** Faculty Records become config-driven types over time. **Projects & Tasks stay first-class tables** (FK/perf) — catalog layouts may still drive their forms. Historical plan: `__archive/plans/I5_6_32_DYNAMIC_RECORDS_REDESIGN.md`.
 
 ## I5.6.32b — Catalog schema API (2026-07-22)
 
@@ -383,20 +384,19 @@ Living layout chrome detail: `state_layout_mission_ui.md` § I5.6.35.
 ## I5.6.33 — Zone elements, record types & schema ERD (2026-08-31, LOCKED rev E)
 
 **Schema LOCKED at rev E** (d4659b7, beta) after Stephen's C1–C8 verdict. Full spec:
-\`docs/coa/I5_6_33_ZONE_ELEMENTS_ERD_PROPOSAL.md\`. #218 (7cc408f) seeded 6 system record types +
+\`docs/production/state/__archive/plans/I5_6_33_ZONE_ELEMENTS_ERD_PROPOSAL.md\` (folded 2026-09-03). #218 (7cc408f) seeded 6 system record types +
 26-field catalog + 7 value sets; baked listing tabs wired; sampleRows mocks removed.
 
 Locked decisions:
 - **Senior pattern:** elements are record TYPES (many instances, each header + lines); lookups
   between definitions (cascade = master-detail | orphan = plain, default orphan); system types
   locked (\`is_system\`), custom types via the same mechanism, three-zone landing.
-- **Multi-org:** multiple organizations; user default-org; every new record auto-presets its org
-  field (editable per record); all data relates to organization records; ORGANIZATION = tenant root.
+- **Multi-org:** **superseded 0.7.107.** There is one Org-type record — the **Primary Org** (`is_primary`). The flag is one-time and cannot be changed. Only one `org_type=internal`. All `org_id` fields (system and dynamic types) resolve from that Primary Org. This product is **not** multi-tenant org login: customers of the org buy Mission Control; they do not log in as orgs viewing themselves. Collaboration parties are vendor / customer / partner / branch.
 - **Executive division** = Policy + Projects + Tasks (one-to-many to all 4 parties + 4 env nodes).
 - **C3:** standalone vendor_integration RETIRED → lines group on vendor instances.
 - **C4:** policy version control dropped (no new_version checkbox / supersedes lookup).
 - **C5:** organizations stay typed core table, extended is_person / org_type / parent_organization_id.
-- **C6:** collaboration zone renders organizations by org_type, filtered by default organization.
+- **C6:** collaboration zone renders organizations by org_type. Branch lists children of the Primary Org. Collaboration orgs theoretically have all seven divisions but we do not model them here.
 - **C7:** no dissemination_campaign — campaigns fold under promotion & marketing (header + lines).
 - **C8:** zone/element api_name prefixes kept.
 - **Horizon 1 tables:** record_type, record, record_line, record_relations + lookup_delete_rule
@@ -627,5 +627,25 @@ flex classes and no hardcoded fixed height; server shut down cleanly (no orphans
 
 **Integration status:** Slices B/C (Gate 2 passed pre-round-2), D (#248), E1 (#245),
 E2 (#249), F (#244), Settings (#252) all Gate-2-passed and FF'd to beta through
-d8c6c51; Slice G is the final train slice. Next: COA Gate 2 on Slice G -> beta FF +
-:3200 rebuild -> consolidated smoke brief to Stephen (Gate 3 covers the full train).
+d8c6c51; Slice G is the final train slice.
+
+## I5.6.33 — Gate 3 accept (2026-09-02)
+
+Stephen accepted the train in IDE: hub-height + records coverage; 2026-08-31 ERD alignment was the design lock the train implemented. Tasks #185 / #244 / #245 / #248 / #249 / #250 / #252 closed. Do not start I5.6.34+ until tasked.
+
+## 0.7.107 — Primary Org, Receipts name, Environment ERD direction (2026-09-03)
+
+Stephen confirmed the three-zone reading (IDE 2026-09-03):
+
+1. **Organization (“us”).** Seven divisions. One Org-type record is **Primary Org** — a one-time fixed flag on a single record; cannot be changed; cannot be deleted. There can be only one `org_type=internal`. All `org_id` fields are set from that org (keep the global `org_id` field). Not a design for orgs logging in to view themselves.
+
+2. **Collaboration.** Other organizations, seen as relationships. Customer-side equivalent of vendor **Integrations** is named **Receipts** (docs only — do not build a tab until tasked). Collaboration orgs theoretically have all seven divisions but we do not model them here.
+
+3. **Environment.** UI still undesigned; leave last. Relational direction for a later ERD: locations can have events and knowledge; events can have schedules; events and locations can have knowledge; events, knowledge, and locations have orgs.
+
+**Dynamic types:** same `org_id` rule as system types.
+
+**Sample data (planned, not built this pass):** Demo mode does not swap the backend onto fixtures. Preferred approach is a global `external_id` column plus **Insert Sample Data** / **Delete Sample Data**, so operator tables stay empty unless you create rows (or insert tagged samples).
+
+**Code:** `src/lib/organizations/primary-org.ts`, adapters, `records-store.resolveOrgIdForCreate`, Organization **Configuration** main tab (`PrimaryOrgPanel` + staff appointment).
+

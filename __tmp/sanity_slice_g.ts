@@ -41,7 +41,7 @@ const pkg = JSON.parse(rd('package.json'));
 ok(pkg.version === '0.7.71', 'version bumped to 0.7.71');
 
 // 5. Docs - living state doc carries Slice G delivery record
-const st = rd('docs/design/spec/state/state_i5_6_zone_erd.md');
+const st = rd('docs/production/state/state_i5_6_zone_erd.md');
 ok(st.includes('Slice G delivery'), 'docs: Slice G delivery section present');
 ok(st.includes('0.7.71'), 'docs: version bump recorded');
 

@@ -1,10 +1,11 @@
 /**
  * ERD-B catalog stubs (baseline locked 2026-07-20) + I5.6.32b agent schema API.
  * Definitions only — values live on entity `data` JSON later (User pilot ERD-C; ERD-D Project/Task/Product).
- * HTTP: GET/POST under /api/catalog (auth). Custom field extensions are session-local on fixtures
- * until Phase 2+ persists catalog tables.
+ * HTTP: GET/POST under /api/catalog (auth). Custom fields, layouts, and value sets
+ * persist through the durable catalog overlay (seed ∪ overlay).
  */
 import { listInstances } from './record-instances';
+import { validateTenantApiName } from '@/lib/catalog/custom-namespace';
 
 export type CatalogDataType =
   | 'text'
@@ -210,6 +211,12 @@ export const valueSets: ValueSet[] = [
     api_name: 'knowledge_kind',
     label: 'Knowledge kind',
     description: 'Kind of knowledge asset',
+  },
+  {
+    id: 'vs-stat-scale',
+    api_name: 'stat_scale',
+    label: 'Stat scale',
+    description: 'Reporting time scale for an Environment stat',
   },
   {
     id: 'vs-record-status',
@@ -851,6 +858,54 @@ export const valueSetItems: ValueSetItem[] = [
     api_value: 'research',
     label: 'Research',
     sort_order: 50,
+    active: true,
+  },
+  {
+    id: 'vsi-ss-hour',
+    value_set_id: 'vs-stat-scale',
+    api_value: 'hour',
+    label: 'Hour',
+    sort_order: 10,
+    active: true,
+  },
+  {
+    id: 'vsi-ss-day',
+    value_set_id: 'vs-stat-scale',
+    api_value: 'day',
+    label: 'Day',
+    sort_order: 20,
+    active: true,
+  },
+  {
+    id: 'vsi-ss-week',
+    value_set_id: 'vs-stat-scale',
+    api_value: 'week',
+    label: 'Week',
+    sort_order: 30,
+    active: true,
+  },
+  {
+    id: 'vsi-ss-month',
+    value_set_id: 'vs-stat-scale',
+    api_value: 'month',
+    label: 'Month',
+    sort_order: 40,
+    active: true,
+  },
+  {
+    id: 'vsi-ss-year',
+    value_set_id: 'vs-stat-scale',
+    api_value: 'year',
+    label: 'Year',
+    sort_order: 50,
+    active: true,
+  },
+  {
+    id: 'vsi-ss-custom',
+    value_set_id: 'vs-stat-scale',
+    api_value: 'custom',
+    label: 'Custom',
+    sort_order: 60,
     active: true,
   },
   {
@@ -1767,6 +1822,10 @@ const facultyRecordFieldSeed: FieldDefinition[] = [
   { id: 'fld-contact-email', object_api_name: 'contact', api_name: 'email', label: 'Email', data_type: 'email', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-contact-phone', object_api_name: 'contact', api_name: 'phone', label: 'Phone', data_type: 'phone', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
   { id: 'fld-contact-organization', object_api_name: 'contact', api_name: 'organization', label: 'Organization', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true },
+  { id: 'fld-organization-name', object_api_name: 'organization', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-organization-org_type', object_api_name: 'organization', api_name: 'org_type', label: 'Organization type', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-organization-is_person', object_api_name: 'organization', api_name: 'is_person', label: 'Person organization', data_type: 'boolean', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-organization-parent_organization_id', object_api_name: 'organization', api_name: 'parent_organization_id', label: 'Parent organization', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 40, active: true },
   { id: 'fld-contact-notes', object_api_name: 'contact', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
   { id: 'fld-location-name', object_api_name: 'location', api_name: 'name', label: 'Label', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
   { id: 'fld-location-address', object_api_name: 'location', api_name: 'address', label: 'Address', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
@@ -1785,6 +1844,13 @@ const facultyRecordFieldSeed: FieldDefinition[] = [
   { id: 'fld-schedule-kind', object_api_name: 'schedule', api_name: 'kind', label: 'Kind', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'schedule_kind', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-schedule-status', object_api_name: 'schedule', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-schedule-notes', object_api_name: 'schedule', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
+  { id: 'fld-environment_stat-name', object_api_name: 'environment_stat', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-environment_stat-value', object_api_name: 'environment_stat', api_name: 'value', label: 'Value', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-environment_stat-unit', object_api_name: 'environment_stat', api_name: 'unit', label: 'Unit', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-environment_stat-category', object_api_name: 'environment_stat', api_name: 'category', label: 'Category', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
+  { id: 'fld-environment_stat-scale', object_api_name: 'environment_stat', api_name: 'scale', label: 'Scale', data_type: 'picklist', is_system: true, is_required: false, default_value: 'month', value_set_api_name: 'stat_scale', lookup_object_api_name: null, sort_order: 50, active: true },
+  { id: 'fld-environment_stat-series', object_api_name: 'environment_stat', api_name: 'series', label: 'Series', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
+  { id: 'fld-environment_stat-status', object_api_name: 'environment_stat', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 70, active: true },
 ];
 
 // ---------------------------------------------------------------------------
@@ -1838,43 +1904,156 @@ export const objectDefinitions: ObjectDefinition[] = [
     instance_collection: '/api/public/products',
     extensible: true,
   },
+  {
+    api_name: 'organization',
+    label: 'Organization',
+    description: 'Typed core organization table (Executive Orgs + Collaboration parties).',
+    core_kind: 'typed_table',
+    instance_collection: '/api/organizations',
+    extensible: true,
+    faculty: 'executive',
+  },
                     ];
 
-// Mutable copies for in-process custom field extensions (fixture mode).
-let mutableFieldDefinitions: FieldDefinition[] = [...fieldDefinitions, ...facultyRecordFieldSeed];
-let mutableValueSets: ValueSet[] = [...valueSets];
-let mutableValueSetItems: ValueSetItem[] = [...valueSetItems];
-let mutableLayoutDefinitions: LayoutDefinition[] = [...layoutDefinitions];
-let mutableObjectDefinitions: ObjectDefinition[] = [...objectDefinitions];
+type CatalogLive = {
+  fields: FieldDefinition[];
+  valueSets: ValueSet[];
+  valueSetItems: ValueSetItem[];
+  layouts: LayoutDefinition[];
+  objects: ObjectDefinition[];
+};
+
+const CATALOG_LIVE_KEY = "__versaCatalogLive__";
+
+function catalogLive(): CatalogLive {
+  const g = globalThis as Record<string, unknown>;
+  const existing = g[CATALOG_LIVE_KEY] as CatalogLive | undefined;
+  if (existing) return existing;
+  const seeded: CatalogLive = {
+    fields: [...fieldDefinitions, ...facultyRecordFieldSeed],
+    valueSets: [...valueSets],
+    valueSetItems: [...valueSetItems],
+    layouts: [...layoutDefinitions],
+    objects: [...objectDefinitions],
+  };
+  g[CATALOG_LIVE_KEY] = seeded;
+  return seeded;
+}
+
+type CatalogHook = () => void;
+type CatalogHooks = { hydrate: CatalogHook; persist: CatalogHook };
+const CATALOG_HOOKS_KEY = "__versaCatalogDurableHooks__";
+
+export function installCatalogDurableHooks(hooks: CatalogHooks): void {
+  (globalThis as Record<string, unknown>)[CATALOG_HOOKS_KEY] = hooks;
+}
+
+function catalogHooks(): CatalogHooks | null {
+  return (
+    ((globalThis as Record<string, unknown>)[CATALOG_HOOKS_KEY] as CatalogHooks | null) ??
+    null
+  );
+}
+
+function ensureCatalogHydrated(): void {
+  catalogHooks()?.hydrate();
+}
+
+function persistCatalog(): void {
+  catalogHooks()?.persist();
+}
+
+export function exportCatalogLive(): {
+  fields: FieldDefinition[];
+  valueSets: ValueSet[];
+  valueSetItems: ValueSetItem[];
+  layouts: LayoutDefinition[];
+  objects: ObjectDefinition[];
+} {
+  return {
+    fields: catalogLive().fields,
+    valueSets: catalogLive().valueSets,
+    valueSetItems: catalogLive().valueSetItems,
+    layouts: catalogLive().layouts,
+    objects: catalogLive().objects,
+  };
+}
+
+export function applyCatalogOverlay(overlay: {
+  fields?: FieldDefinition[];
+  valueSets?: ValueSet[];
+  valueSetItems?: ValueSetItem[];
+  layouts?: LayoutDefinition[];
+  objects?: ObjectDefinition[];
+}): void {
+  const fieldKey = (f: FieldDefinition) => `${f.object_api_name}::${f.api_name}`;
+  const vsKey = (v: ValueSet) => v.api_name;
+  const itemKey = (i: ValueSetItem) => `${i.value_set_id}::${i.api_value}`;
+  const layoutKey = (l: LayoutDefinition) => `${l.object_api_name}::${l.api_name}::${l.layout_type}::${l.version}`;
+  const objectKey = (o: ObjectDefinition) => o.api_name;
+
+  const merge = <T,>(seed: T[], over: T[] | undefined, keyOf: (row: T) => string): T[] => {
+    if (!over?.length) return [...seed];
+    const map = new Map(over.map((row) => [keyOf(row), row]));
+    const seen = new Set<string>();
+    const out: T[] = [];
+    for (const row of seed) {
+      const key = keyOf(row);
+      const patch = map.get(key);
+      out.push(patch ? { ...row, ...patch } : row);
+      seen.add(key);
+    }
+    for (const row of over) {
+      const key = keyOf(row);
+      if (!seen.has(key)) out.push(row);
+    }
+    return out;
+  };
+
+  const seedFields = [...fieldDefinitions, ...facultyRecordFieldSeed];
+  catalogLive().fields = merge(seedFields, overlay.fields, fieldKey).map((row) => {
+    const seed = seedFields.find((s) => fieldKey(s) === fieldKey(row));
+    return seed ? { ...row, is_system: seed.is_system, id: seed.id } : row;
+  });
+  catalogLive().valueSets = merge(valueSets, overlay.valueSets, vsKey);
+  catalogLive().valueSetItems = merge(valueSetItems, overlay.valueSetItems, itemKey);
+  catalogLive().layouts = merge(layoutDefinitions, overlay.layouts, layoutKey);
+  catalogLive().objects = merge(objectDefinitions, overlay.objects, objectKey);
+}
 
 export function resetCatalog(): void {
-  mutableFieldDefinitions = [...fieldDefinitions, ...facultyRecordFieldSeed];
-  mutableValueSets = [...valueSets];
-  mutableValueSetItems = [...valueSetItems];
-  mutableLayoutDefinitions = [...layoutDefinitions];
-  mutableObjectDefinitions = [...objectDefinitions];
+  catalogLive().fields = [...fieldDefinitions, ...facultyRecordFieldSeed];
+  catalogLive().valueSets = [...valueSets];
+  catalogLive().valueSetItems = [...valueSetItems];
+  catalogLive().layouts = [...layoutDefinitions];
+  catalogLive().objects = [...objectDefinitions];
 }
 
 export function listObjects(): ObjectDefinition[] {
-  return [...mutableObjectDefinitions].sort((a, b) => a.api_name.localeCompare(b.api_name));
+  ensureCatalogHydrated();
+  return [...catalogLive().objects].sort((a, b) => a.api_name.localeCompare(b.api_name));
 }
 
 export function getObject(apiName: string): ObjectDefinition | undefined {
-  return mutableObjectDefinitions.find((o) => o.api_name === apiName);
+  ensureCatalogHydrated();
+  return catalogLive().objects.find((o) => o.api_name === apiName);
 }
 
 export function getValueSetByApiName(apiName: string): ValueSet | undefined {
-  return mutableValueSets.find((v) => v.api_name === apiName);
+  ensureCatalogHydrated();
+  return catalogLive().valueSets.find((v) => v.api_name === apiName);
 }
 
 export function listValueSetItems(valueSetId: string): ValueSetItem[] {
-  return mutableValueSetItems
+  ensureCatalogHydrated();
+  return catalogLive().valueSetItems
     .filter((i) => i.value_set_id === valueSetId && i.active)
     .sort((a, b) => a.sort_order - b.sort_order);
 }
 
 export function listFieldDefinitions(objectApiName: string): FieldDefinition[] {
-  return mutableFieldDefinitions
+  ensureCatalogHydrated();
+  return catalogLive().fields
     .filter((f) => f.object_api_name === objectApiName && f.active)
     .sort((a, b) => a.sort_order - b.sort_order);
 }
@@ -1883,7 +2062,8 @@ export function getDefaultLayout(
   objectApiName: string,
   layoutType: LayoutDefinition['layout_type'],
 ): LayoutDefinition | undefined {
-  return mutableLayoutDefinitions.find(
+  ensureCatalogHydrated();
+  return catalogLive().layouts.find(
     (l) =>
       l.object_api_name === objectApiName &&
       l.layout_type === layoutType &&
@@ -1892,7 +2072,8 @@ export function getDefaultLayout(
 }
 
 export function listAllFieldDefinitions(objectApiName?: string): FieldDefinition[] {
-  let rows = mutableFieldDefinitions.filter((f) => f.active);
+  ensureCatalogHydrated();
+  let rows = catalogLive().fields.filter((f) => f.active);
   if (objectApiName) rows = rows.filter((f) => f.object_api_name === objectApiName);
   return rows.sort((a, b) => a.sort_order - b.sort_order || a.api_name.localeCompare(b.api_name));
 }
@@ -1900,11 +2081,11 @@ export function listAllFieldDefinitions(objectApiName?: string): FieldDefinition
 
 /** L2: normalize zone_role so every field on a header_lines object is exactly header or list (never null/both). */
 export function normalizeZoneRoles(objectApiName: string): void {
-  for (let i = 0; i < mutableFieldDefinitions.length; i++) {
-    const f = mutableFieldDefinitions[i];
+  for (let i = 0; i < catalogLive().fields.length; i++) {
+    const f = catalogLive().fields[i];
     if (f.object_api_name !== objectApiName) continue;
     if (f.zone_role !== "header" && f.zone_role !== "list") {
-      mutableFieldDefinitions[i] = { ...f, zone_role: "header" };
+      catalogLive().fields[i] = { ...f, zone_role: "header" };
     }
   }
 }
@@ -1912,14 +2093,16 @@ export function listAllLayouts(
   objectApiName?: string,
   layoutType?: LayoutDefinition['layout_type'],
 ): LayoutDefinition[] {
-  let rows = [...mutableLayoutDefinitions];
+  ensureCatalogHydrated();
+  let rows = [...catalogLive().layouts];
   if (objectApiName) rows = rows.filter((l) => l.object_api_name === objectApiName);
   if (layoutType) rows = rows.filter((l) => l.layout_type === layoutType);
   return rows;
 }
 
 export function listAllValueSets(): ValueSet[] {
-  return [...mutableValueSets].sort((a, b) => a.api_name.localeCompare(b.api_name));
+  ensureCatalogHydrated();
+  return [...catalogLive().valueSets].sort((a, b) => a.api_name.localeCompare(b.api_name));
 }
 
 export function getValueSetByApiNameLive(apiName: string): ValueSet | undefined {
@@ -1982,8 +2165,9 @@ export type ExtendFieldResult =
   | { ok: true; field: FieldDefinition }
   | { ok: false; code: string; message: string };
 
-/** Agent/admin extension: add a non-system field definition (fixture-local until DB catalog). */
+/** Agent/admin extension: add a non-system field definition (durable catalog overlay). */
 export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResult {
+  ensureCatalogHydrated();
   const object = getObject(input.object_api_name);
   if (!object) {
     return {
@@ -2000,19 +2184,9 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
     };
   }
   const apiName = (input.api_name || '').trim();
-  if (!/^[a-z][a-z0-9_]*$/.test(apiName)) {
-    return {
-      ok: false,
-      code: 'INVALID_API_NAME',
-      message: 'api_name must be snake_case starting with a letter (e.g. custom_score).',
-    };
-  }
-  if (apiName.startsWith('system_') || apiName === 'id') {
-    return {
-      ok: false,
-      code: 'RESERVED_API_NAME',
-      message: 'That api_name is reserved.',
-    };
+  const named = validateTenantApiName(apiName);
+  if (!named.ok) {
+    return { ok: false, code: named.code, message: named.message };
   }
   if (!ALLOWED_DATA_TYPES.includes(input.data_type)) {
     return {
@@ -2070,7 +2244,7 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
       message: `Unknown lookup_object_api_name '${input.lookup_object_api_name}'.`,
     };
   }
-  const exists = mutableFieldDefinitions.some(
+  const exists = catalogLive().fields.some(
     (f) => f.object_api_name === input.object_api_name && f.api_name === apiName,
   );
   if (exists) {
@@ -2080,7 +2254,7 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
       message: `Field '${apiName}' already exists on '${input.object_api_name}'.`,
     };
   }
-  const siblings = mutableFieldDefinitions.filter((f) => f.object_api_name === input.object_api_name);
+  const siblings = catalogLive().fields.filter((f) => f.object_api_name === input.object_api_name);
   const nextOrder = siblings.reduce((m, f) => Math.max(m, f.sort_order), 0) + 10;
   const field: FieldDefinition = {
     id: `fld-ext-${input.object_api_name}-${apiName}`,
@@ -2099,7 +2273,8 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
     show_in_column: input.show_in_column,
     active: true,
   };
-  mutableFieldDefinitions.push(field);
+  catalogLive().fields.push(field);
+  persistCatalog();
   return { ok: true, field };
 }
 
@@ -2128,11 +2303,12 @@ export function updateFieldDefinition(
   apiName: string,
   input: UpdateFieldInput,
 ): FieldMutationResult {
-  const index = mutableFieldDefinitions.findIndex(
+  ensureCatalogHydrated();
+  const index = catalogLive().fields.findIndex(
     (field) => field.object_api_name === objectApiName && field.api_name === apiName,
   );
   if (index < 0) return { ok: false, code: 'NOT_FOUND', message: `Unknown field '${apiName}'.` };
-  const current = mutableFieldDefinitions[index];
+  const current = catalogLive().fields[index];
   if (input.label !== undefined && !input.label.trim()) {
     return { ok: false, code: 'LABEL_REQUIRED', message: 'Field label is required.' };
   }
@@ -2144,7 +2320,8 @@ export function updateFieldDefinition(
     ...input,
     label: input.label !== undefined ? input.label.trim() : current.label,
   };
-  mutableFieldDefinitions[index] = next;
+  catalogLive().fields[index] = next;
+  persistCatalog();
   return { ok: true, field: next, references: fieldReferenceCount(objectApiName, apiName) };
 }
 
@@ -2153,11 +2330,11 @@ export function retireFieldDefinition(objectApiName: string, apiName: string): F
 }
 
 export function deleteFieldDefinition(objectApiName: string, apiName: string): FieldMutationResult {
-  const index = mutableFieldDefinitions.findIndex(
+  const index = catalogLive().fields.findIndex(
     (field) => field.object_api_name === objectApiName && field.api_name === apiName,
   );
   if (index < 0) return { ok: false, code: 'NOT_FOUND', message: `Unknown field '${apiName}'.` };
-  const field = mutableFieldDefinitions[index];
+  const field = catalogLive().fields[index];
   const references = fieldReferenceCount(objectApiName, apiName);
   if (field.is_system) {
     return { ok: false, code: 'SYSTEM_FIELD', message: 'System/reference fields cannot be hard-deleted.', references };
@@ -2165,7 +2342,8 @@ export function deleteFieldDefinition(objectApiName: string, apiName: string): F
   if (references > 0) {
     return { ok: false, code: 'FIELD_REFERENCED', message: 'Referenced fields must be retired instead of hard-deleted.', references };
   }
-  mutableFieldDefinitions.splice(index, 1);
+  catalogLive().fields.splice(index, 1);
+  persistCatalog();
   return { ok: true, field, references: 0 };
 }
 
@@ -2185,6 +2363,7 @@ export type ValueSetMutResult =
   | { ok: false; code: string; message: string };
 
 export function createValueSet(input: CreateValueSetInput): ValueSetMutResult {
+  ensureCatalogHydrated();
   const apiName = (input.api_name || '').trim();
   if (!/^[a-z][a-z0-9_]*$/.test(apiName)) {
     return {
@@ -2193,7 +2372,7 @@ export function createValueSet(input: CreateValueSetInput): ValueSetMutResult {
       message: 'api_name must be snake_case starting with a letter.',
     };
   }
-  if (mutableValueSets.some((v) => v.api_name === apiName)) {
+  if (catalogLive().valueSets.some((v) => v.api_name === apiName)) {
     return { ok: false, code: 'EXISTS', message: `Value set '${apiName}' already exists.` };
   }
   const vs: ValueSet = {
@@ -2202,7 +2381,7 @@ export function createValueSet(input: CreateValueSetInput): ValueSetMutResult {
     label: (input.label || apiName).trim(),
     description: (input.description || '').trim(),
   };
-  mutableValueSets.push(vs);
+  catalogLive().valueSets.push(vs);
   const items: ValueSetItem[] = [];
   for (const [i, it] of (input.items || []).entries()) {
     const api_value = (it.api_value || '').trim();
@@ -2215,9 +2394,10 @@ export function createValueSet(input: CreateValueSetInput): ValueSetMutResult {
       sort_order: it.sort_order ?? (i + 1) * 10,
       active: true,
     };
-    mutableValueSetItems.push(item);
+    catalogLive().valueSetItems.push(item);
     items.push(item);
   }
+  persistCatalog();
   return { ok: true, value_set: vs, items };
 }
 
@@ -2233,10 +2413,10 @@ export function addValueSetItem(
   if (!api_value) {
     return { ok: false, code: 'INVALID', message: 'api_value is required.' };
   }
-  if (mutableValueSetItems.some((i) => i.value_set_id === vs.id && i.api_value === api_value)) {
+  if (catalogLive().valueSetItems.some((i) => i.value_set_id === vs.id && i.api_value === api_value)) {
     return { ok: false, code: 'EXISTS', message: `Option '${api_value}' already exists.` };
   }
-  const siblings = mutableValueSetItems.filter((i) => i.value_set_id === vs.id);
+  const siblings = catalogLive().valueSetItems.filter((i) => i.value_set_id === vs.id);
   const item: ValueSetItem = {
     id: `vsi-${vs.api_name}-${api_value}`,
     value_set_id: vs.id,
@@ -2245,7 +2425,8 @@ export function addValueSetItem(
     sort_order: input.sort_order ?? siblings.reduce((m, i) => Math.max(m, i.sort_order), 0) + 10,
     active: true,
   };
-  mutableValueSetItems.push(item);
+  catalogLive().valueSetItems.push(item);
+  persistCatalog();
   return { ok: true, value_set: vs, items: listValueSetItems(vs.id) };
 }
 
@@ -2262,7 +2443,7 @@ export function countValueSetItemReferences(
   const vs = getValueSetByApiName(valueSetApiName);
   if (!vs) return 0;
   let count = 0;
-  for (const f of mutableFieldDefinitions) {
+  for (const f of catalogLive().fields) {
     if (f.value_set_api_name !== valueSetApiName) continue;
     if (f.default_value === apiValue) {
       count += 1;
@@ -2279,7 +2460,7 @@ export function countValueSetItemReferences(
       count += 1;
     }
   }
-  const fieldsForVs = mutableFieldDefinitions.filter(
+  const fieldsForVs = catalogLive().fields.filter(
     (f) => f.value_set_api_name === valueSetApiName,
   );
   const fieldNames = new Set(fieldsForVs.map((f) => f.api_name));
@@ -2308,7 +2489,7 @@ function remapValueSetItemReferences(
   toValue: string,
 ): number {
   let remapped = 0;
-  for (const f of mutableFieldDefinitions) {
+  for (const f of catalogLive().fields) {
     if (f.value_set_api_name !== valueSetApiName) continue;
     if (f.default_value === fromValue) {
       f.default_value = toValue;
@@ -2321,7 +2502,7 @@ function remapValueSetItemReferences(
       }
     }
   }
-  const fieldsForVs = mutableFieldDefinitions.filter(
+  const fieldsForVs = catalogLive().fields.filter(
     (f) => f.value_set_api_name === valueSetApiName,
   );
   const fieldNames = new Set(fieldsForVs.map((f) => f.api_name));
@@ -2361,7 +2542,7 @@ export function deleteValueSetItem(
   if (!vs) {
     return { ok: false, code: 'NOT_FOUND', message: `Unknown value set '${valueSetApiName}'.` };
   }
-  const itemIdx = mutableValueSetItems.findIndex(
+  const itemIdx = catalogLive().valueSetItems.findIndex(
     (i) => i.value_set_id === vs.id && i.api_value === apiValue && i.active,
   );
   if (itemIdx < 0) {
@@ -2371,7 +2552,7 @@ export function deleteValueSetItem(
       message: `Option '${apiValue}' not found on value set '${valueSetApiName}'.`,
     };
   }
-  const remaining = mutableValueSetItems.filter(
+  const remaining = catalogLive().valueSetItems.filter(
     (i) => i.value_set_id === vs.id && i.active && i.api_value !== apiValue,
   );
   const refs = countValueSetItemReferences(valueSetApiName, apiValue);
@@ -2402,10 +2583,12 @@ export function deleteValueSetItem(
       };
     }
     const remapped = remapValueSetItemReferences(valueSetApiName, apiValue, replacement);
-    mutableValueSetItems.splice(itemIdx, 1);
+    catalogLive().valueSetItems.splice(itemIdx, 1);
+    persistCatalog();
     return { ok: true, value_set: vs, items: listValueSetItems(vs.id), remapped };
   }
-  mutableValueSetItems.splice(itemIdx, 1);
+  catalogLive().valueSetItems.splice(itemIdx, 1);
+  persistCatalog();
   return { ok: true, value_set: vs, items: listValueSetItems(vs.id), remapped: 0 };
 }
 
@@ -2415,28 +2598,29 @@ export function cascadeDeleteObjectForRecordType(objectApiName: string): {
   layouts_removed: number;
   object_removed: boolean;
 } {
-  const beforeFields = mutableFieldDefinitions.length;
-  mutableFieldDefinitions = mutableFieldDefinitions.filter(
+  const beforeFields = catalogLive().fields.length;
+  catalogLive().fields = catalogLive().fields.filter(
     (f) => f.object_api_name !== objectApiName,
   );
-  const fields_removed = beforeFields - mutableFieldDefinitions.length;
+  const fields_removed = beforeFields - catalogLive().fields.length;
 
-  const beforeLayouts = mutableLayoutDefinitions.length;
-  mutableLayoutDefinitions = mutableLayoutDefinitions.filter(
+  const beforeLayouts = catalogLive().layouts.length;
+  catalogLive().layouts = catalogLive().layouts.filter(
     (l) => l.object_api_name !== objectApiName,
   );
-  const layouts_removed = beforeLayouts - mutableLayoutDefinitions.length;
+  const layouts_removed = beforeLayouts - catalogLive().layouts.length;
 
-  const objIdx = mutableObjectDefinitions.findIndex((o) => o.api_name === objectApiName);
+  const objIdx = catalogLive().objects.findIndex((o) => o.api_name === objectApiName);
   let object_removed = false;
   if (objIdx >= 0) {
     // Only remove non-core objects that were registered for custom record types
-    const obj = mutableObjectDefinitions[objIdx];
+    const obj = catalogLive().objects[objIdx];
     if (obj.core_kind === 'faculty_record' || obj.instance_collection == null) {
-      mutableObjectDefinitions.splice(objIdx, 1);
+      catalogLive().objects.splice(objIdx, 1);
       object_removed = true;
     }
   }
+  persistCatalog();
   return { fields_removed, layouts_removed, object_removed };
 }
 
@@ -2447,6 +2631,7 @@ export function ensureObjectForRecordType(input: {
   faculty?: string;
 }): ObjectDefinition {
   const existing = getObject(input.api_name);
+  let changed = false;
   const obj =
     existing ??
     ({
@@ -2458,16 +2643,19 @@ export function ensureObjectForRecordType(input: {
       extensible: true,
       faculty: input.faculty,
     } as ObjectDefinition);
-  if (!existing) mutableObjectDefinitions.push(obj);
+  if (!existing) {
+    catalogLive().objects.push(obj);
+    changed = true;
+  }
 
   // Seed core name/status fields so zone Executive (and other) subtabs render real catalog fields
   // instead of falling back to generic Name/Status placeholders only.
   const ensureField = (apiName: string, label: string, sortOrder: number) => {
-    const has = mutableFieldDefinitions.some(
+    const has = catalogLive().fields.some(
       (f) => f.object_api_name === input.api_name && f.api_name === apiName,
     );
     if (has) return;
-    mutableFieldDefinitions.push({
+    catalogLive().fields.push({
       id: `fld-${input.api_name}-${apiName}`,
       object_api_name: input.api_name,
       api_name: apiName,
@@ -2481,9 +2669,11 @@ export function ensureObjectForRecordType(input: {
       sort_order: sortOrder,
       active: true,
     });
+    changed = true;
   };
   ensureField('name', 'Name', 10);
   ensureField('status', 'Status', 20);
+  if (changed) persistCatalog();
   return obj;
 }
 

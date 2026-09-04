@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, LogOut, User as UserIcon, Sun, Moon, Compass, Cloud } from "lucide-react";
+import { Menu, LogOut, User as UserIcon, Sun, Moon, Compass, Cloud, Sunset, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -12,6 +12,7 @@ import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
 
 function ThemeIcon({ theme }: { theme: UiTheme }) {
   if (theme === "light") return <Sun className="h-4 w-4" />;
+  if (theme === "dusk") return <Sunset className="h-4 w-4" />;
   if (theme === "architect") return <Compass className="h-4 w-4" />;
   if (theme === "slate") return <Cloud className="h-4 w-4" />;
   return <Moon className="h-4 w-4" />;
@@ -19,6 +20,7 @@ function ThemeIcon({ theme }: { theme: UiTheme }) {
 
 function themeLabel(theme: UiTheme): string {
   if (theme === "light") return "Light";
+  if (theme === "dusk") return "Dusk";
   if (theme === "architect") return "Architect";
   if (theme === "slate") return "Slate";
   return "Dark";
@@ -91,6 +93,15 @@ export function Header() {
                 {session.role}
               </Badge>
             </button>
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              Open home page
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            </a>
             <Button
               variant="ghost"
               size="sm"

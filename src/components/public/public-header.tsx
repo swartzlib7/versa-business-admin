@@ -1,71 +1,101 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Menu, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Menu, X, Moon, Compass, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { theme } from "@/lib/theme";
-import type { BusinessProfile } from "@/lib/data";
+import { BrandMark, useBrand } from "@/components/shell/brand-provider";
+import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
+import { useSiteMode } from "@/components/shell/site-mode-provider";
 
-const navLinks = [
-  { href: "/#facets", label: "Facets" },
-  { href: "/#systems", label: "Systems" },
+const WIRED_LINKS = [
   { href: "/#integrations", label: "Integrations" },
   { href: "/#operations", label: "Operations" },
-  { href: "/#support", label: "Support" },
-  { href: "/#metrics-knowledge", label: "Metrics & Knowledge" },
-  { href: "/#about", label: "About" },
+  { href: "/#metrics", label: "Metrics" },
+  { href: "/#knowledge", label: "Knowledge" },
   { href: "/#contact", label: "Contact" },
 ];
 
-export function PublicHeader({ business }: { business: BusinessProfile }) {
+const DEMO_LINKS = [
+  { href: "/#facets", label: "Facets" },
+  { href: "/#systems", label: "Systems" },
+  { href: "/#support", label: "Support" },
+  { href: "/#about", label: "About" },
+];
+
+function ThemeIcon({ theme }: { theme: UiTheme }) {
+  if (theme === "architect") return <Compass className="h-4 w-4" />;
+  if (theme === "slate") return <Cloud className="h-4 w-4" />;
+  return <Moon className="h-4 w-4" />;
+}
+
+function themeLabel(theme: UiTheme): string {
+  if (theme === "architect") return "Architect";
+  if (theme === "slate") return "Slate";
+  return "Dark";
+}
+
+export function PublicHeader() {
   const [open, setOpen] = useState(false);
+  const brand = useBrand();
+  const { theme, cyclePublicTheme, ensurePublicTheme } = useUiTheme();
+  const { demo_mode, public_login_enabled, glossary_in_menu, org_board_enabled } = useSiteMode();
+  const extras = [
+    ...(glossary_in_menu !== false ? [{ href: "/terms", label: "Glossary" }] : []),
+    ...(org_board_enabled !== false ? [{ href: "/board", label: "Org Board" }] : []),
+  ];
+  const navLinks = demo_mode
+    ? [...WIRED_LINKS, ...extras, ...DEMO_LINKS]
+    : [...WIRED_LINKS, ...extras];
+
+  useEffect(() => {
+    ensurePublicTheme();
+  }, [ensurePublicTheme]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Logo / Brand */}
-        <Link href="/" className="flex items-center gap-2">
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-bold"
-            style={{
-              backgroundColor: theme.colors.brand,
-              color: theme.colors.brandForeground,
-            }}
-          >
-            {business.name.charAt(0)}
-          </div>
-          <span className="text-lg font-semibold tracking-tight">
-            {business.name}
+        <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2">
+          <BrandMark />
+          <span className="truncate whitespace-nowrap text-lg font-semibold tracking-tight">
+            {brand.brand_name}
           </span>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden items-center gap-6 md:flex">
+        <nav className="hidden min-w-0 items-center gap-3 xl:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="shrink-0 whitespace-nowrap text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/login"
-            className={cn(buttonVariants({ size: "sm" }))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={cyclePublicTheme}
+            className="shrink-0 gap-1.5"
+            title={`Theme: ${themeLabel(theme)} (click to cycle)`}
           >
-            Sign In
-          </Link>
+            <ThemeIcon theme={theme} />
+            <span className="hidden 2xl:inline">{themeLabel(theme)}</span>
+          </Button>
+          {public_login_enabled ? (
+            <Link href="/login" className={cn(buttonVariants({ size: "sm" }), "shrink-0 whitespace-nowrap")}>
+              Sign In
+            </Link>
+          ) : null}
         </nav>
 
-        {/* Mobile menu button */}
         <Button
           variant="outline"
           size="icon"
-          className="md:hidden"
+          className="xl:hidden"
           onClick={() => setOpen(!open)}
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -73,27 +103,38 @@ export function PublicHeader({ business }: { business: BusinessProfile }) {
         </Button>
       </div>
 
-      {/* Mobile Nav */}
       {open && (
-        <nav className="border-t border-border bg-background md:hidden">
+        <nav className="border-t border-border bg-background xl:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 onClick={() => setOpen(false)}
               >
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/login"
-              className={cn(buttonVariants({ size: "sm" }), "mt-2")}
-              onClick={() => setOpen(false)}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={cyclePublicTheme}
+              className="mt-2 justify-start gap-1.5"
             >
-              Sign In
-            </Link>
+              <ThemeIcon theme={theme} />
+              {themeLabel(theme)}
+            </Button>
+            {public_login_enabled ? (
+              <Link
+                href="/login"
+                className={cn(buttonVariants({ size: "sm" }), "mt-1")}
+                onClick={() => setOpen(false)}
+              >
+                Sign In
+              </Link>
+            ) : null}
           </div>
         </nav>
       )}

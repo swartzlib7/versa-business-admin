@@ -1,3 +1,4 @@
+import '@/lib/catalog/install-durable';
 import { NextResponse } from 'next/server';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 import {
@@ -79,7 +80,7 @@ export async function POST(
   return NextResponse.json(
     {
       data: { ...result.value_set, items: result.items },
-      meta: { persistence: 'fixture_process_memory' },
+      meta: { persistence: 'durable_catalog' },
     },
     { status: 201 },
   );
@@ -169,6 +170,6 @@ export async function DELETE(
   }
   return NextResponse.json({
     data: { ...result.value_set, items: result.items },
-    meta: { persistence: 'fixture_process_memory', remapped: result.remapped },
+    meta: { persistence: 'durable_catalog', remapped: result.remapped },
   });
 }

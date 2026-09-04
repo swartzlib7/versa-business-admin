@@ -2,6 +2,8 @@
 
 > **Role:** Sole go-to for Versa AGi Mission product HTTP API behavior, implemented routes, and planned resources.
 > **Product:** versa-admin-system (Mission Control) · Project #26 · Game #109
+> **Doc home:** docs/production/state/
+> **Map:** shape_mission_control.md
 
 | Field | Value |
 |-------|-------|

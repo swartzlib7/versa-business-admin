@@ -1,12 +1,13 @@
 /**
  * I5.6.32c — Record types for Records Editor (Stephen-approved naming).
  * Types drive named tabs under parent elements; baked-ins stay first-class.
- * Fixture-local until catalog/records tables persist (Phase 2+).
+ * Fixture-local types are overlaid by the durable catalog store.
  */
 
 import { cascadeDeleteObjectForRecordType } from '@/lib/fixtures/catalog';
 import { deleteInstance, listInstances } from '@/lib/fixtures/record-instances';
 import { deleteLayoutConfig } from '@/lib/catalog/layout-storage';
+import { validateTenantApiName } from '@/lib/catalog/custom-namespace';
 
 export type RecordStructure = 'list' | 'header' | 'header_lines';
 export type ParentKind = 'faculty' | 'collaboration' | 'environment' | 'baked_in';
@@ -32,8 +33,8 @@ export const recordTypes: RecordTypeDefinition[] = [
   //
   // #218 Zone Pages Live Dynamic Records (COA-locked slice, 2026-08-30):
   // 6 system record types backing the baked-in zone listing tabs. is_system
-  // rows are delete-protected in the Records Editor; show_as_tab=false keeps
-  // them out of the dynamic tab injection (the baked tabs themselves render).
+  // rows are delete-protected in the Records Editor. show_as_tab now also
+  // gates the baked zone tab (Gate 3). Seed true so core tabs stay visible.
   // Fields for these objects are seeded in catalog.ts facultyRecordFieldSeed.
   //
   // #185 Slice A (rev E §7.2, 2026-08-31): executive_project, executive_task,
@@ -44,12 +45,12 @@ export const recordTypes: RecordTypeDefinition[] = [
   {
     id: 'rt-executive_policy',
     api_name: 'executive_policy',
-    label: 'Policy',
+    label: 'Policies',
     description: 'Governing policies and executive directives for the organization.',
     parent_kind: 'faculty',
     parent_api_name: 'executive',
     structure: 'header_lines',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 10,
     active: true,
     is_system: true,
@@ -63,7 +64,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'executive',
     structure: 'header_lines',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 20,
     active: true,
     is_system: true,
@@ -77,7 +78,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'executive',
     structure: 'header_lines',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 30,
     active: true,
     is_system: true,
@@ -86,12 +87,12 @@ export const recordTypes: RecordTypeDefinition[] = [
   {
     id: 'rt-production_product',
     api_name: 'production_product',
-    label: 'Product',
-    description: 'Device, manufactured item, or computer file owned by Production.',
+    label: 'Products',
+    description: 'Goods the organization makes or sells.',
     parent_kind: 'faculty',
     parent_api_name: 'production',
     structure: 'header_lines',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 40,
     active: true,
     is_system: true,
@@ -100,12 +101,12 @@ export const recordTypes: RecordTypeDefinition[] = [
   {
     id: 'rt-production_service',
     api_name: 'production_service',
-    label: 'Service',
-    description: 'Faculty for results - e.g. Analysis & Design. Owned by Production.',
+    label: 'Services',
+    description: 'Work the organization performs for others.',
     parent_kind: 'faculty',
     parent_api_name: 'production',
     structure: 'header_lines',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 50,
     active: true,
     is_system: true,
@@ -125,7 +126,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'communications',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 10,
     active: true,
     is_system: true,
@@ -139,7 +140,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'communications',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 20,
     active: true,
     is_system: true,
@@ -153,7 +154,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'communications',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 30,
     active: true,
     is_system: true,
@@ -167,7 +168,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'dissemination',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 10,
     active: true,
     is_system: true,
@@ -181,7 +182,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'dissemination',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 20,
     active: true,
     is_system: true,
@@ -195,7 +196,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'treasury',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 10,
     active: true,
     is_system: true,
@@ -209,7 +210,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'treasury',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 20,
     active: true,
     is_system: true,
@@ -223,7 +224,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'qualification',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 10,
     active: true,
     is_system: true,
@@ -237,7 +238,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'qualification',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 20,
     active: true,
     is_system: true,
@@ -251,7 +252,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'qualification',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 30,
     active: true,
     is_system: true,
@@ -265,7 +266,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'faculty',
     parent_api_name: 'public',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 10,
     active: true,
     is_system: true,
@@ -279,7 +280,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'environment',
     parent_api_name: 'locations',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 10,
     active: true,
     is_system: true,
@@ -293,7 +294,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'environment',
     parent_api_name: 'events',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 10,
     active: true,
     is_system: true,
@@ -307,7 +308,7 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'environment',
     parent_api_name: 'knowledge',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 10,
     active: true,
     is_system: true,
@@ -321,18 +322,261 @@ export const recordTypes: RecordTypeDefinition[] = [
     parent_kind: 'environment',
     parent_api_name: 'schedules',
     structure: 'list',
-    show_as_tab: false,
+    show_as_tab: true,
     sort_order: 10,
     active: true,
     is_system: true,
     object_api_name: 'schedule',
   },
+  {
+    id: 'rt-environment_stat',
+    api_name: 'environment_stat',
+    label: 'Stats',
+    description: 'Public metrics on the Stats menu. Values can be derived from Environment and operations counts.',
+    parent_kind: 'environment',
+    parent_api_name: 'stats',
+    structure: 'list',
+    show_as_tab: true,
+    sort_order: 10,
+    active: true,
+    is_system: true,
+    object_api_name: 'environment_stat',
+  },
+  // Organization is a typed core table (Executive Orgs tab). Catalogued here
+  // so Fields / Lookup / Layouts can address it without adding a second zone tab.
+  {
+    id: 'rt-organization',
+    api_name: 'organization',
+    label: 'Organization',
+    description: 'Organization records (Org, Vendor, Customer, Partner, Branch). Managed on the Executive Orgs tab.',
+    parent_kind: 'faculty',
+    parent_api_name: 'executive',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 5,
+    active: true,
+    is_system: true,
+    object_api_name: 'organization',
+  },
+  // Zone-level types (show_as_tab false): Fields / Lookup can target the
+  // Organization faculties and Collaboration parties without extra zone tabs.
+  {
+    id: 'rt-executive',
+    api_name: 'executive',
+    label: 'Executive',
+    description: 'Organization faculty — Executive division.',
+    parent_kind: 'faculty',
+    parent_api_name: 'executive',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 1,
+    active: true,
+    is_system: true,
+    object_api_name: 'executive',
+  },
+  {
+    id: 'rt-public',
+    api_name: 'public',
+    label: 'Distribution',
+    description: 'Organization faculty — Distribution (renamed from Public).',
+    parent_kind: 'faculty',
+    parent_api_name: 'public',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 1,
+    active: true,
+    is_system: true,
+    object_api_name: 'public',
+  },
+  {
+    id: 'rt-communications',
+    api_name: 'communications',
+    label: 'Communications',
+    description: 'Organization faculty — Communications division.',
+    parent_kind: 'faculty',
+    parent_api_name: 'communications',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 1,
+    active: true,
+    is_system: true,
+    object_api_name: 'communications',
+  },
+  {
+    id: 'rt-dissemination',
+    api_name: 'dissemination',
+    label: 'Dissemination',
+    description: 'Organization faculty — Dissemination division.',
+    parent_kind: 'faculty',
+    parent_api_name: 'dissemination',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 1,
+    active: true,
+    is_system: true,
+    object_api_name: 'dissemination',
+  },
+  {
+    id: 'rt-treasury',
+    api_name: 'treasury',
+    label: 'Treasury',
+    description: 'Organization faculty — Treasury division.',
+    parent_kind: 'faculty',
+    parent_api_name: 'treasury',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 1,
+    active: true,
+    is_system: true,
+    object_api_name: 'treasury',
+  },
+  {
+    id: 'rt-production',
+    api_name: 'production',
+    label: 'Production',
+    description: 'Organization faculty — Production division.',
+    parent_kind: 'faculty',
+    parent_api_name: 'production',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 1,
+    active: true,
+    is_system: true,
+    object_api_name: 'production',
+  },
+  {
+    id: 'rt-qualification',
+    api_name: 'qualification',
+    label: 'Qualification',
+    description: 'Organization faculty — Qualification division.',
+    parent_kind: 'faculty',
+    parent_api_name: 'qualification',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 1,
+    active: true,
+    is_system: true,
+    object_api_name: 'qualification',
+  },
+  {
+    id: 'rt-vendor',
+    api_name: 'vendor',
+    label: 'Vendor',
+    description: 'Collaboration party — vendor organizations.',
+    parent_kind: 'collaboration',
+    parent_api_name: 'vendor',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 1,
+    active: true,
+    is_system: true,
+    object_api_name: 'vendor',
+  },
+  {
+    id: 'rt-customer',
+    api_name: 'customer',
+    label: 'Customer',
+    description: 'Collaboration party — customer organizations.',
+    parent_kind: 'collaboration',
+    parent_api_name: 'customer',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 1,
+    active: true,
+    is_system: true,
+    object_api_name: 'customer',
+  },
+  {
+    id: 'rt-partner',
+    api_name: 'partner',
+    label: 'Partner',
+    description: 'Collaboration party — partner organizations.',
+    parent_kind: 'collaboration',
+    parent_api_name: 'partner',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 1,
+    active: true,
+    is_system: true,
+    object_api_name: 'partner',
+  },
+  {
+    id: 'rt-branch',
+    api_name: 'branch',
+    label: 'Branch',
+    description: 'Collaboration party — branch organizations.',
+    parent_kind: 'collaboration',
+    parent_api_name: 'branch',
+    structure: 'list',
+    show_as_tab: false,
+    sort_order: 1,
+    active: true,
+    is_system: true,
+    object_api_name: 'branch',
+  },
 ];
 
-let mutableRecordTypes: RecordTypeDefinition[] = [...recordTypes];
+const RECORD_TYPE_LIVE_KEY = "__versaRecordTypesLive__";
+
+function recordTypeLive(): RecordTypeDefinition[] {
+  const g = globalThis as Record<string, unknown>;
+  const existing = g[RECORD_TYPE_LIVE_KEY] as RecordTypeDefinition[] | undefined;
+  if (existing) return existing;
+  const seeded = [...recordTypes];
+  g[RECORD_TYPE_LIVE_KEY] = seeded;
+  return seeded;
+}
+
+function setRecordTypeLive(next: RecordTypeDefinition[]): void {
+  (globalThis as Record<string, unknown>)[RECORD_TYPE_LIVE_KEY] = next;
+}
+
+type RecordTypeHook = () => void;
+type RecordTypeHooks = { hydrate: RecordTypeHook; persist: RecordTypeHook };
+const RECORD_TYPE_HOOKS_KEY = "__versaRecordTypeDurableHooks__";
+
+export function installRecordTypeDurableHooks(hooks: RecordTypeHooks): void {
+  (globalThis as Record<string, unknown>)[RECORD_TYPE_HOOKS_KEY] = hooks;
+}
+
+function recordTypeHooks(): RecordTypeHooks | null {
+  return (
+    ((globalThis as Record<string, unknown>)[RECORD_TYPE_HOOKS_KEY] as RecordTypeHooks | null) ??
+    null
+  );
+}
+
+function ensureRecordTypesHydrated(): void {
+  recordTypeHooks()?.hydrate();
+}
+
+function persistRecordTypes(): void {
+  recordTypeHooks()?.persist();
+}
+
+export function exportRecordTypesLive(): { recordTypes: RecordTypeDefinition[] } {
+  return { recordTypes: recordTypeLive() };
+}
+
+export function applyRecordTypeOverlay(overlay: { recordTypes?: RecordTypeDefinition[] }): void {
+  const keyOf = (row: RecordTypeDefinition) => row.api_name;
+  const over = overlay.recordTypes ?? [];
+  const map = new Map(over.map((row) => [keyOf(row), row]));
+  const seen = new Set<string>();
+  const out: RecordTypeDefinition[] = [];
+  for (const row of recordTypes) {
+    const patch = map.get(row.api_name);
+    out.push(patch ? { ...row, ...patch, is_system: row.is_system, id: row.id } : row);
+    seen.add(row.api_name);
+  }
+  for (const row of over) {
+    if (!seen.has(row.api_name)) out.push(row);
+  }
+  setRecordTypeLive(out);
+}
 
 export function resetRecordTypes(): void {
-  mutableRecordTypes = [...recordTypes];
+  setRecordTypeLive([...recordTypes]);
 }
 
 export function listRecordTypes(filters?: {
@@ -340,7 +584,8 @@ export function listRecordTypes(filters?: {
   parent_api_name?: string;
   active_only?: boolean;
 }): RecordTypeDefinition[] {
-  let rows = [...mutableRecordTypes];
+  ensureRecordTypesHydrated();
+  let rows = [...recordTypeLive()];
   if (filters?.parent_kind) rows = rows.filter((r) => r.parent_kind === filters.parent_kind);
   if (filters?.parent_api_name)
     rows = rows.filter((r) => r.parent_api_name === filters.parent_api_name);
@@ -349,7 +594,8 @@ export function listRecordTypes(filters?: {
 }
 
 export function getRecordType(apiName: string): RecordTypeDefinition | undefined {
-  return mutableRecordTypes.find((r) => r.api_name === apiName);
+  ensureRecordTypesHydrated();
+  return recordTypeLive().find((r) => r.api_name === apiName);
 }
 
 export interface CreateRecordTypeInput {
@@ -371,15 +617,13 @@ const PARENT_KINDS: ParentKind[] = ['faculty', 'collaboration', 'environment', '
 const STRUCTURES: RecordStructure[] = ['list', 'header', 'header_lines'];
 
 export function createRecordType(input: CreateRecordTypeInput): CreateRecordTypeResult {
+  ensureRecordTypesHydrated();
   const apiName = (input.api_name || '').trim();
-  if (!/^[a-z][a-z0-9_]*$/.test(apiName)) {
-    return {
-      ok: false,
-      code: 'INVALID_API_NAME',
-      message: 'api_name must be snake_case starting with a letter.',
-    };
+  const named = validateTenantApiName(apiName);
+  if (!named.ok) {
+    return { ok: false, code: named.code, message: named.message };
   }
-  if (mutableRecordTypes.some((r) => r.api_name === apiName)) {
+  if (recordTypeLive().some((r) => r.api_name === apiName)) {
     return { ok: false, code: 'TYPE_EXISTS', message: `Record type '${apiName}' already exists.` };
   }
   if (!PARENT_KINDS.includes(input.parent_kind)) {
@@ -402,7 +646,7 @@ export function createRecordType(input: CreateRecordTypeInput): CreateRecordType
     return { ok: false, code: 'PARENT_REQUIRED', message: 'parent_api_name is required.' };
   }
   const label = (input.label || apiName).trim();
-  const siblings = mutableRecordTypes.filter(
+  const siblings = recordTypeLive().filter(
     (r) => r.parent_kind === input.parent_kind && r.parent_api_name === parent,
   );
   // Slice F (rev E section 2.4): labels must be unique within the parent -
@@ -430,7 +674,8 @@ export function createRecordType(input: CreateRecordTypeInput): CreateRecordType
     is_system: false,
     object_api_name: apiName,
   };
-  mutableRecordTypes.push(type);
+  recordTypeLive().push(type);
+  persistRecordTypes();
   return { ok: true, type };
 }
 
@@ -447,11 +692,12 @@ export function updateRecordType(
   apiName: string,
   input: UpdateRecordTypeInput,
 ): CreateRecordTypeResult {
-  const idx = mutableRecordTypes.findIndex((r) => r.api_name === apiName);
+  ensureRecordTypesHydrated();
+  const idx = recordTypeLive().findIndex((r) => r.api_name === apiName);
   if (idx < 0) {
     return { ok: false, code: 'NOT_FOUND', message: `Unknown record type '${apiName}'.` };
   }
-  const cur = mutableRecordTypes[idx];
+  const cur = recordTypeLive()[idx];
   if (input.structure && !STRUCTURES.includes(input.structure)) {
     return {
       ok: false,
@@ -468,7 +714,8 @@ export function updateRecordType(
     sort_order: input.sort_order !== undefined ? input.sort_order : cur.sort_order,
     active: input.active !== undefined ? input.active : cur.active,
   };
-  mutableRecordTypes[idx] = next;
+  recordTypeLive()[idx] = next;
+  persistRecordTypes();
   return { ok: true, type: next };
 }
 
@@ -491,11 +738,12 @@ export type DeleteRecordTypeResult =
  * System types are refused. Soft-retire remains via updateRecordType({ active: false }).
  */
 export function deleteRecordType(apiName: string): DeleteRecordTypeResult {
-  const idx = mutableRecordTypes.findIndex((r) => r.api_name === apiName);
+  ensureRecordTypesHydrated();
+  const idx = recordTypeLive().findIndex((r) => r.api_name === apiName);
   if (idx < 0) {
     return { ok: false, code: 'NOT_FOUND', message: `Unknown record type '${apiName}'.` };
   }
-  const cur = mutableRecordTypes[idx];
+  const cur = recordTypeLive()[idx];
   if (cur.is_system) {
     return {
       ok: false,
@@ -523,7 +771,8 @@ export function deleteRecordType(apiName: string): DeleteRecordTypeResult {
   }
   layouts_removed += cascade.layouts_removed;
 
-  mutableRecordTypes.splice(idx, 1);
+  recordTypeLive().splice(idx, 1);
+  persistRecordTypes();
   return {
     ok: true,
     type: cur,
@@ -547,8 +796,8 @@ export type EditorParent = {
 /** Canonical Records Editor taxonomy. Labels are presentation-ready; API values remain stable. */
 export function listEditorParents(): EditorParent[] {
   return [
-    { parent_kind: "faculty", parent_api_name: "executive", label: "Executive", group: "Organization", baked_in_tabs: ["Policy", "Projects", "Tasks"] },
-    { parent_kind: "faculty", parent_api_name: "public", label: "Public", group: "Organization", baked_in_tabs: [] },
+    { parent_kind: "faculty", parent_api_name: "executive", label: "Executive", group: "Organization", baked_in_tabs: ["Policies", "Projects", "Tasks"] },
+    { parent_kind: "faculty", parent_api_name: "public", label: "Distribution", group: "Organization", baked_in_tabs: [] },
     { parent_kind: "faculty", parent_api_name: "communications", label: "Communications", group: "Organization", baked_in_tabs: [] },
     { parent_kind: "faculty", parent_api_name: "dissemination", label: "Dissemination", group: "Organization", baked_in_tabs: [] },
     { parent_kind: "faculty", parent_api_name: "treasury", label: "Treasury", group: "Organization", baked_in_tabs: [] },
@@ -562,5 +811,6 @@ export function listEditorParents(): EditorParent[] {
     { parent_kind: "environment", parent_api_name: "events", label: "Events", group: "Environment", baked_in_tabs: [] },
     { parent_kind: "environment", parent_api_name: "knowledge", label: "Knowledge", group: "Environment", baked_in_tabs: [] },
     { parent_kind: "environment", parent_api_name: "schedules", label: "Schedules", group: "Environment", baked_in_tabs: [] },
+    { parent_kind: "environment", parent_api_name: "stats", label: "Stats", group: "Environment", baked_in_tabs: [] },
   ];
 }

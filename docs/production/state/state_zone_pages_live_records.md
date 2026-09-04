@@ -2,12 +2,14 @@
 
 > **Role:** Sole go-to for wiring live dynamic records into baked-in zone tabs.
 > **Product:** versa-admin-system (Mission Control) - Project #26 - Game #109
+> **Doc home:** docs/production/state/
+> **Map:** shape_mission_control.md
 
 | Field | Value |
 |-------|-------|
 | **Feature** | I5.6.32 Slice 1 residual - baked-in zone tabs live records |
-| **Status** | Implementation-locked slice delivered 2026-08-30 (Gate 1 implementation); awaiting COA Gate 2 |
-| **Task** | #218 |
+| **Status** | ✅ I5.6.33 delivered baked-tab + policy list-to-detail; Gate 3 accepted 2026-09-02 |
+| **Task** | #218 closed with I5.6.33 |
 
 ---
 

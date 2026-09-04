@@ -5,6 +5,7 @@
 export interface BusinessProfile {
   name: string;
   slogan: string;
+  tagline: string;
   logoUrl: string;
   description: string;
   purpose: string;
@@ -17,7 +18,8 @@ export interface BusinessProfile {
 
 export const business: BusinessProfile = {
   name: 'Versa AGi',
-  slogan: 'Run your business from one place.',
+  slogan: 'Agentic General infrastructure',
+  tagline: '- built to fulfill expectations -',
   logoUrl: '/brand/logo.svg',
   description:
     'Mission Control brings your projects, operations, customer support, integrations, and knowledge into a single dashboard — so every part of the business is visible and connected.',

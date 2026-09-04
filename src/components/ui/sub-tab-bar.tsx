@@ -17,21 +17,61 @@ export function SubTabBar({
   accent = "#6366f1",
   onSelect,
   ariaLabel,
+  variant = "pills",
 }: {
   items: SubTabItem[];
   activeId: string;
   accent?: string;
   onSelect: (id: string) => void;
   ariaLabel: string;
+  /** pills = compact strip; line = full-width underline matching the main tab bar. */
+  variant?: "pills" | "line";
 }) {
-  return (
-    <div className="space-y-2">
+  if (variant === "line") {
+    return (
       <div
         role="tablist"
         aria-label={ariaLabel}
-        className="flex flex-wrap gap-1 rounded-lg border p-1"
-        style={{ borderColor: accent + "33", backgroundColor: accent + "0d" }}
+        className="flex w-full flex-wrap gap-1 border-b border-border pb-px"
       >
+        {items.map((c) => {
+          const on = c.id === activeId;
+          return (
+            <button
+              key={c.id}
+              role="tab"
+              type="button"
+              aria-selected={on}
+              onClick={() => onSelect(c.id)}
+              className={cn(
+                "-mb-px rounded-t-md border border-transparent px-3 py-2 text-sm font-medium transition-colors",
+                on
+                  ? "border-border border-b-background bg-background text-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+              style={
+                on
+                  ? {
+                      borderBottomColor: "var(--background)",
+                      boxShadow: `inset 0 2px 0 ${accent}`,
+                    }
+                  : undefined
+              }
+            >
+              {c.label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+  return (
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className="flex flex-wrap gap-1 rounded-lg border p-1"
+      style={{ borderColor: accent + "33", backgroundColor: accent + "0d" }}
+    >
         {items.map((c) => {
           const on = c.id === activeId;
           return (
@@ -50,10 +90,9 @@ export function SubTabBar({
               style={on ? { boxShadow: `inset 0 -2px 0 ${accent}` } : undefined}
             >
               {c.label}
-            </button>
-          );
-        })}
-      </div>
+          </button>
+        );
+      })}
     </div>
   );
 }

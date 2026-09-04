@@ -11,6 +11,8 @@ const PROTECTED_PAGE_PREFIXES = [
   '/organization',
   '/collaboration',
   '/environment',
+  '/stats',
+  '/contact',
   '/users',
   '/agents',
   '/projects',

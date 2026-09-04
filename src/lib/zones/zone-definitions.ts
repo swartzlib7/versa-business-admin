@@ -41,7 +41,7 @@ export const organizationZone: ZoneConfig = {
     {
       id: "executive",
       label: "Executive",
-      summary: "Business executive function — default executive data, plus policy, projects, and tasks.",
+      summary: "Coordinates and supervises the organization's activities so it runs smoothly, produces its products viably and delivers its products and services in high quality.",
       fields: [
         { label: "Name", placeholder: "Executive" },
         { label: "Lead", placeholder: "Name or user" },
@@ -60,7 +60,7 @@ export const organizationZone: ZoneConfig = {
       children: [
         {
           id: "policy",
-          label: "Policy",
+          label: "Policies",
           summary: "Governing policies and executive directives for the organization.",
           presentation: "listing",
           listColumns: ["Policy title", "Scope", "Owner"],
@@ -132,7 +132,7 @@ export const organizationZone: ZoneConfig = {
       // contacts; staff-type contacts belong to an organization, public-type
       // do not. Tab id stays "public" (api_name namespace stability, C8).
       label: "Distribution",
-      summary: "Distribution - centralized contacts (renamed from Public). Configuration. Named record tabs come from Settings - Records Editor.",
+      summary: "Through all of its activities, brings knowledge of and distributes the organization's services and products to the broad public.",
       // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Public" },
@@ -174,7 +174,7 @@ export const organizationZone: ZoneConfig = {
     {
       id: "communications",
       label: "Communications",
-      summary: "Internal and external communications - Configuration. Named record tabs come from Records Editor.",
+      summary: "Is fully responsible for the establishment of the organization.",
       // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Communications" },
@@ -243,7 +243,7 @@ export const organizationZone: ZoneConfig = {
     {
       id: "dissemination",
       label: "Dissemination",
-      summary: "Outbound distribution and publishing - Configuration. Named record tabs come from Records Editor.",
+      summary: "Makes the organization's products and services widely known and demanded, creating a high volume of public obtaining them.",
       // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Dissemination" },
@@ -295,7 +295,7 @@ export const organizationZone: ZoneConfig = {
     {
       id: "treasury",
       label: "Treasury",
-      summary: "Cash, billing, AR/AP - Configuration. Named record tabs come from Records Editor.",
+      summary: "Handles the financial matters, assets and materiel of the organization, seeing its physical body is fully cared for and the organization remains solvent.",
       // I5.6 board 2026-07-22: Configuration form + list (list contents may still be TBD).
       fields: [
         { label: "Name", placeholder: "Treasury" },
@@ -350,7 +350,7 @@ export const organizationZone: ZoneConfig = {
       id: "production",
       label: "Production",
       summary:
-        "Making and delivering work product — Configuration (like Executive), not a production records list. Owns Product and Service.",
+        "Builds and delivers the organization's products and services.",
       // I5.6 board 2026-07-22: parent = Configuration form (not listing). Product/Service remain nested lists.
       fields: [
         { label: "Name", placeholder: "Production" },
@@ -371,9 +371,9 @@ export const organizationZone: ZoneConfig = {
       children: [
         {
           id: "product",
-          label: "Product",
+          label: "Products",
           summary:
-            "Device, manufactured item, or computer file — operating nucleus. Owned by Production (moved from Environment).",
+            "Goods the organization makes or sells — devices, manufactured items, and software.",
           presentation: "listing",
           listColumns: ["Name", "Kind"],
           fields: [
@@ -394,8 +394,8 @@ export const organizationZone: ZoneConfig = {
         },
         {
           id: "service",
-          label: "Service",
-          summary: "Faculty for results — e.g. Analysis & Design. Nested under Production (I5.6.6).",
+          label: "Services",
+          summary: "Work the organization performs for others — analysis, delivery, and support offerings.",
           presentation: "listing",
           listColumns: ["Name", "Status"],
           fields: [
@@ -420,7 +420,7 @@ export const organizationZone: ZoneConfig = {
       id: "qualification",
       label: "Qualification",
       summary:
-        "Quality, compliance, and qualification - Configuration. Named record tabs come from Records Editor.",
+        "Sees that every product leaving the organization has the expected level of quality.",
       // I5.6.32: Records section added; exact record-type columns still baseline placeholders.
       fields: [
         { label: "Name", placeholder: "Qualification" },
@@ -497,7 +497,7 @@ export const collaborationZone: ZoneConfig = {
     {
       id: "vendor",
       label: "Vendor",
-      summary: "Organizations of type vendor (rev E section 2.7 / C6) — external suppliers. Integrations nest here (I5.6.6).",
+      summary: "Organizations of type Vendor — external suppliers. Integrations nest here.",
       presentation: "listing",
       listColumns: ["Name", "Person organization"],
       // #248 Slice D (C6): renders organizations WHERE org_type=vendor via OrgTypeListingPanel (TabPanel special-case below). sampleRows removed - the live organizations list replaces the mock.
@@ -557,7 +557,7 @@ export const collaborationZone: ZoneConfig = {
     {
       id: "customer",
       label: "Customer",
-      summary: "Organizations of type customer (rev E section 2.7 / C6) — they receive products or services.",
+      summary: "Organizations of type Customer — they receive products or services.",
       presentation: "listing",
       listColumns: ["Name", "Person organization"],
       // #248 Slice D (C6): renders organizations WHERE org_type=customer.
@@ -584,7 +584,7 @@ export const collaborationZone: ZoneConfig = {
     {
       id: "partner",
       label: "Partner",
-      summary: "Organizations of type partner (rev E section 2.7 / C6) — collaborative relationships and investors.",
+      summary: "Organizations of type Partner — collaborative relationships and investors.",
       presentation: "listing",
       listColumns: ["Name", "Person organization"],
       // #248 Slice D (C6): renders organizations WHERE org_type=partner.
@@ -610,7 +610,7 @@ export const collaborationZone: ZoneConfig = {
     {
       id: "branch",
       label: "Branch",
-      summary: "Organizations of type branch (rev E section 2.7 / C6) — parent_organization_id points at the parent organization.",
+      summary: "Organizations of type Branch — children of the default organization.",
       presentation: "listing",
       listColumns: ["Name", "Person organization"],
       // #248 Slice D (C6): renders organizations WHERE org_type=branch, filtered to parent_organization_id = user default organization.
@@ -641,7 +641,7 @@ export const environmentZone: ZoneConfig = {
   tabs: [
     {
       id: "locations",
-      label: "Locations",
+      label: "Location",
       summary: "Global address book of business locations and places.",
       presentation: "listing",
       listColumns: ["Label", "Address", "Country"],
@@ -665,7 +665,7 @@ export const environmentZone: ZoneConfig = {
     },
     {
       id: "events",
-      label: "Events",
+      label: "Event",
       summary: "Planned activity — future or past.",
       presentation: "listing",
       listColumns: ["Title", "Kind"],
@@ -719,7 +719,7 @@ export const environmentZone: ZoneConfig = {
     },
     {
       id: "schedules",
-      label: "Schedules",
+      label: "Schedule",
       summary: "When an event, activity, or task occurs.",
       presentation: "listing",
       listColumns: ["Label", "Timezone"],
@@ -737,6 +737,46 @@ export const environmentZone: ZoneConfig = {
         { zone: "Environment", label: "Locations", hint: "Places this schedule applies to." },
         { zone: "Environment", label: "Knowledge", hint: "Knowledge acquired on this schedule." },
         { zone: "Organization", label: "Linked tasks", hint: "Executive project tasks." },
+      ],
+    },
+  ],
+};
+
+/** Sidebar menu page — not an Environment zone tab. Record type stays parented on `stats`. */
+export const statsZone: ZoneConfig = {
+  id: "stats",
+  title: "Statistics",
+  subtitle:
+    "Public metrics shown on the visitor site. Each record can carry a card value and a series for the graph.",
+  accent: envAccent,
+  accentSoft: soft(envAccent),
+  tabs: [
+    {
+      id: "stats",
+      label: "Stats",
+      summary: "Public metrics shown on the visitor site. Each record can carry a card value and a series for the graph.",
+      presentation: "listing",
+      listColumns: ["Name", "Value", "Scale"],
+      sampleRows: [
+        ["Locations", "0", "month"],
+        ["Open tasks", "0", "week"],
+      ],
+      fields: [
+        { label: "Name", placeholder: "Locations" },
+        { label: "Value", placeholder: "12" },
+        { label: "Unit", placeholder: "optional" },
+        { label: "Category", placeholder: "Environment" },
+        {
+          label: "Scale",
+          placeholder: "Select scale",
+          kind: "select",
+          options: getVsOptions("stat_scale"),
+        },
+        { label: "Series", placeholder: "[1,2,3]", kind: "textarea" },
+      ],
+      relations: [
+        { zone: "Environment", label: "Locations", hint: "Counts that land in this stat." },
+        { zone: "Environment", label: "Knowledge", hint: "Knowledge assets counted here." },
       ],
     },
   ],

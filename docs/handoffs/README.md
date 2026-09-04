@@ -1,14 +1,9 @@
-# Iteration handoffs
+# Moved — historical briefs archived
 
-Build briefs for **web-dev** live **here** (`docs/handoffs/`), inside the product repo — **not** at the Versa AGi workspace root.
+Iteration and slice briefs are no longer a live tree.
 
-| File | Role |
-|------|------|
-| `ITERATION_0_WEB_DEV.md` … `ITERATION_2_WEB_DEV.md` | Historical seed |
-| `ITERATION_5_3_WEB_DEV.md` | Public Mission Control template (historical/accepted) |
-| `ITERATION_5_4_WEB_DEV.md` | 3D hub transitional graph (historical/accepted) — ERD superseded by keystone |
-| `ITERATION_5_5_WEB_DEV.md` | **Accepted** — keystone ERD in 3D + nav remap (`8c37ba9` / v0.7.0) |
-| `ITERATION_6_WEB_DEV.md` | Projects + Tasks (historical/accepted) |
-| *(none yet)* `ITERATION_7_WEB_DEV.md` | **Not created** — I7 **closed** until Stephen explicitly opens |
+**Open first:** [`docs/production/state/shape_mission_control.md`](../production/state/shape_mission_control.md)
 
-**Canonical design for 3D + zones + nav:** `docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md`
+Archived copies: `docs/production/state/__archive/handoffs/`
+
+New work is tasked from the living `state_*.md` for that unit — do not start a parallel `docs/handoffs/` brief.

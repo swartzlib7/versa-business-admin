@@ -1,3 +1,4 @@
+import '@/lib/catalog/install-durable';
 import { NextRequest, NextResponse } from 'next/server';
 import { saveLayoutConfig, getLayoutConfig, getAllLayoutConfigs, type LayoutConfig } from '@/lib/catalog/layout-storage';
 

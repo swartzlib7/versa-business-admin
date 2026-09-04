@@ -67,19 +67,19 @@ export const theme = {
       ambientIntensity: 0.7,
       pointLightIntensity: 1.0,
     },
-    // Architect — ink / copper craft scene
+    // Architect — navy / gold / crimson scene
     architect: {
-      background: '#1a1410',
-      gridMain: '#6b5344',
-      gridSub: '#3d2e24',
-      ringGuideColor: '#c4a574',
-      ringGuideOpacity: 0.45,
-      secondaryLinkColor: '#d4a574',
+      background: '#0b1730',
+      gridMain: '#3d5a8a',
+      gridSub: '#1e3358',
+      ringGuideColor: '#e8c547',
+      ringGuideOpacity: 0.5,
+      secondaryLinkColor: '#e11d2e',
       secondaryLinkOpacity: 0.55,
       primaryLinkOpacity: 0.6,
-      labelColor: '#e8d5b5',
+      labelColor: '#dce6f5',
       ambientIntensity: 0.35,
-      pointLightIntensity: 0.9,
+      pointLightIntensity: 0.95,
     },
     // Slate mode scene palette
     slate: {
@@ -94,6 +94,20 @@ export const theme = {
       labelColor: '#cbd5e1',
       ambientIntensity: 0.35,
       pointLightIntensity: 0.85,
+    },
+    // Dusk — Light dimmed ~20%
+    dusk: {
+      background: '#c6c6c9',
+      gridMain: '#81818a',
+      gridSub: '#a9a9b0',
+      ringGuideColor: '#81818a',
+      ringGuideOpacity: 0.45,
+      secondaryLinkColor: '#3b82f6',
+      secondaryLinkOpacity: 0.5,
+      primaryLinkOpacity: 0.5,
+      labelColor: '#3f3f46',
+      ambientIntensity: 0.62,
+      pointLightIntensity: 0.9,
     },
   },
 } as const;

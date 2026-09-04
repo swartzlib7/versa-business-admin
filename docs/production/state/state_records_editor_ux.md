@@ -1,13 +1,17 @@
 # State: Records Editor + Settings / Glossary chrome UX
 
+> **Role:** Sole go-to for Records Editor UX, Settings IA, and shared listing chrome.
+> **Product:** versa-admin-system · Project #26
+> **Doc home:** docs/production/state/
+> **Map:** shape_mission_control.md
+
 | Field | Value |
 |-------|-------|
-| **Feature** | Records Editor UX + Settings IA polish (I5.6.41) |
-| **Status** | 🔍 Gate 1 — I5.6.32 Slice 4 Task #230 Runtime saved-layout User pilot |
-| **Last verified against code** | 2026-08-03 (agent/web-dev, Task #230) |
+| **Feature** | Records Editor UX + Settings IA polish |
+| **Status** | ✅ I5.6.33 Gate 3 accepted 2026-09-02. Foundational editor + runtime layouts shipped. Further editor work only when tasked. |
+| **Last verified against code** | 2026-09-02 (Gate 3 accept; Slice G field-form UX) |
 | **Primary code** | `src/components/settings/records-editor.tsx`, `src/app/settings/page.tsx`, `src/app/glossary/page.tsx`, `src/app/users/page.tsx`, `src/components/listing/entity-listing.tsx`, `src/components/ui/section-tabs.tsx` |
-| **Task** | #230 I5.6.32 Slice 4 (plus prior #219/#220/#224) |
-| **Source messages** | 5QtlTIWsvezycavae5An (prior 5-item), int_ba6a155650d240ab (2026-07-27 full list) |
+| **Task** | #235 closed; I5.6.33 slices closed with #185 |
 
 
 ## Gate 3 grouped batch (Task #235) — 2026-08-17

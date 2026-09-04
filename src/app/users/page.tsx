@@ -8,31 +8,36 @@ import { UsersPanel } from "@/components/settings/users-panel";
 import { theme } from "@/lib/theme";
 
 /**
- * I5.6.43 #209 — Users as top-level page (moved out of Settings).
- * Sub-tab: Records (wrapping UsersPanel) - id stays "configuration" for deep links.
+ * Users — Human and Agent directories as main tabs (Records sub-tab on each).
  */
 export default function UsersPage() {
-  const [subTab, setSubTab] = useState("configuration");
+  const [tab, setTab] = useState<"human" | "agent">("human");
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-3">
         <PageHeader
           title="Users"
           subtitle="Manage user accounts, roles, and access."
-          badge="Users"
           accent={theme.colors.brand}
+          tabs={[
+            { id: "human", label: "Human" },
+            { id: "agent", label: "Agent" },
+          ]}
+          tabsValue={tab}
+          onTabChange={(id) => setTab(id === "agent" ? "agent" : "human")}
+          tabsAriaLabel="Users sections"
         />
+        <div role="tabpanel" className="space-y-3">
         <SubTabBar
-          items={[{ id: "configuration", label: "Records" }]}
-          activeId={subTab}
+          items={[{ id: "records", label: "Records" }]}
+          activeId="records"
           accent={theme.colors.brand}
-          onSelect={setSubTab}
-          ariaLabel="Users sub-sections"
+          onSelect={() => undefined}
+          ariaLabel={`${tab === "agent" ? "Agent" : "Human"} sub-sections`}
         />
-        {subTab === "configuration" && (
-          <UsersPanel />
-        )}
+        <UsersPanel typeFilter={tab} />
+        </div>
       </div>
     </AppShell>
   );

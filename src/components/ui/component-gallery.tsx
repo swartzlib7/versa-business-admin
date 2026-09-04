@@ -214,9 +214,22 @@ const componentSections: ComponentSection[] = [
   },
 ];
 
-export function ComponentGallery() {
-  const [activeSection, setActiveSection] = useState(componentSections[0].id);
+export const GALLERY_SECTIONS = componentSections.map((s) => ({
+  id: s.id,
+  label: s.title,
+  description: s.description,
+}));
+
+export function ComponentGallery({
+  sectionId,
+  hideSectionHeading = false,
+}: {
+  sectionId?: string;
+  hideSectionHeading?: boolean;
+}) {
+  const [internalSection, setInternalSection] = useState(componentSections[0].id);
   const [showCode, setShowCode] = useState<Record<string, boolean>>({});
+  const activeSection = sectionId ?? internalSection;
 
   const currentSection = componentSections.find((s) => s.id === activeSection);
 
@@ -229,29 +242,32 @@ export function ComponentGallery() {
 
   return (
     <div className="space-y-6">
-      {/* Section Navigation */}
+      {!sectionId && (
       <div className="flex flex-wrap gap-2">
         {componentSections.map((section) => (
           <Button
             key={section.id}
             variant={activeSection === section.id ? "default" : "outline"}
             size="sm"
-            onClick={() => setActiveSection(section.id)}
+            onClick={() => setInternalSection(section.id)}
           >
             {section.title}
           </Button>
         ))}
       </div>
+      )}
 
       {/* Current Section */}
       {currentSection && (
         <div className="space-y-4">
+          {!hideSectionHeading ? (
           <div>
             <h2 className="text-2xl font-bold">{currentSection.title}</h2>
             <p className="text-muted-foreground">{currentSection.description}</p>
           </div>
+          ) : null}
 
-          <Separator />
+          {!hideSectionHeading ? <Separator /> : null}
 
           {/* Component Demos */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -290,6 +306,8 @@ export function ComponentGallery() {
         </div>
       )}
 
+      {!sectionId && (
+      <>
       {/* Design Tokens Section */}
       <Separator className="my-8" />
       <div className="space-y-4">
@@ -433,6 +451,8 @@ export function ComponentGallery() {
           </Card>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

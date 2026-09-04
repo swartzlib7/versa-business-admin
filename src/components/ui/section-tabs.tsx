@@ -57,7 +57,7 @@ export function SectionTabs({
             aria-selected={on}
             onClick={() => onChange(t.id)}
             className={cn(
-              "-mb-px rounded-t-md border border-transparent px-3 py-2 text-left text-sm font-medium transition-colors",
+              "-mb-px rounded-t-md border border-transparent px-3 py-2 text-left text-sm font-medium leading-none transition-colors",
               on
                 ? "border-border border-b-background bg-background text-foreground"
                 : "text-muted-foreground hover:text-foreground",
@@ -71,7 +71,14 @@ export function SectionTabs({
                 : undefined
             }
           >
-            <div className="font-medium leading-none">{t.label}</div>
+            <span className="inline-flex items-center leading-none">
+              {t.label}
+              {typeof t.count === "number" ? (
+                <span className="ml-1 text-xs font-normal leading-none text-muted-foreground">
+                  ({t.count})
+                </span>
+              ) : null}
+            </span>
             {t.hint ? (
               <div
                 className={cn(
@@ -81,11 +88,6 @@ export function SectionTabs({
               >
                 {t.hint}
               </div>
-            ) : null}
-            {typeof t.count === "number" ? (
-              <span className="ml-1 text-xs text-muted-foreground">
-                ({t.count})
-              </span>
             ) : null}
           </button>
         );

@@ -4,9 +4,20 @@ import {
   createSessionToken,
   createSessionCookieHeader,
 } from "@/lib/auth";
+import { verifyLoginChallenge } from "@/lib/auth-challenge";
 
 export async function POST(request: Request) {
-  let body: { email?: string; password?: string };
+  let body: {
+    email?: string;
+    password?: string;
+    challenge?: {
+      nonce?: string;
+      issued?: number;
+      difficulty?: number;
+      sig?: string;
+      solution?: number;
+    };
+  };
   try {
     body = await request.json();
   } catch {
@@ -19,6 +30,18 @@ export async function POST(request: Request) {
   if (!body.email || !body.password) {
     return NextResponse.json(
       { error: { code: "VALIDATION_ERROR", message: "Email and password are required." } },
+      { status: 400 },
+    );
+  }
+
+  if (!verifyLoginChallenge(body.challenge ?? {})) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "CHALLENGE_FAILED",
+          message: "Login verification failed. Refresh the page and try again.",
+        },
+      },
       { status: 400 },
     );
   }

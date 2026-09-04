@@ -2,12 +2,14 @@
 
 > **Role:** Sole go-to for Mission Control shell layout direction (sidebar, header, 3D viewport, zone pages).
 > **Product:** versa-admin-system · Project #26
+> **Doc home:** docs/production/state/
+> **Map:** shape_mission_control.md
 
 | Field | Value |
 |-------|-------|
 | **Feature** | Application layout / IA chrome |
-| **Status** | 🔧 In progress — keystone zones live; polish ongoing on I5.6 hub |
-| **Last verified against code** | 2026-07-20 (routes: dashboard, users, projects, tasks, organization, collaboration, environment, glossary, settings, integrations) |
+| **Status** | 🔧 In progress — 0.7.107 chrome + Primary Org IA |
+| **Last verified against code** | 2026-09-03 |
 | **Primary code** | `src/app/**`, hub scene components, zone pages |
 | **Former doc** | `docs/research/LAYOUT_PROPOSAL.md` (superseded seed) |
 
@@ -154,4 +156,56 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 - **Integration:** \`applyRecordTypesToTab\` in \`record-type-tabs.ts\` populates the new metadata fields from the Records Editor configuration.
 - **UI Feedback:** Added loading and error states to \`ListingPanel\`. Added "Dynamic Record" badge for API-driven rows.
 
-**Code:** \`zone-config-view.tsx\`, \`record-type-tabs.ts\`.
+**Code:** `zone-config-view.tsx`, `record-type-tabs.ts`.
+
+## 0.7.104 — Page chrome + menu order (2026-09-02)
+
+**Stephen feedback (IDE):** Dashboard subtitle drop “Versa AGi”; remove four top KPI cards (widget later). Title region is a design pattern on all operator pages:
+
+- No colored pill that repeats the page title.
+- Remaining actions (Full 3D hub, Hide twin, theme) sit on the title line, top right.
+- Subtitle spans the full row.
+- Title region + first tab row have no flat background plate.
+- First tab line is required on every page (Users, UI Components, Contact were missing it).
+- Colored sub-tab is required; empty content lives under **Records** unless the tab is a non-record view (Glossary View / Org Board).
+- **IA (0.7.106):** singular **main** tab, plural **sub-tab**, with exceptions (Contact menu + Records sub-tab; Users Human/Agent + Records; Settings Configuration; UI Components uses gallery section sub-tabs). Environment listing no longer repeats a "Records" title above the table.
+- Users / UI Components / Contact / Statistics brought into that pattern.
+- Menu + page title **Statistics**; main tab **Stats**; sub-tab **Records**.
+- New **Settings → System → Menu** reorders sidebar items (persisted `menu_order` on site settings).
+
+**Code:** `page-header.tsx`, `zone-config-view.tsx`, `dashboard/page.tsx`, `users/page.tsx`, `ui-components/page.tsx`, `contact/page.tsx`, `zone-definitions.ts` (statsZone), `sidebar.tsx`, `lib/nav.ts`, `menu-order-panel.tsx`, `settings/page.tsx`, `api/settings/system`.
+
+### Change log
+| Date | Change |
+|------|--------|
+| 2026-09-02 | 0.7.104 chrome pattern + Statistics rename + menu reorder |
+| 2026-09-03 | Moved to docs/production/state/; shape_mission_control.md is the map |
+| 2026-09-03 | Menu reorder is drag-and-drop (same pattern as table columns); 0.7.105 |
+| 2026-09-03 | 0.7.106 singular main / plural sub-tab IA; dashboard Open home page; homepage logo 20% |
+| 2026-09-03 | 0.7.107: required sub-tab on every page; zone twin drawer; listing action stack; Glossary Configuration |
+| 2026-09-04 | 0.7.109: zone/Statistics main tabs use PageHeader (same height); Contacts + UI Components match Settings card header shading |
+
+## 0.7.107 — Chrome contract (2026-09-03)
+
+**Required on every operator page:** a main tab strip **and** a sub-tab strip. The standard first (often only) sub-tab is **Configuration**, including Settings **Menu** and **Information**. Contact uses Configuration (not Records) with an opening sentence and a full-width form.
+
+**Listing action cluster (global):** the New Record (or equivalent) **button stays on the right** and does not wrap under the summary. The Dynamic Record / listing **tag sits under the button**, also right-aligned.
+
+**Zone pages (Organization / Collaboration / Environment):**
+- Main tabs use the shared `PageHeader` / `SectionTabs` (same height as Settings / Records Editor).
+- Sub-tab strip is the **pill** SubTabBar (same as Records Editor), full content width.
+- Spatial twin sits **below** the sub-tab strip, **inside** the content region (right of the listing).
+- Caption **below** the canvas: `Spatial Twin · click spheres [Full 3D Hub]`.
+- Hide twin is a **drawer handle on the left edge** of the twin (10px padding); chevrons collapse/expand.
+- Statistics is not a hub zone — no Full 3D hub / twin.
+
+**Organization:** staff appointment and Primary Org live on a **Configuration** main tab at the **end** of the strip. Production sub-tabs are **Products** and **Services** (operator-facing copy, not design notes).
+
+**UI Components:** each former gallery sub-tab is a **main tab** (Buttons, Inputs, Badges, Cards, Separators). No repeating section heading.
+
+**Glossary:** default main tab is **Sections**. Title **GLOSSARY OF TERMS** (serif, uppercase, large). **Configuration** last: toggle Glossary on the operator sidebar; toggle Org Board tab.
+
+**Default theme:** Dark (operator and public).
+
+**Settings:** Configuration strip on Branding, Appearance, Public, Menu, and Information.
+

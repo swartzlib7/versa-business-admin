@@ -54,6 +54,7 @@ export interface Integration {
 export interface BusinessProfile {
   name: string;
   slogan: string;
+  tagline: string;
   logoUrl: string;
   description: string;
   purpose: string;
@@ -164,6 +165,8 @@ export interface Organization {
   is_person: boolean;
   org_type: OrgType;
   parent_organization_id?: string | null;
+  /** One-time flag on the single Org-type record. Cannot be moved or cleared. */
+  is_primary?: boolean;
   data?: Record<string, unknown>;
 }
 

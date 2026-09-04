@@ -469,3 +469,15 @@ export const siteSettings = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
 );
+
+// Durable catalog overlay — tenant customizations (fields/layouts/value sets
+// / custom record types / saved layout configs). System seed stays in code;
+// this row is merged on read (hide-not-delete for system fields).
+export const catalogOverlay = pgTable(
+  'catalog_overlay',
+  {
+    id: text('id').primaryKey(),
+    body: jsonb('body').notNull().default({}),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+);

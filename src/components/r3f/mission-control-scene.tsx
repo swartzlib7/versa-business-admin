@@ -114,9 +114,10 @@ type ScenePalette =
   | typeof theme.scene.dark
   | typeof theme.scene.light
   | typeof theme.scene.architect
-  | typeof theme.scene.slate;
+  | typeof theme.scene.slate
+  | typeof theme.scene.dusk;
 
-type SceneMode = "light" | "dark" | "architect" | "slate";
+type SceneMode = "light" | "dusk" | "dark" | "architect" | "slate";
 
 function useSceneMode(): SceneMode {
   const [mode, setMode] = useState<SceneMode>("dark");
@@ -125,6 +126,7 @@ function useSceneMode(): SceneMode {
       const root = document.documentElement;
       if (root.classList.contains("architect")) setMode("architect");
       else if (root.classList.contains("slate")) setMode("slate");
+      else if (root.classList.contains("dusk")) setMode("dusk");
       else if (root.classList.contains("dark")) setMode("dark");
       else setMode("light");
     };
@@ -142,6 +144,7 @@ function useSceneMode(): SceneMode {
 function getPalette(mode: SceneMode): ScenePalette {
   if (mode === "architect") return theme.scene.architect;
   if (mode === "slate") return theme.scene.slate;
+  if (mode === "dusk") return theme.scene.dusk;
   if (mode === "dark") return theme.scene.dark;
   return theme.scene.light;
 }
@@ -694,27 +697,23 @@ function SceneContent({
   const envKsRef = useRef<THREE.Group>(null);
   const envElRef = useRef<THREE.Group>(null);
 
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    // I5.6.4: collab base rate w; environment runs at 2w (two env revs per collab rev)
+  useFrame((_, delta) => {
+    // Gate 3: increment from the current pose. Absolute clock * speed jumped
+    // spheres to a later phase the moment Play was pressed.
     const w = 0.05 * animSpeed;
+    if (w === 0) return;
     const wEnv = w * 2;
-    // Customer + Branch: horizontal orbit (Y) — ring in XZ plane; rest ±x
     if (collabHorizRef.current) {
-      collabHorizRef.current.rotation.y = t * w;
+      collabHorizRef.current.rotation.y += delta * w;
     }
-    // Vendor + Partner: perpendicular X-spin; +π/2 phase => effective rest ±z
     if (collabVpRef.current) {
-      collabVpRef.current.rotation.x = -t * w + Math.PI / 2;
+      collabVpRef.current.rotation.x += -delta * w;
     }
-    // Knowledge + Schedules: horizontal Y — rest ±z (XZ plane)
     if (envKsRef.current) {
-      envKsRef.current.rotation.y = -t * wEnv;
+      envKsRef.current.rotation.y += -delta * wEnv;
     }
-    // Events + Locations: Z-spin (XY plane). Phase 0 = rest on graph ±x (Events +x / Locations −x).
-    // I5.6.28: restore I5.6.26 (no anim phase offset) — −π/2 caused env sphere intersections.
     if (envElRef.current) {
-      envElRef.current.rotation.z = t * wEnv;
+      envElRef.current.rotation.z += delta * wEnv;
     }
   });
 
@@ -857,7 +856,7 @@ function SceneContent({
           <group ref={collabHorizRef}>
             {collabHorizNodes.map((n) => renderNode(n))}
           </group>
-          <group ref={collabVpRef}>
+          <group ref={collabVpRef} rotation-x={Math.PI / 2}>
             {collabVpNodes.map((n) => renderNode(n))}
           </group>
         </>

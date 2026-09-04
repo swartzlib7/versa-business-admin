@@ -4,10 +4,18 @@ import {
   getElementConfigDb,
   upsertElementConfigDb,
 } from '@/lib/db/element-config-store';
+import {
+  getElementConfigFixture,
+  upsertElementConfigFixture,
+} from '@/lib/fixtures/element-config';
 
-// #249 Slice E2 (rev E section 4.5 / 2.6): division configuration singleton -
-// appointed head + deputy per organization + element (division). GET is
-// authenticated; writes are admin-only (matches records POST/PATCH gating).
+// #249 Slice E2: division configuration singleton — appointed head + deputy.
+// GET is authenticated; writes are admin-only. Fixture path is required on
+// beta (DATA_SOURCE=fixture); postgres store is only used when requested.
+
+function usePostgres() {
+  return (process.env.DATA_SOURCE ?? 'fixture') === 'postgres';
+}
 
 export async function GET(
   request: Request,
@@ -21,7 +29,9 @@ export async function GET(
     );
   }
   const { element } = await context.params;
-  const config = await getElementConfigDb(element);
+  const config = usePostgres()
+    ? await getElementConfigDb(element)
+    : getElementConfigFixture(element);
   if (!config) {
     return NextResponse.json(
       { error: { code: 'NOT_FOUND', message: 'No element_config for element.' } },
@@ -66,7 +76,9 @@ export async function PUT(
     config: body.config as Record<string, unknown> | undefined,
   };
   try {
-    const config = await upsertElementConfigDb(element, input);
+    const config = usePostgres()
+      ? await upsertElementConfigDb(element, input)
+      : upsertElementConfigFixture(element, input);
     return NextResponse.json({ data: config });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);

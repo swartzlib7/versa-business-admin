@@ -103,8 +103,7 @@ export function DivisionConfigPanel({
     <Card className='overflow-hidden'>
       <CardContent className='p-6'>
         <p className='text-sm text-muted-foreground'>
-          Appointed staff member in charge of the {divisionLabel} division and their deputy
-          (rev E section 4.5).
+          Appointed staff member in charge of the {divisionLabel} division and their deputy.
         </p>
         {loading ? (
           <p className='mt-4 text-sm text-muted-foreground'>Loading configuration...</p>

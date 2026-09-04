@@ -25,7 +25,8 @@ Standalone, distributable product that customers install/use with their Versa AG
 - **agitop Organization** may be turned off when using this product’s Organization model; migration is future/out of scope.
 
 Full rules: `docs/specs/PRODUCT_SPECIFICATION.md`  
-**3D / zone ERD source of truth:** `docs/design/spec/state/state_i5_6_zone_erd.md` (keystone + zone + baseline + UI pattern folded 2026-07-20)
+**Open first:** `docs/production/state/shape_mission_control.md`  
+**3D / zone ERD:** `docs/production/state/state_i5_6_zone_erd.md`
 
 ## Conceptual ERD (keystone)
 
@@ -60,19 +61,17 @@ npm run build && npm start
 
 | Path | Role |
 |------|------|
-| `docs/design/spec/state/state_i5_6_zone_erd.md` | **Living** zone ERD + baseline persistence + zone config UI |
-| `docs/design/spec/state/state_api_contract.md` | **Living** HTTP API contract |
-| `docs/design/spec/state/state_layout_mission_ui.md` | **Living** shell layout / IA chrome |
+| `docs/production/state/shape_mission_control.md` | **Map — open this first** |
+| `docs/production/state/state_*.md` | Living feature states (one per unit) |
+| `docs/coa/MISSION_CONTROL_PRODUCTION_PLAN.md` | Horizons / roadmap |
+| `docs/ops/MISSION_CONTROL_OPS_MANUAL.md` | Ops outline (setup / maintain / upgrade) |
 | `docs/specs/PRODUCT_SPECIFICATION.md` | Product essence, spine, non-goals |
-| `docs/specs/PRODUCTION_PLAN.md` | Iteration history / gates (may lag HEAD — prefer git + state docs) |
-| `docs/api/API_CONTRACT.md` | **Stub** → state_api_contract |
-| `docs/research/LAYOUT_PROPOSAL.md` | **Stub** → state_layout_mission_ui |
-| `docs/research/RESEARCH.md` | **Archived pointer** — early R3F notes only |
-| `docs/handoffs/ITERATION_*_WEB_DEV.md` | Historical / active build briefs |
+| `docs/GIT_WORKFLOW.md` | Branch model |
+| `docs/api/API_CONTRACT.md` | **Stub** → `state_api_contract.md` |
+| `docs/specs/*` ERD / zone / baseline files | **Stubs** → `state_i5_6_zone_erd.md` |
+| `docs/research/*` | **Stubs** → layout / ERD states |
+| `docs/handoff/` · `docs/handoffs/` | **Stubs** → `__archive/handoffs/` |
 | `docs/_notes/from_stephen_*.md` | Binding early boundary notes |
-| `docs/_notes/ALIGNMENT_CHECKLIST.md` | Acceptance checklist |
-
-Folded ERD specs under `docs/specs/*KEYSTONE*`, `*ZONE_ERD*`, `*BASELINE*`, `*ZONE_CONFIG*` are **stubs** pointing at the zone ERD state doc.
 
 ## Current build status (high level)
 
@@ -88,7 +87,7 @@ Folded ERD specs under `docs/specs/*KEYSTONE*`, `*ZONE_ERD*`, `*BASELINE*`, `*ZO
 
 ## API (summary)
 
-See **`docs/design/spec/state/state_api_contract.md`**. Prefer business resources: `users`, `projects`, `tasks`, public `*`. Legacy `/api/agents*` naming is **deprecated** transitional alias of users with `type=agent` — do not expand agent-fleet semantics.
+See **`docs/production/state/state_api_contract.md`**. Prefer business resources: `users`, `projects`, `tasks`, public `*`. Legacy `/api/agents*` naming is **deprecated** transitional alias of users with `type=agent` — do not expand agent-fleet semantics.
 
 Package version **0.7.45**; API index label may still report **0.4.0** (capability series) while health tracks package version — see API state doc.
 

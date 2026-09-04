@@ -1,3 +1,4 @@
+import '@/lib/catalog/install-durable';
 import { NextResponse } from 'next/server';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 import { createValueSet, listAllValueSets } from '@/lib/fixtures/catalog';
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
   return NextResponse.json(
     {
       data: { ...result.value_set, items: result.items },
-      meta: { persistence: 'fixture_process_memory' },
+      meta: { persistence: 'durable_catalog' },
     },
     { status: 201 },
   );

@@ -4,8 +4,19 @@ import { useEffect, useMemo, useState, Fragment, type Dispatch, type ReactNode, 
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ListingBadge } from "@/components/ui/kind-badge";
 import { theme } from "@/lib/theme";
 import Link from "next/link";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { BooleanSwitch } from "@/components/ui/boolean-switch";
+import {
+  ColumnHeaders,
+  rowClickIsToggle,
+  sortByText,
+  toggleSort,
+  usePersistedColumnOrder,
+  type TableSort,
+} from "@/components/settings/records-table";
 
 export type ListingField = {
   key: string;
@@ -50,6 +61,8 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   onDelete?: (id: string) => void;
   emptyLabel?: string;
   headerExtra?: ReactNode;
+  /** Filters / extra controls in the New Record row (Records Editor Field pattern). */
+  headerFilters?: ReactNode;
   /** Optional href for a "View" button on each row */
   viewHref?: (row: T) => string;
   /** #185 Slice A (rev E section 7.3): row-click detail navigation. When set,
@@ -57,6 +70,14 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   onRowOpen?: (row: T) => void;
   /** Optional badge text (default Listing) */
   badgeLabel?: string;
+  deleteTitle?: string;
+  deleteDescription?: string;
+  /** Persist column order under this key. Defaults to title + field keys. */
+  columnStorageKey?: string;
+  /** Preferred visible column order (unknown keys ignored; remaining fields append). */
+  columnOrder?: string[];
+  /** Drag headers to reorder. Default true. */
+  reorderable?: boolean;
 };
 
 function FieldInput({
@@ -91,17 +112,10 @@ function FieldInput({
           ))}
         </select>
       ) : kind === "boolean" ? (
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-input accent-[var(--primary)]"
-            checked={isChecked}
-            onChange={(e) => onChange(e.target.checked ? "true" : "false")}
-          />
-          <span className="text-sm text-muted-foreground">
-            {isChecked ? "Yes" : "No"}
-          </span>
-        </div>
+        <BooleanSwitch
+          checked={isChecked}
+          onChange={(next) => onChange(next ? "true" : "false")}
+        />
       ) : (
         <input
           className={base}
@@ -207,9 +221,15 @@ export function EntityListing<T extends Record<string, unknown>>({
   onDelete,
   emptyLabel,
   headerExtra,
+  headerFilters,
   viewHref,
   onRowOpen,
   badgeLabel = "Listing",
+  deleteTitle = "Delete this record?",
+  deleteDescription = "This permanently removes the record. This cannot be undone.",
+  columnStorageKey,
+  columnOrder,
+  reorderable = true,
 }: EntityListingProps<T>) {
   const displayCell = (row: T, key: string): ReactNode => {
     const raw = getCell(row, key);
@@ -220,9 +240,50 @@ export function EntityListing<T extends Record<string, unknown>>({
     () => fields.filter((f) => f.column !== false),
     [fields],
   );
+  const defaultColKeys = useMemo(() => {
+    const keys = columns.map((c) => c.key);
+    if (!columnOrder?.length) return keys;
+    const known = new Set(keys);
+    const next = columnOrder.filter((k) => known.has(k));
+    for (const k of keys) if (!next.includes(k)) next.push(k);
+    return next;
+  }, [columns, columnOrder]);
+  const persistKey = columnStorageKey ?? `mc.listing.${title || "table"}.${defaultColKeys.join(".")}`;
+  const [colKeys, reorderCols] = usePersistedColumnOrder(persistKey, defaultColKeys);
+  const [sort, setSort] = useState<TableSort>({ key: defaultColKeys[0] ?? "", dir: "asc" });
+  const [dragOver, setDragOver] = useState<string | null>(null);
+  const orderedColumns = useMemo(
+    () => colKeys.map((k) => columns.find((c) => c.key === k)).filter((c): c is ListingField => Boolean(c)),
+    [colKeys, columns],
+  );
+  const headerCols = useMemo(
+    () => (onAdd || onUpdate || onDelete || viewHref ? [...colKeys, "actions"] : colKeys),
+    [colKeys, onAdd, onUpdate, onDelete, viewHref],
+  );
+  const headerMeta = useMemo(() => {
+    const meta: Record<string, { label: string; sortKey?: string }> = {
+      actions: { label: "Actions" },
+    };
+    for (const c of columns) meta[c.key] = { label: c.label, sortKey: c.key };
+    return meta;
+  }, [columns]);
+  const activeSort: TableSort = colKeys.includes(sort.key)
+    ? sort
+    : { key: colKeys[0] ?? "", dir: "asc" };
+  const sortedRows = useMemo(
+    () =>
+      !activeSort.key
+        ? rows
+        : sortByText(rows, activeSort.dir, (row) => {
+            const raw = getCell(row, activeSort.key);
+            return formatCell ? formatCell(row, activeSort.key, raw) : raw;
+          }),
+    [rows, activeSort, getCell, formatCell],
+  );
 
   const [editor, setEditor] = useState<null | "new" | string>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     setEditor(null);
@@ -275,40 +336,38 @@ export function EntityListing<T extends Record<string, unknown>>({
     }
   };
 
-  const singular = title ? (title.endsWith("s") ? title.slice(0, -1) : title) : "item";
   return (
+    <>
     <Card className="overflow-hidden">
       <CardHeader className="border-b bg-muted/30">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
             {title ? <CardTitle className="text-lg">{title}</CardTitle> : null}
             <p className="mt-1 text-sm text-muted-foreground">{summary}</p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge
-              className="shrink-0 border-0 text-white"
-              style={{ backgroundColor: accent }}
-            >
-              {badgeLabel}
-            </Badge>
+          <div className="flex shrink-0 flex-col items-end gap-1 whitespace-nowrap">
+            <div className="flex flex-nowrap items-center justify-end gap-2">
+              {headerFilters}
+              {(onAdd || onUpdate || viewHref) && (
+                <button
+                  type="button"
+                  onClick={startNew}
+                  className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                  style={{ backgroundColor: accent }}
+                >
+                  {editor === "new" ? "Close" : "New Record"}
+                </button>
+              )}
+            </div>
+            <ListingBadge label={badgeLabel} accent={accent} />
             {headerExtra}
-            {(onAdd || onUpdate || viewHref) && (
-              <button
-                type="button"
-                onClick={startNew}
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
-                style={{ backgroundColor: accent }}
-              >
-                {editor === "new" ? "Close" : `New ${singular}`}
-              </button>
-            )}
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-0 p-0">
         {editor === "new" && (
           <InlineForm
-            heading={`New ${singular}`}
+            heading="New Record"
             fields={fields}
             draft={draft}
             setDraft={setDraft}
@@ -322,38 +381,35 @@ export function EntityListing<T extends Record<string, unknown>>({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-                {columns.map((c) => (
-                  <th key={c.key} className="px-4 py-2.5 font-medium">
-                    {c.label}
-                  </th>
-                ))}
-                {(onAdd || onUpdate || onDelete || viewHref) && (
-                  <th className="px-4 py-2.5 text-right font-medium">Actions</th>
-                )}
-              </tr>
+              <ColumnHeaders
+                cols={headerCols}
+                meta={headerMeta}
+                sort={activeSort}
+                onSort={(k) => setSort((s) => toggleSort(s, k))}
+                onReorder={reorderCols}
+                dragOver={dragOver}
+                onDragOverKey={setDragOver}
+                reorderable={reorderable}
+              />
             </thead>
             <tbody>
-              {rows.map((row) => {
+              {sortedRows.map((row) => {
                 const id = getRowId(row);
                 return (
                   <Fragment key={id}>
                     <tr
-                      className={
-                        "border-b border-border/70 transition-colors hover:bg-muted/30" +
-                        (onRowOpen ? " cursor-pointer" : "")
-                      }
-                      onClick={
-                        onRowOpen
-                          ? (e) => {
-                              // Ignore clicks on action controls inside the row.
-                              if ((e.target as HTMLElement).closest("button, a, input, select, textarea, label")) return;
-                              onRowOpen(row);
-                            }
-                          : undefined
-                      }
+                      className={cn(
+                        "border-b border-border/70 transition-colors hover:bg-muted/30",
+                        (onRowOpen || onAdd || onUpdate) && "cursor-pointer",
+                        editor === id && "bg-muted/40",
+                      )}
+                      onClick={(e) => {
+                        if (!rowClickIsToggle(e.target)) return;
+                        if (onRowOpen) onRowOpen(row);
+                        else if (onAdd || onUpdate) startEdit(row);
+                      }}
                     >
-                      {columns.map((c) => (
+                      {orderedColumns.map((c) => (
                         <td key={c.key} className="px-4 py-3 align-top text-foreground">
                           <span className="line-clamp-3 whitespace-pre-wrap">
                             {displayCell(row, c.key) || "—"}
@@ -361,7 +417,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                         </td>
                       ))}
                       {(onAdd || onUpdate || onDelete || viewHref) && (
-                        <td className="px-4 py-3 text-right align-top">
+                        <td className="px-4 py-3 text-right align-top" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1.5">
                             {viewHref && (
                               <Link
@@ -388,11 +444,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                             {onDelete && (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  if (window.confirm(`Delete this ${singular}? This cannot be undone.`)) {
-                                    onDelete(id);
-                                  }
-                                }}
+                                onClick={() => setPendingDeleteId(id)}
                                 className="rounded-md border border-destructive/40 px-2.5 py-1 text-xs font-medium text-destructive hover:bg-destructive/10"
                               >
                                 Delete
@@ -405,11 +457,11 @@ export function EntityListing<T extends Record<string, unknown>>({
                     {editor === id && (
                       <tr className="border-b border-border">
                         <td
-                          colSpan={columns.length + (onAdd || onUpdate || onDelete ? 1 : 0)}
+                          colSpan={orderedColumns.length + (onAdd || onUpdate || onDelete || viewHref ? 1 : 0)}
                           className="p-0"
                         >
                           <InlineForm
-                            heading={`Edit ${singular}`}
+                            heading="Edit Record"
                             fields={fields}
                             draft={draft}
                             setDraft={setDraft}
@@ -424,10 +476,10 @@ export function EntityListing<T extends Record<string, unknown>>({
                   </Fragment>
                 );
               })}
-              {rows.length === 0 && (
+              {sortedRows.length === 0 && (
                 <tr>
                   <td
-                    colSpan={columns.length + (onAdd || onUpdate || onDelete ? 1 : 0)}
+                    colSpan={orderedColumns.length + (onAdd || onUpdate || onDelete || viewHref ? 1 : 0)}
                     className="px-4 py-8 text-center text-muted-foreground"
                   >
                     {emptyLabel ??
@@ -440,5 +492,18 @@ export function EntityListing<T extends Record<string, unknown>>({
         </div>
       </CardContent>
     </Card>
+    <ConfirmDialog
+      open={pendingDeleteId !== null}
+      title={deleteTitle}
+      description={deleteDescription}
+      confirmLabel="Delete"
+      tone="danger"
+      onCancel={() => setPendingDeleteId(null)}
+      onConfirm={() => {
+        if (pendingDeleteId && onDelete) onDelete(pendingDeleteId);
+        setPendingDeleteId(null);
+      }}
+    />
+    </>
   );
 }

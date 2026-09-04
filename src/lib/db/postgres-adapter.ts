@@ -34,6 +34,11 @@ import {
 import { eq, and, ilike, or, count } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
+import {
+  assertCanCreateOrg,
+  assertCanDeleteOrg,
+  assertCanUpdateOrg,
+} from "../organizations/primary-org";
 
 function mapUserRow(
   row: typeof usersTable.$inferSelect,
@@ -65,6 +70,7 @@ function mapOrganizationRow(row: typeof organizationsTable.$inferSelect): Organi
     is_person: row.isPerson,
     org_type: row.orgType as OrgType,
     parent_organization_id: row.parentOrganizationId ?? null,
+    is_primary: data.is_primary === true,
     data,
   };
 }
@@ -413,7 +419,7 @@ export const postgresAdapter: DataAdapter = {
     if (!rows.length) {
       // Return empty profile if no org seeded
       return {
-        name: "", slogan: "", logoUrl: "", description: "",
+        name: "", slogan: "", tagline: "", logoUrl: "", description: "",
         purpose: "", production: "", contactEmail: "", contactPhone: "",
         address: "", website: "",
       };
@@ -423,6 +429,7 @@ export const postgresAdapter: DataAdapter = {
     return {
       name: org.name,
       slogan: typeof data.slogan === "string" ? data.slogan : "",
+      tagline: typeof data.tagline === "string" ? data.tagline : "",
       logoUrl: typeof data.logoUrl === "string" ? data.logoUrl : "",
       description: typeof data.description === "string" ? data.description : "",
       purpose: typeof data.purpose === "string" ? data.purpose : "",
@@ -434,11 +441,10 @@ export const postgresAdapter: DataAdapter = {
     };
   },
 
-  // --- Services (fixture-only, no DB table) ---
+  // --- Services ---
   async listServices(): Promise<Service[]> {
-    // Services remain fixture-backed — no services table in schema
-    const { services } = await import("../fixtures/services");
-    return services;
+    // No services table yet. Empty until modeled; do not inject fixture samples.
+    return [];
   },
 
   // --- Products ---
@@ -615,6 +621,8 @@ export const postgresAdapter: DataAdapter = {
     if (!["vendor", "customer", "partner", "branch", "internal"].includes(orgType)) {
       throw new Error("VALIDATION: invalid org_type");
     }
+    const existingOrgs = (await db.select().from(organizationsTable)).map(mapOrganizationRow);
+    assertCanCreateOrg(existingOrgs, orgType);
     if (input.parent_organization_id) {
       const parent = await db
         .select({ id: organizationsTable.id })
@@ -623,6 +631,8 @@ export const postgresAdapter: DataAdapter = {
         .limit(1);
       if (!parent.length) throw new Error("VALIDATION: parent_organization_id does not reference an existing organization");
     }
+    const data = { ...(input.data ?? {}) };
+    if (orgType === "internal") data.is_primary = true;
     const inserted = await db
       .insert(organizationsTable)
       .values({
@@ -630,7 +640,7 @@ export const postgresAdapter: DataAdapter = {
         isPerson: input.is_person ?? false,
         orgType,
         parentOrganizationId: input.parent_organization_id ?? null,
-        data: input.data ?? {},
+        data,
       })
       .returning();
     return mapOrganizationRow(inserted[0]);
@@ -640,6 +650,8 @@ export const postgresAdapter: DataAdapter = {
     const existing = await db.select().from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
     if (!existing.length) return null;
     const row = existing[0];
+    const current = mapOrganizationRow(row);
+    assertCanUpdateOrg(current, input.org_type);
     const patch: Partial<typeof organizationsTable.$inferInsert> = { updatedAt: new Date() };
     if (input.name !== undefined) {
       const name = input.name.trim();
@@ -668,29 +680,57 @@ export const postgresAdapter: DataAdapter = {
     if (input.data) {
       const data = { ...((row.data ?? {}) as Record<string, unknown>) };
       Object.assign(data, input.data);
+      if (current.is_primary) data.is_primary = true;
       patch.data = data;
     }
     await db.update(organizationsTable).set(patch).where(eq(organizationsTable.id, id));
     const updated = await db.select().from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
     return updated.length ? mapOrganizationRow(updated[0]) : null;
   },
+  async deleteOrganization(id: string): Promise<boolean> {
+    const db = getDb();
+    const existing = await db.select().from(organizationsTable).where(eq(organizationsTable.id, id)).limit(1);
+    if (!existing.length) return false;
+    assertCanDeleteOrg(mapOrganizationRow(existing[0]));
+    const children = await db
+      .select()
+      .from(organizationsTable)
+      .where(eq(organizationsTable.parentOrganizationId, id));
+    for (const child of children) {
+      const removed = await postgresAdapter.deleteOrganization?.(child.id);
+      if (removed === false) continue;
+    }
+    const userRows = await db.select().from(usersTable);
+    for (const row of userRows) {
+      const data = { ...((row.data ?? {}) as Record<string, unknown>) };
+      if (data.default_organization_id === id) {
+        data.default_organization_id = null;
+        await db.update(usersTable).set({ data, updatedAt: new Date() }).where(eq(usersTable.id, row.id));
+      }
+    }
+    try {
+      await db.delete(organizationsTable).where(eq(organizationsTable.id, id));
+    } catch {
+      throw new Error(
+        "VALIDATION: This organization still has related records (departments, parties, or other linked data). Remove those first, then delete the organization.",
+      );
+    }
+    return true;
+  },
 
-  // --- Mission Control facets (fixture-only, no DB tables) ---
+  // --- Mission Control facets (no DB tables yet) ---
+  // Empty when Postgres is on: never inject fixture sample rows into a live tenant.
   async listOtherSystems(): Promise<OtherSystem[]> {
-    const { otherSystems } = await import("../fixtures/other-systems");
-    return otherSystems;
+    return [];
   },
   async listSupportTickets(): Promise<SupportTicket[]> {
-    const { supportTickets } = await import("../fixtures/support-tickets");
-    return supportTickets;
+    return [];
   },
   async listMetrics(): Promise<Metric[]> {
-    const { metrics } = await import("../fixtures/metrics");
-    return metrics;
+    return [];
   },
   async listKnowledgeArticles(): Promise<KnowledgeArticle[]> {
-    const { knowledgeArticles } = await import("../fixtures/knowledge-articles");
-    return knowledgeArticles;
+    return [];
   },
 
   // --- Health ---

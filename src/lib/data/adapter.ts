@@ -1,6 +1,6 @@
 import type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember, User, OtherSystem, SupportTicket, Metric, KnowledgeArticle, Organization, CreateOrganizationInput, UpdateOrganizationInput } from './types';
 import type { OrgLineRow } from '@/lib/fixtures/record-instances';
-import { listOrgLines, createOrgLine, updateOrgLine, deleteOrgLine } from '@/lib/fixtures/record-instances';
+import { listOrgLines, createOrgLine, updateOrgLine, deleteOrgLine, deleteOrgLinesForOrganization } from '@/lib/fixtures/record-instances';
 import type { OrgLineRow as OrgLineRowDb } from '@/lib/db/records-store';
 // #245 Slice E1 (rev E section 4.2): Horizon 1 record persistence contract.
 // Type-only import - the instance shape stays the canonical API contract.
@@ -11,6 +11,12 @@ import type {
   UpdateInstanceInput,
   UpdateInstanceResult,
 } from '@/lib/fixtures/record-instances';
+import {
+  assertCanCreateOrg,
+  assertCanDeleteOrg,
+  assertCanUpdateOrg,
+  markPrimary,
+} from '@/lib/organizations/primary-org';
 
 export interface RecordFilters {
   type_api_name?: string;
@@ -148,6 +154,7 @@ export interface DataAdapter {
   getOrganization?(id: string): Promise<Organization | null>;
   createOrganization?(input: CreateOrganizationInput): Promise<Organization>;
   updateOrganization?(id: string, input: UpdateOrganizationInput): Promise<Organization | null>;
+  deleteOrganization?(id: string): Promise<boolean>;
   // #244 Slice F (D1 cutover): org-attached lines (vendor integrations).
   listOrgLines?(organizationId: string, lineGroup: string): Promise<OrgLineRow[]>;
   createOrgLine?(organizationId: string, lineGroup: string, data: Record<string, string>): Promise<OrgLineRow>;
@@ -208,7 +215,7 @@ const mutableUsers = userFixtures.map((u) => ({ ...u, data: u.data ? { ...u.data
 // store mirrors the postgres-adapter shape (Slice D rev E section 4.3).
 let orgSeq = 0;
 const mutableOrganizations: Organization[] = [
-  { id: "org-fixture-1", name: "Sample Maker Workspace", is_person: false, org_type: "internal", parent_organization_id: null, data: {} },
+  { id: "org-fixture-1", name: "Sample Maker Workspace", is_person: false, org_type: "internal", parent_organization_id: null, is_primary: true, data: { is_primary: true } },
   { id: "org-fixture-v1", name: "Acme Cloud Services", is_person: false, org_type: "vendor", parent_organization_id: null, data: {} },
   { id: "org-fixture-c1", name: "Northwind Retail", is_person: false, org_type: "customer", parent_organization_id: null, data: {} },
   { id: "org-fixture-p1", name: "Bright Channel Partners", is_person: false, org_type: "partner", parent_organization_id: null, data: {} },
@@ -246,12 +253,13 @@ export const fixtureAdapter: DataAdapter = {
     if (!name) throw new Error("VALIDATION: name cannot be empty");
     const orgType = input.org_type ?? "internal";
     if (!ORG_TYPES.includes(orgType)) throw new Error("VALIDATION: invalid org_type");
+    assertCanCreateOrg(mutableOrganizations, orgType);
     if (input.parent_organization_id) {
       const parent = mutableOrganizations.find((o) => o.id === input.parent_organization_id);
       if (!parent) throw new Error("VALIDATION: parent_organization_id does not reference an existing organization");
     }
     orgSeq += 1;
-    const org: Organization = {
+    let org: Organization = {
       id: "org-fixture-" + String(orgSeq),
       name,
       is_person: input.is_person ?? false,
@@ -259,6 +267,7 @@ export const fixtureAdapter: DataAdapter = {
       parent_organization_id: input.parent_organization_id ?? null,
       data: input.data ?? {},
     };
+    if (orgType === "internal") org = markPrimary(org);
     mutableOrganizations.push(org);
     return { ...org };
   },
@@ -266,6 +275,7 @@ export const fixtureAdapter: DataAdapter = {
   async updateOrganization(id: string, input: UpdateOrganizationInput): Promise<Organization | null> {
     const org = mutableOrganizations.find((o) => o.id === id);
     if (!org) return null;
+    assertCanUpdateOrg(org, input.org_type);
     if (input.name !== undefined) {
       const name = input.name.trim();
       if (!name) throw new Error("VALIDATION: name cannot be empty");
@@ -287,9 +297,33 @@ export const fixtureAdapter: DataAdapter = {
     if (input.data) {
       const data = { ...(org.data ?? {}) };
       Object.assign(data, input.data);
+      if (org.is_primary || org.data?.is_primary === true) data.is_primary = true;
       org.data = data;
     }
     return { ...org };
+  },
+
+  async deleteOrganization(id: string): Promise<boolean> {
+    const org = mutableOrganizations.find((o) => o.id === id);
+    if (!org) return false;
+    assertCanDeleteOrg(org);
+    const childIds = mutableOrganizations
+      .filter((o) => o.parent_organization_id === id)
+      .map((o) => o.id);
+    for (const childId of childIds) {
+      await fixtureAdapter.deleteOrganization!(childId);
+    }
+    deleteOrgLinesForOrganization(id);
+    for (const user of mutableUsers) {
+      const data = { ...(user.data ?? {}) };
+      if (data.default_organization_id === id) {
+        data.default_organization_id = null;
+        user.data = data;
+      }
+    }
+    const idx = mutableOrganizations.findIndex((o) => o.id === id);
+    if (idx >= 0) mutableOrganizations.splice(idx, 1);
+    return true;
   },
 
   // --- Org-attached lines (Slice F D1 cutover, fixture path) ---
@@ -491,6 +525,9 @@ export const fixtureAdapter: DataAdapter = {
       data.bio = input.bio;
     }
     if (input.department !== undefined) data.department = input.department;
+    if (input.default_organization_id !== undefined) {
+      data.default_organization_id = input.default_organization_id;
+    }
     cur.data = data;
     mutableUsers[idx] = cur;
     const { password: _p, ...user } = cur;

@@ -6,7 +6,10 @@
 //   Zone 2 = Collaboration (parties) — greens unchanged
 //   Zone 3 = Environmental (context) — Events top / Locations bottom
 // Placement: spheres on axis planes; distance = ZONE_RADII[ring].
-// Source of truth: docs/design/spec/state/state_i5_6_zone_erd.md
+// Source of truth: docs/production/state/state_i5_6_zone_erd.md
+// Sphere click copy: docs/design/org_board/transcription.md via org-board.ts
+
+import { hubDescriptionFor } from "@/lib/fixtures/org-board";
 
 export type GraphNodeType = 'organization' | 'collaboration' | 'environmental';
 
@@ -114,8 +117,10 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     label: 'Executive',
     type: 'organization',
     ring: 0,
-    description:
-      'Business executive function — center sphere of the Organization zone. Owns Policy, Projects, and Tasks in zone config.',
+    description: hubDescriptionFor(
+      'executive',
+      'Business executive function — center sphere of the Organization zone.',
+    ),
     status: 'active',
     axis: 'origin',
   },
@@ -126,7 +131,10 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     label: 'Communications',
     type: 'organization',
     ring: 1,
-    description: 'Internal and external communications department.',
+    description: hubDescriptionFor(
+      'communications',
+      'Internal and external communications department.',
+    ),
     status: 'connected',
     axis: '-x',
   },
@@ -135,7 +143,10 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     label: 'Dissemination',
     type: 'organization',
     ring: 1,
-    description: 'Distribution and publishing of information and materials.',
+    description: hubDescriptionFor(
+      'dissemination',
+      'Distribution and publishing of information and materials.',
+    ),
     status: 'connected',
     axis: '+x',
   },
@@ -144,7 +155,10 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     label: 'Treasury',
     type: 'organization',
     ring: 1,
-    description: 'Financial management, treasury, and fiscal oversight.',
+    description: hubDescriptionFor(
+      'treasury',
+      'Financial management, treasury, and fiscal oversight.',
+    ),
     status: 'connected',
     axis: '-z',
   },
@@ -153,7 +167,10 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     label: 'Production',
     type: 'organization',
     ring: 1,
-    description: 'Making and delivering work product. Owns Product and Service as nested objects (not separate hub spheres).',
+    description: hubDescriptionFor(
+      'production',
+      'Making and delivering work product. Owns Product and Service as nested objects.',
+    ),
     status: 'connected',
     axis: '+z',
   },
@@ -162,17 +179,22 @@ const nodeDefs: Omit<BusinessGraphNode, 'position'>[] = [
     label: 'Qualification',
     type: 'organization',
     ring: 1,
-    description: 'Quality assurance, compliance, and qualification processes.',
+    description: hubDescriptionFor(
+      'qualification',
+      'Quality assurance, compliance, and qualification processes.',
+    ),
     status: 'standby',
     axis: '-y',
   },
   {
     id: 'public',
-    label: 'Public',
+    label: 'Distribution',
     type: 'organization',
     ring: 1,
-    description:
-      'Public-facing faculty at the top of the Organization sphere — brand, presence, and outward voice. Distinct from Collaboration Customer.',
+    description: hubDescriptionFor(
+      'public',
+      'Distribution faculty — brings knowledge of and distributes services and products to the public.',
+    ),
     status: 'connected',
     axis: '+y',
   },

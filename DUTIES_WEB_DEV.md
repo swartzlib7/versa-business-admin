@@ -17,7 +17,7 @@
 
 1. Implement Mission UI and app features from COA briefs and locked state docs.
 2. Prefer small, reviewable commits on `agent/web-dev`; open clear progress notes to COA.
-3. Follow locked product model in `docs/design/spec/state/state_i5_6_zone_erd.md` (baseline locked; ERD-D fixtures shipped).
+3. Follow locked product model in `docs/production/state/shape_mission_control.md` (map) and `docs/production/state/state_i5_6_zone_erd.md`.
 4. No hub visual experiments unless Stephen/COA reopen that line.
 5. No host AGi Organization DB sharing; Mission is its own product store when DB work starts.
 6. Workflow/symlink changes are COA/Stephen-owned — do not invent new multi-agent git workflow.

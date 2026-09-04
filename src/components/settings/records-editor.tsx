@@ -6,9 +6,21 @@ import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } f
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { SectionTabs } from "@/components/ui/section-tabs";
+import { KindBadge } from "@/components/ui/kind-badge";
+import { PageHeader } from "@/components/ui/page-header";
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { theme } from "@/lib/theme";
+import { BooleanSwitch } from "@/components/ui/boolean-switch";
+import { cn } from "@/lib/utils";
+import { CUSTOM_API_PREFIX, customApiBody, normalizeCustomApiName } from "@/lib/catalog/custom-namespace";
+import {
+  ColumnHeaders,
+  rowClickIsToggle,
+  sortByText,
+  toggleSort,
+  usePersistedColumnOrder,
+  type TableSort,
+} from "@/components/settings/records-table";
 
 type Parent = { parent_kind: string; parent_api_name: string; label: string; group?: string; baked_in_tabs: string[] };
 type SelectOption = string | { value: string; label: string; group?: string };
@@ -42,6 +54,50 @@ const DATA_TYPES: SelectOption[] = [
 ];
 
 /** J3: UI label for a structure value (API value stays header_lines). */
+function labeledSorted(
+  items: { value: string; label: string; group?: string }[],
+): { value: string; label: string; group?: string }[] {
+  return [...items].sort((a, b) =>
+    a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+  );
+}
+
+function typeOptionsByParent(
+  types: RT[],
+  parents: Parent[],
+  valueKey: "api_name" | "object_api_name" = "api_name",
+): SelectOption[] {
+  const grouped: SelectOption[] = [];
+  const seen = new Set<string>();
+  for (const p of parents) {
+    const group = (p.group ? p.group + " · " : "") + p.label;
+    const items = labeledSorted(
+      types
+        .filter((t) => t.parent_kind === p.parent_kind && t.parent_api_name === p.parent_api_name)
+        .map((t) => ({
+          value: valueKey === "object_api_name" ? t.object_api_name : t.api_name,
+          label: t.label || t.api_name,
+          group,
+        })),
+    );
+    for (const item of items) {
+      if (seen.has(item.value)) continue;
+      seen.add(item.value);
+      grouped.push(item);
+    }
+  }
+  const orphans = labeledSorted(
+    types
+      .filter((t) => !seen.has(valueKey === "object_api_name" ? t.object_api_name : t.api_name))
+      .map((t) => ({
+        value: valueKey === "object_api_name" ? t.object_api_name : t.api_name,
+        label: t.label || t.api_name,
+        group: "Other",
+      })),
+  );
+  return [...grouped, ...orphans];
+}
+
 function structureLabel(value: string): string {
   if (value === "header_lines") return "Header and lines";
   if (value === "header") return "Header";
@@ -55,16 +111,13 @@ function placementCell(f: FD): ReactNode {
   return <span className="text-xs text-muted-foreground">—</span>;
 }
 /* ── Sample data label prefix helper (I5.6.42 #207 C) ── */
-function formatSampleLabel(label: string, isSystem: boolean): string {
-  return (isSystem ? "(fixed) " : "(db) ") + label;
+function formatSampleLabel(label: string, _isSystem: boolean): string {
+  return label;
 }
 
 /* ── Standard / DB Core badge ── */
 function StandardBadge({ isSystem }: { isSystem: boolean }) {
-  if (isSystem) {
-    return <Badge className="ml-2 border-0 bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px]">Standard / DB Core</Badge>;
-  }
-  return <Badge className="ml-2 border-0 bg-blue-500/20 text-blue-700 dark:text-blue-400 text-[10px]">Custom</Badge>;
+  return <KindBadge isSystem={isSystem} className="ml-2" />;
 }
 
 /* ── Record ID display ── */
@@ -78,7 +131,7 @@ function RecordIdDisplay({ id }: { id?: string }) {
 
 /* ── Inline create form ── */
 function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel, initialValues }: {
-  fields: { key: string; label: string; type?: "text" | "select" | "textarea" | "custom-parent" | "checkbox"; options?: SelectOption[]; placeholder?: string; showWhen?: (vals: Record<string, string>) => boolean }[];
+  fields: { key: string; label: string; type?: "text" | "select" | "textarea" | "custom-parent" | "checkbox"; options?: SelectOption[]; placeholder?: string; showWhen?: (vals: Record<string, string>) => boolean; customApi?: boolean }[];
   accent: string;
   onSubmit: (vals: Record<string, string>) => void;
   onCancel: () => void;
@@ -96,15 +149,13 @@ function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel, ini
           if (f.type === "checkbox") {
             const checked = v === "true" || v === "on";
             return (
-              <label key={f.key} className="flex items-center gap-2 self-end pb-2">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-input accent-[var(--primary)]"
+              <div key={f.key} className="self-end pb-2">
+                <BooleanSwitch
                   checked={checked}
-                  onChange={(e) => setVals((s) => ({ ...s, [f.key]: e.target.checked ? "true" : "" }))}
+                  label={f.label}
+                  onChange={(next) => setVals((s) => ({ ...s, [f.key]: next ? "true" : "" }))}
                 />
-                <span className="text-sm font-medium">{f.label}</span>
-              </label>
+              </div>
             );
           }
           if (f.type === "select") {
@@ -169,12 +220,31 @@ function CreateForm({ fields, accent, onSubmit, onCancel, busy, submitLabel, ini
           return (
             <label key={f.key} className="flex flex-col gap-1.5">
               <span className="text-xs font-medium text-muted-foreground">{f.label}</span>
-              <input
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder={f.placeholder ?? f.label}
-                value={v}
-                onChange={(e) => setVals((s) => ({ ...s, [f.key]: e.target.value }))}
-              />
+              {f.customApi ? (
+                <div className="flex overflow-hidden rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring">
+                  <span className="flex items-center border-r border-input bg-muted px-2.5 font-mono text-sm text-muted-foreground">
+                    {CUSTOM_API_PREFIX}
+                  </span>
+                  <input
+                    className="min-w-0 flex-1 bg-transparent px-3 py-2 font-mono text-sm outline-none"
+                    placeholder={f.placeholder ?? "priority"}
+                    value={customApiBody(v)}
+                    onChange={(e) =>
+                      setVals((s) => ({ ...s, [f.key]: normalizeCustomApiName(e.target.value) }))
+                    }
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                  />
+                </div>
+              ) : (
+                <input
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  placeholder={f.placeholder ?? f.label}
+                  value={v}
+                  onChange={(e) => setVals((s) => ({ ...s, [f.key]: e.target.value }))}
+                />
+              )}
             </label>
           );
         })}
@@ -198,6 +268,47 @@ function ExpandRow({ colSpan, children }: { colSpan: number; children: ReactNode
   );
 }
 
+const TYPE_COL_DEFAULTS = ["system", "kind", "api_name", "label", "parent", "structure", "actions"] as const;
+const FIELD_COL_DEFAULTS = ["object", "kind", "api_name", "label", "data_type", "placement", "lookup", "actions"] as const;
+const PICKLIST_COL_DEFAULTS = ["system", "kind", "api_name", "label", "options", "actions"] as const;
+type TypeColKey = (typeof TYPE_COL_DEFAULTS)[number];
+type FieldColKey = (typeof FIELD_COL_DEFAULTS)[number];
+type PicklistColKey = (typeof PICKLIST_COL_DEFAULTS)[number];
+
+const TYPE_COL_META: Record<TypeColKey, { label: string; sortKey?: string }> = {
+  system: { label: "System", sortKey: "system" },
+  kind: { label: "Kind", sortKey: "kind" },
+  api_name: { label: "API name", sortKey: "api_name" },
+  label: { label: "Label", sortKey: "label" },
+  parent: { label: "Parent", sortKey: "parent" },
+  structure: { label: "Structure", sortKey: "structure" },
+  actions: { label: "Actions" },
+};
+
+const FIELD_COL_META: Record<FieldColKey, { label: string; sortKey?: string }> = {
+  object: { label: "Object", sortKey: "object" },
+  kind: { label: "Kind", sortKey: "kind" },
+  api_name: { label: "API name", sortKey: "api_name" },
+  label: { label: "Label", sortKey: "label" },
+  data_type: { label: "Type", sortKey: "data_type" },
+  placement: { label: "Placement", sortKey: "placement" },
+  lookup: { label: "Value set / Lookup", sortKey: "lookup" },
+  actions: { label: "Actions" },
+};
+
+const PICKLIST_COL_META: Record<PicklistColKey, { label: string; sortKey?: string }> = {
+  system: { label: "System", sortKey: "system" },
+  kind: { label: "Kind", sortKey: "kind" },
+  api_name: { label: "API name", sortKey: "api_name" },
+  label: { label: "Label", sortKey: "label" },
+  options: { label: "Options", sortKey: "options" },
+  actions: { label: "Actions" },
+};
+
+const TYPE_COLS_KEY = "mc.records-editor.type-columns";
+const FIELD_COLS_KEY = "mc.records-editor.field-columns";
+const PICKLIST_COLS_KEY = "mc.records-editor.picklist-columns";
+
 export function RecordsEditor() {
   const [parents, setParents] = useState<Parent[]>([]);
   const [types, setTypes] = useState<RT[]>([]);
@@ -213,6 +324,15 @@ export function RecordsEditor() {
   const [expandedType, setExpandedType] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const [parentFilter, setParentFilter] = useState(() => searchParams.get("parent") || "");
+  const [typeSort, setTypeSort] = useState<TableSort>({ key: "api_name", dir: "asc" });
+  const [fieldSort, setFieldSort] = useState<TableSort>({ key: "api_name", dir: "asc" });
+  const [typeCols, reorderTypeCols] = usePersistedColumnOrder(TYPE_COLS_KEY, TYPE_COL_DEFAULTS);
+  const [fieldCols, reorderFieldCols] = usePersistedColumnOrder(FIELD_COLS_KEY, FIELD_COL_DEFAULTS);
+  const [picklistCols, reorderPicklistCols] = usePersistedColumnOrder(PICKLIST_COLS_KEY, PICKLIST_COL_DEFAULTS);
+  const [typeDragOver, setTypeDragOver] = useState<string | null>(null);
+  const [fieldDragOver, setFieldDragOver] = useState<string | null>(null);
+  const [picklistDragOver, setPicklistDragOver] = useState<string | null>(null);
+  const [vsSort, setVsSort] = useState<TableSort>({ key: "api_name", dir: "asc" });
   const [editingType, setEditingType] = useState<Record<string, Partial<RT>>>({});
   const [typeFields, setTypeFields] = useState<Record<string, FD[]>>({});
 
@@ -237,6 +357,7 @@ export function RecordsEditor() {
   }>(null);
   const [fieldFilter, setFieldFilter] = useState("");
   const [fieldTypeFilter, setFieldTypeFilter] = useState("");
+  const [fieldKindFilter, setFieldKindFilter] = useState<"" | "standard" | "custom">("");
   const [selectedTypeForFields, setSelectedTypeForFields] = useState<string>("");
 
   // Picklists state
@@ -345,7 +466,7 @@ export function RecordsEditor() {
       await api("/api/catalog/record-types", {
         method: "POST",
         body: JSON.stringify({
-          api_name: vals.api_name,
+          api_name: normalizeCustomApiName(vals.api_name),
           label: vals.label,
           description: vals.description || "",
           parent_kind: pKind,
@@ -391,7 +512,7 @@ export function RecordsEditor() {
         method: "POST",
         body: JSON.stringify({
           object_api_name,
-          api_name: vals.api_name,
+          api_name: normalizeCustomApiName(vals.api_name),
           label: vals.label,
           data_type: vals.data_type || "text",
           value_set_api_name: vals.data_type === "picklist" || vals.data_type === "multipicklist" ? (vals.value_set_api_name || null) : null,
@@ -649,8 +770,27 @@ export function RecordsEditor() {
       const [pk, pa] = parentFilter.split(":");
       rows = rows.filter((t) => t.parent_kind === pk && t.parent_api_name === pa);
     }
-    return rows;
-  }, [types, parentFilter]);
+    const parentLabel = (t: RT) =>
+      parents.find((p) => p.parent_kind === t.parent_kind && p.parent_api_name === t.parent_api_name)?.label ||
+      t.parent_kind + ":" + t.parent_api_name;
+    const get = (t: RT) => {
+      switch (typeSort.key) {
+        case "label":
+          return t.label || "";
+        case "kind":
+          return t.is_system ? "standard" : "custom";
+        case "parent":
+          return parentLabel(t);
+        case "structure":
+          return structureLabel(t.structure);
+        case "system":
+          return t.is_system ? "system" : "";
+        default:
+          return t.api_name || "";
+      }
+    };
+    return sortByText(rows, typeSort.dir, get);
+  }, [types, parentFilter, parents, typeSort]);
 
   const filteredFields = useMemo(() => {
     let rows = [...allFields];
@@ -659,12 +799,32 @@ export function RecordsEditor() {
       rows = rows.filter((f) => f.object_api_name === targetObj);
     }
     if (fieldTypeFilter) rows = rows.filter((f) => f.data_type === fieldTypeFilter);
+    if (fieldKindFilter === "standard") rows = rows.filter((f) => !!f.is_system);
+    if (fieldKindFilter === "custom") rows = rows.filter((f) => !f.is_system);
     if (fieldFilter) {
       const ff = fieldFilter.toLowerCase();
       rows = rows.filter((f) => f.api_name.toLowerCase().includes(ff) || f.label.toLowerCase().includes(ff) || (f.object_api_name || "").toLowerCase().includes(ff));
     }
-    return rows;
-  }, [allFields, selectedTypeForFields, types, fieldTypeFilter, fieldFilter]);
+    const get = (f: FD) => {
+      switch (fieldSort.key) {
+        case "label":
+          return f.label || "";
+        case "kind":
+          return f.is_system ? "standard" : "custom";
+        case "data_type":
+          return f.data_type || "";
+        case "object":
+          return f.object_api_name || "";
+        case "placement":
+          return f.zone_role || "";
+        case "lookup":
+          return f.value_set_api_name || f.lookup_object_api_name || "";
+        default:
+          return f.api_name || "";
+      }
+    };
+    return sortByText(rows, fieldSort.dir, get);
+  }, [allFields, selectedTypeForFields, types, fieldTypeFilter, fieldKindFilter, fieldFilter, fieldSort]);
 
   const parentOptions = useMemo<SelectOption[]>(() => parents.map((p) => ({
     value: p.parent_kind + ":" + p.parent_api_name,
@@ -672,30 +832,98 @@ export function RecordsEditor() {
     group: p.group,
   })), [parents]);
 
+  const toggleTypeRow = (t: RT) => {
+    if (expandedType === t.api_name) {
+      setExpandedType(null);
+      return;
+    }
+    setExpandedType(t.api_name);
+    setEditingType((s) => ({
+      ...s,
+      [t.api_name]: {
+        label: t.label,
+        description: t.description,
+        structure: t.structure,
+        sort_order: t.sort_order ?? 0,
+        show_as_tab: t.show_as_tab ?? true,
+        active: t.active ?? true,
+      },
+    }));
+    void loadTypeFields(t.api_name);
+  };
+
+  const toggleFieldRow = (f: FD) => {
+    const fid = (f.object_api_name || "") + ":" + f.api_name;
+    if (expandedField === fid) {
+      setExpandedField(null);
+      return;
+    }
+    setExpandedField(fid);
+    setEditingField((s) => ({
+      ...s,
+      [fid]: {
+        label: f.label,
+        value_set_api_name: f.value_set_api_name,
+        lookup_object_api_name: f.lookup_object_api_name ?? null,
+        is_required: f.is_required,
+        active: f.active !== false,
+        zone_role: f.zone_role ?? null,
+        show_in_column: f.show_in_column,
+      },
+    }));
+  };
+
+  const sortedValueSets = useMemo(() => {
+    const get = (vs: VS) => {
+      switch (vsSort.key) {
+        case "label":
+          return vs.label || "";
+        case "kind":
+          return vs.is_system ? "standard" : "custom";
+        case "system":
+          return vs.is_system ? "system" : "";
+        case "options":
+          return String((vsItems[vs.api_name] || []).length).padStart(4, "0");
+        default:
+          return vs.api_name || "";
+      }
+    };
+    return sortByText(valueSets, vsSort.dir, get);
+  }, [valueSets, vsSort, vsItems]);
+
+  const toggleVsRow = (vs: VS) => {
+    if (expandedVs === vs.api_name) {
+      setExpandedVs(null);
+      return;
+    }
+    setExpandedVs(vs.api_name);
+    void loadVsItems(vs.api_name);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
+      <PageHeader
+        title="Records Editor"
+        subtitle="Manage record types, fields, and picklists for the catalog."
+        accent={theme.colors.brand}
+        tabs={[
+          { id: "types", label: "Type" },
+          { id: "fields", label: "Field" },
+          { id: "picklists", label: "Picklist" },
+          { id: "layouts", label: "Layout" },
+        ]}
+        tabsValue={section}
+        onTabChange={(id) => { setSection(id as "types" | "fields" | "picklists" | "layouts"); setSubTab("configuration"); }}
+        tabsAriaLabel="Records Editor sections"
+      />
       {error && <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</div>}
       {status && <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm">{status}</div>}
-
-      <SectionTabs
-        ariaLabel="Records Editor sections"
-        value={section}
-        onChange={(id) => { setSection(id as "types" | "fields" | "picklists" | "layouts"); setSubTab("configuration"); }}
-        accent={theme.colors.brand}
-        noSticky
-        items={[
-          { id: "types", label: "Types" },
-          { id: "fields", label: "Fields" },
-          { id: "picklists", label: "Picklists" },
-          { id: "layouts", label: "Layouts" },
-        ]}
-      />
 
       {/* ── TYPES ── */}
       {section === "types" && (
         <div role="tabpanel" className="space-y-3">
           <SubTabBar
-            items={[{ id: "configuration", label: "Records" }]}
+            items={[{ id: "configuration", label: "Types" }]}
             activeId={subTab}
             accent={theme.colors.brand}
             onSelect={setSubTab}
@@ -703,30 +931,32 @@ export function RecordsEditor() {
           />
           <Card className="overflow-hidden">
             <CardHeader className="border-b bg-muted/30">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
                   <p className="mt-1 text-sm text-muted-foreground">Named tabs under parent entities. System types are relabelable.</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <div className="flex flex-nowrap items-center justify-end gap-2">
+                    <select
+                      className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                      value={parentFilter}
+                      onChange={(e) => setParentFilter(e.target.value)}
+                    >
+                      <option value="">All parents</option>
+                      {parents.map((p) => (
+                        <option key={p.parent_kind + ":" + p.parent_api_name} value={p.parent_kind + ":" + p.parent_api_name}>{p.group ? p.group + " — " : ""}{p.label}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setShowTypeForm((s) => !s)}
+                      className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                      style={{ backgroundColor: theme.colors.brand }}
+                    >
+                      {showTypeForm ? "Close" : "New Record Type"}
+                    </button>
+                  </div>
                   <Badge className="shrink-0 border-0 text-white" style={{ backgroundColor: theme.colors.brand }}>Types</Badge>
-                  <select
-                    className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-                    value={parentFilter}
-                    onChange={(e) => setParentFilter(e.target.value)}
-                  >
-                    <option value="">All parents</option>
-                    {parents.map((p) => (
-                      <option key={p.parent_kind + ":" + p.parent_api_name} value={p.parent_kind + ":" + p.parent_api_name}>{p.group ? p.group + " — " : ""}{p.label}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setShowTypeForm((s) => !s)}
-                    className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
-                    style={{ backgroundColor: theme.colors.brand }}
-                  >
-                    {showTypeForm ? "Close" : "New Record Type"}
-                  </button>
                 </div>
               </div>
             </CardHeader>
@@ -734,7 +964,7 @@ export function RecordsEditor() {
               {showTypeForm && (
                 <CreateForm
                   fields={[
-                    { key: "api_name", label: "API name", placeholder: "api_name" },
+                    { key: "api_name", label: "API name", placeholder: "due_date", customApi: true },
                     { key: "label", label: "Label", placeholder: "Name" },
                     { key: "description", label: "Description", placeholder: "Description" },
                     { key: "parent", label: "Parent", type: "custom-parent", options: parentOptions },
@@ -751,15 +981,15 @@ export function RecordsEditor() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[700px] border-collapse text-left text-sm">
                   <thead>
-                    <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-4 py-2.5 font-medium">Label</th>
-                      <th className="px-4 py-2.5 font-medium">Kind</th>
-                      <th className="px-4 py-2.5 font-medium">API name</th>
-                      <th className="px-4 py-2.5 font-medium">Parent</th>
-                      <th className="px-4 py-2.5 font-medium">Structure</th>
-                      <th className="px-4 py-2.5 font-medium">System?</th>
-                      <th className="px-4 py-2.5 text-right font-medium">Actions</th>
-                    </tr>
+                    <ColumnHeaders
+                      cols={typeCols}
+                      meta={TYPE_COL_META}
+                      sort={typeSort}
+                      onSort={(k) => setTypeSort((s) => toggleSort(s, k))}
+                      onReorder={reorderTypeCols}
+                      dragOver={typeDragOver}
+                      onDragOverKey={setTypeDragOver}
+                    />
                   </thead>
                   <tbody>
                     {filteredTypes.map((t) => {
@@ -768,44 +998,59 @@ export function RecordsEditor() {
                       const draft = editingType[t.api_name] ?? {};
                       return (
                         <Fragment key={t.api_name}>
-                          <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(t.label, !!t.is_system)}<RecordIdDisplay id={t.id} /></td>
-                            <td className="px-4 py-3 align-top"><StandardBadge isSystem={!!t.is_system} /></td>
-                            <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{t.api_name}</td>
-                            <td className="px-4 py-3 align-top text-muted-foreground">{parentLabel}</td>
-                            <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{structureLabel(t.structure)}</Badge></td>
-                            <td className="px-4 py-3 align-top">{t.is_system ? <span className="text-xs font-medium text-amber-600">System</span> : <span className="text-xs text-muted-foreground">—</span>}</td>
-                            <td className="px-4 py-3 text-right align-top">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (isExpanded) {
-                                    setExpandedType(null);
-                                  } else {
-                                    setExpandedType(t.api_name);
-                                    setEditingType((s) => ({
-                                      ...s,
-                                      [t.api_name]: {
-                                        label: t.label,
-                                        description: t.description,
-                                        structure: t.structure,
-                                        sort_order: t.sort_order ?? 0,
-                                        show_as_tab: t.show_as_tab ?? true,
-                                        active: t.active ?? true,
-                                      },
-                                    }));
-                                    void loadTypeFields(t.api_name);
-                                  }
-                                }}
-                                className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
-                                style={isExpanded ? { borderColor: theme.colors.brand, color: theme.colors.brand } : undefined}
-                              >
-                                {isExpanded ? "Close" : "Edit"}
-                              </button>
-                            </td>
+                          <tr
+                            className={cn(
+                              "cursor-pointer border-b border-border/70 transition-colors hover:bg-muted/30",
+                              isExpanded && "bg-muted/40",
+                            )}
+                            onClick={(e) => {
+                              if (rowClickIsToggle(e.target)) toggleTypeRow(t);
+                            }}
+                          >
+                            {typeCols.map((key) => {
+                              if (key === "system") {
+                                return (
+                                  <td key={key} className="px-4 py-3 align-top">
+                                    {t.is_system ? <span className="text-xs font-medium text-amber-600">System</span> : <span className="text-xs text-muted-foreground">—</span>}
+                                  </td>
+                                );
+                              }
+                              if (key === "kind") {
+                                return <td key={key} className="px-4 py-3 align-top"><StandardBadge isSystem={!!t.is_system} /></td>;
+                              }
+                              if (key === "api_name") {
+                                return <td key={key} className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{t.api_name}</td>;
+                              }
+                              if (key === "label") {
+                                return (
+                                  <td key={key} className="px-4 py-3 align-top font-medium">
+                                    {formatSampleLabel(t.label, !!t.is_system)}
+                                    <RecordIdDisplay id={t.id} />
+                                  </td>
+                                );
+                              }
+                              if (key === "parent") {
+                                return <td key={key} className="px-4 py-3 align-top text-muted-foreground">{parentLabel}</td>;
+                              }
+                              if (key === "structure") {
+                                return <td key={key} className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{structureLabel(t.structure)}</Badge></td>;
+                              }
+                              return (
+                                <td key={key} className="px-4 py-3 text-right align-top" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleTypeRow(t)}
+                                    className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                                    style={isExpanded ? { borderColor: theme.colors.brand, color: theme.colors.brand } : undefined}
+                                  >
+                                    {isExpanded ? "Close" : "Edit"}
+                                  </button>
+                                </td>
+                              );
+                            })}
                           </tr>
                           {isExpanded && (
-                            <ExpandRow colSpan={6}>
+                            <ExpandRow colSpan={typeCols.length}>
                               <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${theme.colors.brand}` }}>
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                   <div className="space-y-1.5">
@@ -845,25 +1090,17 @@ export function RecordsEditor() {
                                       onChange={(e) => setEditingType((s) => ({ ...s, [t.api_name]: { ...s[t.api_name], description: e.target.value } }))}
                                     />
                                   </div>
-                                  <div className="flex items-center gap-4 sm:col-span-2 lg:col-span-3">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                      <input
-                                        type="checkbox"
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                        checked={draft.show_as_tab ?? t.show_as_tab ?? true}
-                                        onChange={(e) => setEditingType((s) => ({ ...s, [t.api_name]: { ...s[t.api_name], show_as_tab: e.target.checked } }))}
-                                      />
-                                      <span className="text-sm font-medium">Show as tab</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                      <input
-                                        type="checkbox"
-                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                        checked={draft.active ?? t.active ?? true}
-                                        onChange={(e) => setEditingType((s) => ({ ...s, [t.api_name]: { ...s[t.api_name], active: e.target.checked } }))}
-                                      />
-                                      <span className="text-sm font-medium">Active</span>
-                                    </label>
+                                  <div className="flex flex-wrap items-center gap-6 sm:col-span-2 lg:col-span-3">
+                                    <BooleanSwitch
+                                      checked={draft.show_as_tab ?? t.show_as_tab ?? true}
+                                      label="Show as tab"
+                                      onChange={(next) => setEditingType((s) => ({ ...s, [t.api_name]: { ...s[t.api_name], show_as_tab: next } }))}
+                                    />
+                                    <BooleanSwitch
+                                      checked={draft.active ?? t.active ?? true}
+                                      label="Active"
+                                      onChange={(next) => setEditingType((s) => ({ ...s, [t.api_name]: { ...s[t.api_name], active: next } }))}
+                                    />
                                   </div>
                                   <div className="space-y-1 text-sm sm:col-span-2 lg:col-span-3">
                                     <p><span className="text-muted-foreground">API name:</span> <span className="font-mono text-xs">{t.api_name}</span></p>
@@ -904,6 +1141,7 @@ export function RecordsEditor() {
                                     <Button
                                       variant="outline"
                                       disabled={busy}
+                                      title="Hide this type and its zone tab. History stays; you can reactivate later."
                                       className="border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
                                       onClick={() => requestTypeLifecycle(t, "retire")}
                                     >
@@ -914,6 +1152,7 @@ export function RecordsEditor() {
                                     <Button
                                       variant="outline"
                                       disabled={busy}
+                                      title="Permanently remove this type and cascade its custom fields, layouts, and instance rows."
                                       className="border-destructive/40 text-destructive hover:bg-destructive/10"
                                       onClick={() => requestTypeLifecycle(t, "delete")}
                                     >
@@ -935,8 +1174,8 @@ export function RecordsEditor() {
                                     </p>
                                     <p className="mt-1 text-muted-foreground">
                                       {typeDeletePending.mode === "delete"
-                                        ? "Permanently removes this type and cascades: its custom fields, saved layouts, catalog object registration, and any session/fixture instance rows for this type. This cannot be undone. System types stay protected."
-                                        : "Sets the type inactive and hides its zone tab. You can keep Retire for soft deactivation; use Delete type for hard removal. System types stay protected."}
+                                        ? "Delete permanently removes this type and also deletes its custom fields, saved layouts, catalog object registration, and any instance rows for this type. This cannot be undone. System types stay protected."
+                                        : "Retire hides this type and its zone tab but keeps the definition and history. You can reactivate it later. Use Delete type only when you want a permanent removal."}
                                     </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
                                       <Button
@@ -976,7 +1215,7 @@ export function RecordsEditor() {
                       );
                     })}
                     {filteredTypes.length === 0 && (
-                      <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No record types yet. Use New Record Type to add the first one.</td></tr>
+                      <tr><td colSpan={typeCols.length} className="px-4 py-8 text-center text-muted-foreground">No record types yet. Use New Record Type to add the first one.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -990,7 +1229,7 @@ export function RecordsEditor() {
       {section === "fields" && (
         <div role="tabpanel" className="space-y-3">
           <SubTabBar
-            items={[{ id: "configuration", label: "Records" }]}
+            items={[{ id: "configuration", label: "Fields" }]}
             activeId={subTab}
             accent={theme.colors.brand}
             onSelect={setSubTab}
@@ -998,19 +1237,42 @@ export function RecordsEditor() {
           />
           <Card className="overflow-hidden">
             <CardHeader className="border-b bg-muted/30">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="mt-1 text-sm text-muted-foreground">Field definitions across all record types. Filter by type or search.</p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="mt-1 text-sm text-muted-foreground">Field definitions across all record types, including Organization and zone types (Policy, Contacts, Locations, and the rest). Filter by type, kind, or search.</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge className="shrink-0 border-0 text-white" style={{ backgroundColor: theme.colors.brand }}>Fields</Badge>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <div className="flex flex-nowrap items-center justify-end gap-2">
+                    <select
+                      className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
+                      value={selectedTypeForFields}
+                      onChange={(e) => setSelectedTypeForFields(e.target.value)}
+                    >
+                    <option value="">All record types</option>
+                    {parents.map((p) => {
+                      const groupTypes = labeledSorted(
+                        types
+                          .filter((t) => t.parent_kind === p.parent_kind && t.parent_api_name === p.parent_api_name)
+                          .map((t) => ({ value: t.api_name, label: t.label || t.api_name })),
+                      );
+                      if (!groupTypes.length) return null;
+                      return (
+                        <optgroup key={p.parent_kind + ":" + p.parent_api_name} label={p.label}>
+                          {groupTypes.map((t) => (
+                            <option key={t.value} value={t.value}>{t.label}</option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+                  </select>
                   <select
                     className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
-                    value={selectedTypeForFields}
-                    onChange={(e) => setSelectedTypeForFields(e.target.value)}
+                    value={fieldKindFilter}
+                    onChange={(e) => setFieldKindFilter((e.target.value || "") as "" | "standard" | "custom")}
                   >
-                    <option value="">All record types</option>
-                    {types.map((t) => <option key={t.api_name} value={t.api_name}>{t.label}</option>)}
+                    <option value="">All kinds</option>
+                    <option value="standard">Standard / DB Core</option>
+                    <option value="custom">Custom</option>
                   </select>
                   <select
                     className="rounded-md border border-border bg-background px-3 py-1.5 text-sm"
@@ -1034,6 +1296,8 @@ export function RecordsEditor() {
                   >
                     {showFieldForm ? "Close" : "New Field"}
                   </button>
+                  </div>
+                  <Badge className="shrink-0 border-0 text-white" style={{ backgroundColor: theme.colors.brand }}>Fields</Badge>
                 </div>
               </div>
             </CardHeader>
@@ -1041,9 +1305,9 @@ export function RecordsEditor() {
               {showFieldForm && (
                 <CreateForm
                   fields={[
-                    { key: "api_name", label: "API name", placeholder: "field_api" },
+                    { key: "api_name", label: "API name", placeholder: "due_date", customApi: true },
                     { key: "label", label: "Label", placeholder: "Label" },
-                    { key: "type", label: "Record type", type: "select", options: types.map((t) => t.api_name) },
+                    { key: "type", label: "Record type", type: "select", options: typeOptionsByParent(types, parents) },
                     { key: "data_type", label: "Data type", type: "select", options: DATA_TYPES },
                     ...(selectedTypeForFields && types.find((t) => t.api_name === selectedTypeForFields)?.structure === "header_lines"
                       ? [
@@ -1053,8 +1317,8 @@ export function RecordsEditor() {
                       : []),
                     // I5.6.33 round-2 item 6 - Value set only for picklist/multipicklist;
                     // Lookup object only for lookup (same showWhen pattern as delete rule).
-                    { key: "value_set_api_name", label: "Value set", type: "select", options: valueSets.map((v) => ({ value: v.api_name, label: v.label || v.api_name })), showWhen: (vals: Record<string, string>) => vals.data_type === "picklist" || vals.data_type === "multipicklist" },
-                    { key: "lookup_object_api_name", label: "Lookup object", type: "select", options: types.map((t) => ({ value: t.object_api_name, label: t.label })), showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" },
+                    { key: "value_set_api_name", label: "Value set", type: "select", options: labeledSorted(valueSets.map((v) => ({ value: v.api_name, label: v.label || v.api_name }))), showWhen: (vals: Record<string, string>) => vals.data_type === "picklist" || vals.data_type === "multipicklist" },
+                    { key: "lookup_object_api_name", label: "Lookup object", type: "select", options: typeOptionsByParent(types, parents, "object_api_name"), showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" },
                     { key: "lookup_delete_rule", label: "Lookup delete rule", type: "select", options: [{ value: "orphan", label: "Orphan (plain lookup)" }, { value: "cascade", label: "Cascade (master-detail)" }], showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" },
                   ]}
                   accent={theme.colors.brand}
@@ -1068,16 +1332,15 @@ export function RecordsEditor() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[700px] border-collapse text-left text-sm">
                   <thead>
-                    <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-4 py-2.5 font-medium">Label</th>
-                      <th className="px-4 py-2.5 font-medium">Kind</th>
-                      <th className="px-4 py-2.5 font-medium">API name</th>
-                      <th className="px-4 py-2.5 font-medium">Type</th>
-                      <th className="px-4 py-2.5 font-medium">Object</th>
-                      <th className="px-4 py-2.5 font-medium">Placement</th>
-                      <th className="px-4 py-2.5 font-medium">Value set / Lookup</th>
-                      <th className="px-4 py-2.5 text-right font-medium">Actions</th>
-                    </tr>
+                    <ColumnHeaders
+                      cols={fieldCols}
+                      meta={FIELD_COL_META}
+                      sort={fieldSort}
+                      onSort={(k) => setFieldSort((s) => toggleSort(s, k))}
+                      onReorder={reorderFieldCols}
+                      dragOver={fieldDragOver}
+                      onDragOverKey={setFieldDragOver}
+                    />
                   </thead>
                   <tbody>
                     {filteredFields.map((f) => {
@@ -1087,45 +1350,59 @@ export function RecordsEditor() {
                       const objectApi = f.object_api_name || "";
                       return (
                         <Fragment key={fid}>
-                          <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(f.label, !!f.is_system)}<RecordIdDisplay id={f.id} />{f.active === false ? <Badge className="ml-2 border-0 bg-muted text-muted-foreground text-[10px]">Retired</Badge> : null}</td>
-                            <td className="px-4 py-3 align-top"><StandardBadge isSystem={!!f.is_system} /></td>
-                            <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.api_name}</td>
-                            <td className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{f.data_type}</Badge></td>
-                            <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.object_api_name || "—"}</td>
-                            <td className="px-4 py-3 align-top">{placementCell(f)}</td>
-                            <td className="px-4 py-3 align-top text-muted-foreground">{f.value_set_api_name || f.lookup_object_api_name || "—"}</td>
-                            <td className="px-4 py-3 text-right align-top">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (isExpanded) {
-                                    setExpandedField(null);
-                                  } else {
-                                    setExpandedField(fid);
-                                    setEditingField((s) => ({
-                                      ...s,
-                                      [fid]: {
-                                        label: f.label,
-                                        value_set_api_name: f.value_set_api_name,
-                                        lookup_object_api_name: f.lookup_object_api_name ?? null,
-                                        is_required: f.is_required,
-                                        active: f.active !== false,
-                                        zone_role: f.zone_role ?? null,
-                                        show_in_column: f.show_in_column,
-                                      },
-                                    }));
-                                  }
-                                }}
-                                className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
-                                style={isExpanded ? { borderColor: theme.colors.brand, color: theme.colors.brand } : undefined}
-                              >
-                                {isExpanded ? "Close" : "Edit"}
-                              </button>
-                            </td>
+                          <tr
+                            className={cn(
+                              "cursor-pointer border-b border-border/70 transition-colors hover:bg-muted/30",
+                              isExpanded && "bg-muted/40",
+                            )}
+                            onClick={(e) => {
+                              if (rowClickIsToggle(e.target)) toggleFieldRow(f);
+                            }}
+                          >
+                            {fieldCols.map((key) => {
+                              if (key === "object") {
+                                return <td key={key} className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.object_api_name || "—"}</td>;
+                              }
+                              if (key === "kind") {
+                                return <td key={key} className="px-4 py-3 align-top"><StandardBadge isSystem={!!f.is_system} /></td>;
+                              }
+                              if (key === "api_name") {
+                                return <td key={key} className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{f.api_name}</td>;
+                              }
+                              if (key === "label") {
+                                return (
+                                  <td key={key} className="px-4 py-3 align-top font-medium">
+                                    {formatSampleLabel(f.label, !!f.is_system)}
+                                    <RecordIdDisplay id={f.id} />
+                                    {f.active === false ? <Badge className="ml-2 border-0 bg-muted text-muted-foreground text-[10px]">Retired</Badge> : null}
+                                  </td>
+                                );
+                              }
+                              if (key === "data_type") {
+                                return <td key={key} className="px-4 py-3 align-top"><Badge variant="outline" className="text-[10px]">{f.data_type}</Badge></td>;
+                              }
+                              if (key === "placement") {
+                                return <td key={key} className="px-4 py-3 align-top">{placementCell(f)}</td>;
+                              }
+                              if (key === "lookup") {
+                                return <td key={key} className="px-4 py-3 align-top text-muted-foreground">{f.value_set_api_name || f.lookup_object_api_name || "—"}</td>;
+                              }
+                              return (
+                                <td key={key} className="px-4 py-3 text-right align-top" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleFieldRow(f)}
+                                    className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                                    style={isExpanded ? { borderColor: theme.colors.brand, color: theme.colors.brand } : undefined}
+                                  >
+                                    {isExpanded ? "Close" : "Edit"}
+                                  </button>
+                                </td>
+                              );
+                            })}
                           </tr>
                           {isExpanded && (
-                            <ExpandRow colSpan={7}>
+                            <ExpandRow colSpan={fieldCols.length}>
                               <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${theme.colors.brand}` }}>
                                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                   <div className="space-y-1.5">
@@ -1163,7 +1440,7 @@ export function RecordsEditor() {
                                         onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], lookup_object_api_name: e.target.value || null } }))}
                                       >
                                         <option value="">—</option>
-                                        {types.map((t) => <option key={t.object_api_name} value={t.object_api_name}>{t.object_api_name}</option>)}
+                                        {labeledSorted([{ value: "organization", label: "Organization" }, ...types.map((t) => ({ value: t.object_api_name, label: t.label || t.object_api_name }))]).map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                                       </select>
                                     ) : (
                                       <div className="flex w-full items-center justify-between gap-2 rounded-md border border-dashed border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
@@ -1190,14 +1467,13 @@ export function RecordsEditor() {
                                       </div>
                                     )}
                                   </div>
-                                  <label className="flex items-center gap-2 pt-6">
-                                    <input
-                                      type="checkbox"
+                                  <div className="pt-6">
+                                    <BooleanSwitch
                                       checked={draft.is_required ?? f.is_required ?? false}
-                                      onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], is_required: e.target.checked } }))}
+                                      label="Required"
+                                      onChange={(next) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], is_required: next } }))}
                                     />
-                                    <span className="text-sm font-medium">Required</span>
-                                  </label>
+                                  </div>
                                   {(() => {
                                     const rt = types.find((t) => t.object_api_name === objectApi);
                                     if (!rt || rt.structure !== "header_lines") return null;
@@ -1215,14 +1491,13 @@ export function RecordsEditor() {
                                         </select>
                                         <p className="text-[10px] italic text-muted-foreground">Header fields show on the header form; Lines fields show on the lines table.</p>
                                         {role === "list" && (
-                                          <label className="flex items-center gap-2 pt-1">
-                                            <input
-                                              type="checkbox"
+                                          <div className="pt-1">
+                                            <BooleanSwitch
                                               checked={draft.show_in_column ?? f.show_in_column ?? false}
-                                              onChange={(e) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], show_in_column: e.target.checked } }))}
+                                              label="Show as column in lines table"
+                                              onChange={(next) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], show_in_column: next } }))}
                                             />
-                                            <span className="text-sm font-medium">Show as column in lines table</span>
-                                          </label>
+                                          </div>
                                         )}
                                       </div>
                                     );
@@ -1270,6 +1545,7 @@ export function RecordsEditor() {
                                   <Button
                                     variant="outline"
                                     disabled={busy || !objectApi || f.active === false}
+                                    title="Hide this field from new layouts. Existing records keep their stored values."
                                     onClick={() => void requestFieldLifecycle(objectApi, f.api_name, f.label, !!f.is_system, "retire")}
                                   >
                                     Retire
@@ -1278,6 +1554,7 @@ export function RecordsEditor() {
                                     <Button
                                       variant="outline"
                                       disabled={busy || !objectApi}
+                                      title="Permanently remove this custom field definition. Referenced fields must be retired instead."
                                       className="border-destructive/40 text-destructive hover:bg-destructive/10"
                                       onClick={() => void requestFieldLifecycle(objectApi, f.api_name, f.label, !!f.is_system, "delete")}
                                     >
@@ -1292,8 +1569,8 @@ export function RecordsEditor() {
                                     </p>
                                     <p className="mt-1 text-muted-foreground">
                                       {fieldDeletePending.mode === "delete"
-                                        ? "Hard delete removes the definition when unreferenced. Referenced custom fields must be retired instead."
-                                        : "Retire hides the field from active catalogs while preserving historical references."}
+                                        ? "Delete permanently removes this custom field definition when nothing references it. If records still use it, retire the field instead so history stays intact."
+                                        : "Retire hides this field from new layouts and catalogs. Existing records keep their stored values. You can reactivate it later."}
                                       {fieldDeletePending.isSystem ? " System fields cannot be hard-deleted." : ""}
                                     </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
@@ -1315,7 +1592,7 @@ export function RecordsEditor() {
                       );
                     })}
                     {filteredFields.length === 0 && (
-                      <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">No fields found. Use New Field to add one.</td></tr>
+                      <tr><td colSpan={fieldCols.length} className="px-4 py-8 text-center text-muted-foreground">No fields found. Use New Field to add one.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -1329,7 +1606,7 @@ export function RecordsEditor() {
       {section === "picklists" && (
         <div role="tabpanel" className="space-y-3">
           <SubTabBar
-            items={[{ id: "configuration", label: "Records" }]}
+            items={[{ id: "configuration", label: "Picklists" }]}
             activeId={subTab}
             accent={theme.colors.brand}
             onSelect={setSubTab}
@@ -1337,12 +1614,11 @@ export function RecordsEditor() {
           />
           <Card className="overflow-hidden">
             <CardHeader className="border-b bg-muted/30">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
                   <p className="mt-1 text-sm text-muted-foreground">Value sets for picklist fields. Expand a row to view, add, or delete options (delete prompts for replacement when referenced).</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge className="shrink-0 border-0 text-white" style={{ backgroundColor: theme.colors.brand }}>Picklists</Badge>
+                <div className="flex shrink-0 flex-col items-end gap-1 whitespace-nowrap">
                   <button
                     type="button"
                     onClick={() => setShowVsForm((s) => !s)}
@@ -1351,6 +1627,7 @@ export function RecordsEditor() {
                   >
                     {showVsForm ? "Close" : "New Picklist"}
                   </button>
+                  <Badge className="shrink-0 border-0 text-white" style={{ backgroundColor: theme.colors.brand }}>Picklists</Badge>
                 </div>
               </div>
             </CardHeader>
@@ -1372,45 +1649,76 @@ export function RecordsEditor() {
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[500px] border-collapse text-left text-sm">
                   <thead>
-                    <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-4 py-2.5 font-medium">Label</th>
-                      <th className="px-4 py-2.5 font-medium">Kind</th>
-                      <th className="px-4 py-2.5 font-medium">API name</th>
-                      <th className="px-4 py-2.5 font-medium">Options</th>
-                      <th className="px-4 py-2.5 text-right font-medium">Actions</th>
-                    </tr>
+                    <ColumnHeaders
+                      cols={picklistCols}
+                      meta={PICKLIST_COL_META}
+                      sort={vsSort}
+                      onSort={(k) => setVsSort((s) => toggleSort(s, k))}
+                      onReorder={reorderPicklistCols}
+                      dragOver={picklistDragOver}
+                      onDragOverKey={setPicklistDragOver}
+                    />
                   </thead>
                   <tbody>
-                    {valueSets.map((vs) => {
+                    {sortedValueSets.map((vs) => {
                       const isExpanded = expandedVs === vs.api_name;
                       const items = vsItems[vs.api_name] || [];
                       return (
                         <Fragment key={vs.api_name}>
-                          <tr className="border-b border-border/70 transition-colors hover:bg-muted/30">
-                            <td className="px-4 py-3 align-top font-medium">{formatSampleLabel(vs.label, !!vs.is_system)}<RecordIdDisplay id={vs.id} /></td>
-                            <td className="px-4 py-3 align-top"><StandardBadge isSystem={!!vs.is_system} /></td>
-                            <td className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{vs.api_name}</td>
-                            <td className="px-4 py-3 align-top text-muted-foreground">{items.length > 0 ? items.length + " option" + (items.length !== 1 ? "s" : "") : "—"}</td>
-                            <td className="px-4 py-3 text-right align-top">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (isExpanded) {
-                                    setExpandedVs(null);
-                                  } else {
-                                    setExpandedVs(vs.api_name);
-                                    void loadVsItems(vs.api_name);
-                                  }
-                                }}
-                                className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
-                                style={isExpanded ? { borderColor: theme.colors.brand, color: theme.colors.brand } : undefined}
-                              >
-                                {isExpanded ? "Close" : "Expand"}
-                              </button>
-                            </td>
+                          <tr
+                            className={cn(
+                              "cursor-pointer border-b border-border/70 transition-colors hover:bg-muted/30",
+                              isExpanded && "bg-muted/40",
+                            )}
+                            onClick={(e) => {
+                              if (rowClickIsToggle(e.target)) toggleVsRow(vs);
+                            }}
+                          >
+                            {picklistCols.map((key) => {
+                              if (key === "system") {
+                                return (
+                                  <td key={key} className="px-4 py-3 align-top">
+                                    {vs.is_system ? <span className="text-xs font-medium text-amber-600">System</span> : <span className="text-xs text-muted-foreground">—</span>}
+                                  </td>
+                                );
+                              }
+                              if (key === "kind") {
+                                return <td key={key} className="px-4 py-3 align-top"><StandardBadge isSystem={!!vs.is_system} /></td>;
+                              }
+                              if (key === "api_name") {
+                                return <td key={key} className="px-4 py-3 align-top font-mono text-xs text-muted-foreground">{vs.api_name}</td>;
+                              }
+                              if (key === "label") {
+                                return (
+                                  <td key={key} className="px-4 py-3 align-top font-medium">
+                                    {formatSampleLabel(vs.label, !!vs.is_system)}
+                                    <RecordIdDisplay id={vs.id} />
+                                  </td>
+                                );
+                              }
+                              if (key === "options") {
+                                return (
+                                  <td key={key} className="px-4 py-3 align-top text-muted-foreground">
+                                    {items.length > 0 ? items.length + " option" + (items.length !== 1 ? "s" : "") : "—"}
+                                  </td>
+                                );
+                              }
+                              return (
+                                <td key={key} className="px-4 py-3 text-right align-top" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleVsRow(vs)}
+                                    className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                                    style={isExpanded ? { borderColor: theme.colors.brand, color: theme.colors.brand } : undefined}
+                                  >
+                                    {isExpanded ? "Close" : "Expand"}
+                                  </button>
+                                </td>
+                              );
+                            })}
                           </tr>
                           {isExpanded && (
-                            <ExpandRow colSpan={4}>
+                            <ExpandRow colSpan={picklistCols.length}>
                               <div className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6" style={{ boxShadow: `inset 3px 0 0 ${theme.colors.brand}` }}>
                                 <div className="mb-3">
                                   <p className="mb-2 text-sm font-medium">Existing options</p>
@@ -1512,8 +1820,8 @@ export function RecordsEditor() {
                         </Fragment>
                       );
                     })}
-                    {valueSets.length === 0 && (
-                      <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">No picklists yet. Use New Picklist to add the first one.</td></tr>
+                    {sortedValueSets.length === 0 && (
+                      <tr><td colSpan={picklistCols.length} className="px-4 py-8 text-center text-muted-foreground">No picklists yet. Use New Picklist to add the first one.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -1527,7 +1835,7 @@ export function RecordsEditor() {
       {section === "layouts" && (
         <div role="tabpanel" className="space-y-3">
           <SubTabBar
-            items={[{ id: "configuration", label: "Records" }]}
+            items={[{ id: "configuration", label: "Layouts" }]}
             activeId={subTab}
             accent={theme.colors.brand}
             onSelect={setSubTab}

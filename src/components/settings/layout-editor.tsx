@@ -527,7 +527,7 @@ export function LayoutEditor({
             Layout Editor: <span className="text-foreground">{objectLabel}</span>
           </span>
           {dirty && (
-            <Badge className="border-0 bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px]">
+            <Badge className="border-0 bg-amber-500/30 text-[10px] font-medium text-amber-950 dark:text-amber-100 architect:text-amber-100 slate:text-amber-100 dusk:text-amber-950">
               Unsaved
             </Badge>
           )}
@@ -922,7 +922,7 @@ export function LayoutEditor({
                   <GripVertical className="h-3 w-3 shrink-0 text-muted-foreground" />
                   <span className="font-medium">{field.label}</span>
                   {field.is_system && (
-                    <Badge className="border-0 bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[9px]">
+                    <Badge className="border-0 bg-amber-500/30 text-[9px] font-medium text-amber-950 dark:text-amber-100 architect:text-amber-100 slate:text-amber-100 dusk:text-amber-950">
                       Std
                     </Badge>
                   )}

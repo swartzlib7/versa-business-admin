@@ -4,18 +4,16 @@ import { useUiTheme } from "@/components/shell/theme-provider";
 import { useState, useCallback, useEffect } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sun, Moon, Compass, Cloud, Maximize2, Minimize2, X, Grid3x3, Circle, Layers, Play, Pause, Move, Expand } from "lucide-react";
+import { Sun, Moon, Compass, Cloud, Sunset, Maximize2, Minimize2, X, Grid3x3, Circle, Layers, Play, Pause, Move, Expand } from "lucide-react";
 import {
   MissionControlScene,
   type SceneNode,
 } from "@/components/r3f/mission-control-scene";
-import { projects, tasks, integrations, businessGraphNodes } from "@/lib/fixtures";
+import { businessGraphNodes } from "@/lib/fixtures";
 
 export default function DashboardPage() {
   const { theme: uiTheme, cycleTheme } = useUiTheme();
-  const darkMode = uiTheme !== "light";
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [showAxes, setShowAxes] = useState(false); // I5.6.3 hide axes by default
@@ -67,90 +65,29 @@ const [ringsMode, setRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>(()
     ? businessGraphNodes.find((n) => n.id === focusedNodeId) ?? null
     : null;
 
-  const activeProjects = projects.filter((p) => p.status === "active").length;
-  const pendingTasks = tasks.filter(
-    (t) => t.status === "in_progress" || t.status === "planned"
-  ).length;
-  const connectedIntegrations = integrations.filter(
-    (i) => i.status === "connected"
-  ).length;
-  const orgDepartments = businessGraphNodes.filter(
-    (n) => n.type === "organization"
-  ).length;
-
   return (
     <AppShell fillViewport>
       <div className="flex min-h-[600px] w-full flex-1 flex-col gap-4 lg:gap-6 lg:min-h-[750px]">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h1 className="text-2xl font-bold tracking-tight">Mission Control</h1>
-            <p className="text-muted-foreground">
-              Versa AGi — Organization, Collaboration, and Environmental zones.
-            </p>
+            <Button variant="outline" size="icon" onClick={toggleTheme} title={`Theme: ${uiTheme}`}>
+              {uiTheme === "light" ? (
+                <Sun className="h-5 w-5" />
+              ) : uiTheme === "dusk" ? (
+                <Sunset className="h-5 w-5" />
+              ) : uiTheme === "architect" ? (
+                <Compass className="h-5 w-5" />
+              ) : uiTheme === "slate" ? (
+                <Cloud className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </Button>
           </div>
-          <Button variant="outline" size="icon" onClick={toggleTheme} title={`Theme: ${uiTheme}`}>
-            {uiTheme === "light" ? (
-              <Sun className="h-5 w-5" />
-            ) : uiTheme === "architect" ? (
-              <Compass className="h-5 w-5" />
-            ) : uiTheme === "slate" ? (
-              <Cloud className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-          </Button>
-        </div>
-
-        {/* KPI Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Departments</CardTitle>
-              <Badge variant="default">{orgDepartments}</Badge>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{orgDepartments}</p>
-              <p className="text-xs text-muted-foreground">
-                Organization zones
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-              <Badge variant="default">{activeProjects}</Badge>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{activeProjects}</p>
-              <p className="text-xs text-muted-foreground">
-                of {projects.length} total projects
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Pending Tasks</CardTitle>
-              <Badge variant="secondary">{pendingTasks}</Badge>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{pendingTasks}</p>
-              <p className="text-xs text-muted-foreground">
-                of {tasks.length} total tasks
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Integrations</CardTitle>
-              <Badge variant="default">{connectedIntegrations}</Badge>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{connectedIntegrations}</p>
-              <p className="text-xs text-muted-foreground">
-                of {integrations.length} connected
-              </p>
-            </CardContent>
-          </Card>
+          <p className="w-full text-muted-foreground">
+            Organization, Collaboration, and Environmental zones.
+          </p>
         </div>
 
         {/* 3D Scene — inline (hidden chrome when fullscreen so one canvas owns the view) */}

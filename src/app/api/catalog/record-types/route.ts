@@ -1,3 +1,4 @@
+import '@/lib/catalog/install-durable';
 import { NextResponse } from "next/server";
 import { getSessionFromRequest, isAuthenticated, isAdmin } from "@/lib/auth";
 import {
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
     faculty: result.type.parent_kind === "faculty" ? result.type.parent_api_name : undefined,
   });
   return NextResponse.json(
-    { data: result.type, meta: { persistence: "fixture_process_memory" } },
+    { data: result.type, meta: { persistence: "durable_catalog" } },
     { status: 201 },
   );
 }

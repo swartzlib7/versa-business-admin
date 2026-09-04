@@ -63,6 +63,7 @@ const BAKED_ELEMENT_TAB_SYSTEM_TYPES: Record<string, string> = {
   events: "event",
   knowledge: "knowledge",
   schedules: "schedule",
+  stats: "environment_stat",
 };
 
 export type ZoneRecordType = {
@@ -105,7 +106,7 @@ function wireBakedChildToSystemType(
   tabId: string,
   parentKind: "faculty" | "collaboration" | "environment",
   recordTypes: ZoneRecordType[],
-): ZoneTab {
+): ZoneTab | null {
   const apiName = BAKED_TAB_SYSTEM_TYPES[child.id];
   if (!apiName) return child;
   const systemType = recordTypes.find(
@@ -116,6 +117,8 @@ function wireBakedChildToSystemType(
       t.parent_api_name === tabId,
   );
   if (!systemType) return child;
+  // Gate 3: Show as tab controls baked tabs too. Unchecked hides the tab.
+  if (systemType.show_as_tab === false) return null;
   return {
     ...child,
     structure: systemType.structure,
@@ -160,16 +163,38 @@ export function applyRecordTypesToTab(
     }
   }
 
-  const types = recordTypes.filter((t) => t.parent_kind === parentKind && t.parent_api_name === tab.id && t.active && t.show_as_tab);
-
-  // #218: baked children wire to system types even when the parent has no
-  // show_as_tab types (system types are show_as_tab=false by design), so the
-  // wiring runs before the dynamic-tabs early return.
-  const wiredChildren = (wiredTab.children ?? []).map((c) =>
-    BAKED_IN_CHILD_IDS.has(c.id)
-      ? wireBakedChildToSystemType(c, tab.id, parentKind, recordTypes)
-      : c,
+  const bakedApiNames = new Set([
+    ...Object.values(BAKED_TAB_SYSTEM_TYPES),
+    ...Object.values(BAKED_ELEMENT_TAB_SYSTEM_TYPES),
+    "organization",
+    "executive",
+    "public",
+    "communications",
+    "dissemination",
+    "treasury",
+    "production",
+    "qualification",
+    "vendor",
+    "customer",
+    "partner",
+    "branch",
+  ]);
+  const types = recordTypes.filter(
+    (t) =>
+      t.parent_kind === parentKind &&
+      t.parent_api_name === tab.id &&
+      t.active &&
+      t.show_as_tab &&
+      !bakedApiNames.has(t.api_name),
   );
+
+  const wiredChildren = (wiredTab.children ?? [])
+    .map((c) =>
+      BAKED_IN_CHILD_IDS.has(c.id)
+        ? wireBakedChildToSystemType(c, tab.id, parentKind, recordTypes)
+        : c,
+    )
+    .filter((c): c is ZoneTab => c != null);
 
   if (!types.length) {
     if (wiredTab.children?.length) return { ...wiredTab, children: wiredChildren };

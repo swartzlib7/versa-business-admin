@@ -3,13 +3,36 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { theme } from "@/lib/theme";
-import { useBrand, brandInitials } from "@/components/shell/brand-provider";
-import { ArrowRight, Lock, Mail } from "lucide-react";
+import { useBrand, BrandMark } from "@/components/shell/brand-provider";
+import { ArrowRight, ExternalLink, Lock, Mail } from "lucide-react";
+
+type Challenge = {
+  nonce: string;
+  issued: number;
+  difficulty: number;
+  sig: string;
+};
+
+async function sha256Hex(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function solveChallenge(challenge: Challenge): Promise<number> {
+  const prefix = "0".repeat(challenge.difficulty);
+  let n = 0;
+  while (true) {
+    const hash = await sha256Hex(`${challenge.nonce}:${n}`);
+    if (hash.startsWith(prefix)) return n;
+    n += 1;
+    if (n % 250 === 0) await new Promise((r) => setTimeout(r, 0));
+  }
+}
 
 function LoginForm() {
   const brand = useBrand();
@@ -20,8 +43,8 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
 
-  // If already logged in, redirect
   useEffect(() => {
     fetch("/api/auth/session")
       .then((r) => r.json())
@@ -31,26 +54,51 @@ function LoginForm() {
       .catch(() => {});
   }, [router, redirect]);
 
+  useEffect(() => {
+    fetch("/api/auth/challenge")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json?.data) setChallenge(json.data as Challenge);
+      })
+      .catch(() => {});
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
+      let token = challenge;
+      if (!token) {
+        const issued = await fetch("/api/auth/challenge").then((r) => r.json());
+        token = (issued?.data as Challenge | undefined) ?? null;
+      }
+      if (!token) {
+        setError("Could not start login verification. Refresh and try again.");
+        setLoading(false);
+        return;
+      }
+      const solution = await solveChallenge(token);
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          challenge: { ...token, solution },
+        }),
       });
 
       if (!res.ok) {
         const json = await res.json();
         setError(json.error?.message || "Login failed.");
         setLoading(false);
+        const next = await fetch("/api/auth/challenge").then((r) => r.json()).catch(() => null);
+        if (next?.data) setChallenge(next.data as Challenge);
         return;
       }
 
-      // Success — redirect
       router.push(redirect);
       router.refresh();
     } catch {
@@ -62,17 +110,8 @@ function LoginForm() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-6">
-        {/* Brand */}
         <div className="flex flex-col items-center gap-2">
-          <div
-            className="flex h-12 w-12 items-center justify-center rounded-xl text-lg font-bold"
-            style={{
-              backgroundColor: brand.brand_color,
-              color: theme.colors.brandForeground,
-            }}
-          >
-            {brandInitials(brand.brand_name)}
-          </div>
+          <BrandMark size="md" className="rounded-xl text-lg" />
           <h1 className="text-2xl font-bold tracking-tight">
             {brand.brand_name}
           </h1>
@@ -133,12 +172,11 @@ function LoginForm() {
               )}
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Signing in..." : "Sign In"}
+                {loading ? "Verifying…" : "Sign In"}
                 {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
               </Button>
             </form>
 
-            {/* Fixture credentials hint */}
             <div className="mt-4 rounded-md border border-dashed border-muted p-3">
               <p className="text-xs text-muted-foreground">
                 <span className="font-medium">Demo credentials:</span>
@@ -152,9 +190,15 @@ function LoginForm() {
         </Card>
 
         <div className="text-center">
-          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-            Back to public site
-          </Link>
+          <a
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            Open home page
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+          </a>
         </div>
       </div>
     </div>

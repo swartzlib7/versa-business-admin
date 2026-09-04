@@ -1,8 +1,39 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { KindBadge } from "@/components/ui/kind-badge";
+import { theme } from "@/lib/theme";
+import { cn } from "@/lib/utils";
+import {
+  ColumnHeaders,
+  rowClickIsToggle,
+  sortByText,
+  toggleSort,
+  usePersistedColumnOrder,
+  type TableSort,
+} from "@/components/settings/records-table";
 import { LayoutEditor, type LayoutConfig } from "./layout-editor";
+
+const LAYOUT_COL_DEFAULTS = ["system", "kind", "api_name", "label", "object", "structure", "actions"] as const;
+type LayoutColKey = (typeof LAYOUT_COL_DEFAULTS)[number];
+const LAYOUT_COL_META: Record<LayoutColKey, { label: string; sortKey?: string }> = {
+  system: { label: "System", sortKey: "system" },
+  kind: { label: "Kind", sortKey: "kind" },
+  api_name: { label: "API name", sortKey: "api_name" },
+  label: { label: "Label", sortKey: "label" },
+  object: { label: "Object", sortKey: "object" },
+  structure: { label: "Structure", sortKey: "structure" },
+  actions: { label: "Actions" },
+};
+const LAYOUT_COLS_KEY = "mc.records-editor.layout-columns";
+
+function structureLabel(value?: string): string {
+  if (value === "header_lines") return "Header and lines";
+  if (value === "header") return "Header";
+  if (value === "list") return "Lines";
+  return value || "—";
+}
 
 type RecordType = {
   api_name: string;
@@ -30,6 +61,9 @@ export function LayoutEditorWrapper() {
   const [recordTypes, setRecordTypes] = useState<RecordType[]>([]);
   const [selectedType, setSelectedType] = useState("");
   const [layoutType, setLayoutType] = useState<LayoutType>("edit");
+  const [layoutSort, setLayoutSort] = useState<TableSort>({ key: "api_name", dir: "asc" });
+  const [layoutCols, reorderLayoutCols] = usePersistedColumnOrder(LAYOUT_COLS_KEY, LAYOUT_COL_DEFAULTS);
+  const [layoutDragOver, setLayoutDragOver] = useState<string | null>(null);
   const [fields, setFields] = useState<FieldDef[]>([]);
   const [initialConfig, setInitialConfig] = useState<LayoutConfig | undefined>();
   const [loading, setLoading] = useState(true);
@@ -114,6 +148,27 @@ export function LayoutEditorWrapper() {
   }, [selectedType, objectKey, layoutType]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  const activeTypes = useMemo(() => {
+    const rows = recordTypes.filter((rt) => rt.active !== false);
+    const get = (rt: RecordType) => {
+      switch (layoutSort.key) {
+        case "label":
+          return rt.label || "";
+        case "kind":
+          return rt.is_system ? "standard" : "custom";
+        case "system":
+          return rt.is_system ? "system" : "";
+        case "object":
+          return storageKey(rt, rt.api_name);
+        case "structure":
+          return structureLabel(rt.structure);
+        default:
+          return rt.api_name || "";
+      }
+    };
+    return sortByText(rows, layoutSort.dir, get);
+  }, [recordTypes, layoutSort]);
+
   if (loading) {
     return <div className="p-4 text-sm text-muted-foreground">Loading record types...</div>;
   }
@@ -121,109 +176,120 @@ export function LayoutEditorWrapper() {
     return <div className="p-4 text-sm text-muted-foreground">No record types available.</div>;
   }
 
-  const activeTypes = recordTypes.filter((rt) => rt.active !== false);
-
   return (
     <div className="space-y-4 p-4">
       <div className="overflow-x-auto rounded-md border border-border">
         <table className="w-full min-w-[480px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="px-3 py-2 font-medium">Label</th>
-                <th className="px-3 py-2 font-medium">Kind</th>
-                <th className="px-3 py-2 font-medium">API name</th>
-                <th className="px-3 py-2 font-medium">Object key</th>
-                <th className="px-3 py-2 text-right font-medium">Actions</th>
-              </tr>
+              <ColumnHeaders
+                cols={layoutCols}
+                meta={LAYOUT_COL_META}
+                sort={layoutSort}
+                onSort={(k) => setLayoutSort((s) => toggleSort(s, k))}
+                onReorder={reorderLayoutCols}
+                dragOver={layoutDragOver}
+                onDragOverKey={setLayoutDragOver}
+              />
             </thead>
             <tbody>
               {activeTypes.map((rt) => {
                 const key = storageKey(rt, rt.api_name);
                 const selected = selectedType === rt.api_name;
                 return (
+                  <Fragment key={rt.api_name}>
                   <tr
-                    key={rt.api_name}
                     role="button"
                     tabIndex={0}
                     aria-selected={selected}
                     aria-label={`Edit layout for ${rt.label}`}
-                    onClick={() => selectType(rt.api_name)}
+                    onClick={(e) => {
+                      if (rowClickIsToggle(e.target)) selectType(selected ? "" : rt.api_name);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        selectType(rt.api_name);
+                        selectType(selected ? "" : rt.api_name);
                       }
                     }}
-                    className={
-                      selected
-                        ? "cursor-pointer border-b border-border/70 bg-primary/10 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        : "cursor-pointer border-b border-border/70 transition-colors hover:bg-muted/30 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    }
+                    className={cn(
+                      "cursor-pointer border-b border-border/70 outline-none transition-colors hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring",
+                      selected && "bg-muted/40",
+                    )}
                   >
-                    <td className="px-3 py-2 align-middle font-medium">{rt.label}</td>
-                    <td className="px-3 py-2 align-middle">
-                      {rt.is_system ? (
-                        <Badge className="border-0 bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px]">
-                          Standard / DB Core
-                        </Badge>
-                      ) : (
-                        <Badge className="border-0 bg-blue-500/20 text-blue-700 dark:text-blue-400 text-[10px]">
-                          Custom
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 align-middle font-mono text-xs text-muted-foreground">
-                      {rt.api_name}
-                    </td>
-                    <td className="px-3 py-2 align-middle font-mono text-xs text-muted-foreground">
-                      {key}
-                    </td>
-                    <td className="px-3 py-2 text-right align-middle">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          selectType(rt.api_name);
-                        }}
-                        className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
-                        style={
-                          selected
-                            ? { borderColor: "hsl(var(--primary))", color: "hsl(var(--primary))" }
-                            : undefined
-                        }
-                      >
-                        Edit
-                      </button>
-                    </td>
+                    {layoutCols.map((col) => {
+                      if (col === "system") {
+                        return (
+                          <td key={col} className="px-4 py-3 align-middle">
+                            {rt.is_system ? <span className="text-xs font-medium text-amber-600">System</span> : <span className="text-xs text-muted-foreground">—</span>}
+                          </td>
+                        );
+                      }
+                      if (col === "kind") {
+                        return (
+                          <td key={col} className="px-4 py-3 align-middle">
+                            <KindBadge isSystem={!!rt.is_system} />
+                          </td>
+                        );
+                      }
+                      if (col === "api_name") {
+                        return <td key={col} className="px-4 py-3 align-middle font-mono text-xs text-muted-foreground">{rt.api_name}</td>;
+                      }
+                      if (col === "label") {
+                        return <td key={col} className="px-4 py-3 align-middle font-medium">{rt.label}</td>;
+                      }
+                      if (col === "object") {
+                        return <td key={col} className="px-4 py-3 align-middle font-mono text-xs text-muted-foreground">{key}</td>;
+                      }
+                      if (col === "structure") {
+                        return <td key={col} className="px-4 py-3 align-middle"><Badge variant="outline" className="text-[10px]">{structureLabel(rt.structure)}</Badge></td>;
+                      }
+                      return (
+                        <td key={col} className="px-4 py-3 text-right align-middle" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => selectType(selected ? "" : rt.api_name)}
+                            className="rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                            style={selected ? { borderColor: theme.colors.brand, color: theme.colors.brand } : undefined}
+                          >
+                            {selected ? "Close" : "Edit"}
+                          </button>
+                        </td>
+                      );
+                    })}
                   </tr>
+                  {selected && (
+                    <tr className="border-b border-border">
+                      <td colSpan={layoutCols.length} className="p-0">
+                        <div ref={editorAnchorRef} className="bg-muted/10 px-3 py-4">
+                          {loadingLayout ? (
+                            <div className="text-sm text-muted-foreground">Loading layout...</div>
+                          ) : (
+                            <LayoutEditor
+                              key={`${objectKey}:${layoutType}`}
+                              objectApiName={objectKey}
+                              objectLabel={selectedRecordType?.label || selectedType}
+                              layoutType={layoutType}
+                              onLayoutTypeChange={setLayoutType}
+                              fields={fields}
+                              initialConfig={initialConfig}
+                              structure={selectedRecordType?.structure}
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>
           </table>
         </div>
-
-      <div ref={editorAnchorRef}>
         {!selectedType && (
-          <div className="text-sm text-muted-foreground">
-            Select a record type from the table (or use Edit) to open its layout editor.
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Use Edit on a row to open that type’s layout editor in place.
+          </p>
         )}
-        {selectedType && loadingLayout && (
-          <div className="text-sm text-muted-foreground">Loading layout...</div>
-        )}
-        {selectedType && !loadingLayout && (
-          <LayoutEditor
-            key={`${objectKey}:${layoutType}`}
-            objectApiName={objectKey}
-            objectLabel={selectedRecordType?.label || selectedType}
-            layoutType={layoutType}
-            onLayoutTypeChange={setLayoutType}
-            fields={fields}
-            initialConfig={initialConfig}
-            structure={selectedRecordType?.structure}
-          />
-        )}
-      </div>
     </div>
   );
 }

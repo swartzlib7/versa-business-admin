@@ -1,3 +1,4 @@
+import '@/lib/catalog/install-durable';
 /**
  * #245 Slice E1 - Horizon 1 core persistence (rev E section 4.2).
  * record_type / record / record_line persistence behind DATA_SOURCE=postgres.
@@ -268,9 +269,7 @@ function toInstance(
 }
 
 /**
- * #249 Slice E2 (rev E section 2.5): organization auto-preset. Resolution
- * order: explicit body org_id (validated), then the creating user's default
- * organization (users.data JSONB), then the record type's org (tenant root).
+ * Organization auto-preset: explicit org_id, else the Primary Org, else the type tenant root.
  */
 async function resolveOrgIdForCreate(
   explicitOrgId: string | undefined,
@@ -292,23 +291,12 @@ async function resolveOrgIdForCreate(
       };
     return { ok: true, orgId: explicitOrgId };
   }
-  if (createdBy) {
-    const rows = await db
-      .select({ data: usersTable.data })
-      .from(usersTable)
-      .where(eq(usersTable.id, createdBy))
-      .limit(1);
-    const data = (rows[0]?.data ?? {}) as Record<string, unknown>;
-    const defaultOrgId = typeof data.default_organization_id === 'string' ? data.default_organization_id : null;
-    if (defaultOrgId) {
-      const org = await db
-        .select({ id: organizationsTable.id })
-        .from(organizationsTable)
-        .where(eq(organizationsTable.id, defaultOrgId))
-        .limit(1);
-      if (org.length) return { ok: true, orgId: defaultOrgId };
-    }
-  }
+  const orgs = await db.select().from(organizationsTable);
+  const primary =
+    orgs.find((row) => (row.data as Record<string, unknown> | null)?.is_primary === true) ??
+    orgs.find((row) => row.orgType === "internal");
+  if (primary) return { ok: true, orgId: primary.id };
+  void createdBy;
   return { ok: true, orgId: typeOrgId };
 }
 

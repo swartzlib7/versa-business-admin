@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import type { UiListingField } from "@/lib/catalog/layout-to-fields";
 import { resolvePicklistLabel } from "@/lib/catalog/layout-to-fields";
+import { BooleanSwitch } from "@/components/ui/boolean-switch";
 
 function FieldInput({
   field,
@@ -60,17 +61,10 @@ function FieldInput({
           ))}
         </select>
       ) : kind === "boolean" ? (
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            className="h-4 w-4 rounded border-input accent-[var(--primary)]"
-            checked={isChecked}
-            onChange={(e) => onChange?.(e.target.checked ? "true" : "false")}
-          />
-          <span className="text-sm text-muted-foreground">
-            {isChecked ? "Yes" : "No"}
-          </span>
-        </div>
+        <BooleanSwitch
+          checked={isChecked}
+          onChange={(next) => onChange?.(next ? "true" : "false")}
+        />
       ) : (
         <input
           className={base}

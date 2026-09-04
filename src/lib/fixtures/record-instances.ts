@@ -273,3 +273,9 @@ export function deleteOrgLine(organizationId: string, lineId: string, lineGroup:
   );
   return mutableOrgLines.length < before;
 }
+
+export function deleteOrgLinesForOrganization(organizationId: string): number {
+  const before = mutableOrgLines.length;
+  mutableOrgLines = mutableOrgLines.filter((ln) => ln.organization_id !== organizationId);
+  return before - mutableOrgLines.length;
+}
