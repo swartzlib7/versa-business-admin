@@ -148,7 +148,7 @@ export function GlossaryBookView({
                 className="scroll-mt-24"
               >
                 <div className="mb-4 flex items-baseline gap-3 border-b border-border pb-2">
-                  <h2 className="font-serif text-4xl font-semibold leading-none" style={{ color: accent }}>
+                  <h2 className="font-sans text-4xl font-semibold leading-none" style={{ color: accent }}>
                     {letter}
                   </h2>
                   <span className="text-xs text-muted-foreground">
@@ -158,7 +158,7 @@ export function GlossaryBookView({
                 <div className="columns-1 gap-x-12 md:columns-2">
                   {items.map((item) => (
                     <article key={item.id} className="mb-5 break-inside-avoid">
-                      <h3 className="font-serif text-lg font-semibold leading-tight">
+                      <h3 className="font-sans text-lg font-semibold leading-tight">
                         {item.name}
                       </h3>
                       <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
