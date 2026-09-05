@@ -10,14 +10,27 @@ import path from "path";
 import type { FieldDefinition, LayoutDefinition, ObjectDefinition, ValueSet, ValueSetItem } from "@/lib/fixtures/catalog";
 import type { RecordTypeDefinition } from "@/lib/fixtures/record-types";
 import type { LayoutConfig } from "@/lib/catalog/layout-storage";
+import {
+  LEGACY_CATALOG_OVERLAY_ID,
+  resolveCatalogOverlayId,
+} from "@/lib/catalog/overlay-scope";
 
-export const CATALOG_OVERLAY_ID = "site";
+/** @deprecated D3 uses the Primary Org id; "site" is the pre-0.7.132 row. */
+export const CATALOG_OVERLAY_ID = LEGACY_CATALOG_OVERLAY_ID;
 /** D4 v1 — stamp of the product seed pack last merged into this overlay. */
-export const CATALOG_SEED_PACK = "0.7.106";
+export const CATALOG_SEED_PACK = "0.7.133";
+
+export type InstalledAgentPackage = {
+  id: string;
+  version: string;
+  enabled: boolean;
+  installed_at: string;
+};
 
 export interface CatalogOverlay {
   version: 1;
   seed_pack?: string;
+  organization_id?: string;
   saved_at: string;
   fields: FieldDefinition[];
   valueSets: ValueSet[];
@@ -26,6 +39,8 @@ export interface CatalogOverlay {
   objects: ObjectDefinition[];
   recordTypes: RecordTypeDefinition[];
   layoutConfigs: LayoutConfig[];
+  /** D5 — packages merged into this overlay. Uninstall hides; it does not delete tenant rows. */
+  installed_packages?: InstalledAgentPackage[];
 }
 
 const FILE_PATH = path.join(process.cwd(), ".data", "catalog.json");
@@ -54,6 +69,33 @@ export function emptyOverlay(): CatalogOverlay {
     objects: [],
     recordTypes: [],
     layoutConfigs: [],
+    installed_packages: [],
+  };
+}
+
+function parseOverlayBody(raw: Partial<CatalogOverlay> | null | undefined): CatalogOverlay | null {
+  if (!raw || typeof raw !== "object") return null;
+  return {
+    version: 1,
+    seed_pack: typeof raw.seed_pack === "string" ? raw.seed_pack : undefined,
+    organization_id: typeof raw.organization_id === "string" ? raw.organization_id : undefined,
+    saved_at: typeof raw.saved_at === "string" ? raw.saved_at : new Date().toISOString(),
+    fields: Array.isArray(raw.fields) ? raw.fields : [],
+    valueSets: Array.isArray(raw.valueSets) ? raw.valueSets : [],
+    valueSetItems: Array.isArray(raw.valueSetItems) ? raw.valueSetItems : [],
+    layouts: Array.isArray(raw.layouts) ? raw.layouts : [],
+    objects: Array.isArray(raw.objects) ? raw.objects : [],
+    recordTypes: Array.isArray(raw.recordTypes) ? raw.recordTypes : [],
+    layoutConfigs: Array.isArray(raw.layoutConfigs) ? raw.layoutConfigs : [],
+    installed_packages: Array.isArray(raw.installed_packages)
+      ? raw.installed_packages.filter(
+          (row): row is InstalledAgentPackage =>
+            !!row &&
+            typeof row === "object" &&
+            typeof (row as InstalledAgentPackage).id === "string" &&
+            typeof (row as InstalledAgentPackage).version === "string",
+        )
+      : [],
   };
 }
 
@@ -63,19 +105,8 @@ export function readOverlayFile(): CatalogOverlay | null {
   try {
     const raw = fs.readFileSync(FILE_PATH, "utf8");
     const parsed = JSON.parse(raw) as Partial<CatalogOverlay>;
-    if (!parsed || typeof parsed !== "object") return null;
-    const overlay: CatalogOverlay = {
-      version: 1,
-      seed_pack: typeof parsed.seed_pack === "string" ? parsed.seed_pack : undefined,
-      saved_at: typeof parsed.saved_at === "string" ? parsed.saved_at : new Date().toISOString(),
-      fields: Array.isArray(parsed.fields) ? parsed.fields : [],
-      valueSets: Array.isArray(parsed.valueSets) ? parsed.valueSets : [],
-      valueSetItems: Array.isArray(parsed.valueSetItems) ? parsed.valueSetItems : [],
-      layouts: Array.isArray(parsed.layouts) ? parsed.layouts : [],
-      objects: Array.isArray(parsed.objects) ? parsed.objects : [],
-      recordTypes: Array.isArray(parsed.recordTypes) ? parsed.recordTypes : [],
-      layoutConfigs: Array.isArray(parsed.layoutConfigs) ? parsed.layoutConfigs : [],
-    };
+    const overlay = parseOverlayBody(parsed);
+    if (!overlay) return null;
     writeMemory(overlay);
     return overlay;
   } catch {
@@ -99,32 +130,32 @@ export function writeOverlayFile(overlay: CatalogOverlay): void {
   }
 }
 
+async function readOverlayRow(
+  db: Awaited<ReturnType<typeof import("@/lib/db/client").getDb>>,
+  catalogOverlay: typeof import("@/lib/db/schema").catalogOverlay,
+  eq: typeof import("drizzle-orm").eq,
+  id: string,
+): Promise<CatalogOverlay | null> {
+  const rows = await db.select().from(catalogOverlay).where(eq(catalogOverlay.id, id)).limit(1);
+  if (!rows.length) return null;
+  return parseOverlayBody(rows[0].body as Partial<CatalogOverlay>);
+}
+
 export async function readOverlayPostgres(): Promise<CatalogOverlay | null> {
   try {
     const { getDb } = await import("@/lib/db/client");
     const { catalogOverlay } = await import("@/lib/db/schema");
     const { eq } = await import("drizzle-orm");
     const db = getDb();
-    const rows = await db
-      .select()
-      .from(catalogOverlay)
-      .where(eq(catalogOverlay.id, CATALOG_OVERLAY_ID))
-      .limit(1);
-    if (!rows.length) return null;
-    const body = rows[0].body as Partial<CatalogOverlay>;
-    if (!body || typeof body !== "object") return null;
-    return {
-      version: 1,
-      seed_pack: typeof body.seed_pack === "string" ? body.seed_pack : undefined,
-      saved_at: typeof body.saved_at === "string" ? body.saved_at : new Date().toISOString(),
-      fields: Array.isArray(body.fields) ? body.fields : [],
-      valueSets: Array.isArray(body.valueSets) ? body.valueSets : [],
-      valueSetItems: Array.isArray(body.valueSetItems) ? body.valueSetItems : [],
-      layouts: Array.isArray(body.layouts) ? body.layouts : [],
-      objects: Array.isArray(body.objects) ? body.objects : [],
-      recordTypes: Array.isArray(body.recordTypes) ? body.recordTypes : [],
-      layoutConfigs: Array.isArray(body.layoutConfigs) ? body.layoutConfigs : [],
-    };
+    const orgId = await resolveCatalogOverlayId();
+    const scoped = await readOverlayRow(db, catalogOverlay, eq, orgId);
+    if (scoped) return { ...scoped, organization_id: orgId };
+    if (orgId === LEGACY_CATALOG_OVERLAY_ID) return null;
+    const legacy = await readOverlayRow(db, catalogOverlay, eq, LEGACY_CATALOG_OVERLAY_ID);
+    if (!legacy) return null;
+    const migrated = { ...legacy, organization_id: orgId };
+    await writeOverlayPostgres(migrated);
+    return migrated;
   } catch (err) {
     console.error("Catalog overlay postgres read skipped:", err);
     return null;
@@ -136,15 +167,17 @@ export async function writeOverlayPostgres(overlay: CatalogOverlay): Promise<voi
     const { getDb } = await import("@/lib/db/client");
     const { catalogOverlay } = await import("@/lib/db/schema");
     const db = getDb();
+    const orgId = overlay.organization_id || (await resolveCatalogOverlayId());
     const next = {
       ...overlay,
       version: 1 as const,
+      organization_id: orgId,
       seed_pack: overlay.seed_pack ?? CATALOG_SEED_PACK,
       saved_at: new Date().toISOString(),
     };
     await db
       .insert(catalogOverlay)
-      .values({ id: CATALOG_OVERLAY_ID, body: next })
+      .values({ id: orgId, body: next })
       .onConflictDoUpdate({
         target: catalogOverlay.id,
         set: { body: next, updatedAt: new Date() },

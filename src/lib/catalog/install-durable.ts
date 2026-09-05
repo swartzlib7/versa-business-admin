@@ -44,13 +44,19 @@ function liveOverlay(): CatalogOverlay {
   };
 }
 
-function applyAll(overlay: CatalogOverlay): void {
+async function stampOverlay(overlay: CatalogOverlay): Promise<CatalogOverlay> {
+  const { resolveCatalogOverlayId } = await import("@/lib/catalog/overlay-scope");
+  const organization_id = await resolveCatalogOverlayId();
+  return { ...overlay, organization_id };
+}
+
+function applyAll(overlay: CatalogOverlay, opts?: { systemSeedWins?: boolean }): void {
   hydrating = true;
   try {
     resetCatalog();
     resetRecordTypes();
-    applyCatalogOverlay(overlay);
-    applyRecordTypeOverlay(overlay);
+    applyCatalogOverlay({ ...overlay, systemSeedWins: opts?.systemSeedWins });
+    applyRecordTypeOverlay({ ...overlay, systemSeedWins: opts?.systemSeedWins });
     applyLayoutOverlay(overlay);
   } finally {
     hydrating = false;
@@ -62,7 +68,12 @@ function persistNow(): void {
   const overlay = liveOverlay();
   writeOverlayFile(overlay);
   if ((process.env.DATA_SOURCE ?? "fixture") === "postgres") {
-    void writeOverlayPostgres(overlay);
+    void stampOverlay(overlay).then((stamped) => {
+      writeOverlayFile(stamped);
+      void writeOverlayPostgres(stamped);
+    });
+  } else {
+    void stampOverlay(overlay).then((stamped) => writeOverlayFile(stamped));
   }
 }
 
@@ -70,18 +81,23 @@ export function ensureDurableCatalog(): void {
   if (hydrated) return;
   hydrated = true;
   const fromFile = readOverlayFile();
-  if (fromFile) applyAll(fromFile);
+  const rebaseFile = !!fromFile && (fromFile.seed_pack ?? "") !== CATALOG_SEED_PACK;
+  if (fromFile) applyAll(fromFile, { systemSeedWins: rebaseFile });
   const stampIfNeeded = (overlay: CatalogOverlay | null) => {
     if ((overlay?.seed_pack ?? "") !== CATALOG_SEED_PACK) persistNow();
   };
   if ((process.env.DATA_SOURCE ?? "fixture") === "postgres") {
     void readOverlayPostgres().then((fromDb) => {
-      if (fromDb) applyAll(fromDb);
+      const rebaseDb = !!fromDb && (fromDb.seed_pack ?? "") !== CATALOG_SEED_PACK;
+      if (fromDb) applyAll(fromDb, { systemSeedWins: rebaseDb });
       stampIfNeeded(fromDb ?? fromFile);
     });
   } else {
     stampIfNeeded(fromFile);
   }
+  void import("@/lib/sample-data/apply").then((mod) => {
+    void mod.hydrateSampleData();
+  });
 }
 
 function persistHook(): void {

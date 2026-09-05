@@ -27,7 +27,7 @@ function soft(hex: string, alpha = "22") {
  *  Main nav: no duplicate Projects/Tasks/Products (zone-owned). Dynamic record_types: see I5_6_32 plan.
  *  Org Public: top-of-sphere faculty (distinct from Collaboration Customer)
  *  Env: no Product tab
- *  Collab Vendor: self + Integrations (parent self-tab via ZoneConfigView)
+ *  Collab Vendor: self + Credentials, Integrations, Exchange (record types)
  *  Object Labels: every faculty/object exposes Name (proper name = Name).
  */
 export const organizationZone: ZoneConfig = {
@@ -490,14 +490,14 @@ export const collaborationZone: ZoneConfig = {
   id: "collaboration",
   title: "Collaboration",
   subtitle:
-    "Parties the organization works with. Listing tables + collapsible New forms. Integrations nest under Vendor.",
+    "Parties the organization works with. Listing tables + collapsible New forms. Credentials, Integrations, and Exchange nest under Vendor.",
   accent: collabAccent,
   accentSoft: soft(collabAccent),
   tabs: [
     {
       id: "vendor",
       label: "Vendor",
-      summary: "Organizations of type Vendor — external suppliers. Integrations nest here.",
+      summary: "Organizations of type Vendor — external suppliers. Credentials, Integrations, and Exchange nest here.",
       presentation: "listing",
       listColumns: ["Name", "Person organization"],
       // #248 Slice D (C6): renders organizations WHERE org_type=vendor via OrgTypeListingPanel (TabPanel special-case below). sampleRows removed - the live organizations list replaces the mock.
@@ -522,14 +522,31 @@ export const collaborationZone: ZoneConfig = {
       ],
       children: [
         {
+          id: "credentials",
+          label: "Credentials",
+          summary: "Authentication material for integrations with this vendor.",
+          presentation: "listing",
+          listColumns: ["Name", "Auth type"],
+          fields: [
+            { label: "Name", placeholder: "Stripe live key" },
+            {
+              label: "Auth type",
+              placeholder: "Select type",
+              kind: "select",
+              options: getVsOptions("credential_auth_type"),
+            },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Collaboration", label: "Vendor", hint: "Parent vendor this credential belongs to." },
+          ],
+        },
+        {
           id: "integrations",
           label: "Integrations",
           summary:
             "Technical and commercial integrations with this vendor (moved from Product menu).",
           presentation: "listing",
-          // Slice F (D1 cutover): renders org-attached record_line rows
-          // (line_group=integrations) for the parent vendor org.
-          orgLinesGroup: "integrations",
           listColumns: ["Integration name", "Kind", "Status"],
           fields: [
             { label: "Integration name", placeholder: "Stripe billing" },
@@ -550,6 +567,32 @@ export const collaborationZone: ZoneConfig = {
           relations: [
             { zone: "Collaboration", label: "Vendor", hint: "Parent vendor this integration belongs to." },
             { zone: "Organization", label: "Owning faculty", hint: "Production / Treasury / Service." },
+          ],
+        },
+        {
+          id: "exchange",
+          label: "Exchange",
+          summary: "Inbound and outbound I/O for a vendor integration.",
+          presentation: "listing",
+          listColumns: ["Name", "Origin", "Status"],
+          fields: [
+            { label: "Name", placeholder: "Invoice sync" },
+            {
+              label: "Origin",
+              placeholder: "Select origin",
+              kind: "select",
+              options: getVsOptions("exchange_origin"),
+            },
+            {
+              label: "Status",
+              placeholder: "Select status",
+              kind: "select",
+              options: getVsOptions("exchange_status"),
+            },
+            { label: "Notes", placeholder: "...", kind: "textarea" },
+          ],
+          relations: [
+            { zone: "Collaboration", label: "Integration", hint: "Parent integration this exchange belongs to." },
           ],
         },
       ],

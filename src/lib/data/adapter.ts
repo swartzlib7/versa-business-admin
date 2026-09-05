@@ -239,7 +239,7 @@ export function resetTasks(): void {
 export const fixtureAdapter: DataAdapter = {
   // --- Organizations (Slice F latent-bug repair, rev E section 4.3) ---
   async listOrganizations(orgType?: string): Promise<Organization[]> {
-    let result = mutableOrganizations;
+    let result = [...mutableOrganizations];
     if (orgType) result = result.filter((o) => o.org_type === orgType);
     return result;
   },
@@ -259,8 +259,13 @@ export const fixtureAdapter: DataAdapter = {
       if (!parent) throw new Error("VALIDATION: parent_organization_id does not reference an existing organization");
     }
     orgSeq += 1;
+    let id = "org-fixture-" + String(orgSeq);
+    while (mutableOrganizations.some((o) => o.id === id)) {
+      orgSeq += 1;
+      id = "org-fixture-" + String(orgSeq);
+    }
     let org: Organization = {
-      id: "org-fixture-" + String(orgSeq),
+      id,
       name,
       is_person: input.is_person ?? false,
       org_type: orgType,

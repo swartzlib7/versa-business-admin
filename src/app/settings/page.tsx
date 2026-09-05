@@ -19,6 +19,7 @@ import { BooleanSwitch } from "@/components/ui/boolean-switch";
 import { PublicSitePanel } from "@/components/settings/public-site-panel";
 import { BrandingPanel, type BrandingSubTab } from "@/components/settings/branding-panel";
 import { MenuOrderPanel } from "@/components/settings/menu-order-panel";
+import { SampleDataPanel } from "@/components/settings/sample-data-panel";
 
 type SettingsTab =
   | "branding"
@@ -167,6 +168,7 @@ function SystemPanel() {
       badge="Site"
     >
       <div className="space-y-6">
+        <SampleDataPanel />
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-lg space-y-1">
             <p className="text-sm font-medium">Demo mode</p>

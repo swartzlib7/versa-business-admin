@@ -26,6 +26,9 @@ const BAKED_IN_CHILD_IDS = new Set([
   "reviews",
   "certifications-awards",
   "contacts",
+  "credentials",
+  "integrations",
+  "exchange",
 ]);
 
 // #218 Zone Pages Live Dynamic Records (COA-locked slice, 2026-08-30):
@@ -39,8 +42,8 @@ const BAKED_TAB_SYSTEM_TYPES: Record<string, string> = {
   product: "production_product",
   service: "production_service",
   // #246 Slice C (rev E section 3/7.4): new division children. All structure
-  // =list. vendor_integration retired in Slice F (D1 cutover): the vendor
-  // Integrations child renders org-attached record_line rows (line_group=integrations).
+  // =list. Vendor children Credentials / Integrations / Exchange are record
+  // types (not org-attached record_line rows).
   messages: "communication_message",
   reports: "communication_report",
   staff: "communication_staff",
@@ -52,6 +55,9 @@ const BAKED_TAB_SYSTEM_TYPES: Record<string, string> = {
   reviews: "qualification_review",
   "certifications-awards": "qualification_certifications_awards",
   contacts: "contact",
+  credentials: "vendor_credential",
+  integrations: "vendor_integration",
+  exchange: "vendor_exchange",
 };
 
 // #246 Slice C (rev E section 7.6): environment element tabs ARE record lists

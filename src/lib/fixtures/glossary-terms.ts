@@ -51,11 +51,18 @@ export const INITIAL_ENTRIES: GlossaryEntry[] = [
       "Center circle of internal faculties: Executive (center sphere), Distribution (top), Communications, Dissemination, Treasury, Production, Qualification. Service and Product nest under Production — not hub spheres.",
   },
   {
+    id: "e-faculty",
+    sectionId: "organization",
+    name: "Faculty",
+    definition:
+      "An internal function of the Organization (a capacity it uses to operate) — not a university. Faculties are Executive, Communications, Dissemination, Treasury, Production, Qualification, and Distribution. Distinct from collaboration parties and from environment. In the Records Editor, parent_kind faculty means the record type hangs under one of those Organization tabs.",
+  },
+  {
     id: "e-collab-zone",
     sectionId: "zones",
     name: "Collaboration",
     definition:
-      "Parties the organization works with: Vendor, Customer, Partner, Branch. Integrations nest under Vendor.",
+      "Parties the organization works with: Vendor, Customer, Partner, Branch. Credentials, Integrations, and Exchange nest under Vendor.",
   },
   {
     id: "e-env-zone",

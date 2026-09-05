@@ -3,7 +3,7 @@
 **Product:** Versa AGi Mission (business Mission Control)  
 **Repo / project:** `versa-admin-system` · Project **#26**  
 **Audience:** Agents and humans implementing, hosting, maintaining, and upgrading Mission Control  
-**Status:** **Outline on this working tree for review** (merged 2026-09-03 from `agent/coa` `6268c1c`). Expand sections marked *TBD* as durable catalog and production packaging land. Host snapshot in §4.4 is from 2026-08-19 and may lag HEAD.  
+**Status:** **Authorized 2026-09-05** — durable catalog overlay has landed (0.7.105–0.7.111). Expand *TBD* as D3/D5 and packaging land. Host snapshot in §4.4 is from 2026-08-19 and may lag HEAD.  
 **Governing design:** `docs/production/state/state_upgradability.md` (D1–D6 **locked**)  
 **Map:** `docs/production/state/shape_mission_control.md`  
 **Roadmap:** `docs/coa/MISSION_CONTROL_PRODUCTION_PLAN.md` — Horizon 3  
@@ -375,8 +375,10 @@ Placeholder steps (align with Task 239 sequencing):
 
 | Gap | Impact | Tracker |
 |-----|--------|---------|
-| Durable catalog not fully landed | Blocks overlay impl + agent packages | #239 — Gate 3 I5.6.33 accepted; still wait on durable-catalog sequencing |
-| Mission Control skill not authored | Other agents / new COAs have no loadable procedure for style, API, install, operate-for-other-PUs | Horizon 3 / #240 — add after Stephen reviews this outline |
+| Durable catalog overlay | D3 Primary-Org scope + D5 package API landed 0.7.132. Remaining: ops manual expansion + `mission_control` skill | #239 / #256 / #240 |
+| Mission Control skill not authored | Other agents / new COAs have no loadable procedure for style, API, install, operate-for-other-PUs | Horizon 3 / #240 — authorized 2026-09-05; author after this outline's procedures stay aligned to D1–D6 |
+| Insert / Delete Sample Data | Demo must not swap the live backend; sample rows use `external_id` and can be inserted/deleted | New task — locked approach 2026-09-04 |
+| Production packaging (container/systemd unit) | Customer install thin | *TBD* |
 | Production packaging (container/systemd unit) | Customer install thin | *TBD* |
 | Automated post-deploy smoke script | Manual curls today | *TBD* |
 | README version pins lag HEAD | Prefer `git` + health version | refresh on release |
@@ -412,6 +414,7 @@ npx next dev --port 3200
 | 2026-08-18 | Task #240 opened — Stephen required setup/maintenance/upgrades/ops manual |
 | 2026-08-19 | Initial filled outline: setup, maintenance, gates, seed-only upgrade posture, host port map, troubleshooting; aligned to locked D1–D6 |
 | 2026-09-03 | Outline merged onto this working tree for Stephen's review. Horizon 3 now also includes a Mission Control skill (not authored yet). No TBD runbooks invented. |
+| 2026-09-05 | Stephen authorized remaining overlay (D3/D5), Insert/Delete Sample Data, and authoring the Mission Control skill. Durable-catalog sequencing gate is closed. |
 
 ---
 

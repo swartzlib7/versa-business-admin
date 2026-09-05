@@ -60,6 +60,8 @@ export function dataTypeToUiKind(dt: CatalogDataType): UiFieldKind {
       return "url";
     case "phone":
       return "phone";
+    case "file":
+      return "url";
     default:
       return "text";
   }

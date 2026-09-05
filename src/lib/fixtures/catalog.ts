@@ -20,7 +20,8 @@ export type CatalogDataType =
   | 'email'
   | 'url'
   | 'phone'
-  | 'currency';
+  | 'currency'
+  | 'file';
 
 export interface ValueSet {
   id: string;
@@ -248,6 +249,60 @@ export const valueSets: ValueSet[] = [
     api_name: 'contact_kind',
     label: 'Contact kind',
     description: 'Staff-type contacts belong to an organization; public-type do not',
+  },
+  {
+    id: 'vs-org-type',
+    api_name: 'org_type',
+    label: 'Organization type',
+    description: 'Primary Org is internal. Collaboration parties are vendor, customer, partner, or branch.',
+  },
+  {
+    id: 'vs-staff-role',
+    api_name: 'staff_role',
+    label: 'Staff role',
+    description: 'Role of a communication_staff record.',
+  },
+  {
+    id: 'vs-policy-status',
+    api_name: 'policy_status',
+    label: 'Policy status',
+    description: 'Draft, active, or archived policy.',
+  },
+  {
+    id: 'vs-document-kind',
+    api_name: 'document_kind',
+    label: 'Transaction document kind',
+    description: 'treasury_transaction is the transaction table. Kinds: transaction, quote, estimate, invoice.',
+  },
+  {
+    id: 'vs-interval-unit',
+    api_name: 'interval_unit',
+    label: 'Interval unit',
+    description: 'Unit for schedule recurrence (paired with interval_count).',
+  },
+  {
+    id: 'vs-file-mime',
+    api_name: 'file_mime',
+    label: 'File MIME type',
+    description: 'Extendable MIME list for catalog data_type=file.',
+  },
+  {
+    id: 'vs-credential-auth-type',
+    api_name: 'credential_auth_type',
+    label: 'Credential auth type',
+    description: 'How a vendor credential authenticates.',
+  },
+  {
+    id: 'vs-exchange-origin',
+    api_name: 'exchange_origin',
+    label: 'Exchange origin',
+    description: 'Inbound or outbound integration I/O.',
+  },
+  {
+    id: 'vs-exchange-status',
+    api_name: 'exchange_status',
+    label: 'Exchange status',
+    description: 'Status of an integration exchange row.',
   },
 ];
 
@@ -999,6 +1054,86 @@ export const valueSetItems: ValueSetItem[] = [
     sort_order: 20,
     active: true,
   },
+  {
+    id: 'vsi-ot-internal',
+    value_set_id: 'vs-org-type',
+    api_value: 'internal',
+    label: 'Org',
+    sort_order: 10,
+    active: true,
+  },
+  {
+    id: 'vsi-ot-vendor',
+    value_set_id: 'vs-org-type',
+    api_value: 'vendor',
+    label: 'Vendor',
+    sort_order: 20,
+    active: true,
+  },
+  {
+    id: 'vsi-ot-customer',
+    value_set_id: 'vs-org-type',
+    api_value: 'customer',
+    label: 'Customer',
+    sort_order: 30,
+    active: true,
+  },
+  {
+    id: 'vsi-ot-partner',
+    value_set_id: 'vs-org-type',
+    api_value: 'partner',
+    label: 'Partner',
+    sort_order: 40,
+    active: true,
+  },
+  {
+    id: 'vsi-ot-branch',
+    value_set_id: 'vs-org-type',
+    api_value: 'branch',
+    label: 'Branch',
+    sort_order: 50,
+    active: true,
+  },
+  { id: 'vsi-sr-executive', value_set_id: 'vs-staff-role', api_value: 'executive', label: 'Executive', sort_order: 10, active: true },
+  { id: 'vsi-sr-operations', value_set_id: 'vs-staff-role', api_value: 'operations', label: 'Operations', sort_order: 20, active: true },
+  { id: 'vsi-sr-finance', value_set_id: 'vs-staff-role', api_value: 'finance', label: 'Finance', sort_order: 30, active: true },
+  { id: 'vsi-sr-production', value_set_id: 'vs-staff-role', api_value: 'production', label: 'Production', sort_order: 40, active: true },
+  { id: 'vsi-sr-communications', value_set_id: 'vs-staff-role', api_value: 'communications', label: 'Communications', sort_order: 50, active: true },
+  { id: 'vsi-sr-sales', value_set_id: 'vs-staff-role', api_value: 'sales', label: 'Sales', sort_order: 60, active: true },
+  { id: 'vsi-sr-support', value_set_id: 'vs-staff-role', api_value: 'support', label: 'Support', sort_order: 70, active: true },
+  { id: 'vsi-sr-other', value_set_id: 'vs-staff-role', api_value: 'other', label: 'Other', sort_order: 80, active: true },
+  { id: 'vsi-polstat-draft', value_set_id: 'vs-policy-status', api_value: 'draft', label: 'Draft', sort_order: 10, active: true },
+  { id: 'vsi-polstat-active', value_set_id: 'vs-policy-status', api_value: 'active', label: 'Active', sort_order: 20, active: true },
+  { id: 'vsi-polstat-archived', value_set_id: 'vs-policy-status', api_value: 'archived', label: 'Archived', sort_order: 30, active: true },
+  { id: 'vsi-dk-transaction', value_set_id: 'vs-document-kind', api_value: 'transaction', label: 'Transaction', sort_order: 10, active: true },
+  { id: 'vsi-dk-quote', value_set_id: 'vs-document-kind', api_value: 'quote', label: 'Quote', sort_order: 20, active: true },
+  { id: 'vsi-dk-estimate', value_set_id: 'vs-document-kind', api_value: 'estimate', label: 'Estimate', sort_order: 30, active: true },
+  { id: 'vsi-dk-invoice', value_set_id: 'vs-document-kind', api_value: 'invoice', label: 'Invoice', sort_order: 40, active: true },
+  { id: 'vsi-iu-minute', value_set_id: 'vs-interval-unit', api_value: 'minute', label: 'Minutes', sort_order: 10, active: true },
+  { id: 'vsi-iu-hour', value_set_id: 'vs-interval-unit', api_value: 'hour', label: 'Hours', sort_order: 20, active: true },
+  { id: 'vsi-iu-day', value_set_id: 'vs-interval-unit', api_value: 'day', label: 'Days', sort_order: 30, active: true },
+  { id: 'vsi-iu-week', value_set_id: 'vs-interval-unit', api_value: 'week', label: 'Weeks', sort_order: 40, active: true },
+  { id: 'vsi-iu-month', value_set_id: 'vs-interval-unit', api_value: 'month', label: 'Months', sort_order: 50, active: true },
+  { id: 'vsi-iu-year', value_set_id: 'vs-interval-unit', api_value: 'year', label: 'Years', sort_order: 60, active: true },
+  { id: 'vsi-fm-pdf', value_set_id: 'vs-file-mime', api_value: 'application/pdf', label: 'PDF', sort_order: 10, active: true },
+  { id: 'vsi-fm-png', value_set_id: 'vs-file-mime', api_value: 'image/png', label: 'PNG', sort_order: 20, active: true },
+  { id: 'vsi-fm-jpeg', value_set_id: 'vs-file-mime', api_value: 'image/jpeg', label: 'JPEG', sort_order: 30, active: true },
+  { id: 'vsi-fm-webp', value_set_id: 'vs-file-mime', api_value: 'image/webp', label: 'WebP', sort_order: 40, active: true },
+  { id: 'vsi-fm-gif', value_set_id: 'vs-file-mime', api_value: 'image/gif', label: 'GIF', sort_order: 50, active: true },
+  { id: 'vsi-fm-plain', value_set_id: 'vs-file-mime', api_value: 'text/plain', label: 'Plain text', sort_order: 60, active: true },
+  { id: 'vsi-fm-csv', value_set_id: 'vs-file-mime', api_value: 'text/csv', label: 'CSV', sort_order: 70, active: true },
+  { id: 'vsi-fm-json', value_set_id: 'vs-file-mime', api_value: 'application/json', label: 'JSON', sort_order: 80, active: true },
+  { id: 'vsi-fm-zip', value_set_id: 'vs-file-mime', api_value: 'application/zip', label: 'ZIP', sort_order: 90, active: true },
+  { id: 'vsi-cat-apikey', value_set_id: 'vs-credential-auth-type', api_value: 'api_key', label: 'API key', sort_order: 10, active: true },
+  { id: 'vsi-cat-oauth2', value_set_id: 'vs-credential-auth-type', api_value: 'oauth2', label: 'OAuth 2', sort_order: 20, active: true },
+  { id: 'vsi-cat-basic', value_set_id: 'vs-credential-auth-type', api_value: 'basic', label: 'Basic', sort_order: 30, active: true },
+  { id: 'vsi-cat-smtp', value_set_id: 'vs-credential-auth-type', api_value: 'smtp', label: 'SMTP', sort_order: 40, active: true },
+  { id: 'vsi-cat-custom', value_set_id: 'vs-credential-auth-type', api_value: 'custom', label: 'Custom', sort_order: 50, active: true },
+  { id: 'vsi-eo-in', value_set_id: 'vs-exchange-origin', api_value: 'inbound', label: 'Inbound', sort_order: 10, active: true },
+  { id: 'vsi-eo-out', value_set_id: 'vs-exchange-origin', api_value: 'outbound', label: 'Outbound', sort_order: 20, active: true },
+  { id: 'vsi-es-pending', value_set_id: 'vs-exchange-status', api_value: 'pending', label: 'Pending', sort_order: 10, active: true },
+  { id: 'vsi-es-ok', value_set_id: 'vs-exchange-status', api_value: 'ok', label: 'OK', sort_order: 20, active: true },
+  { id: 'vsi-es-error', value_set_id: 'vs-exchange-status', api_value: 'error', label: 'Error', sort_order: 30, active: true },
 ];
 
 /** System + sample flexible fields for User pilot object */
@@ -1085,6 +1220,34 @@ export const fieldDefinitions: FieldDefinition[] = [
     value_set_api_name: null,
     lookup_object_api_name: 'department',
     sort_order: 60,
+    active: true,
+  },
+  {
+    id: 'fd-user-created-by',
+    object_api_name: 'user',
+    api_name: 'created_by',
+    label: 'Created by',
+    data_type: 'lookup',
+    is_system: true,
+    is_required: false,
+    default_value: null,
+    value_set_api_name: null,
+    lookup_object_api_name: 'user',
+    sort_order: 9000,
+    active: true,
+  },
+  {
+    id: 'fd-user-last-modified-by',
+    object_api_name: 'user',
+    api_name: 'last_modified_by',
+    label: 'Last modified by',
+    data_type: 'lookup',
+    is_system: true,
+    is_required: false,
+    default_value: null,
+    value_set_api_name: null,
+    lookup_object_api_name: 'user',
+    sort_order: 9010,
     active: true,
   },
   {
@@ -1735,25 +1898,39 @@ export const layoutDefinitions: LayoutDefinition[] = [
 // (no value set exists for them among the locked 7): ensureObjectForRecordType
 // auto-seeds name/status on every registered object, so stating them here keeps
 // the seed deterministic instead of relying on runtime mutation.
-const facultyRecordFieldSeed: FieldDefinition[] = [
+const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-executive_policy-name', object_api_name: 'executive_policy', api_name: 'name', label: 'Policy title', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true, zone_role: 'header' },
-  { id: 'fld-executive_policy-scope', object_api_name: 'executive_policy', api_name: 'scope', label: 'Scope', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'policy_scope', lookup_object_api_name: null, sort_order: 20, active: true, zone_role: 'header' },
-  { id: 'fld-executive_policy-owner', object_api_name: 'executive_policy', api_name: 'owner', label: 'Owner', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true, zone_role: 'header' },
-  { id: 'fld-executive_policy-summary', object_api_name: 'executive_policy', api_name: 'summary', label: 'Summary', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true, zone_role: 'header' },
-  { id: 'fld-executive_policy-line_title', object_api_name: 'executive_policy', api_name: 'line_title', label: 'Line title', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true, zone_role: 'list', show_in_column: true },
-  { id: 'fld-executive_policy-status', object_api_name: 'executive_policy', api_name: 'status', label: 'Status', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true, zone_role: 'header' },
-  { id: 'fld-executive_policy-line_notes', object_api_name: 'executive_policy', api_name: 'line_notes', label: 'Line notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-executive_policy-scope', object_api_name: 'executive_policy', api_name: 'scope', label: 'Scope', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'policy_scope', lookup_object_api_name: null, sort_order: 20, active: false, zone_role: 'header' },
+  { id: 'fld-executive_policy-owner', object_api_name: 'executive_policy', api_name: 'owner', label: 'Owner (text)', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: false, zone_role: 'header' },
+  { id: 'fld-executive_policy-owner_id', object_api_name: 'executive_policy', api_name: 'owner_id', label: 'Owner', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'communication_staff', sort_order: 31, active: true, zone_role: 'header' },
+  { id: 'fld-executive_policy-summary', object_api_name: 'executive_policy', api_name: 'summary', label: 'Summary', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: false, zone_role: 'header' },
+  { id: 'fld-executive_policy-line_title', object_api_name: 'executive_policy', api_name: 'line_title', label: 'Line title', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: false, zone_role: 'list', show_in_column: true },
+  { id: 'fld-executive_policy-title', object_api_name: 'executive_policy', api_name: 'title', label: 'Title', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 51, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-executive_policy-status', object_api_name: 'executive_policy', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'draft', value_set_api_name: 'policy_status', lookup_object_api_name: null, sort_order: 70, active: true, zone_role: 'header' },
+  { id: 'fld-executive_policy-line_notes', object_api_name: 'executive_policy', api_name: 'line_notes', label: 'Line notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: false, zone_role: 'list', show_in_column: true },
+  { id: 'fld-executive_policy-body', object_api_name: 'executive_policy', api_name: 'body', label: 'Body', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 61, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-executive_policy-render_as_html', object_api_name: 'executive_policy', api_name: 'render_as_html', label: 'Render as HTML', data_type: 'boolean', is_system: true, is_required: false, default_value: 'false', value_set_api_name: null, lookup_object_api_name: null, sort_order: 62, active: true, zone_role: 'list', show_in_column: true },
   { id: 'fld-executive_project-name', object_api_name: 'executive_project', api_name: 'name', label: 'Project name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true , zone_role: 'header' },
   { id: 'fld-executive_project-status', object_api_name: 'executive_project', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'zone_project_status', lookup_object_api_name: null, sort_order: 20, active: true , zone_role: 'header' },
-  { id: 'fld-executive_project-owner', object_api_name: 'executive_project', api_name: 'owner', label: 'Owner', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true , zone_role: 'header' },
+  { id: 'fld-executive_project-owner', object_api_name: 'executive_project', api_name: 'owner', label: 'Owner (text)', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: false, zone_role: 'header' },
+  { id: 'fld-executive_project-owner_id', object_api_name: 'executive_project', api_name: 'owner_id', label: 'Owner', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'communication_staff', sort_order: 31, active: true, zone_role: 'header' },
+  { id: 'fld-executive_project-priority', object_api_name: 'executive_project', api_name: 'priority', label: 'Priority', data_type: 'picklist', is_system: true, is_required: false, default_value: 'normal', value_set_api_name: 'project_priority', lookup_object_api_name: null, sort_order: 25, active: true, zone_role: 'header' },
+  { id: 'fld-executive_project-start_date', object_api_name: 'executive_project', api_name: 'start_date', label: 'Start date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 35, active: true, zone_role: 'header' },
+  { id: 'fld-executive_project-target_date', object_api_name: 'executive_project', api_name: 'target_date', label: 'Target date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 36, active: true, zone_role: 'header' },
   { id: 'fld-executive_project-description', object_api_name: 'executive_project', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true , zone_role: 'header' },
+  { id: 'fld-executive_project-external_id', object_api_name: 'executive_project', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 45, active: true, zone_role: 'header' },
   { id: 'fld-executive_task-name', object_api_name: 'executive_task', api_name: 'name', label: 'Task title', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true , zone_role: 'header' },
   { id: 'fld-executive_task-status', object_api_name: 'executive_task', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'zone_task_status', lookup_object_api_name: null, sort_order: 20, active: true , zone_role: 'header' },
-  { id: 'fld-executive_task-assignee', object_api_name: 'executive_task', api_name: 'assignee', label: 'Assignee', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true , zone_role: 'header' },
+  { id: 'fld-executive_task-assignee', object_api_name: 'executive_task', api_name: 'assignee', label: 'Assignee (text)', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: false, zone_role: 'header' },
+  { id: 'fld-executive_task-assignee_id', object_api_name: 'executive_task', api_name: 'assignee_id', label: 'Assignee', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'communication_staff', sort_order: 31, active: true, zone_role: 'header' },
+  { id: 'fld-executive_task-priority', object_api_name: 'executive_task', api_name: 'priority', label: 'Priority', data_type: 'picklist', is_system: true, is_required: false, default_value: 'normal', value_set_api_name: 'task_priority', lookup_object_api_name: null, sort_order: 25, active: true, zone_role: 'header' },
+  { id: 'fld-executive_task-due_date', object_api_name: 'executive_task', api_name: 'due_date', label: 'Due date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 35, active: true, zone_role: 'header' },
   { id: 'fld-executive_task-notes', object_api_name: 'executive_task', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true , zone_role: 'header' },
   { id: 'fld-production_product-name', object_api_name: 'production_product', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true , zone_role: 'header' },
+  { id: 'fld-production_product-tagline', object_api_name: 'production_product', api_name: 'tagline', label: 'Tagline', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 15, active: true, zone_role: 'header' },
   { id: 'fld-production_product-category', object_api_name: 'production_product', api_name: 'category', label: 'Category', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'product_category', lookup_object_api_name: null, sort_order: 20, active: true , zone_role: 'header' },
   { id: 'fld-production_product-description', object_api_name: 'production_product', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true , zone_role: 'header' },
+  { id: 'fld-production_product-features', object_api_name: 'production_product', api_name: 'features', label: 'Features', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 32, active: true, zone_role: 'header' },
   { id: 'fld-production_product-status', object_api_name: 'production_product', api_name: 'status', label: 'Status', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true , zone_role: 'header' },
   { id: 'fld-production_service-name', object_api_name: 'production_service', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true , zone_role: 'header' },
   { id: 'fld-production_service-status', object_api_name: 'production_service', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'service_status', lookup_object_api_name: null, sort_order: 20, active: true , zone_role: 'header' },
@@ -1767,6 +1944,8 @@ const facultyRecordFieldSeed: FieldDefinition[] = [
   { id: 'fld-executive_task-subtask_done', object_api_name: 'executive_task', api_name: 'subtask_done', label: 'Subtask done', data_type: 'boolean', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true, zone_role: 'list', show_in_column: true },
   { id: 'fld-production_product-variant_name', object_api_name: 'production_product', api_name: 'variant_name', label: 'Variant name', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true, zone_role: 'list', show_in_column: true },
   { id: 'fld-production_product-variant_price', object_api_name: 'production_product', api_name: 'variant_price', label: 'Variant price', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-production_product-sku', object_api_name: 'production_product', api_name: 'sku', label: 'SKU', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 25, active: true, zone_role: 'header' },
+  { id: 'fld-production_product-external_id', object_api_name: 'production_product', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true, zone_role: 'header' },
   { id: 'fld-production_service-rate_item', object_api_name: 'production_service', api_name: 'rate_item', label: 'Rate item', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true, zone_role: 'list', show_in_column: true },
   { id: 'fld-production_service-rate_amount', object_api_name: 'production_service', api_name: 'rate_amount', label: 'Rate amount', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true, zone_role: 'list', show_in_column: true },
 
@@ -1788,9 +1967,12 @@ const facultyRecordFieldSeed: FieldDefinition[] = [
   { id: 'fld-communication_report-summary', object_api_name: 'communication_report', api_name: 'summary', label: 'Summary', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-communication_report-notes', object_api_name: 'communication_report', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
   { id: 'fld-communication_staff-name', object_api_name: 'communication_staff', api_name: 'name', label: 'Staff member', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fld-communication_staff-role', object_api_name: 'communication_staff', api_name: 'role', label: 'Role', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-communication_staff-role', object_api_name: 'communication_staff', api_name: 'role', label: 'Role', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'staff_role', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-communication_staff-status', object_api_name: 'communication_staff', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-communication_staff-notes', object_api_name: 'communication_staff', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
+  { id: 'fld-communication_staff-organization_id', object_api_name: 'communication_staff', api_name: 'organization_id', label: 'Organization', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 50, active: true },
+  { id: 'fld-communication_staff-external_id', object_api_name: 'communication_staff', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
+  { id: 'fld-communication_staff-vv_connection_uid', object_api_name: 'communication_staff', api_name: 'vv_connection_uid', label: 'VersaVoice connection uid', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true },
   { id: 'fld-dissemination_sales-name', object_api_name: 'dissemination_sales', api_name: 'name', label: 'Sales item', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
   { id: 'fld-dissemination_sales-status', object_api_name: 'dissemination_sales', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-dissemination_sales-description', object_api_name: 'dissemination_sales', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
@@ -1800,14 +1982,22 @@ const facultyRecordFieldSeed: FieldDefinition[] = [
   { id: 'fld-dissemination_promotion_marketing-description', object_api_name: 'dissemination_promotion_marketing', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-dissemination_promotion_marketing-notes', object_api_name: 'dissemination_promotion_marketing', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
   { id: 'fld-treasury_transaction-name', object_api_name: 'treasury_transaction', api_name: 'name', label: 'Transaction', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-treasury_transaction-document_kind', object_api_name: 'treasury_transaction', api_name: 'document_kind', label: 'Document kind', data_type: 'picklist', is_system: true, is_required: false, default_value: 'transaction', value_set_api_name: 'document_kind', lookup_object_api_name: null, sort_order: 12, active: true },
   { id: 'fld-treasury_transaction-classification', object_api_name: 'treasury_transaction', api_name: 'classification', label: 'Classification', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'treasury_transaction_classification', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-treasury_transaction-converted_from_id', object_api_name: 'treasury_transaction', api_name: 'converted_from_id', label: 'Converted from', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'treasury_transaction', sort_order: 55, active: true },
   { id: 'fld-treasury_transaction-amount', object_api_name: 'treasury_transaction', api_name: 'amount', label: 'Amount', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-treasury_transaction-status', object_api_name: 'treasury_transaction', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 40, active: true },
   { id: 'fld-treasury_transaction-notes', object_api_name: 'treasury_transaction', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true },
+  { id: 'fld-treasury_transaction-currency', object_api_name: 'treasury_transaction', api_name: 'currency', label: 'Currency', data_type: 'text', is_system: true, is_required: false, default_value: 'USD', value_set_api_name: null, lookup_object_api_name: null, sort_order: 35, active: true },
+  { id: 'fld-treasury_transaction-transaction_date', object_api_name: 'treasury_transaction', api_name: 'transaction_date', label: 'Date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 15, active: true },
+  { id: 'fld-treasury_transaction-category', object_api_name: 'treasury_transaction', api_name: 'category', label: 'Category', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 25, active: true },
+  { id: 'fld-treasury_transaction-counterparty_organization_id', object_api_name: 'treasury_transaction', api_name: 'counterparty_organization_id', label: 'Counterparty', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 45, active: true },
+  { id: 'fld-treasury_transaction-external_id', object_api_name: 'treasury_transaction', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
   { id: 'fld-treasury_records_assets_materiel-name', object_api_name: 'treasury_records_assets_materiel', api_name: 'name', label: 'Item', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
   { id: 'fld-treasury_records_assets_materiel-status', object_api_name: 'treasury_records_assets_materiel', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-treasury_records_assets_materiel-description', object_api_name: 'treasury_records_assets_materiel', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-treasury_records_assets_materiel-notes', object_api_name: 'treasury_records_assets_materiel', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
+  { id: 'fld-treasury_records_assets_materiel-file', object_api_name: 'treasury_records_assets_materiel', api_name: 'file', label: 'File', data_type: 'file', is_system: true, is_required: false, default_value: null, value_set_api_name: 'file_mime', lookup_object_api_name: null, sort_order: 50, active: true },
   { id: 'fld-qualification_examination-name', object_api_name: 'qualification_examination', api_name: 'name', label: 'Examination', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
   { id: 'fld-qualification_examination-status', object_api_name: 'qualification_examination', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-qualification_examination-notes', object_api_name: 'qualification_examination', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
@@ -1821,17 +2011,33 @@ const facultyRecordFieldSeed: FieldDefinition[] = [
   { id: 'fld-contact-contact_kind', object_api_name: 'contact', api_name: 'contact_kind', label: 'Contact kind', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'contact_kind', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-contact-email', object_api_name: 'contact', api_name: 'email', label: 'Email', data_type: 'email', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-contact-phone', object_api_name: 'contact', api_name: 'phone', label: 'Phone', data_type: 'phone', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
-  { id: 'fld-contact-organization', object_api_name: 'contact', api_name: 'organization', label: 'Organization', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true },
+  { id: 'fld-contact-organization', object_api_name: 'contact', api_name: 'organization', label: 'Organization name', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true },
+  { id: 'fld-contact-organization_id', object_api_name: 'contact', api_name: 'organization_id', label: 'Organization', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 55, active: true },
+  { id: 'fld-contact-external_id', object_api_name: 'contact', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true },
+  { id: 'fld-contact-vv_connection_uid', object_api_name: 'contact', api_name: 'vv_connection_uid', label: 'VersaVoice connection uid', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 80, active: true },
   { id: 'fld-organization-name', object_api_name: 'organization', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
-  { id: 'fld-organization-org_type', object_api_name: 'organization', api_name: 'org_type', label: 'Organization type', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-organization-org_type', object_api_name: 'organization', api_name: 'org_type', label: 'Organization type', data_type: 'picklist', is_system: true, is_required: false, default_value: 'internal', value_set_api_name: 'org_type', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-organization-is_person', object_api_name: 'organization', api_name: 'is_person', label: 'Person organization', data_type: 'boolean', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-organization-parent_organization_id', object_api_name: 'organization', api_name: 'parent_organization_id', label: 'Parent organization', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 40, active: true },
+  { id: 'fld-organization-slug', object_api_name: 'organization', api_name: 'slug', label: 'Slug', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true },
+  { id: 'fld-organization-is_active', object_api_name: 'organization', api_name: 'is_active', label: 'Active', data_type: 'boolean', is_system: true, is_required: false, default_value: 'true', value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
+  { id: 'fld-organization-logo_url', object_api_name: 'organization', api_name: 'logo_url', label: 'Logo', data_type: 'url', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true },
+  { id: 'fld-organization-notes', object_api_name: 'organization', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 80, active: true },
+  { id: 'fld-organization-external_id', object_api_name: 'organization', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 90, active: true },
   { id: 'fld-contact-notes', object_api_name: 'contact', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
   { id: 'fld-location-name', object_api_name: 'location', api_name: 'name', label: 'Label', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
   { id: 'fld-location-address', object_api_name: 'location', api_name: 'address', label: 'Address', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-location-country', object_api_name: 'location', api_name: 'country', label: 'Country', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-location-status', object_api_name: 'location', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 40, active: true },
   { id: 'fld-location-notes', object_api_name: 'location', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true },
+  { id: 'fld-location-line_1', object_api_name: 'location', api_name: 'line_1', label: 'Address line 1', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 22, active: true },
+  { id: 'fld-location-line_2', object_api_name: 'location', api_name: 'line_2', label: 'Address line 2', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 24, active: true },
+  { id: 'fld-location-city', object_api_name: 'location', api_name: 'city', label: 'City', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 26, active: true },
+  { id: 'fld-location-state', object_api_name: 'location', api_name: 'state', label: 'State', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 28, active: true },
+  { id: 'fld-location-postal_code', object_api_name: 'location', api_name: 'postal_code', label: 'Postal code', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 29, active: true },
+  { id: 'fld-location-is_primary', object_api_name: 'location', api_name: 'is_primary', label: 'Primary address', data_type: 'boolean', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 32, active: true },
+  { id: 'fld-location-organization_id', object_api_name: 'location', api_name: 'organization_id', label: 'Organization', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 35, active: true },
+  { id: 'fld-location-external_id', object_api_name: 'location', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
   { id: 'fld-event-name', object_api_name: 'event', api_name: 'name', label: 'Title', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
   { id: 'fld-event-kind', object_api_name: 'event', api_name: 'kind', label: 'Kind', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'event_kind', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-event-status', object_api_name: 'event', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 30, active: true },
@@ -1840,10 +2046,14 @@ const facultyRecordFieldSeed: FieldDefinition[] = [
   { id: 'fld-knowledge-kind', object_api_name: 'knowledge', api_name: 'kind', label: 'Asset type', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'knowledge_kind', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-knowledge-status', object_api_name: 'knowledge', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-knowledge-summary', object_api_name: 'knowledge', api_name: 'summary', label: 'Summary', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
+  { id: 'fld-knowledge-file', object_api_name: 'knowledge', api_name: 'file', label: 'File', data_type: 'file', is_system: true, is_required: false, default_value: null, value_set_api_name: 'file_mime', lookup_object_api_name: null, sort_order: 50, active: true },
   { id: 'fld-schedule-name', object_api_name: 'schedule', api_name: 'name', label: 'Label', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
   { id: 'fld-schedule-kind', object_api_name: 'schedule', api_name: 'kind', label: 'Kind', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'schedule_kind', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-schedule-status', object_api_name: 'schedule', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-schedule-notes', object_api_name: 'schedule', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
+  { id: 'fld-schedule-interval_count', object_api_name: 'schedule', api_name: 'interval_count', label: 'Interval count', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true },
+  { id: 'fld-schedule-interval_unit', object_api_name: 'schedule', api_name: 'interval_unit', label: 'Interval unit', data_type: 'picklist', is_system: true, is_required: false, default_value: 'week', value_set_api_name: 'interval_unit', lookup_object_api_name: null, sort_order: 60, active: true },
+  { id: 'fld-schedule-interval_iso', object_api_name: 'schedule', api_name: 'interval_iso', label: 'Interval (ISO 8601)', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true },
   { id: 'fld-environment_stat-name', object_api_name: 'environment_stat', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
   { id: 'fld-environment_stat-value', object_api_name: 'environment_stat', api_name: 'value', label: 'Value', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-environment_stat-unit', object_api_name: 'environment_stat', api_name: 'unit', label: 'Unit', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
@@ -1851,7 +2061,78 @@ const facultyRecordFieldSeed: FieldDefinition[] = [
   { id: 'fld-environment_stat-scale', object_api_name: 'environment_stat', api_name: 'scale', label: 'Scale', data_type: 'picklist', is_system: true, is_required: false, default_value: 'month', value_set_api_name: 'stat_scale', lookup_object_api_name: null, sort_order: 50, active: true },
   { id: 'fld-environment_stat-series', object_api_name: 'environment_stat', api_name: 'series', label: 'Series', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
   { id: 'fld-environment_stat-status', object_api_name: 'environment_stat', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 70, active: true },
+
+  // Collaboration / Vendor / {Credentials | Integrations | Exchange}
+  { id: 'fld-vendor_credential-name', object_api_name: 'vendor_credential', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-vendor_credential-auth_type', object_api_name: 'vendor_credential', api_name: 'auth_type', label: 'Auth type', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'credential_auth_type', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-vendor_credential-organization_id', object_api_name: 'vendor_credential', api_name: 'organization_id', label: 'Vendor', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 30, active: true },
+  { id: 'fld-vendor_credential-configuration', object_api_name: 'vendor_credential', api_name: 'configuration', label: 'Configuration', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
+  { id: 'fld-vendor_credential-notes', object_api_name: 'vendor_credential', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true },
+  { id: 'fld-vendor_credential-external_id', object_api_name: 'vendor_credential', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
+  { id: 'fld-vendor_integration-name', object_api_name: 'vendor_integration', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-vendor_integration-kind', object_api_name: 'vendor_integration', api_name: 'kind', label: 'Kind', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'integration_kind', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-vendor_integration-status', object_api_name: 'vendor_integration', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'integration_status', lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-vendor_integration-organization_id', object_api_name: 'vendor_integration', api_name: 'organization_id', label: 'Vendor', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 40, active: true },
+  { id: 'fld-vendor_integration-credential_id', object_api_name: 'vendor_integration', api_name: 'credential_id', label: 'Credential', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'vendor_credential', sort_order: 50, active: true },
+  { id: 'fld-vendor_integration-notes', object_api_name: 'vendor_integration', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
+  { id: 'fld-vendor_integration-external_id', object_api_name: 'vendor_integration', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true },
+  { id: 'fld-vendor_exchange-name', object_api_name: 'vendor_exchange', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-vendor_exchange-origin', object_api_name: 'vendor_exchange', api_name: 'origin', label: 'Origin', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'exchange_origin', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-vendor_exchange-status', object_api_name: 'vendor_exchange', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'exchange_status', lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-vendor_exchange-integration_id', object_api_name: 'vendor_exchange', api_name: 'integration_id', label: 'Integration', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'vendor_integration', sort_order: 40, active: true },
+  { id: 'fld-vendor_exchange-source_organization_id', object_api_name: 'vendor_exchange', api_name: 'source_organization_id', label: 'Source organization', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 50, active: true },
+  { id: 'fld-vendor_exchange-target_organization_id', object_api_name: 'vendor_exchange', api_name: 'target_organization_id', label: 'Target organization', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 60, active: true },
+  { id: 'fld-vendor_exchange-source_table', object_api_name: 'vendor_exchange', api_name: 'source_table', label: 'Source table', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true },
+  { id: 'fld-vendor_exchange-source_id', object_api_name: 'vendor_exchange', api_name: 'source_id', label: 'Source id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 80, active: true },
+  { id: 'fld-vendor_exchange-payload', object_api_name: 'vendor_exchange', api_name: 'payload', label: 'Payload', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 90, active: true },
+  { id: 'fld-vendor_exchange-replicate', object_api_name: 'vendor_exchange', api_name: 'replicate', label: 'Replicate', data_type: 'boolean', is_system: true, is_required: false, default_value: 'false', value_set_api_name: null, lookup_object_api_name: null, sort_order: 100, active: true },
+  { id: 'fld-vendor_exchange-error_message', object_api_name: 'vendor_exchange', api_name: 'error_message', label: 'Error message', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 110, active: true },
+  { id: 'fld-vendor_exchange-external_id', object_api_name: 'vendor_exchange', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 120, active: true },
 ];
+
+/** Platform audit lookups on every seeded faculty/collaboration/environment object. */
+function withPlatformAudit(fields: FieldDefinition[]): FieldDefinition[] {
+  const objects = [...new Set(fields.map((f) => f.object_api_name))];
+  const have = new Set(fields.map((f) => `${f.object_api_name}::${f.api_name}`));
+  const extra: FieldDefinition[] = [];
+  for (const object_api_name of objects) {
+    if (!have.has(`${object_api_name}::created_by`)) {
+      extra.push({
+        id: `fld-${object_api_name}-created_by`,
+        object_api_name,
+        api_name: 'created_by',
+        label: 'Created by',
+        data_type: 'lookup',
+        is_system: true,
+        is_required: false,
+        default_value: null,
+        value_set_api_name: null,
+        lookup_object_api_name: 'user',
+        sort_order: 9000,
+        active: true,
+      });
+    }
+    if (!have.has(`${object_api_name}::last_modified_by`)) {
+      extra.push({
+        id: `fld-${object_api_name}-last_modified_by`,
+        object_api_name,
+        api_name: 'last_modified_by',
+        label: 'Last modified by',
+        data_type: 'lookup',
+        is_system: true,
+        is_required: false,
+        default_value: null,
+        value_set_api_name: null,
+        lookup_object_api_name: 'user',
+        sort_order: 9010,
+        active: true,
+      });
+    }
+  }
+  return [...fields, ...extra];
+}
+
+const facultyRecordFieldSeed: FieldDefinition[] = withPlatformAudit(facultyRecordFieldSeedBase);
 
 // ---------------------------------------------------------------------------
 // Object registry (typed cores + faculty record types) — I5.6.32b
@@ -1985,6 +2266,7 @@ export function applyCatalogOverlay(overlay: {
   valueSetItems?: ValueSetItem[];
   layouts?: LayoutDefinition[];
   objects?: ObjectDefinition[];
+  systemSeedWins?: boolean;
 }): void {
   const fieldKey = (f: FieldDefinition) => `${f.object_api_name}::${f.api_name}`;
   const vsKey = (v: ValueSet) => v.api_name;
@@ -1992,7 +2274,12 @@ export function applyCatalogOverlay(overlay: {
   const layoutKey = (l: LayoutDefinition) => `${l.object_api_name}::${l.api_name}::${l.layout_type}::${l.version}`;
   const objectKey = (o: ObjectDefinition) => o.api_name;
 
-  const merge = <T,>(seed: T[], over: T[] | undefined, keyOf: (row: T) => string): T[] => {
+  const merge = <T,>(
+    seed: T[],
+    over: T[] | undefined,
+    keyOf: (row: T) => string,
+    seedWins?: (row: T) => boolean,
+  ): T[] => {
     if (!over?.length) return [...seed];
     const map = new Map(over.map((row) => [keyOf(row), row]));
     const seen = new Set<string>();
@@ -2000,7 +2287,7 @@ export function applyCatalogOverlay(overlay: {
     for (const row of seed) {
       const key = keyOf(row);
       const patch = map.get(key);
-      out.push(patch ? { ...row, ...patch } : row);
+      out.push(patch && !seedWins?.(row) ? { ...row, ...patch } : row);
       seen.add(key);
     }
     for (const row of over) {
@@ -2011,14 +2298,25 @@ export function applyCatalogOverlay(overlay: {
   };
 
   const seedFields = [...fieldDefinitions, ...facultyRecordFieldSeed];
-  catalogLive().fields = merge(seedFields, overlay.fields, fieldKey).map((row) => {
+  const systemSeedWins = Boolean(overlay.systemSeedWins);
+  catalogLive().fields = merge(
+    seedFields,
+    overlay.fields,
+    fieldKey,
+    (row) => systemSeedWins && row.is_system,
+  ).map((row) => {
     const seed = seedFields.find((s) => fieldKey(s) === fieldKey(row));
     return seed ? { ...row, is_system: seed.is_system, id: seed.id } : row;
   });
-  catalogLive().valueSets = merge(valueSets, overlay.valueSets, vsKey);
-  catalogLive().valueSetItems = merge(valueSetItems, overlay.valueSetItems, itemKey);
-  catalogLive().layouts = merge(layoutDefinitions, overlay.layouts, layoutKey);
-  catalogLive().objects = merge(objectDefinitions, overlay.objects, objectKey);
+  catalogLive().valueSets = merge(valueSets, overlay.valueSets, vsKey, () => systemSeedWins);
+  catalogLive().valueSetItems = merge(
+    valueSetItems,
+    overlay.valueSetItems,
+    itemKey,
+    () => systemSeedWins,
+  );
+  catalogLive().layouts = merge(layoutDefinitions, overlay.layouts, layoutKey, () => systemSeedWins);
+  catalogLive().objects = merge(objectDefinitions, overlay.objects, objectKey, () => systemSeedWins);
 }
 
 export function resetCatalog(): void {
@@ -2143,6 +2441,7 @@ const ALLOWED_DATA_TYPES: CatalogDataType[] = [
   'url',
   'phone',
   'currency',
+  'file',
 ];
 
 export interface ExtendFieldInput {

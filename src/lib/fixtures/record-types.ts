@@ -40,8 +40,8 @@ export const recordTypes: RecordTypeDefinition[] = [
   // #185 Slice A (rev E §7.2, 2026-08-31): executive_project, executive_task,
   // production_product, production_service move list -> header_lines (each
   // instance = header + lines; rev A §4.2 line groups). executive_policy was
-  // already header_lines. vendor_integration retired in #244 Slice F (D1 cutover):
-  // vendor integrations are org-attached record_line rows, not a record type.
+  // already header_lines. Vendor Integrations is a record type (with
+  // Credentials and Exchange) — not org-attached record_line rows.
   {
     id: 'rt-executive_policy',
     api_name: 'executive_policy',
@@ -116,8 +116,9 @@ export const recordTypes: RecordTypeDefinition[] = [
   // the locked element table - Communications (3), Dissemination (2), Treasury
   // (2, single RAM type per Stephen spelling), Qualifications (3),
   // Distribution/contacts (1), Environment (4). All structure=list (rev E
-  // section 3). vendor_integration retired in #244 Slice F (D1 cutover): vendor
-  // integrations are org-attached record_line rows (line_group=integrations).
+  // section 3). Vendor integrations are a record type again (Credentials /
+  // Integrations / Exchange tabs); org-attached line_group=integrations is
+  // no longer the Integrations tab.
   {
     id: 'rt-communication_message',
     api_name: 'communication_message',
@@ -342,6 +343,48 @@ export const recordTypes: RecordTypeDefinition[] = [
     is_system: true,
     object_api_name: 'environment_stat',
   },
+  {
+    id: 'rt-vendor_credential',
+    api_name: 'vendor_credential',
+    label: 'Credentials',
+    description: 'Authentication material for a vendor integration.',
+    parent_kind: 'collaboration',
+    parent_api_name: 'vendor',
+    structure: 'list',
+    show_as_tab: true,
+    sort_order: 10,
+    active: true,
+    is_system: true,
+    object_api_name: 'vendor_credential',
+  },
+  {
+    id: 'rt-vendor_integration',
+    api_name: 'vendor_integration',
+    label: 'Integrations',
+    description: 'Technical and commercial integrations with this vendor.',
+    parent_kind: 'collaboration',
+    parent_api_name: 'vendor',
+    structure: 'list',
+    show_as_tab: true,
+    sort_order: 20,
+    active: true,
+    is_system: true,
+    object_api_name: 'vendor_integration',
+  },
+  {
+    id: 'rt-vendor_exchange',
+    api_name: 'vendor_exchange',
+    label: 'Exchange',
+    description: 'Inbound and outbound I/O for a vendor integration.',
+    parent_kind: 'collaboration',
+    parent_api_name: 'vendor',
+    structure: 'list',
+    show_as_tab: true,
+    sort_order: 30,
+    active: true,
+    is_system: true,
+    object_api_name: 'vendor_exchange',
+  },
   // Organization is a typed core table (Executive Orgs tab). Catalogued here
   // so Fields / Lookup / Layouts can address it without adding a second zone tab.
   {
@@ -558,15 +601,23 @@ export function exportRecordTypesLive(): { recordTypes: RecordTypeDefinition[] }
   return { recordTypes: recordTypeLive() };
 }
 
-export function applyRecordTypeOverlay(overlay: { recordTypes?: RecordTypeDefinition[] }): void {
+export function applyRecordTypeOverlay(overlay: {
+  recordTypes?: RecordTypeDefinition[];
+  systemSeedWins?: boolean;
+}): void {
   const keyOf = (row: RecordTypeDefinition) => row.api_name;
   const over = overlay.recordTypes ?? [];
   const map = new Map(over.map((row) => [keyOf(row), row]));
   const seen = new Set<string>();
   const out: RecordTypeDefinition[] = [];
+  const systemSeedWins = Boolean(overlay.systemSeedWins);
   for (const row of recordTypes) {
     const patch = map.get(row.api_name);
-    out.push(patch ? { ...row, ...patch, is_system: row.is_system, id: row.id } : row);
+    out.push(
+      patch && !(systemSeedWins && row.is_system)
+        ? { ...row, ...patch, is_system: row.is_system, id: row.id }
+        : row,
+    );
     seen.add(row.api_name);
   }
   for (const row of over) {
