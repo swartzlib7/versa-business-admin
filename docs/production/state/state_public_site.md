@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Public site wiring + visitor chrome |
-| **Status** | 🔧 **0.7.122** — Classic density at 5; effect zoom does not reseed |
+| **Status** | 🔧 **0.7.129** — Sky Animation on Settings top tab bar |
 | **Last verified against code** | 2026-09-05 |
 | **Primary code** | `src/app/page.tsx`, `src/lib/public/site-content.ts`, `src/components/public/*`, `src/app/settings/page.tsx`, `src/components/settings/branding-panel.tsx`, `src/app/contact/page.tsx` |
 
@@ -48,11 +48,11 @@ This instance currently has **Demo Off** in `.data/site-settings.json`.
 
 ### Visitor chrome
 
-- Constellation: full-viewport star field, flicker, cursor parallax, theme RGB via `rgba()`. No connecting lines. **Two variants** (Settings → Branding → **Sky Animation**, persisted `constellation_variant` + `constellation_density` + `constellation_zoom` + `constellation_effects` on site settings, fixture + postgres migrations 0009/0010/0011/0012): **Classic** — milky-way star band only, brand-tinted stars (original look). **Realistic** — natural star distribution with color-temperature tints and tapered diffraction glints on the brightest stars. No faded color-band overlay. **Density** 1×–10× is shared. Classic **5× is the original band** (1× sparse, 10× twice as rich). Realistic 1×–10× still scales the natural field and **compacts into the Classic milky-way band** at the high end. **Stars zoom** 25%–200% in 25% steps (25% is the wide night-sky look of browser zoom-out; 100% is the previous scale). **Shooting stars, satellites, and comets** are separate layers: they do **not** inherit Stars zoom, and each has On/Off plus its own 25%–200% zoom (size scales in place; the star field is not reseeded). Defaults: shooting stars On, satellites On, comets Off. Comets are rare (max 1), with a dust tail, ion tail, and coma. Variant/density/Stars-zoom switch re-seeds the star field; effect zoom does not. Settings preview fills remaining viewport below the sub-tab strip (min 448px, max 4096px).
+- Constellation: full-viewport star field, flicker, cursor parallax, theme RGB via `rgba()`. No connecting lines. **Two variants** (Settings → **Sky Animation**, persisted `constellation_variant` + `constellation_density` + `constellation_zoom` + `constellation_effects` on site settings, fixture + postgres migrations 0009/0010/0011/0012): **Classic** — milky-way star band only, brand-tinted stars (original look). **Realistic** — natural star distribution with color-temperature tints and tapered diffraction glints on the brightest stars. No faded color-band overlay. **Density** 1×–10× is shared. Classic **5× is the original band** (1× sparse, 10× twice as rich). Realistic 1×–10× still scales the natural field and **compacts into the Classic milky-way band** at the high end. **Stars zoom** 25%–200% in 25% steps (25% is the wide night-sky look of browser zoom-out; 100% is the previous scale). **Shooting stars, satellites, and comets** are separate layers: they do **not** inherit Stars zoom, and each has On/Off, its own 25%–200% zoom, and a **Frequency** slider (⅓× / ½× / 1× / 2× / 3×; 1× is the usual rate). Wait between appearances is `base / frequency`. Shooting-star 1× is ⅓ the previous rate (the old cadence is 3×). Defaults: shooting stars On, satellites On, comets Off; all frequency 1×. Comets: one at a time, ballistic arc across the sky, particle trail that fades; 15–60s between passes at 1×. Variant/density/Stars-zoom switch re-seeds the star field; effect zoom and frequency do not. Settings preview fills remaining viewport below the Settings tab bar (min 448px, max 4096px). Old `?tab=branding&sub=sky` redirects to `?tab=sky`.
 - Public theme cycle: **Dark (default) → Architect → Slate**. Light/Dusk stay on operator Mission Control. Keys: `versa-public-ui-theme` vs `versa-ui-theme`. Public and operator stores are independent; pathname selects which store to apply.
 - Header links are **nowrap**. Desktop nav starts at `xl`; below that the hamburger menu is used so labels do not wrap.
 - Footer: **50% opacity** `bg-background/50` bar with backdrop blur; back-to-top chevron sits on the top edge (same control as next-section). Three columns — Mission Control links **split into two sub-columns under a spanning heading**, centered brand + slogan/tagline, Contact — **left and right columns are center-aligned**. Address segments on own lines.
-- **Branding controls persist.** Root layout must pass opacity, glow (incl. color/spread), scales, **per-logo surfaces**, sky variant, density, zoom, and **sky effects** into `BrandProvider`. Settings Branding hydrates from `GET /api/settings/branding` (not from stripped context defaults). File picker uses `FileField` (outline Choose file + muted filename + ghost Remove) — native file chrome is out of style. Upload hint (512–1024 px) stays visible after a file is chosen. Save keeps the current Branding sub-tab.
+- **Branding controls persist.** Root layout must pass opacity, glow (incl. color/spread), scales, **per-logo surfaces**, sky variant, density, zoom, and **sky effects** into `BrandProvider`. Settings Branding hydrates from `GET /api/settings/branding` (not from stripped context defaults). File picker uses `FileField` (outline Choose file + muted filename + ghost Remove) — native file chrome is out of style. Upload hint (512–1024 px) stays visible after a file is chosen. Save keeps the current Settings tab (`?tab=branding&sub=logo` or `?tab=sky`).
 
 ### Persist
 
@@ -66,12 +66,13 @@ New public fields live on the fixture JSON sidecar (`.data/site-settings.json`).
 Stephen named live surfaces, then stayed in IDE and shaped the visitor face (constellation, lockup, footer, themes).
 
 ### 2.2 Behavior today vs contract
-Matches §1 on beta `:3200` at **0.7.122** (Classic density + live effect zoom). Visual QA of WU-07 / WU-08 / WU-09 still with Stephen.
+Matches §1 on beta `:3200` at **0.7.129**. WU-07 / WU-08 / WU-09 accepted by Stephen 2026-09-05.
 
 ### 2.3 Code anchors
 - Settings store: `src/lib/fixtures/site-settings.ts`
 - Public helpers: `src/lib/public/site-content.ts`, `src/lib/public/site-types.ts`
-- Settings → Branding: `src/components/settings/branding-panel.tsx` (Brand / Logo / Sky Animation)
+- Settings → Branding: `src/components/settings/branding-panel.tsx` (Brand / Logo)
+- Settings → Sky Animation: `src/app/settings/page.tsx` (`?tab=sky`) + same panel
 - Settings → Cycle Strip: `src/components/settings/public-site-panel.tsx`
 - Contact menu: `src/app/contact/page.tsx`
 - Stats type: `environment_stat`, sidebar menu `/stats` (not Environment), `stat_scale` value set
@@ -98,9 +99,9 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | WU-04 | Stats menu + type/sparkline (not Environment tab) | — | ✅ | ✅ | ✅ | IDE |
 | WU-05 | Constellation + public themes + footer + hero lockup | WU-02 | ✅ | ✅ | ✅ | IDE |
 | WU-06 | Commit / handoff hygiene with web-dev | WU-05 | ⬜ | ⬜ | ⬜ | |
-| WU-07 | Default Dark on public + operator; independent theme stores (public toggle must not change operator) | — | ✅ | ⬜ | 🔧 | 265 |
-| WU-08 | Logo display + constellation variants + mobile scroll | WU-05 | ✅ | ⬜ | 🔧 | 267 |
-| WU-09 | Branding sub-tabs; persist sliders/sky; glow color/spread; logo scales; sky density; Cycle Strip cells; Information toggle text left | WU-08 | ✅ | ⬜ | 🔧 | 268 |
+| WU-07 | Default Dark on public + operator; independent theme stores (public toggle must not change operator) | — | ✅ | ✅ | ✅ | 265 |
+| WU-08 | Logo display + constellation variants + mobile scroll | WU-05 | ✅ | ✅ | ✅ | 267 |
+| WU-09 | Branding sub-tabs; persist sliders/sky; glow color/spread; logo scales; sky density; Cycle Strip cells; Information toggle text left | WU-08 | ✅ | ✅ | ✅ | 268 |
 
 ---
 
@@ -139,3 +140,10 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | 2026-09-05 | Sky Preview + clear sections | **0.7.120:** Settings Sky Animation **Preview** opens the current sky full screen (Esc/Close). Public sections are transparent (no alternating bands). Footer stays **50%** with blur; left/right columns center-aligned; Mission Control heading spans both link columns. |
 | 2026-09-05 | Independent sky effects | **0.7.121:** Stars zoom no longer scales shooting stars or satellites. Shooting stars, satellites, and comets each have On/Off and their own 25%–200% zoom. Comets are a new optional layer (dust + ion tails). Persisted `constellation_effects`. |
 | 2026-09-05 | Classic density + live effect zoom | **0.7.122:** Density slider is shared with Classic; **5× is the original Classic band**. Tuning shooting-star / satellite / comet zoom scales them in place (does not regenerate the sky). Milestone commit of 0.7.118–122. |
+| 2026-09-05 | Comet redesign | **0.7.123:** Comet arcs across the viewport (no fade-out). Dust/ion particles trail behind and fade. Max one; 15–60s between passes. |
+| 2026-09-05 | Comet pace + sparkle | **0.7.124:** Comet ~5× slower; trail particles smaller and twinklier. |
+| 2026-09-05 | Distant comet | **0.7.125:** Rock-shaped nucleus with a flickering sunlit glow; round halo removed. Tail longer and narrower. |
+| 2026-09-05 | Comet path + dust | **0.7.126:** Rock ~3× larger. Dust peels off and hangs/falls instead of following. Enters from left, right, or bottom and arcs to the opposite top. |
+| 2026-09-05 | Dust no gravity | **0.7.127:** Comet dust no longer falls; it stays where it peels off. |
+| 2026-09-05 | Sky effect frequency | **0.7.128:** Each of shooting stars, satellites, and comets has Frequency ⅓×–3× (1× center). Shooting stars at 1× are ⅓ as often as before; 3× restores the old rate. |
+| 2026-09-05 | Sky Animation top tab | **0.7.129:** Sky Animation is a Settings top tab (`?tab=sky`), not a Branding sub-tab. Branding keeps Brand / Logo. `?tab=branding&sub=sky` still opens Sky Animation. Stephen accepted WU-07–09. |

@@ -21,11 +21,15 @@ import {
   SKY_DENSITY_DEFAULT,
   SKY_DENSITY_LEVEL_MAX,
   SKY_DENSITY_LEVEL_MIN,
+  SKY_FREQ_STEPS,
   SKY_ZOOM_MAX,
   SKY_ZOOM_MIN,
   SKY_ZOOM_STEP,
   clampLogoScale,
+  clampSkyFrequency,
   clampSkyZoom,
+  formatSkyFrequency,
+  skyFreqIndex,
   logoPx,
   logoSurfaceFilter,
   resolveLogoSurfaces,
@@ -256,20 +260,46 @@ function SkyEffectRow({
         />
       </div>
       {style.enabled ? (
-        <div className="space-y-1">
-          <label className="text-xs font-medium">
-            Zoom ({Math.round(style.zoom * 100)}%)
-          </label>
-          <input
-            type="range"
-            min={SKY_ZOOM_MIN}
-            max={SKY_ZOOM_MAX}
-            step={SKY_ZOOM_STEP}
-            value={style.zoom}
-            onChange={(e) => onChange({ zoom: clampSkyZoom(Number(e.target.value)) })}
-            className="w-full"
-            style={{ accentColor: color }}
-          />
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium">
+              Zoom ({Math.round(style.zoom * 100)}%)
+            </label>
+            <input
+              type="range"
+              min={SKY_ZOOM_MIN}
+              max={SKY_ZOOM_MAX}
+              step={SKY_ZOOM_STEP}
+              value={style.zoom}
+              onChange={(e) => onChange({ zoom: clampSkyZoom(Number(e.target.value)) })}
+              className="w-full"
+              style={{ accentColor: color }}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium">
+              Frequency ({formatSkyFrequency(style.frequency)})
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={SKY_FREQ_STEPS.length - 1}
+              step={1}
+              value={skyFreqIndex(style.frequency)}
+              onChange={(e) =>
+                onChange({
+                  frequency: clampSkyFrequency(SKY_FREQ_STEPS[Number(e.target.value)] ?? 1),
+                })
+              }
+              className="w-full"
+              style={{ accentColor: color }}
+            />
+            <div className="flex justify-between text-[10px] text-muted-foreground">
+              {SKY_FREQ_STEPS.map((step, i) => (
+                <span key={i}>{formatSkyFrequency(step)}</span>
+              ))}
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
@@ -413,8 +443,14 @@ export function BrandingPanel({
       }
       setSaved(true);
       const url = new URL(window.location.href);
-      url.searchParams.set("tab", "branding");
-      url.searchParams.set("sub", subTab);
+      if (subTab === "sky") {
+        url.searchParams.set("tab", "sky");
+        url.searchParams.delete("sub");
+      } else {
+        url.searchParams.set("tab", "branding");
+        if (subTab === "brand") url.searchParams.delete("sub");
+        else url.searchParams.set("sub", subTab);
+      }
       window.location.assign(`${url.pathname}${url.search}`);
     } catch {
       setSaveError("Network error. Please try again.");
@@ -632,21 +668,21 @@ export function BrandingPanel({
           <div className="grid shrink-0 gap-3 lg:grid-cols-3">
             <SkyEffectRow
               title="Shooting stars"
-              hint="Brief meteors. Independent of Stars zoom."
+              hint="Brief meteors. Independent of Stars zoom. 1× is the usual rate; 3× is the previous rate."
               style={draft.effects.meteors}
               color={draft.color}
               onChange={(partial) => patchEffect("meteors", partial)}
             />
             <SkyEffectRow
               title="Satellites"
-              hint="Slow crossings with quiet gaps. Independent of Stars zoom."
+              hint="Slow crossings with quiet gaps. Independent of Stars zoom. 1× is the usual rate."
               style={draft.effects.satellites}
               color={draft.color}
               onChange={(partial) => patchEffect("satellites", partial)}
             />
             <SkyEffectRow
               title="Comets"
-              hint="Rare visitors with dust and ion tails."
+              hint="One at a time, arcing across the sky. 1× waits 15–60s between appearances."
               style={draft.effects.comets}
               color={draft.color}
               onChange={(partial) => patchEffect("comets", partial)}

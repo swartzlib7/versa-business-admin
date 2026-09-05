@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import {
   SKY_DENSITY_DEFAULT,
   SKY_DENSITY_LEVEL_DEFAULT,
+  SKY_FREQ_MIN,
+  clampSkyFrequency,
   clampSkyZoom,
   resolveSkyEffects,
   skyDensityLevel,
@@ -52,12 +54,33 @@ type Comet = {
   y: number;
   vx: number;
   vy: number;
+  t: number;
+  speed: number;
+  sx: number;
+  sy: number;
+  cx: number;
+  cy: number;
+  ex: number;
+  ey: number;
+  born: number;
+  size: number;
+  phase: number;
+  flicker: number;
+  rock: { x: number; y: number }[];
+};
+
+type CometDust = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
   life: number;
   maxLife: number;
-  comaR: number;
-  tailLen: number;
-  ionLen: number;
-  dustSpread: number;
+  r: number;
+  warm: boolean;
+  spark: boolean;
+  phase: number;
+  twinkle: number;
 };
 
 type Rgb = [number, number, number];
@@ -194,76 +217,112 @@ function drawGlint(
   ctx.restore();
 }
 
-function drawComet(
+function bezier1(t: number, a: number, b: number, c: number): number {
+  const u = 1 - t;
+  return u * u * a + 2 * u * t * b + t * t * c;
+}
+
+function bezier1d(t: number, a: number, b: number, c: number): number {
+  return 2 * (1 - t) * (b - a) + 2 * t * (c - b);
+}
+
+function makeCometRock(): { x: number; y: number }[] {
+  const n = 7 + Math.floor(Math.random() * 3);
+  const verts: { x: number; y: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + rand(-0.14, 0.14);
+    const rx = 1.7 * (0.68 + Math.random() * 0.5);
+    const ry = 0.78 * (0.62 + Math.random() * 0.48);
+    verts.push({ x: Math.cos(a) * rx, y: Math.sin(a) * ry });
+  }
+  return verts;
+}
+
+function drawCometHead(
   ctx: CanvasRenderingContext2D,
   c: Comet,
   driftX: number,
   driftY: number,
-  fade: number,
   scale: number,
 ) {
   const x = c.x + driftX * 0.1;
   const y = c.y + driftY * 0.1;
-  const mag = Math.hypot(c.vx, c.vy) || 1;
-  const ux = c.vx / mag;
-  const uy = c.vy / mag;
-  const px = -uy;
-  const py = ux;
-  const dust: Rgb = [255, 228, 186];
-  const ion: Rgb = [168, 210, 255];
-  const coma: Rgb = [255, 248, 230];
+  const appear = Math.min(1, c.born / 0.28);
+  const glow =
+    appear *
+    (0.78 + 0.22 * (0.5 + 0.5 * Math.sin(c.phase)) * (Math.sin(c.phase * 2.7) > 0.82 ? 0.55 : 1));
+  const heading = Math.atan2(c.vy, c.vx);
 
   ctx.save();
   ctx.translate(x, y);
-  ctx.scale(scale, scale);
+  ctx.rotate(heading);
+  ctx.scale(scale * c.size, scale * c.size);
 
-  for (let k = 0; k < 5; k++) {
-    const t = k / 4 - 0.5;
-    const spread = c.dustSpread * t * 1.8;
-    const len = c.tailLen * (0.72 + k * 0.07);
-    const tx = -ux * len + px * spread;
-    const ty = -uy * len + py * spread;
-    const g = ctx.createLinearGradient(tx, ty, 0, 0);
-    g.addColorStop(0, rgba(dust, 0));
-    g.addColorStop(0.5, rgba(dust, 0.1 * fade));
-    g.addColorStop(1, rgba(dust, 0.42 * fade));
-    ctx.strokeStyle = g;
-    ctx.lineWidth = 3.4 - k * 0.45;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(tx, ty);
-    ctx.lineTo(-ux * 10, -uy * 10);
-    ctx.stroke();
-  }
-
-  const ionTx = -ux * c.ionLen + px * 8;
-  const ionTy = -uy * c.ionLen + py * 8;
-  const ig = ctx.createLinearGradient(ionTx, ionTy, 0, 0);
-  ig.addColorStop(0, rgba(ion, 0));
-  ig.addColorStop(0.65, rgba(ion, 0.2 * fade));
-  ig.addColorStop(1, rgba(ion, 0.55 * fade));
-  ctx.strokeStyle = ig;
-  ctx.lineWidth = 1.35;
-  ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(ionTx, ionTy);
-  ctx.lineTo(0, 0);
-  ctx.stroke();
-
-  const bloom = ctx.createRadialGradient(0, 0, 0, 0, 0, c.comaR * 4.2);
-  bloom.addColorStop(0, rgba(coma, 0.95 * fade));
-  bloom.addColorStop(0.28, rgba(dust, 0.4 * fade));
-  bloom.addColorStop(1, rgba(dust, 0));
-  ctx.fillStyle = bloom;
-  ctx.beginPath();
-  ctx.arc(0, 0, c.comaR * 4.2, 0, Math.PI * 2);
+  ctx.moveTo(c.rock[0].x, c.rock[0].y);
+  for (let i = 1; i < c.rock.length; i++) ctx.lineTo(c.rock[i].x, c.rock[i].y);
+  ctx.closePath();
+  ctx.fillStyle = rgba([46, 42, 40], 0.92 * appear);
   ctx.fill();
 
+  ctx.save();
+  ctx.clip();
+  const lit = ctx.createLinearGradient(1.8, 0, -1.1, 0.15);
+  lit.addColorStop(0, rgba([255, 236, 196], 0.95 * glow));
+  lit.addColorStop(0.28, rgba([255, 168, 92], 0.55 * glow));
+  lit.addColorStop(0.7, rgba([120, 70, 40], 0.12 * glow));
+  lit.addColorStop(1, rgba([40, 34, 32], 0));
+  ctx.fillStyle = lit;
+  ctx.fill();
   ctx.beginPath();
-  ctx.arc(0, 0, c.comaR * 0.38, 0, Math.PI * 2);
-  ctx.fillStyle = rgba([255, 255, 255], 0.95 * fade);
+  ctx.ellipse(0.72, 0.08, 0.38, 0.16, 0.15, 0, Math.PI * 2);
+  ctx.fillStyle = rgba([255, 252, 240], 0.7 * glow);
   ctx.fill();
   ctx.restore();
+
+  ctx.strokeStyle = rgba([255, 210, 150], 0.28 * glow);
+  ctx.lineWidth = 0.12;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCometDust(
+  ctx: CanvasRenderingContext2D,
+  p: CometDust,
+  driftX: number,
+  driftY: number,
+  scale: number,
+) {
+  const fade = Math.max(0, 1 - p.life / p.maxLife);
+  if (fade <= 0.01) return;
+  const x = p.x + driftX * 0.1;
+  const y = p.y + driftY * 0.1;
+  const flicker = 0.18 + 0.82 * (0.5 + 0.5 * Math.sin(p.phase));
+  const wink = Math.sin(p.phase * 3.2) > 0.72 ? 1.35 : 0.55;
+  const spark = p.spark ? wink : 1;
+  const alpha = fade * flicker * spark * (p.spark ? 0.95 : 0.42);
+  const color: Rgb = p.spark
+    ? [255, 255, 255]
+    : p.warm
+      ? [255, 226, 178]
+      : [186, 220, 255];
+  const r = Math.max(0.15, p.r * scale * (0.65 + 0.35 * flicker));
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = rgba(color, alpha);
+  ctx.fill();
+  if (p.spark && flicker > 0.62 && fade > 0.2) {
+    const spike = r * 3.4;
+    ctx.strokeStyle = rgba([255, 255, 255], alpha * 0.85);
+    ctx.lineWidth = 0.35 * scale;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(x - spike, y);
+    ctx.lineTo(x + spike, y);
+    ctx.moveTo(x, y - spike);
+    ctx.lineTo(x, y + spike);
+    ctx.stroke();
+  }
 }
 
 /**
@@ -298,13 +357,36 @@ export function VersaConstellation({
   const meteorZ = clampSkyZoom(skyFx.meteors.zoom);
   const satZ = clampSkyZoom(skyFx.satellites.zoom);
   const cometZ = clampSkyZoom(skyFx.comets.zoom);
+  const meteorF = clampSkyFrequency(skyFx.meteors.frequency);
+  const satF = clampSkyFrequency(skyFx.satellites.frequency);
+  const cometF = clampSkyFrequency(skyFx.comets.frequency);
   const meteorsOn = skyFx.meteors.enabled;
   const satsOn = skyFx.satellites.enabled;
   const cometsOn = skyFx.comets.enabled;
-  const fxRef = useRef({ meteorZ, satZ, cometZ, meteorsOn, satsOn, cometsOn });
+  const fxRef = useRef({
+    meteorZ,
+    satZ,
+    cometZ,
+    meteorF,
+    satF,
+    cometF,
+    meteorsOn,
+    satsOn,
+    cometsOn,
+  });
   useEffect(() => {
-    fxRef.current = { meteorZ, satZ, cometZ, meteorsOn, satsOn, cometsOn };
-  }, [meteorZ, satZ, cometZ, meteorsOn, satsOn, cometsOn]);
+    fxRef.current = {
+      meteorZ,
+      satZ,
+      cometZ,
+      meteorF,
+      satF,
+      cometF,
+      meteorsOn,
+      satsOn,
+      cometsOn,
+    };
+  }, [meteorZ, satZ, cometZ, meteorF, satF, cometF, meteorsOn, satsOn, cometsOn]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -321,11 +403,15 @@ export function VersaConstellation({
     const meteors: Meteor[] = [];
     const satellites: Satellite[] = [];
     const comets: Comet[] = [];
+    const cometDust: CometDust[] = [];
+    const gap = (lo: number, hi: number, freq: number) =>
+      rand(lo, hi) / Math.max(freq, SKY_FREQ_MIN);
     let raf = 0;
     let last = performance.now();
-    let spawnIn = rand(1.8, 4.2);
-    let satelliteSpawnIn = rand(6, 14);
-    let cometSpawnIn = rand(2.2, 5.5);
+    let spawnIn = gap(5.4, 12.6, fxRef.current.meteorF);
+    let satelliteSpawnIn = gap(6, 14, fxRef.current.satF);
+    let cometSpawnIn = gap(4, 10, fxRef.current.cometF);
+    let dustAcc = 0;
     let dpr = 1;
     const mouse = { tx: 0, ty: 0, x: 0, y: 0 };
     let palette = readTheme();
@@ -492,23 +578,85 @@ export function VersaConstellation({
     };
 
     const spawnComet = (w: number, h: number) => {
-      const fromLeft = Math.random() > 0.42;
-      const speed = rand(36, 68);
-      const climb = rand(0.14, 0.42);
-      const vx = (fromLeft ? 1 : -1) * speed * Math.cos(climb);
-      const vy = speed * Math.sin(climb);
+      if (comets.length >= 1) return;
+      const roll = Math.random();
+      let sx: number;
+      let sy: number;
+      let cx: number;
+      let cy: number;
+      let ex: number;
+      let ey: number;
+      if (roll < 0.34) {
+        sx = -80;
+        sy = rand(h * 0.38, h * 0.88);
+        cx = w * rand(0.32, 0.52);
+        cy = h * rand(-0.04, 0.16);
+        ex = w + 80;
+        ey = -80;
+      } else if (roll < 0.68) {
+        sx = w + 80;
+        sy = rand(h * 0.38, h * 0.88);
+        cx = w * rand(0.48, 0.68);
+        cy = h * rand(-0.04, 0.16);
+        ex = -80;
+        ey = -80;
+      } else {
+        const leftish = Math.random() > 0.5;
+        sx = leftish ? rand(w * 0.06, w * 0.42) : rand(w * 0.58, w * 0.94);
+        sy = h + 80;
+        cx = w * (leftish ? rand(0.18, 0.4) : rand(0.6, 0.82));
+        cy = h * rand(0.28, 0.52);
+        ex = leftish ? w + 80 : -80;
+        ey = -80;
+      }
+      const duration = rand(42, 68);
       comets.push({
-        x: fromLeft ? -90 : w + 90,
-        y: rand(h * 0.05, h * 0.4),
-        vx,
-        vy,
-        life: 0,
-        maxLife: rand(5.8, 9.8),
-        comaR: rand(4.2, 7.2),
-        tailLen: rand(150, 250),
-        ionLen: rand(190, 300),
-        dustSpread: rand(11, 20),
+        x: sx,
+        y: sy,
+        vx: bezier1d(0, sx, cx, ex),
+        vy: bezier1d(0, sy, cy, ey),
+        t: 0,
+        speed: 1 / duration,
+        sx,
+        sy,
+        cx,
+        cy,
+        ex,
+        ey,
+        born: 0,
+        size: rand(4.05, 6.15),
+        phase: Math.random() * Math.PI * 2,
+        flicker: rand(2.4, 4.8),
+        rock: makeCometRock(),
       });
+    };
+
+    const emitCometDust = (c: Comet) => {
+      const mag = Math.hypot(c.vx, c.vy) || 1;
+      const ux = c.vx / mag;
+      const uy = c.vy / mag;
+      const px = -uy;
+      const py = ux;
+      const n = Math.random() < 0.5 ? 4 : 3;
+      for (let i = 0; i < n; i++) {
+        if (cometDust.length >= 360) break;
+        const along = rand(c.size * 0.2, c.size * 1.5);
+        const side = gauss() * c.size * 0.35;
+        const spark = Math.random() < 0.34;
+        cometDust.push({
+          x: c.x - ux * along + px * side,
+          y: c.y - uy * along + py * side,
+          vx: gauss() * 1.6,
+          vy: gauss() * 1.6,
+          life: 0,
+          maxLife: rand(5.2, 9.2),
+          r: spark ? rand(0.1, 0.26) : rand(0.12, 0.38),
+          warm: Math.random() > 0.35,
+          spark,
+          phase: Math.random() * Math.PI * 2,
+          twinkle: rand(4.5, 11),
+        });
+      }
     };
 
     const starColor = (s: Star): Rgb => {
@@ -572,7 +720,7 @@ export function VersaConstellation({
             spawnIn -= dt;
             if (spawnIn <= 0 && meteors.length < 2) {
               spawnMeteor(ew, eh);
-              spawnIn = rand(2.4, 5.5);
+              spawnIn = gap(7.2, 16.5, fx.meteorF);
             }
             const mz = fx.meteorZ;
             for (let i = meteors.length - 1; i >= 0; i--) {
@@ -621,7 +769,7 @@ export function VersaConstellation({
             satelliteSpawnIn -= dt;
             if (satelliteSpawnIn <= 0 && satellites.length < 3) {
               spawnSatellite(ew, eh);
-              satelliteSpawnIn = rand(9, 22);
+              satelliteSpawnIn = gap(9, 22, fx.satF);
             }
             const sz = fx.satZ;
             for (let i = satellites.length - 1; i >= 0; i--) {
@@ -690,34 +838,56 @@ export function VersaConstellation({
           }
 
           if (!fx.cometsOn) {
+            const waiting = cometSpawnIn > 1000;
             comets.length = 0;
+            cometDust.length = 0;
+            dustAcc = 0;
+            if (waiting) cometSpawnIn = gap(4, 10, fx.cometF);
           } else {
+            const cz = fx.cometZ;
             cometSpawnIn -= dt;
             if (cometSpawnIn <= 0 && comets.length < 1) {
               spawnComet(ew, eh);
-              cometSpawnIn = rand(16, 40);
+              cometSpawnIn = 1e9;
             }
-            const cz = fx.cometZ;
+
             for (let i = comets.length - 1; i >= 0; i--) {
               const c = comets[i];
-              c.life += dt;
-              c.x += c.vx * dt;
-              c.y += c.vy * dt;
-              const fadeIn = Math.min(1, c.life / 0.9);
-              const fadeOut = Math.max(0, 1 - c.life / c.maxLife);
-              const fade = fadeIn * fadeOut;
-              if (fade > 0.01) {
-                drawComet(ctx, c, driftX, driftY, fade, cz);
+              c.born += dt;
+              c.phase += c.flicker * dt;
+              c.t += c.speed * dt;
+              const t = Math.min(1, c.t);
+              c.x = bezier1(t, c.sx, c.cx, c.ex);
+              c.y = bezier1(t, c.sy, c.cy, c.ey);
+              c.vx = bezier1d(t, c.sx, c.cx, c.ex);
+              c.vy = bezier1d(t, c.sy, c.cy, c.ey);
+              dustAcc += dt;
+              while (dustAcc >= 1 / 72) {
+                emitCometDust(c);
+                dustAcc -= 1 / 72;
               }
-              if (
-                c.life >= c.maxLife ||
-                c.x < -220 ||
-                c.x > ew + 220 ||
-                c.y < -220 ||
-                c.y > eh + 220
-              ) {
+              if (c.t >= 1) {
                 comets.splice(i, 1);
+                cometSpawnIn = gap(15, 60, fx.cometF);
               }
+            }
+
+            for (let i = cometDust.length - 1; i >= 0; i--) {
+              const p = cometDust[i];
+              p.life += dt;
+              p.phase += p.twinkle * dt;
+              p.x += p.vx * dt;
+              p.y += p.vy * dt;
+              if (p.life >= p.maxLife) {
+                cometDust.splice(i, 1);
+              }
+            }
+
+            for (const p of cometDust) {
+              drawCometDust(ctx, p, driftX, driftY, cz);
+            }
+            for (const c of comets) {
+              drawCometHead(ctx, c, driftX, driftY, cz);
             }
           }
           ctx.restore();

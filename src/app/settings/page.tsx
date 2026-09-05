@@ -20,10 +20,17 @@ import { PublicSitePanel } from "@/components/settings/public-site-panel";
 import { BrandingPanel, type BrandingSubTab } from "@/components/settings/branding-panel";
 import { MenuOrderPanel } from "@/components/settings/menu-order-panel";
 
-type SettingsTab = "branding" | "appearance" | "public" | "menu" | "information";
+type SettingsTab =
+  | "branding"
+  | "sky"
+  | "appearance"
+  | "public"
+  | "menu"
+  | "information";
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: "branding", label: "Branding" },
+  { id: "sky", label: "Sky Animation" },
   { id: "appearance", label: "Appearance" },
   { id: "public", label: "Cycle Strip" },
   { id: "menu", label: "Menu" },
@@ -277,7 +284,15 @@ function AppearancePanel() {
   );
 }
 
-const BRANDING_SUBS = ["brand", "logo", "sky"] as const;
+const SETTINGS_TABS: SettingsTab[] = [
+  "branding",
+  "sky",
+  "appearance",
+  "public",
+  "menu",
+  "information",
+];
+const BRANDING_SUBS = ["brand", "logo"] as const;
 
 function settingsTabFromSearch(): SettingsTab {
   if (typeof window === "undefined") return "branding";
@@ -292,7 +307,9 @@ function settingsTabFromSearch(): SettingsTab {
   }
   if (q === "system") return "information";
   if (q === "cycle") return "public";
-  if (q && ["branding", "appearance", "public", "menu", "information"].includes(q)) {
+  const sub = new URLSearchParams(window.location.search).get("sub");
+  if (q === "sky" || (q === "branding" && sub === "sky")) return "sky";
+  if (q && SETTINGS_TABS.includes(q as SettingsTab)) {
     return q as SettingsTab;
   }
   return "branding";
@@ -325,7 +342,7 @@ export default function SettingsPage() {
     settingsSubFromSearch(settingsTabFromSearch()),
   );
   const brand = useBrand();
-  const skyFill = tab === "branding" && subTab === "sky";
+  const skyFill = tab === "sky";
 
   useEffect(() => {
     writeSettingsSearch(tab, subTab);
@@ -344,19 +361,17 @@ export default function SettingsPage() {
             const next = id as SettingsTab;
             setTab(next);
             if (next === "branding") setSubTab("brand");
-            else if (next === "appearance" || next === "public") setSubTab("configuration");
             else setSubTab("configuration");
           }}
           tabsAriaLabel="Settings sections"
         />
 
         {tab === "branding" && (
-          <div role="tabpanel" className={cn(skyFill ? "flex h-full min-h-0 flex-1 flex-col gap-3" : "space-y-3")}>
+          <div role="tabpanel" className="space-y-3">
             <SubTabBar
               items={[
                 { id: "brand", label: "Brand" },
                 { id: "logo", label: "Logo" },
-                { id: "sky", label: "Sky Animation" },
               ]}
               activeId={subTab}
               accent={brand.brand_color}
@@ -364,14 +379,24 @@ export default function SettingsPage() {
               ariaLabel="Branding sub-sections"
             />
             <PanelShell
-              summary="Customize how Mission Control appears. Name, color, logo, and sky are saved permanently and survive a restart."
+              summary="Customize how Mission Control appears. Name, color, and logo are saved permanently and survive a restart."
               badge="Brand"
-              fill={skyFill}
             >
               <BrandingPanel
-                fill={skyFill}
-                subTab={(["brand", "logo", "sky"].includes(subTab) ? subTab : "brand") as BrandingSubTab}
+                subTab={(["brand", "logo"].includes(subTab) ? subTab : "brand") as BrandingSubTab}
               />
+            </PanelShell>
+          </div>
+        )}
+
+        {tab === "sky" && (
+          <div role="tabpanel" className="flex h-full min-h-0 flex-1 flex-col gap-3">
+            <PanelShell
+              summary="Visitor homepage sky. Variant, zoom, density, and effects are saved permanently and survive a restart."
+              badge="Sky"
+              fill
+            >
+              <BrandingPanel fill subTab="sky" />
             </PanelShell>
           </div>
         )}

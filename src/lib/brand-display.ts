@@ -92,19 +92,53 @@ export function skyDensityFromLevel(level: unknown): number {
   return (L - 1) / 9;
 }
 
+export const SKY_FREQ_STEPS = [1 / 3, 0.5, 1, 2, 3] as const;
+export const SKY_FREQ_MIN = SKY_FREQ_STEPS[0];
+export const SKY_FREQ_MAX = SKY_FREQ_STEPS[SKY_FREQ_STEPS.length - 1];
+export const SKY_FREQ_DEFAULT = 1;
+
+export function clampSkyFrequency(n: unknown, fallback = SKY_FREQ_DEFAULT): number {
+  const x = typeof n === "number" ? n : Number(n);
+  if (!Number.isFinite(x)) return fallback;
+  let best: number = SKY_FREQ_STEPS[0];
+  let bestD = Infinity;
+  for (const step of SKY_FREQ_STEPS) {
+    const d = Math.abs(step - x);
+    if (d < bestD) {
+      bestD = d;
+      best = step;
+    }
+  }
+  return best;
+}
+
+export function skyFreqIndex(n: unknown): number {
+  const f = clampSkyFrequency(n);
+  const i = SKY_FREQ_STEPS.findIndex((step) => step === f);
+  return i < 0 ? 2 : i;
+}
+
+export function formatSkyFrequency(n: unknown): string {
+  const f = clampSkyFrequency(n);
+  if (f === 1 / 3) return "⅓×";
+  if (f === 0.5) return "½×";
+  return `${f}×`;
+}
+
 export type SkyEffectId = "meteors" | "satellites" | "comets";
 
 export type SkyEffectStyle = {
   enabled: boolean;
   zoom: number;
+  frequency: number;
 };
 
 export type SkyEffects = Record<SkyEffectId, SkyEffectStyle>;
 
 export const DEFAULT_SKY_EFFECTS: SkyEffects = {
-  meteors: { enabled: true, zoom: SKY_ZOOM_DEFAULT },
-  satellites: { enabled: true, zoom: SKY_ZOOM_DEFAULT },
-  comets: { enabled: false, zoom: SKY_ZOOM_DEFAULT },
+  meteors: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
+  satellites: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
+  comets: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
 };
 
 export function resolveSkyEffects(raw: unknown): SkyEffects {
@@ -115,6 +149,7 @@ export function resolveSkyEffects(raw: unknown): SkyEffects {
     return {
       enabled: typeof r.enabled === "boolean" ? r.enabled : fallbackEnabled,
       zoom: clampSkyZoom(r.zoom),
+      frequency: clampSkyFrequency(r.frequency),
     };
   };
   return {
