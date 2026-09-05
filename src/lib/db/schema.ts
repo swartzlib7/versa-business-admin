@@ -469,7 +469,13 @@ export const siteSettings = pgTable(
     brandColor: text('brand_color').notNull(),
     brandLogoOpacity: numeric('brand_logo_opacity', { precision: 4, scale: 2 }).notNull().default('1'),
     brandLogoGlow: numeric('brand_logo_glow', { precision: 4, scale: 2 }).notNull().default('0'),
+    brandLogoGlowColor: text('brand_logo_glow_color').notNull().default('#ffffff'),
+    brandLogoGlowSpread: numeric('brand_logo_glow_spread', { precision: 4, scale: 2 }).notNull().default('0.5'),
+    brandLogoScaleMenu: numeric('brand_logo_scale_menu', { precision: 4, scale: 2 }).notNull().default('1'),
+    brandLogoScaleHome: numeric('brand_logo_scale_home', { precision: 4, scale: 2 }).notNull().default('1'),
+    brandLogoScaleFooter: numeric('brand_logo_scale_footer', { precision: 4, scale: 2 }).notNull().default('1'),
     constellationVariant: text('constellation_variant', { enum: ['classic', 'realistic'] }).notNull().default('classic'),
+    constellationDensity: numeric('constellation_density', { precision: 4, scale: 2 }).notNull().default('0'),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
 );

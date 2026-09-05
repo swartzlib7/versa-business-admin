@@ -34,9 +34,9 @@ type Satellite = {
   y: number;
   vx: number;
   vy: number;
-  life: number;
-  maxLife: number;
   r: number;
+  phase: number;
+  panels: boolean;
 };
 
 type Rgb = [number, number, number];
@@ -89,6 +89,21 @@ function bandAnchor(t: number, w: number, h: number) {
   };
 }
 
+function placeInBand(w: number, h: number): { x: number; y: number } {
+  const t = Math.random();
+  const anchor = bandAnchor(t, w, h);
+  const spread = (0.035 + Math.sin(t * Math.PI) * 0.055) * h;
+  const nx = -0.68;
+  const ny = -1.12;
+  const mag = Math.hypot(nx, ny) || 1;
+  const off = gauss() * spread;
+  const along = gauss() * 10;
+  return {
+    x: anchor.x + (nx / mag) * off + (ny / mag) * along,
+    y: anchor.y + (ny / mag) * off - (nx / mag) * along,
+  };
+}
+
 // Natural star colors for the realistic sky: white through blue-white to
 // warm amber, weighted toward white so the field reads like a real night sky.
 const NATURAL_TINTS: { c: Rgb; w: number }[] = [
@@ -108,22 +123,78 @@ function naturalTint(): Rgb {
   return NATURAL_TINTS[0].c;
 }
 
+function drawGlint(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  r: number,
+  color: Rgb,
+  alpha: number,
+  jitter: number,
+) {
+  const rot = ((jitter % 1) - 0.5) * 0.22;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  const bloomR = r * 3.4;
+  const bloom = ctx.createRadialGradient(0, 0, 0, 0, 0, bloomR);
+  bloom.addColorStop(0, rgba(color, alpha * 0.5));
+  bloom.addColorStop(0.4, rgba(color, alpha * 0.12));
+  bloom.addColorStop(1, rgba(color, 0));
+  ctx.fillStyle = bloom;
+  ctx.beginPath();
+  ctx.arc(0, 0, bloomR, 0, Math.PI * 2);
+  ctx.fill();
+
+  const spike = (angle: number, length: number, width: number, peak: number) => {
+    ctx.save();
+    ctx.rotate(angle);
+    const g = ctx.createLinearGradient(0, -length, 0, length);
+    g.addColorStop(0, rgba(color, 0));
+    g.addColorStop(0.42, rgba(color, alpha * 0.08));
+    g.addColorStop(0.5, rgba(color, alpha * peak));
+    g.addColorStop(0.58, rgba(color, alpha * 0.08));
+    g.addColorStop(1, rgba(color, 0));
+    ctx.strokeStyle = g;
+    ctx.lineWidth = width;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(0, -length);
+    ctx.lineTo(0, length);
+    ctx.stroke();
+    ctx.restore();
+  };
+  spike(0, r * 7.6, 0.55, 0.78);
+  spike(Math.PI / 2, r * 5.2, 0.42, 0.55);
+  if (r > 1.7) {
+    spike(Math.PI / 4, r * 3.1, 0.28, 0.28);
+    spike(-Math.PI / 4, r * 3.1, 0.28, 0.28);
+  }
+  ctx.restore();
+}
+
 /**
  * Fixed starry field (full viewport). Gentle parallax with the cursor.
  * Shooting stars. Two variants:
  *  - classic: dense diagonal band, brand-tinted stars (original look).
  *  - realistic: natural star distribution with subtle color temperature
  *    variation, a faint galactic haze, diffraction glints on the brightest
- *    stars, and intermittent satellites crossing at varying speeds
+ *    stars, and intermittent satellites crossing the full viewport
  *    (never more than 3 at once, with quiet gaps between passes).
- * Colors resolve from the active theme as rgba(). No constellation lines.
+ * Density (0–1) scales the realistic field up to ~10× and compact it into
+ * the Classic milky-way band. Colors resolve from the active theme as rgba().
  */
 export function VersaConstellation({
   variant = "classic",
+  density = 0,
+  preview = false,
 }: {
   variant?: ConstellationVariant;
+  density?: number;
+  preview?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const densityClamped = Math.max(0, Math.min(1, density));
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -147,26 +218,36 @@ export function VersaConstellation({
     let palette = readTheme();
     let running = true;
 
+    const measure = () => {
+      const host = preview ? canvas.parentElement : null;
+      const w = host ? host.clientWidth : window.innerWidth;
+      const h = host ? host.clientHeight : window.innerHeight;
+      return { w: Math.max(1, w), h: Math.max(1, h) };
+    };
+
     const seedStars = (w: number, h: number) => {
       const next: Star[] = [];
 
       if (realistic) {
-        // Natural sky: uniform field, no diagonal band. A few bright stars
-        // carry diffraction glints; most stars are small and quiet.
-        const fieldCount = Math.round(Math.min(w, h) * 0.22);
+        const base = Math.round(Math.min(w, h) * 0.22);
+        const fieldCount = Math.max(8, Math.round(base * (1 + densityClamped * 9)));
         for (let i = 0; i < fieldCount; i++) {
-          const isBright = Math.random() < 0.045;
+          const inBand = Math.random() < densityClamped * 0.94;
+          const pos = inBand
+            ? placeInBand(w, h)
+            : { x: Math.random() * w, y: Math.random() * h };
+          const isBright = Math.random() < (inBand ? 0.06 : 0.04);
           next.push({
-            x: Math.random() * w,
-            y: Math.random() * h,
-            r: isBright ? rand(1.5, 2.3) : rand(0.35, 1.35),
+            x: pos.x,
+            y: pos.y,
+            r: isBright ? rand(1.45, 2.2) : rand(0.32, 1.28),
             phase: Math.random() * Math.PI * 2,
             twinkle: rand(0.4, 1.4),
             bright: isBright ? rand(0.75, 0.95) : rand(0.2, 0.62),
             depth: rand(0.2, 0.6),
             tone: 0,
             flicker: Math.random() < 0.3,
-            jitter: rand(0, Math.PI * 2),
+            jitter: Math.random(),
             tint: naturalTint(),
             glint: isBright,
           });
@@ -186,23 +267,16 @@ export function VersaConstellation({
             depth: rand(0.2, 0.55),
             tone: (i % 5 === 0 ? 1 : 0) as 0 | 1 | 2,
             flicker: Math.random() < 0.4,
-            jitter: rand(0, Math.PI * 2),
+            jitter: Math.random(),
           });
         }
 
         for (let i = 0; i < bandCount; i++) {
-          const t = Math.random();
-          const anchor = bandAnchor(t, w, h);
-          const spread = (0.035 + Math.sin(t * Math.PI) * 0.055) * h;
-          const nx = -0.68;
-          const ny = -1.12;
-          const mag = Math.hypot(nx, ny) || 1;
-          const off = gauss() * spread;
-          const along = gauss() * 10;
+          const pos = placeInBand(w, h);
           const brightCore = i % 19 === 0;
           next.push({
-            x: anchor.x + (nx / mag) * off + (ny / mag) * along,
-            y: anchor.y + (ny / mag) * off - (nx / mag) * along,
+            x: pos.x,
+            y: pos.y,
             r: brightCore ? rand(2.0, 3.1) : rand(0.54, 1.7),
             phase: Math.random() * Math.PI * 2,
             twinkle: rand(0.7, 2.0),
@@ -210,7 +284,7 @@ export function VersaConstellation({
             depth: 0.55 + Math.random() * 0.55,
             tone: (i % 7 === 0 ? 2 : i % 4 === 0 ? 1 : 0) as 0 | 1 | 2,
             flicker: Math.random() < 0.48,
-            jitter: rand(0, Math.PI * 2),
+            jitter: Math.random(),
           });
         }
       }
@@ -218,8 +292,7 @@ export function VersaConstellation({
     };
 
     const resize = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const { w, h } = measure();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
@@ -239,15 +312,21 @@ export function VersaConstellation({
     };
     resize();
     window.addEventListener("resize", onResize);
+    const ro =
+      preview && canvas.parentElement
+        ? new ResizeObserver(onResize)
+        : null;
+    if (ro && canvas.parentElement) ro.observe(canvas.parentElement);
 
     const onMove = (e: PointerEvent | MouseEvent) => {
-      const w = window.innerWidth || 1;
-      const h = window.innerHeight || 1;
+      const { w, h } = measure();
       mouse.tx = (e.clientX / w - 0.5) * 2;
       mouse.ty = (e.clientY / h - 0.5) * 2;
     };
-    window.addEventListener("pointermove", onMove, { passive: true });
-    window.addEventListener("mousemove", onMove, { passive: true });
+    if (!preview) {
+      window.addEventListener("pointermove", onMove, { passive: true });
+      window.addEventListener("mousemove", onMove, { passive: true });
+    }
 
     const themeObserver = new MutationObserver(() => {
       palette = readTheme();
@@ -270,26 +349,22 @@ export function VersaConstellation({
       });
     };
 
-    // Satellites: steady points crossing the sky on gentle diagonal paths.
-    // Intentionally intermittent - long quiet gaps between passes - and
-    // never more than 3 at once. They fade in, drift at their own speed,
-    // and fade out (a satellite passing into shadow), rather than always
-    // exiting the frame.
+    // Satellites: craft-like points that cross the entire viewport on a
+    // shallow track. Intermittent - long quiet gaps - never more than 3.
     const spawnSatellite = (w: number, h: number) => {
       const fromLeft = Math.random() > 0.5;
-      const speed = rand(16, 52);
-      const y = rand(h * 0.06, h * 0.55);
+      const speed = rand(28, 78);
+      const y = rand(h * 0.04, h * 0.96);
       const vx = (fromLeft ? 1 : -1) * speed;
-      const vy = rand(-0.3, 0.4) * speed;
-      const crossTime = (w + 120) / speed;
+      const vy = rand(-0.12, 0.12) * speed;
       satellites.push({
-        x: fromLeft ? -40 : w + 40,
+        x: fromLeft ? -36 : w + 36,
         y,
         vx,
         vy,
-        life: 0,
-        maxLife: Math.min(crossTime, rand(11, 26)),
-        r: rand(1.1, 1.7),
+        r: rand(1.35, 2.15),
+        phase: Math.random() * Math.PI * 2,
+        panels: Math.random() > 0.35,
       });
     };
 
@@ -318,13 +393,12 @@ export function VersaConstellation({
         const driftX = mouse.x * 28;
         const driftY = mouse.y * 18;
 
-        // Realistic sky: faint galactic haze along the same diagonal the
-        // classic band follows. Drawn first so stars sit on top of it.
         if (realistic) {
           const haze = ctx.createLinearGradient(0, h * 0.95, w, -0.05 * h);
+          const hazeA = 0.03 + densityClamped * 0.05;
           haze.addColorStop(0, rgba(palette.fg, 0));
-          haze.addColorStop(0.42, rgba(palette.fg, 0.045));
-          haze.addColorStop(0.58, rgba(palette.primary, 0.035));
+          haze.addColorStop(0.42, rgba(palette.fg, hazeA));
+          haze.addColorStop(0.58, rgba(palette.primary, hazeA * 0.8));
           haze.addColorStop(1, rgba(palette.fg, 0));
           ctx.fillStyle = haze;
           ctx.fillRect(0, 0, w, h);
@@ -342,21 +416,14 @@ export function VersaConstellation({
           const x = s.x + driftX * s.depth;
           const y = s.y + driftY * s.depth;
           const color = starColor(s);
+          const alpha = s.bright * pulse;
+          if (s.glint) {
+            drawGlint(ctx, x, y, s.r, color, alpha, s.jitter);
+          }
           ctx.beginPath();
           ctx.arc(x, y, s.r, 0, Math.PI * 2);
-          ctx.fillStyle = rgba(color, s.bright * pulse);
+          ctx.fillStyle = rgba(color, alpha);
           ctx.fill();
-          if (s.glint) {
-            const gl = s.r * 4.2;
-            ctx.strokeStyle = rgba(color, s.bright * pulse * 0.32);
-            ctx.lineWidth = 0.7;
-            ctx.beginPath();
-            ctx.moveTo(x - gl, y);
-            ctx.lineTo(x + gl, y);
-            ctx.moveTo(x, y - gl);
-            ctx.lineTo(x, y + gl);
-            ctx.stroke();
-          }
         }
 
         if (!reduceMotion) {
@@ -400,7 +467,6 @@ export function VersaConstellation({
             }
           }
 
-          // Satellites (realistic variant only).
           if (realistic) {
             satelliteSpawnIn -= dt;
             if (satelliteSpawnIn <= 0 && satellites.length < 3) {
@@ -409,39 +475,62 @@ export function VersaConstellation({
             }
             for (let i = satellites.length - 1; i >= 0; i--) {
               const sat = satellites[i];
-              sat.life += dt;
               sat.x += sat.vx * dt;
               sat.y += sat.vy * dt;
-              const fadeIn = Math.min(1, sat.life / 1.2);
-              const fadeOut = Math.min(1, (sat.maxLife - sat.life) / 1.2);
-              const alpha = 0.75 * Math.max(0, Math.min(fadeIn, fadeOut));
+              sat.phase += dt * 2.4;
+              const edge = 48;
+              const fadeIn = Math.min(1, (sat.vx > 0 ? sat.x + 36 : w + 36 - sat.x) / 70);
+              const fadeOut = Math.min(1, (sat.vx > 0 ? w + 36 - sat.x : sat.x + 36) / 70);
+              const alpha = 0.9 * Math.max(0, Math.min(fadeIn, fadeOut));
               if (alpha > 0.01) {
-                const sx = sat.x + driftX * 0.3;
-                const sy = sat.y + driftY * 0.3;
-                // Subtle short trail opposite to motion.
+                const sx = sat.x + driftX * 0.18;
+                const sy = sat.y + driftY * 0.18;
                 const mag = Math.hypot(sat.vx, sat.vy) || 1;
-                const tl = 7;
+                const ux = sat.vx / mag;
+                const uy = sat.vy / mag;
+                const trail = 26 + sat.r * 10;
                 const g = ctx.createLinearGradient(
-                  sx - (sat.vx / mag) * tl,
-                  sy - (sat.vy / mag) * tl,
+                  sx - ux * trail,
+                  sy - uy * trail,
                   sx,
                   sy,
                 );
                 g.addColorStop(0, rgba(palette.fg, 0));
-                g.addColorStop(1, rgba(palette.fg, alpha * 0.55));
+                g.addColorStop(0.7, rgba(palette.primary, alpha * 0.22));
+                g.addColorStop(1, rgba(palette.fg, alpha * 0.7));
                 ctx.strokeStyle = g;
-                ctx.lineWidth = sat.r * 0.9;
+                ctx.lineWidth = sat.r * 0.85;
                 ctx.lineCap = "round";
                 ctx.beginPath();
-                ctx.moveTo(sx - (sat.vx / mag) * tl, sy - (sat.vy / mag) * tl);
+                ctx.moveTo(sx - ux * trail, sy - uy * trail);
                 ctx.lineTo(sx, sy);
                 ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(sx, sy, sat.r, 0, Math.PI * 2);
+
+                ctx.save();
+                ctx.translate(sx, sy);
+                ctx.rotate(Math.atan2(sat.vy, sat.vx));
+                if (sat.panels) {
+                  ctx.fillStyle = rgba(palette.primary, alpha * 0.55);
+                  ctx.fillRect(-sat.r * 0.4, -sat.r * 3.1, sat.r * 0.8, sat.r * 2.1);
+                  ctx.fillRect(-sat.r * 0.4, sat.r * 1.0, sat.r * 0.8, sat.r * 2.1);
+                }
                 ctx.fillStyle = rgba(palette.fg, alpha);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, sat.r * 1.7, sat.r * 0.75, 0, 0, Math.PI * 2);
                 ctx.fill();
+                const blink = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(sat.phase * 3.1));
+                ctx.fillStyle = rgba([255, 210, 160], alpha * blink);
+                ctx.beginPath();
+                ctx.arc(sat.r * 1.15, 0, sat.r * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
               }
-              if (sat.life >= sat.maxLife || sat.y < -60 || sat.y > h + 60) {
+              if (
+                sat.x < -edge * 2 ||
+                sat.x > w + edge * 2 ||
+                sat.y < -edge * 2 ||
+                sat.y > h + edge * 2
+              ) {
                 satellites.splice(i, 1);
               }
             }
@@ -465,14 +554,19 @@ export function VersaConstellation({
       window.clearTimeout(resizeTimer);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("mousemove", onMove);
+      ro?.disconnect();
       themeObserver.disconnect();
     };
-  }, [variant]);
+  }, [variant, densityClamped, preview]);
 
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-0 h-svh w-full"
+      className={
+        preview
+          ? "pointer-events-none absolute inset-0 h-full w-full"
+          : "pointer-events-none fixed inset-0 z-0 h-svh w-full"
+      }
       aria-hidden
     />
   );

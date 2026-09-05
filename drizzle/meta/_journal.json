@@ -64,6 +64,13 @@
       "when": 1788457200000,
       "tag": "0008_constellation_variant",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788543600000,
+      "tag": "0009_branding_display_sky_density",
+      "breakpoints": true
     }
   ]
 }

@@ -110,8 +110,35 @@ export async function PUT(request: Request) {
     if (!Number.isFinite(n)) return undefined;
     return Math.max(0, Math.min(1, n));
   };
+  const clampScale = (v: unknown): number | undefined => {
+    if (v == null) return undefined;
+    const n = Number(v);
+    if (!Number.isFinite(n)) return undefined;
+    return Math.max(0.75, Math.min(1.25, n));
+  };
   const brandLogoOpacity = clamp01(body.brand_logo_opacity);
   const brandLogoGlow = clamp01(body.brand_logo_glow);
+  const brandLogoGlowSpread = clamp01(body.brand_logo_glow_spread);
+  const brandLogoScaleMenu = clampScale(body.brand_logo_scale_menu);
+  const brandLogoScaleHome = clampScale(body.brand_logo_scale_home);
+  const brandLogoScaleFooter = clampScale(body.brand_logo_scale_footer);
+  const constellationDensity = clamp01(body.constellation_density);
+  let brandLogoGlowColor: string | undefined;
+  if (body.brand_logo_glow_color != null) {
+    const raw = String(body.brand_logo_glow_color).trim();
+    if (!HEX_COLOR_RE.test(raw)) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INVALID_GLOW_COLOR',
+            message: 'brand_logo_glow_color must be a hex color like #ffffff.',
+          },
+        },
+        { status: 400 },
+      );
+    }
+    brandLogoGlowColor = raw;
+  }
   // Constellation variant (Stephen 2026-09-05): classic | realistic.
   const constellationVariant =
     body.constellation_variant === 'realistic' || body.constellation_variant === 'classic'
@@ -135,7 +162,13 @@ export async function PUT(request: Request) {
           brand_color: brandColor,
           brand_logo_opacity: brandLogoOpacity,
           brand_logo_glow: brandLogoGlow,
+          brand_logo_glow_color: brandLogoGlowColor,
+          brand_logo_glow_spread: brandLogoGlowSpread,
+          brand_logo_scale_menu: brandLogoScaleMenu,
+          brand_logo_scale_home: brandLogoScaleHome,
+          brand_logo_scale_footer: brandLogoScaleFooter,
           constellation_variant: constellationVariant,
+          constellation_density: constellationDensity,
         })
       : upsertSiteSettingsFixture({
           brand_name: brandName,
@@ -143,7 +176,13 @@ export async function PUT(request: Request) {
           brand_logo_url: brandLogoUrl,
           brand_logo_opacity: brandLogoOpacity,
           brand_logo_glow: brandLogoGlow,
+          brand_logo_glow_color: brandLogoGlowColor,
+          brand_logo_glow_spread: brandLogoGlowSpread,
+          brand_logo_scale_menu: brandLogoScaleMenu,
+          brand_logo_scale_home: brandLogoScaleHome,
+          brand_logo_scale_footer: brandLogoScaleFooter,
           constellation_variant: constellationVariant,
+          constellation_density: constellationDensity,
         });
     if (isPostgres() && brandLogoUrl !== undefined) {
       upsertBrandLogoFile(brandLogoUrl);

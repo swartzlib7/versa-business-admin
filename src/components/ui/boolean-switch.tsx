@@ -6,13 +6,24 @@ export function BooleanSwitch({
   checked,
   onChange,
   label,
+  labelSide = "end",
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
   label?: string;
+  /** "start" puts the Yes/No (or custom) text to the left of the knob. */
+  labelSide?: "start" | "end";
 }) {
+  const text = (
+    label ? (
+      <span className="text-sm text-foreground">{label}</span>
+    ) : (
+      <span className="text-sm text-muted-foreground">{checked ? "Yes" : "No"}</span>
+    )
+  );
   return (
     <div className="flex items-center gap-3">
+      {labelSide === "start" ? text : null}
       <button
         type="button"
         role="switch"
@@ -32,11 +43,7 @@ export function BooleanSwitch({
           )}
         />
       </button>
-      {label ? (
-        <span className="text-sm text-foreground">{label}</span>
-      ) : (
-        <span className="text-sm text-muted-foreground">{checked ? "Yes" : "No"}</span>
-      )}
+      {labelSide === "end" ? text : null}
     </div>
   );
 }

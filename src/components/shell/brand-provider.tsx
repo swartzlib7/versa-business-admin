@@ -10,6 +10,13 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 import { theme } from "@/lib/theme";
+import {
+  DEFAULT_GLOW_COLOR,
+  DEFAULT_GLOW_SPREAD,
+  LOGO_BASE_PX,
+  logoGlowFilter,
+  logoPx,
+} from "@/lib/brand-display";
 
 export interface BrandConfig {
   brand_name: string;
@@ -17,6 +24,13 @@ export interface BrandConfig {
   brand_logo_url?: string | null;
   brand_logo_opacity?: number;
   brand_logo_glow?: number;
+  brand_logo_glow_color?: string;
+  brand_logo_glow_spread?: number;
+  brand_logo_scale_menu?: number;
+  brand_logo_scale_home?: number;
+  brand_logo_scale_footer?: number;
+  constellation_variant?: "classic" | "realistic";
+  constellation_density?: number;
 }
 
 const DEFAULT_BRAND: BrandConfig = {
@@ -25,6 +39,13 @@ const DEFAULT_BRAND: BrandConfig = {
   brand_logo_url: null,
   brand_logo_opacity: 1,
   brand_logo_glow: 0,
+  brand_logo_glow_color: DEFAULT_GLOW_COLOR,
+  brand_logo_glow_spread: DEFAULT_GLOW_SPREAD,
+  brand_logo_scale_menu: 1,
+  brand_logo_scale_home: 1,
+  brand_logo_scale_footer: 1,
+  constellation_variant: "classic",
+  constellation_density: 0,
 };
 
 const BrandContext = createContext<BrandConfig>(DEFAULT_BRAND);
@@ -52,6 +73,14 @@ export function brandInitials(brandName: string): string {
   return brandName.slice(0, 2).toUpperCase() || theme.brand.shortName;
 }
 
+export function brandLogoFilter(brand: BrandConfig): string | undefined {
+  return logoGlowFilter(
+    brand.brand_logo_glow ?? 0,
+    brand.brand_logo_glow_color ?? DEFAULT_GLOW_COLOR,
+    brand.brand_logo_glow_spread ?? DEFAULT_GLOW_SPREAD,
+  );
+}
+
 export function BrandMark({
   size = "sm",
   className,
@@ -60,28 +89,27 @@ export function BrandMark({
   className?: string;
 }) {
   const brand = useBrand();
-  const dim = size === "md" ? "h-12 w-12" : "h-8 w-8";
+  const base = size === "md" ? 48 : LOGO_BASE_PX.menu;
+  const px = logoPx(base, brand.brand_logo_scale_menu);
   const opacity = brand.brand_logo_opacity ?? 1;
-  const glow = brand.brand_logo_glow ?? 0;
-  const glowFilter =
-    glow > 0
-      ? `drop-shadow(0 0 ${Math.round(glow * 14)}px rgba(255,255,255,${(glow * 0.85).toFixed(2)}))`
-      : undefined;
+  const glowFilter = brandLogoFilter(brand);
   if (brand.brand_logo_url) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- uploaded/data URL logos
       <img
         src={brand.brand_logo_url}
         alt={brand.brand_name}
-        className={`${dim} shrink-0 rounded-md object-contain ${className ?? ""}`}
-        style={{ opacity, filter: glowFilter }}
+        className={`shrink-0 rounded-md object-contain ${className ?? ""}`}
+        style={{ width: px, height: px, opacity, filter: glowFilter }}
       />
     );
   }
   return (
     <div
-      className={`${dim} flex shrink-0 items-center justify-center rounded-md text-sm font-bold ${className ?? ""}`}
+      className={`flex shrink-0 items-center justify-center rounded-md text-sm font-bold ${className ?? ""}`}
       style={{
+        width: px,
+        height: px,
         backgroundColor: brand.brand_color,
         color: theme.colors.brandForeground,
         opacity,

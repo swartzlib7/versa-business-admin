@@ -17,7 +17,12 @@ export default async function PublicTermsPage() {
     address: pub.contact_address,
   };
   return (
-    <PublicLayout business={business} demo={site.demo_mode !== false} constellationVariant={site.constellation_variant === "realistic" ? "realistic" : "classic"}>
+    <PublicLayout
+      business={business}
+      demo={site.demo_mode !== false}
+      constellationVariant={site.constellation_variant === "realistic" ? "realistic" : "classic"}
+      constellationDensity={site.constellation_density ?? 0}
+    >
       <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
         <PublicGlossaryBook />
       </div>

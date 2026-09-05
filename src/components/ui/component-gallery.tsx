@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FileField } from "@/components/ui/file-field";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -94,6 +95,26 @@ const componentSections: ComponentSection[] = [
         description: "Input with pre-filled value",
         example: <Input defaultValue="Pre-filled value" />,
         code: '<Input defaultValue="Pre-filled value" />',
+      },
+      {
+        name: "File Field",
+        description:
+          "Do not use the native file input chrome. Pair Choose file (outline) with muted filename text and a ghost Remove action.",
+        example: (
+          <FileField
+            filename="logo.png"
+            onFile={() => undefined}
+            onRemove={() => undefined}
+          />
+        ),
+        code: `<FileField
+  filename="logo.png"
+  chooseLabel="Choose file"
+  emptyLabel="No file chosen"
+  removeLabel="Remove logo"
+  onFile={(file) => ...}
+  onRemove={() => ...}
+/>`,
       },
     ],
   },

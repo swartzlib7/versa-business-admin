@@ -10,6 +10,13 @@ import { cn } from "@/lib/utils";
 import { theme } from "@/lib/theme";
 import { adapter } from "@/lib/data";
 import {
+  DEFAULT_GLOW_COLOR,
+  DEFAULT_GLOW_SPREAD,
+  LOGO_BASE_PX,
+  logoGlowFilter,
+  logoPx,
+} from "@/lib/brand-display";
+import {
   enabledCycleSteps,
   listPublicIntegrations,
   listPublicKnowledge,
@@ -119,7 +126,12 @@ export default async function HomePage() {
   }
 
   return (
-    <PublicLayout business={business} demo={demo} constellationVariant={site.constellation_variant === "realistic" ? "realistic" : "classic"}>
+    <PublicLayout
+      business={business}
+      demo={demo}
+      constellationVariant={site.constellation_variant === "realistic" ? "realistic" : "classic"}
+      constellationDensity={site.constellation_density ?? 0}
+    >
       <PublicSection
         id="top"
         nextId={demo ? "facets" : "integrations"}
@@ -132,13 +144,16 @@ export default async function HomePage() {
               <img
                 src={site.brand_logo_url}
                 alt={site.brand_name}
-                className="mb-6 h-auto w-[315px] object-contain sm:w-[420px]"
+                className="mb-6 h-auto w-[var(--logo-m)] object-contain sm:w-[var(--logo-d)]"
                 style={{
+                  ["--logo-m" as string]: `${logoPx(LOGO_BASE_PX.homeMobile, site.brand_logo_scale_home)}px`,
+                  ["--logo-d" as string]: `${logoPx(LOGO_BASE_PX.homeDesktop, site.brand_logo_scale_home)}px`,
                   opacity: site.brand_logo_opacity ?? 1,
-                  filter:
-                    (site.brand_logo_glow ?? 0) > 0
-                      ? `drop-shadow(0 0 ${Math.round((site.brand_logo_glow ?? 0) * 18)}px rgba(255,255,255,${((site.brand_logo_glow ?? 0) * 0.85).toFixed(2)}))`
-                      : undefined,
+                  filter: logoGlowFilter(
+                    site.brand_logo_glow ?? 0,
+                    site.brand_logo_glow_color ?? DEFAULT_GLOW_COLOR,
+                    site.brand_logo_glow_spread ?? DEFAULT_GLOW_SPREAD,
+                  ),
                 }}
               />
             ) : (
@@ -171,12 +186,18 @@ export default async function HomePage() {
               <div className="mt-12 w-full">
                 <div className="flex flex-nowrap gap-2 sm:gap-4">
                   {cycle.map((item, index) => (
-                    <div key={`${item.title}-${index}`} className="min-w-0 flex-1 text-center">
-                      <div className="text-lg font-bold text-muted-foreground/40 sm:text-2xl">
-                        {String(index + 1).padStart(2, "0")}
-                      </div>
-                      <h3 className="mt-1 truncate text-xs font-semibold sm:text-sm">{item.title}</h3>
-                      <p className="mt-1 line-clamp-2 text-[10px] text-muted-foreground sm:text-xs">{item.desc}</p>
+                    <div key={`${item.title}-${item.number}-${index}`} className="min-w-0 flex-1 text-center">
+                      {item.numberEnabled ? (
+                        <div className="text-lg font-bold text-muted-foreground/40 sm:text-2xl">
+                          {item.number || String(index + 1).padStart(2, "0")}
+                        </div>
+                      ) : null}
+                      {item.titleEnabled ? (
+                        <h3 className="mt-1 truncate text-xs font-semibold sm:text-sm">{item.title}</h3>
+                      ) : null}
+                      {item.descEnabled ? (
+                        <p className="mt-1 line-clamp-2 text-[10px] text-muted-foreground sm:text-xs">{item.desc}</p>
+                      ) : null}
                     </div>
                   ))}
                 </div>

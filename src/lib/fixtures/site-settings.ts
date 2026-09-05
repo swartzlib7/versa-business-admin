@@ -18,7 +18,13 @@ export interface FixtureSiteSettings {
   brand_logo_url?: string | null;
   brand_logo_opacity?: number;
   brand_logo_glow?: number;
+  brand_logo_glow_color?: string;
+  brand_logo_glow_spread?: number;
+  brand_logo_scale_menu?: number;
+  brand_logo_scale_home?: number;
+  brand_logo_scale_footer?: number;
   constellation_variant?: "classic" | "realistic";
+  constellation_density?: number;
   demo_mode?: boolean;
   maintenance_mode?: boolean;
   hero_headline?: string;
@@ -75,9 +81,33 @@ function readFile(): FixtureSiteSettings | null {
         typeof parsed.brand_logo_glow === "number"
           ? parsed.brand_logo_glow
           : undefined,
+      brand_logo_glow_color:
+        typeof parsed.brand_logo_glow_color === "string" && parsed.brand_logo_glow_color.trim()
+          ? parsed.brand_logo_glow_color
+          : undefined,
+      brand_logo_glow_spread:
+        typeof parsed.brand_logo_glow_spread === "number"
+          ? parsed.brand_logo_glow_spread
+          : undefined,
+      brand_logo_scale_menu:
+        typeof parsed.brand_logo_scale_menu === "number"
+          ? parsed.brand_logo_scale_menu
+          : undefined,
+      brand_logo_scale_home:
+        typeof parsed.brand_logo_scale_home === "number"
+          ? parsed.brand_logo_scale_home
+          : undefined,
+      brand_logo_scale_footer:
+        typeof parsed.brand_logo_scale_footer === "number"
+          ? parsed.brand_logo_scale_footer
+          : undefined,
       constellation_variant:
         parsed.constellation_variant === "realistic" || parsed.constellation_variant === "classic"
           ? parsed.constellation_variant
+          : undefined,
+      constellation_density:
+        typeof parsed.constellation_density === "number"
+          ? parsed.constellation_density
           : undefined,
       demo_mode: parsed.demo_mode !== false,
       maintenance_mode: parsed.maintenance_mode === true,
@@ -116,7 +146,13 @@ function defaults(): FixtureSiteSettings {
     brand_logo_url: null,
     brand_logo_opacity: 1,
     brand_logo_glow: 0,
+    brand_logo_glow_color: "#ffffff",
+    brand_logo_glow_spread: 0.5,
+    brand_logo_scale_menu: 1,
+    brand_logo_scale_home: 1,
+    brand_logo_scale_footer: 1,
     constellation_variant: "classic",
+    constellation_density: 0,
     demo_mode: true,
     maintenance_mode: false,
     public_login_enabled: true,
@@ -157,10 +193,34 @@ export function upsertSiteSettingsFixture(
       input.brand_logo_glow !== undefined
         ? input.brand_logo_glow
         : current.brand_logo_glow ?? 0,
+    brand_logo_glow_color:
+      input.brand_logo_glow_color !== undefined
+        ? input.brand_logo_glow_color
+        : current.brand_logo_glow_color ?? "#ffffff",
+    brand_logo_glow_spread:
+      input.brand_logo_glow_spread !== undefined
+        ? input.brand_logo_glow_spread
+        : current.brand_logo_glow_spread ?? 0.5,
+    brand_logo_scale_menu:
+      input.brand_logo_scale_menu !== undefined
+        ? input.brand_logo_scale_menu
+        : current.brand_logo_scale_menu ?? 1,
+    brand_logo_scale_home:
+      input.brand_logo_scale_home !== undefined
+        ? input.brand_logo_scale_home
+        : current.brand_logo_scale_home ?? 1,
+    brand_logo_scale_footer:
+      input.brand_logo_scale_footer !== undefined
+        ? input.brand_logo_scale_footer
+        : current.brand_logo_scale_footer ?? 1,
     constellation_variant:
       input.constellation_variant !== undefined
         ? input.constellation_variant
         : current.constellation_variant ?? "classic",
+    constellation_density:
+      input.constellation_density !== undefined
+        ? input.constellation_density
+        : current.constellation_density ?? 0,
     demo_mode:
       input.demo_mode !== undefined
         ? input.demo_mode

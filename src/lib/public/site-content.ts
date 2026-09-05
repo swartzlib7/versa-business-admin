@@ -17,15 +17,39 @@ export {
   type StatScale,
 };
 
+function asBool(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
 function clampSteps(input: unknown): CycleStep[] {
   const src = Array.isArray(input) ? input : DEFAULT_CYCLE_STEPS;
   return src.slice(0, 10).map((raw, i) => {
-    const row = (raw ?? {}) as Partial<CycleStep>;
-    const fallback = DEFAULT_CYCLE_STEPS[i] ?? { title: "", desc: "", enabled: false };
+    const row = (raw ?? {}) as Partial<CycleStep> & Record<string, unknown>;
+    const fallback = DEFAULT_CYCLE_STEPS[i] ?? {
+      number: String(i + 1).padStart(2, "0"),
+      numberEnabled: false,
+      title: "",
+      titleEnabled: false,
+      desc: "",
+      descEnabled: false,
+      enabled: false,
+    };
     const title = typeof row.title === "string" ? row.title : fallback.title;
     const desc = typeof row.desc === "string" ? row.desc : fallback.desc;
-    const enabled = typeof row.enabled === "boolean" ? row.enabled : Boolean(title.trim());
-    return { title, desc, enabled };
+    const enabled = asBool(row.enabled, Boolean(title.trim()));
+    const number =
+      typeof row.number === "string" && row.number.trim()
+        ? row.number.trim().slice(0, 8)
+        : fallback.number;
+    return {
+      number,
+      numberEnabled: asBool(row.numberEnabled, enabled),
+      title,
+      titleEnabled: asBool(row.titleEnabled, enabled),
+      desc,
+      descEnabled: asBool(row.descEnabled, enabled),
+      enabled,
+    };
   });
 }
 
@@ -68,7 +92,12 @@ export function normalizePublicContent(settings: FixtureSiteSettings): {
 export function enabledCycleSteps(settings: FixtureSiteSettings): CycleStep[] {
   const pub = normalizePublicContent(settings);
   if (!pub.cycle_enabled) return [];
-  return pub.cycle_steps.filter((s) => s.enabled && s.title.trim());
+  return pub.cycle_steps.filter((s) => {
+    const showNumber = s.numberEnabled && s.number.trim();
+    const showTitle = s.titleEnabled && s.title.trim();
+    const showDesc = s.descEnabled && s.desc.trim();
+    return Boolean(showNumber || showTitle || showDesc);
+  });
 }
 
 export async function listPublicIntegrations() {

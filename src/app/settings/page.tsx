@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import {
   Card,
@@ -17,6 +17,7 @@ import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { Moon, Sun, Compass, Cloud, Sunset } from "lucide-react";
 import { BooleanSwitch } from "@/components/ui/boolean-switch";
 import { PublicSitePanel } from "@/components/settings/public-site-panel";
+import { BrandingPanel, type BrandingSubTab } from "@/components/settings/branding-panel";
 import { MenuOrderPanel } from "@/components/settings/menu-order-panel";
 
 type SettingsTab = "branding" | "appearance" | "public" | "menu" | "information";
@@ -24,7 +25,7 @@ type SettingsTab = "branding" | "appearance" | "public" | "menu" | "information"
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: "branding", label: "Branding" },
   { id: "appearance", label: "Appearance" },
-  { id: "public", label: "Public" },
+  { id: "public", label: "Cycle Strip" },
   { id: "menu", label: "Menu" },
   { id: "information", label: "Information" },
 ];
@@ -175,6 +176,7 @@ function SystemPanel() {
               void persist({ demo_mode: next });
             }}
             label={demoMode ? "On" : "Off"}
+            labelSide="start"
           />
         </div>
         <Separator />
@@ -193,6 +195,7 @@ function SystemPanel() {
               void persist({ maintenance_mode: next });
             }}
             label={maintenanceMode ? "On" : "Off"}
+            labelSide="start"
           />
         </div>
         <Separator />
@@ -212,6 +215,7 @@ function SystemPanel() {
               void persist({ public_login_enabled: next });
             }}
             label={publicLogin ? "Visible" : "Hidden"}
+            labelSide="start"
           />
         </div>
         {!loaded || saving ? (
@@ -288,87 +292,17 @@ export default function SettingsPage() {
       if (q === "system") {
         return "information";
       }
+      if (q === "cycle") {
+        return "public";
+      }
       if (q && ["branding", "appearance", "public", "menu", "information"].includes(q)) {
         return q as SettingsTab;
       }
     }
     return 'branding';
   });
-  const [subTab, setSubTab] = useState<string>("configuration");
+  const [subTab, setSubTab] = useState<string>("brand");
   const brand = useBrand();
-  const [brandName, setBrandName] = useState<string>(brand.brand_name);
-  const [brandColor, setBrandColor] = useState<string>(brand.brand_color);
-  const [brandLogo, setBrandLogo] = useState<string>(brand.brand_logo_url ?? "");
-  const [brandLogoOpacity, setBrandLogoOpacity] = useState<number>(brand.brand_logo_opacity ?? 1);
-  const [brandLogoGlow, setBrandLogoGlow] = useState<number>(brand.brand_logo_glow ?? 0);
-  const [constellationVariant, setConstellationVariant] = useState<"classic" | "realistic">(
-    brand.constellation_variant ?? "classic",
-  );
-  const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const hydrated = useRef(false);
-
-  // Sync local editors when the server-read brand arrives/changes.
-  useEffect(() => {
-    if (!hydrated.current) {
-      setBrandName(brand.brand_name);
-      setBrandColor(brand.brand_color);
-      setBrandLogo(brand.brand_logo_url ?? "");
-      setBrandLogoOpacity(brand.brand_logo_opacity ?? 1);
-      setBrandLogoGlow(brand.brand_logo_glow ?? 0);
-      setConstellationVariant(brand.constellation_variant ?? "classic");
-      hydrated.current = true;
-    }
-  }, [
-    brand.brand_name,
-    brand.brand_color,
-    brand.brand_logo_url,
-    brand.brand_logo_opacity,
-    brand.brand_logo_glow,
-    brand.constellation_variant,
-  ]);
-
-  const handleSave = async () => {
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const res = await fetch("/api/settings/branding", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          brand_name: brandName.trim(),
-          brand_color: brandColor,
-          brand_logo_url: brandLogo || null,
-          brand_logo_opacity: brandLogoOpacity,
-          brand_logo_glow: brandLogoGlow,
-          constellation_variant: constellationVariant,
-        }),
-      });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => null);
-        const message =
-          payload?.error?.message ?? "Save failed. Please try again.";
-        setSaveError(message);
-        return;
-      }
-      setSaved(true);
-      window.location.reload();
-    } catch {
-      setSaveError("Network error. Please try again.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleReset = () => {
-    setBrandName(brand.brand_name);
-    setBrandColor(brand.brand_color);
-    setBrandLogo(brand.brand_logo_url ?? "");
-    setBrandLogoOpacity(brand.brand_logo_opacity ?? 1);
-    setBrandLogoGlow(brand.brand_logo_glow ?? 0);
-    setConstellationVariant(brand.constellation_variant ?? "classic");
-  };
 
   return (
     <AppShell>
@@ -382,9 +316,8 @@ export default function SettingsPage() {
           onTabChange={(id) => {
             const next = id as SettingsTab;
             setTab(next);
-            if (next === "branding" || next === "appearance" || next === "public") {
-              setSubTab("configuration");
-            }
+            if (next === "branding") setSubTab("brand");
+            else if (next === "appearance" || next === "public") setSubTab("configuration");
           }}
           tabsAriaLabel="Settings sections"
         />
@@ -392,209 +325,21 @@ export default function SettingsPage() {
         {tab === "branding" && (
           <div role="tabpanel" className="space-y-3">
             <SubTabBar
-              items={[{ id: "configuration", label: "Configuration" }]}
+              items={[
+                { id: "brand", label: "Brand" },
+                { id: "logo", label: "Logo" },
+                { id: "sky", label: "Sky Animation" },
+              ]}
               activeId={subTab}
               accent={brand.brand_color}
               onSelect={setSubTab}
               ariaLabel="Branding sub-sections"
             />
             <PanelShell
-              summary="Customize how Mission Control appears. Name, color, and logo are saved permanently and survive a restart."
+              summary="Customize how Mission Control appears. Name, color, logo, and sky are saved permanently and survive a restart."
               badge="Brand"
             >
-              <div className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Brand Name</label>
-                    <input
-                      value={brandName}
-                      onChange={(e) => setBrandName(e.target.value)}
-                      placeholder="Your brand name"
-                      className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Brand Color</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={brandColor}
-                        onChange={(e) => setBrandColor(e.target.value)}
-                        className="h-10 w-14 cursor-pointer p-1"
-                      />
-                      <input
-                        value={brandColor}
-                        onChange={(e) => setBrandColor(e.target.value)}
-                        placeholder="#6366f1"
-                        className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Logo</label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                      className="text-sm"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        if (file.size > 500 * 1024) {
-                          setSaveError("Logo must be 500 KB or smaller.");
-                          return;
-                        }
-                        const reader = new FileReader();
-                        reader.onload = () => {
-                          setBrandLogo(typeof reader.result === "string" ? reader.result : "");
-                          setSaveError(null);
-                        };
-                        reader.readAsDataURL(file);
-                      }}
-                    />
-                    {brandLogo ? (
-                      <button
-                        type="button"
-                        onClick={() => setBrandLogo("")}
-                        className="text-sm text-muted-foreground underline-offset-2 hover:underline"
-                      >
-                        Remove logo
-                      </button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">
-                        Optional. PNG, JPG, SVG, or WebP. Initials are used when empty.
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Logo Translucency ({Math.round(brandLogoOpacity * 100)}%)
-                    </label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={brandLogoOpacity}
-                      onChange={(e) => setBrandLogoOpacity(Number(e.target.value))}
-                      className="w-full"
-                      style={{ accentColor: brandColor }}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      Logo Glow ({Math.round(brandLogoGlow * 100)}%)
-                    </label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={brandLogoGlow}
-                      onChange={(e) => setBrandLogoGlow(Number(e.target.value))}
-                      className="w-full"
-                      style={{ accentColor: brandColor }}
-                    />
-                  </div>
-                </div>
-                <div
-                  className="rounded-lg border p-4"
-                  style={{ borderColor: brandColor }}
-                >
-                  <div className="mb-1 text-xs text-muted-foreground">
-                    Preview
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {brandLogo ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- live preview of uploaded logo
-                      <img
-                        src={brandLogo}
-                        alt={brandName || "Logo"}
-                        className="h-10 w-10 rounded-md object-contain"
-                        style={{
-                          opacity: brandLogoOpacity,
-                          filter:
-                            brandLogoGlow > 0
-                              ? `drop-shadow(0 0 ${Math.round(brandLogoGlow * 14)}px rgba(255,255,255,${(brandLogoGlow * 0.85).toFixed(2)}))`
-                              : undefined,
-                        }}
-                      />
-                    ) : (
-                    <div
-                      className="flex h-10 w-10 items-center justify-center rounded-md text-sm font-bold text-white"
-                      style={{ backgroundColor: brandColor }}
-                    >
-                      {brandName.slice(0, 2).toUpperCase() || "VA"}
-                    </div>
-                    )}
-                    <div>
-                      <div className="font-semibold">{brandName}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Mission Control
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Sky Animation</label>
-                  <p className="text-xs text-muted-foreground">
-                    Constellation style for the public site. Saved with your
-                    branding settings.
-                  </p>
-                  <div className="flex gap-2">
-                    {([
-                      { id: "classic", label: "Classic" },
-                      { id: "realistic", label: "Realistic" },
-                    ] as const).map((opt) => (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setConstellationVariant(opt.id)}
-                        className={cn(
-                          "rounded-md border px-3 py-1.5 text-sm font-medium",
-                          constellationVariant === opt.id
-                            ? "border-transparent text-white"
-                            : "border-border text-muted-foreground hover:bg-muted",
-                        )}
-                        style={
-                          constellationVariant === opt.id
-                            ? { backgroundColor: brandColor }
-                            : undefined
-                        }
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {saveError ? (
-                  <p className="text-sm text-destructive" role="alert">
-                    {saveError}
-                  </p>
-                ) : null}
-                <Separator />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="rounded-md px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-                    style={{ backgroundColor: brand.brand_color }}
-                  >
-                    {saved ? "Saved" : saving ? "Saving..." : "Save changes"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleReset}
-                    className="rounded-md border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted"
-                  >
-                    Reset
-                  </button>
-                </div>
-              </div>
+              <BrandingPanel subTab={(["brand", "logo", "sky"].includes(subTab) ? subTab : "brand") as BrandingSubTab} />
             </PanelShell>
           </div>
         )}
@@ -619,11 +364,11 @@ export default function SettingsPage() {
               activeId={subTab}
               accent={brand.brand_color}
               onSelect={setSubTab}
-              ariaLabel="Public site sub-sections"
+              ariaLabel="Cycle strip sub-sections"
             />
             <PanelShell
-              summary="Copy and cycle strip for the visitor homepage. Contact details live on the Contact menu item."
-              badge="Public"
+              summary="Numbered cycle strip on the visitor homepage. Hero copy lives under Branding → Brand. Contact details live on the Contact menu item."
+              badge="Cycle"
             >
               <PublicSitePanel />
             </PanelShell>

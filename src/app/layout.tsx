@@ -32,7 +32,27 @@ export const dynamic = "force-dynamic";
 
 const themeInitScript = `(function(){try{var path=location.pathname;var isPublic=path==='/'||path===''||path==='/terms'||path==='/board';var t=localStorage.getItem(isPublic?'versa-public-ui-theme':'versa-ui-theme')||localStorage.getItem('versa-ui-theme');if(isPublic){if(t!=='slate'&&t!=='dark'&&t!=='architect')t='dark';}else if(t!=='light'&&t!=='dusk'&&t!=='dark'&&t!=='architect'&&t!=='slate')t='dark';var r=document.documentElement;r.classList.remove('dark','architect','slate','dusk');if(t==='dark')r.classList.add('dark');if(t==='architect')r.classList.add('architect');if(t==='slate')r.classList.add('slate');if(t==='dusk')r.classList.add('dusk');r.dataset.theme=t;}catch(e){}})();`;
 
-async function loadBrand() {
+type LoadedSite = {
+  brand_name: string;
+  brand_color: string;
+  brand_logo_url: string | null;
+  brand_logo_opacity: number;
+  brand_logo_glow: number;
+  brand_logo_glow_color: string;
+  brand_logo_glow_spread: number;
+  brand_logo_scale_menu: number;
+  brand_logo_scale_home: number;
+  brand_logo_scale_footer: number;
+  constellation_variant: "classic" | "realistic";
+  constellation_density: number;
+  demo_mode: boolean;
+  maintenance_mode: boolean;
+  public_login_enabled: boolean;
+  glossary_in_menu: boolean;
+  org_board_enabled: boolean;
+};
+
+async function loadBrand(): Promise<LoadedSite> {
   try {
     const settings =
       (process.env.DATA_SOURCE ?? "fixture") === "postgres"
@@ -44,25 +64,26 @@ async function loadBrand() {
         : undefined;
     const logo = fromSettings || getBrandLogoOverlay();
     const fixture = getSiteSettingsFixture();
+    const num = (v: unknown, fallback: number) =>
+      typeof v === "number" && Number.isFinite(v) ? v : fallback;
+    const settingsRec = settings as unknown as Record<string, unknown>;
     return {
       brand_name: settings.brand_name,
       brand_color: settings.brand_color,
       brand_logo_url: typeof logo === "string" && logo ? logo : null,
-      brand_logo_opacity:
-        typeof (settings as { brand_logo_opacity?: number }).brand_logo_opacity ===
-        "number"
-          ? (settings as { brand_logo_opacity: number }).brand_logo_opacity
-          : 1,
-      brand_logo_glow:
-        typeof (settings as { brand_logo_glow?: number }).brand_logo_glow ===
-        "number"
-          ? (settings as { brand_logo_glow: number }).brand_logo_glow
-          : 0,
+      brand_logo_opacity: num(settingsRec.brand_logo_opacity, 1),
+      brand_logo_glow: num(settingsRec.brand_logo_glow, 0),
+      brand_logo_glow_color:
+        typeof settingsRec.brand_logo_glow_color === "string" && settingsRec.brand_logo_glow_color
+          ? settingsRec.brand_logo_glow_color
+          : "#ffffff",
+      brand_logo_glow_spread: num(settingsRec.brand_logo_glow_spread, 0.5),
+      brand_logo_scale_menu: num(settingsRec.brand_logo_scale_menu, 1),
+      brand_logo_scale_home: num(settingsRec.brand_logo_scale_home, 1),
+      brand_logo_scale_footer: num(settingsRec.brand_logo_scale_footer, 1),
       constellation_variant:
-        (settings as { constellation_variant?: "classic" | "realistic" })
-          .constellation_variant === "realistic"
-          ? "realistic"
-          : "classic",
+        settingsRec.constellation_variant === "realistic" ? "realistic" : "classic",
+      constellation_density: num(settingsRec.constellation_density, 0),
       demo_mode: fixture.demo_mode !== false,
       maintenance_mode: fixture.maintenance_mode === true,
       public_login_enabled: fixture.public_login_enabled !== false,
@@ -77,6 +98,13 @@ async function loadBrand() {
       brand_logo_url: null,
       brand_logo_opacity: 1,
       brand_logo_glow: 0,
+      brand_logo_glow_color: "#ffffff",
+      brand_logo_glow_spread: 0.5,
+      brand_logo_scale_menu: 1,
+      brand_logo_scale_home: 1,
+      brand_logo_scale_footer: 1,
+      constellation_variant: "classic",
+      constellation_density: 0,
       demo_mode: true,
       maintenance_mode: false,
       public_login_enabled: true,
@@ -96,6 +124,15 @@ export default async function RootLayout({
     brand_name: site.brand_name,
     brand_color: site.brand_color,
     brand_logo_url: site.brand_logo_url,
+    brand_logo_opacity: site.brand_logo_opacity,
+    brand_logo_glow: site.brand_logo_glow,
+    brand_logo_glow_color: site.brand_logo_glow_color,
+    brand_logo_glow_spread: site.brand_logo_glow_spread,
+    brand_logo_scale_menu: site.brand_logo_scale_menu,
+    brand_logo_scale_home: site.brand_logo_scale_home,
+    brand_logo_scale_footer: site.brand_logo_scale_footer,
+    constellation_variant: site.constellation_variant,
+    constellation_density: site.constellation_density,
   };
   const mode = {
     demo_mode: site.demo_mode,
