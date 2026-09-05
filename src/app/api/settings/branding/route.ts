@@ -103,6 +103,15 @@ export async function PUT(request: Request) {
       { status: 400 },
     );
   }
+  // Logo display controls (Stephen 2026-09-05): translucency + glow, 0..1.
+  const clamp01 = (v: unknown): number | undefined => {
+    if (v == null) return undefined;
+    const n = Number(v);
+    if (!Number.isFinite(n)) return undefined;
+    return Math.max(0, Math.min(1, n));
+  };
+  const brandLogoOpacity = clamp01(body.brand_logo_opacity);
+  const brandLogoGlow = clamp01(body.brand_logo_glow);
   if (brandColor != null && !HEX_COLOR_RE.test(brandColor)) {
     return NextResponse.json(
       {
@@ -119,11 +128,15 @@ export async function PUT(request: Request) {
       ? await upsertSiteSettingsDb({
           brand_name: brandName,
           brand_color: brandColor,
+          brand_logo_opacity: brandLogoOpacity,
+          brand_logo_glow: brandLogoGlow,
         })
       : upsertSiteSettingsFixture({
           brand_name: brandName,
           brand_color: brandColor,
           brand_logo_url: brandLogoUrl,
+          brand_logo_opacity: brandLogoOpacity,
+          brand_logo_glow: brandLogoGlow,
         });
     if (isPostgres() && brandLogoUrl !== undefined) {
       upsertBrandLogoFile(brandLogoUrl);

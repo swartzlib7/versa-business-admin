@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Public site wiring + visitor chrome |
-| **Status** | 🔧 **0.7.112** — independent public vs operator theme stores (WU-07) |
+| **Status** | 🔧 **0.7.113** — logo display controls (translucency/glow) + mobile pull-down fix (WU-08) |
 | **Last verified against code** | 2026-09-05 |
 | **Primary code** | `src/app/page.tsx`, `src/lib/public/site-content.ts`, `src/components/public/*`, `src/app/settings/page.tsx`, `src/app/contact/page.tsx` |
 
@@ -32,7 +32,7 @@ Notes: Punch-list on the `beta` working tree (0.7.103). I5.6.33 Gate 3 is **acce
 ### Wired (live when Demo is Off)
 
 - **Header brand** — Settings → Branding.
-- **Hero** — Settings → Public headline/subhead. Defaults: `Agentic General infrastructure` and `- built to fulfill expectations -`. Logo is **350px**, immediately above the headline (no Mission Control badge). Headline is **one line** (`whitespace-nowrap` + clamp). Each homepage section is **full viewport** with a **768px floor** (`min-h-[max(100dvh,768px)]`). Cycle strip sits in the hero. A next-section chevron sits at the bottom of each section except Contact. Mouse scroll past **25%** of the distance to the next/previous section snaps to that section.
+- **Hero** — Settings → Public headline/subhead. Defaults: `Agentic General infrastructure` and `- built to fulfill expectations -`. Logo is **420px desktop / 315px mobile** (25% smaller on mobile), immediately above the headline (no Mission Control badge). Logo **translucency** and **glow** are backend sliders (Settings → Branding, 0–100% with live preview) applied to the hero logo and all BrandMark surfaces. Headline is **one line** (`whitespace-nowrap` + clamp). Each homepage section is **full viewport** with a **768px floor** (`min-h-[max(100dvh,768px)]`). Cycle strip sits in the hero. A next-section chevron sits at the bottom of each section except Contact. Mouse scroll past **25%** of the distance to the next/previous section snaps to that section.
 - **Cycle strip** — master on/off; up to 10 steps (title, desc, enabled). Default six: Observe → Plan → Communicate → Supervise → Produce → Serve. **Must not wrap** (`flex-nowrap`).
 - **Integrations** — live vendor org integration lines (`line_group=integrations`). Empty state when none. No I6 `integrations.ts` fixture as live data.
 - **Operations** — Executive `executive_project` / `executive_task` only. **No I6 fixture fallback.**
@@ -122,3 +122,4 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | 2026-09-02 | Stats IA | Moved off Environment zone onto sidebar **Stats** menu (`/stats`) |
 | 2026-09-03 | Login / public chrome | Backend login “Open home page” in a new window; System toggle hides public Sign In; proof-of-work login challenge |
 | 2026-09-05 | Themes | Public toggle wrote operator `versa-ui-theme`. **0.7.112:** `persistSurface` writes one key; pathname reapplies the matching store. Dark remains default on both. WU-07 agent-verified; Stephen QA. |
+| 2026-09-05 | Logo display + mobile | **0.7.113 (WU-08):** mobile pull-down no longer reseeds the constellation (debounced resize); hero logo 25% smaller on mobile; Settings → Branding adds Logo Translucency + Logo Glow sliders (0–100%, live preview) driving hero + BrandMark. Stephen QA. |

@@ -15,12 +15,16 @@ export interface BrandConfig {
   brand_name: string;
   brand_color: string;
   brand_logo_url?: string | null;
+  brand_logo_opacity?: number;
+  brand_logo_glow?: number;
 }
 
 const DEFAULT_BRAND: BrandConfig = {
   brand_name: theme.brand.name,
   brand_color: theme.colors.brand,
   brand_logo_url: null,
+  brand_logo_opacity: 1,
+  brand_logo_glow: 0,
 };
 
 const BrandContext = createContext<BrandConfig>(DEFAULT_BRAND);
@@ -57,6 +61,12 @@ export function BrandMark({
 }) {
   const brand = useBrand();
   const dim = size === "md" ? "h-12 w-12" : "h-8 w-8";
+  const opacity = brand.brand_logo_opacity ?? 1;
+  const glow = brand.brand_logo_glow ?? 0;
+  const glowFilter =
+    glow > 0
+      ? `drop-shadow(0 0 ${Math.round(glow * 14)}px rgba(255,255,255,${(glow * 0.85).toFixed(2)}))`
+      : undefined;
   if (brand.brand_logo_url) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- uploaded/data URL logos
@@ -64,6 +74,7 @@ export function BrandMark({
         src={brand.brand_logo_url}
         alt={brand.brand_name}
         className={`${dim} shrink-0 rounded-md object-contain ${className ?? ""}`}
+        style={{ opacity, filter: glowFilter }}
       />
     );
   }
@@ -73,6 +84,8 @@ export function BrandMark({
       style={{
         backgroundColor: brand.brand_color,
         color: theme.colors.brandForeground,
+        opacity,
+        filter: glowFilter,
       }}
     >
       {brandInitials(brand.brand_name)}

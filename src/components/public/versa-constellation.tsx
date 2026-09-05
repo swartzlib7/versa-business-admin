@@ -159,8 +159,17 @@ export function VersaConstellation() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       seedStars(w, h);
     };
+    // Mobile pull-down at the top fires a burst of resize events (browser
+    // chrome shifts) - each one used to reseed every star, which read as the
+    // constellation rapidly regenerating with stutter. Debounce so only the
+    // settled size reseeds; the canvas keeps drawing throughout.
+    let resizeTimer = 0;
+    const onResize = () => {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(resize, 180);
+    };
     resize();
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize", onResize);
 
     const onMove = (e: PointerEvent | MouseEvent) => {
       const w = window.innerWidth || 1;
@@ -289,7 +298,8 @@ export function VersaConstellation() {
     return () => {
       running = false;
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", onResize);
+      window.clearTimeout(resizeTimer);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("mousemove", onMove);
       themeObserver.disconnect();

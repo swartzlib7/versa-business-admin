@@ -299,6 +299,8 @@ export default function SettingsPage() {
   const [brandName, setBrandName] = useState<string>(brand.brand_name);
   const [brandColor, setBrandColor] = useState<string>(brand.brand_color);
   const [brandLogo, setBrandLogo] = useState<string>(brand.brand_logo_url ?? "");
+  const [brandLogoOpacity, setBrandLogoOpacity] = useState<number>(brand.brand_logo_opacity ?? 1);
+  const [brandLogoGlow, setBrandLogoGlow] = useState<number>(brand.brand_logo_glow ?? 0);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -310,9 +312,17 @@ export default function SettingsPage() {
       setBrandName(brand.brand_name);
       setBrandColor(brand.brand_color);
       setBrandLogo(brand.brand_logo_url ?? "");
+      setBrandLogoOpacity(brand.brand_logo_opacity ?? 1);
+      setBrandLogoGlow(brand.brand_logo_glow ?? 0);
       hydrated.current = true;
     }
-  }, [brand.brand_name, brand.brand_color, brand.brand_logo_url]);
+  }, [
+    brand.brand_name,
+    brand.brand_color,
+    brand.brand_logo_url,
+    brand.brand_logo_opacity,
+    brand.brand_logo_glow,
+  ]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -325,6 +335,8 @@ export default function SettingsPage() {
           brand_name: brandName.trim(),
           brand_color: brandColor,
           brand_logo_url: brandLogo || null,
+          brand_logo_opacity: brandLogoOpacity,
+          brand_logo_glow: brandLogoGlow,
         }),
       });
       if (!res.ok) {
@@ -347,6 +359,8 @@ export default function SettingsPage() {
     setBrandName(brand.brand_name);
     setBrandColor(brand.brand_color);
     setBrandLogo(brand.brand_logo_url ?? "");
+    setBrandLogoOpacity(brand.brand_logo_opacity ?? 1);
+    setBrandLogoGlow(brand.brand_logo_glow ?? 0);
   };
 
   return (
@@ -447,6 +461,38 @@ export default function SettingsPage() {
                     )}
                   </div>
                 </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Logo Translucency ({Math.round(brandLogoOpacity * 100)}%)
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={brandLogoOpacity}
+                      onChange={(e) => setBrandLogoOpacity(Number(e.target.value))}
+                      className="w-full"
+                      style={{ accentColor: brandColor }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Logo Glow ({Math.round(brandLogoGlow * 100)}%)
+                    </label>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={brandLogoGlow}
+                      onChange={(e) => setBrandLogoGlow(Number(e.target.value))}
+                      className="w-full"
+                      style={{ accentColor: brandColor }}
+                    />
+                  </div>
+                </div>
                 <div
                   className="rounded-lg border p-4"
                   style={{ borderColor: brandColor }}
@@ -461,6 +507,13 @@ export default function SettingsPage() {
                         src={brandLogo}
                         alt={brandName || "Logo"}
                         className="h-10 w-10 rounded-md object-contain"
+                        style={{
+                          opacity: brandLogoOpacity,
+                          filter:
+                            brandLogoGlow > 0
+                              ? `drop-shadow(0 0 ${Math.round(brandLogoGlow * 14)}px rgba(255,255,255,${(brandLogoGlow * 0.85).toFixed(2)}))`
+                              : undefined,
+                        }}
                       />
                     ) : (
                     <div

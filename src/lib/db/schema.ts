@@ -10,6 +10,7 @@
 //   7. /api/agents*: REMOVE (Phase 4, not Phase 1). Schema must NOT invent an agents table.
 
 import {
+  numeric,
   type AnyPgColumn,
   pgTable,
   text,
@@ -466,6 +467,8 @@ export const siteSettings = pgTable(
     id: text('id').primaryKey(),
     brandName: text('brand_name').notNull(),
     brandColor: text('brand_color').notNull(),
+    brandLogoOpacity: numeric('brand_logo_opacity', { precision: 4, scale: 2 }).notNull().default('1'),
+    brandLogoGlow: numeric('brand_logo_glow', { precision: 4, scale: 2 }).notNull().default('0'),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
 );

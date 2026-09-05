@@ -48,6 +48,16 @@ async function loadBrand() {
       brand_name: settings.brand_name,
       brand_color: settings.brand_color,
       brand_logo_url: typeof logo === "string" && logo ? logo : null,
+      brand_logo_opacity:
+        typeof (settings as { brand_logo_opacity?: number }).brand_logo_opacity ===
+        "number"
+          ? (settings as { brand_logo_opacity: number }).brand_logo_opacity
+          : 1,
+      brand_logo_glow:
+        typeof (settings as { brand_logo_glow?: number }).brand_logo_glow ===
+        "number"
+          ? (settings as { brand_logo_glow: number }).brand_logo_glow
+          : 0,
       demo_mode: fixture.demo_mode !== false,
       maintenance_mode: fixture.maintenance_mode === true,
       public_login_enabled: fixture.public_login_enabled !== false,
@@ -60,6 +70,8 @@ async function loadBrand() {
       brand_name: theme.brand.name,
       brand_color: theme.colors.brand,
       brand_logo_url: null,
+      brand_logo_opacity: 1,
+      brand_logo_glow: 0,
       demo_mode: true,
       maintenance_mode: false,
       public_login_enabled: true,

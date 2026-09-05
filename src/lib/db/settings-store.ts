@@ -15,6 +15,8 @@ export const SITE_SETTINGS_ID = 'site';
 export interface SiteSettingsShape {
   brand_name: string;
   brand_color: string;
+  brand_logo_opacity: number;
+  brand_logo_glow: number;
 }
 
 export async function getSiteSettingsDb(): Promise<SiteSettingsShape> {
@@ -26,10 +28,20 @@ export async function getSiteSettingsDb(): Promise<SiteSettingsShape> {
     .limit(1);
   if (!rows.length) {
     // S5: unset singleton reads as static theme defaults.
-    return { brand_name: theme.brand.name, brand_color: theme.colors.brand };
+    return {
+      brand_name: theme.brand.name,
+      brand_color: theme.colors.brand,
+      brand_logo_opacity: 1,
+      brand_logo_glow: 0,
+    };
   }
   const row = rows[0];
-  return { brand_name: row.brandName, brand_color: row.brandColor };
+  return {
+    brand_name: row.brandName,
+    brand_color: row.brandColor,
+    brand_logo_opacity: Number(row.brandLogoOpacity ?? 1),
+    brand_logo_glow: Number(row.brandLogoGlow ?? 0),
+  };
 }
 
 export async function upsertSiteSettingsDb(
@@ -40,6 +52,8 @@ export async function upsertSiteSettingsDb(
   const next = {
     brand_name: input.brand_name ?? existing.brand_name,
     brand_color: input.brand_color ?? existing.brand_color,
+    brand_logo_opacity: input.brand_logo_opacity ?? existing.brand_logo_opacity,
+    brand_logo_glow: input.brand_logo_glow ?? existing.brand_logo_glow,
   };
   await db
     .insert(siteSettingsTable)
@@ -47,12 +61,16 @@ export async function upsertSiteSettingsDb(
       id: SITE_SETTINGS_ID,
       brandName: next.brand_name,
       brandColor: next.brand_color,
+      brandLogoOpacity: String(next.brand_logo_opacity),
+      brandLogoGlow: String(next.brand_logo_glow),
     })
     .onConflictDoUpdate({
       target: siteSettingsTable.id,
       set: {
         brandName: next.brand_name,
         brandColor: next.brand_color,
+        brandLogoOpacity: String(next.brand_logo_opacity),
+        brandLogoGlow: String(next.brand_logo_glow),
         updatedAt: new Date(),
       },
     });

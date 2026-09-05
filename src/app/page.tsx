@@ -132,7 +132,14 @@ export default async function HomePage() {
               <img
                 src={site.brand_logo_url}
                 alt={site.brand_name}
-                className="mb-6 h-auto w-[420px] object-contain"
+                className="mb-6 h-auto w-[315px] object-contain sm:w-[420px]"
+                style={{
+                  opacity: site.brand_logo_opacity ?? 1,
+                  filter:
+                    (site.brand_logo_glow ?? 0) > 0
+                      ? `drop-shadow(0 0 ${Math.round((site.brand_logo_glow ?? 0) * 18)}px rgba(255,255,255,${((site.brand_logo_glow ?? 0) * 0.85).toFixed(2)}))`
+                      : undefined,
+                }}
               />
             ) : (
               <div
