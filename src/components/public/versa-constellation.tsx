@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import {
+  SKY_DENSITY_DEFAULT,
+  SKY_DENSITY_LEVEL_DEFAULT,
+  clampSkyZoom,
+  resolveSkyEffects,
+  skyDensityLevel,
+  type SkyEffects,
+} from "@/lib/brand-display";
 
 export type ConstellationVariant = "classic" | "realistic";
 
@@ -37,6 +45,19 @@ type Satellite = {
   r: number;
   phase: number;
   panels: boolean;
+};
+
+type Comet = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  comaR: number;
+  tailLen: number;
+  ionLen: number;
+  dustSpread: number;
 };
 
 type Rgb = [number, number, number];
@@ -173,28 +194,117 @@ function drawGlint(
   ctx.restore();
 }
 
+function drawComet(
+  ctx: CanvasRenderingContext2D,
+  c: Comet,
+  driftX: number,
+  driftY: number,
+  fade: number,
+  scale: number,
+) {
+  const x = c.x + driftX * 0.1;
+  const y = c.y + driftY * 0.1;
+  const mag = Math.hypot(c.vx, c.vy) || 1;
+  const ux = c.vx / mag;
+  const uy = c.vy / mag;
+  const px = -uy;
+  const py = ux;
+  const dust: Rgb = [255, 228, 186];
+  const ion: Rgb = [168, 210, 255];
+  const coma: Rgb = [255, 248, 230];
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+
+  for (let k = 0; k < 5; k++) {
+    const t = k / 4 - 0.5;
+    const spread = c.dustSpread * t * 1.8;
+    const len = c.tailLen * (0.72 + k * 0.07);
+    const tx = -ux * len + px * spread;
+    const ty = -uy * len + py * spread;
+    const g = ctx.createLinearGradient(tx, ty, 0, 0);
+    g.addColorStop(0, rgba(dust, 0));
+    g.addColorStop(0.5, rgba(dust, 0.1 * fade));
+    g.addColorStop(1, rgba(dust, 0.42 * fade));
+    ctx.strokeStyle = g;
+    ctx.lineWidth = 3.4 - k * 0.45;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(-ux * 10, -uy * 10);
+    ctx.stroke();
+  }
+
+  const ionTx = -ux * c.ionLen + px * 8;
+  const ionTy = -uy * c.ionLen + py * 8;
+  const ig = ctx.createLinearGradient(ionTx, ionTy, 0, 0);
+  ig.addColorStop(0, rgba(ion, 0));
+  ig.addColorStop(0.65, rgba(ion, 0.2 * fade));
+  ig.addColorStop(1, rgba(ion, 0.55 * fade));
+  ctx.strokeStyle = ig;
+  ctx.lineWidth = 1.35;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(ionTx, ionTy);
+  ctx.lineTo(0, 0);
+  ctx.stroke();
+
+  const bloom = ctx.createRadialGradient(0, 0, 0, 0, 0, c.comaR * 4.2);
+  bloom.addColorStop(0, rgba(coma, 0.95 * fade));
+  bloom.addColorStop(0.28, rgba(dust, 0.4 * fade));
+  bloom.addColorStop(1, rgba(dust, 0));
+  ctx.fillStyle = bloom;
+  ctx.beginPath();
+  ctx.arc(0, 0, c.comaR * 4.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(0, 0, c.comaR * 0.38, 0, Math.PI * 2);
+  ctx.fillStyle = rgba([255, 255, 255], 0.95 * fade);
+  ctx.fill();
+  ctx.restore();
+}
+
 /**
  * Fixed starry field (full viewport). Gentle parallax with the cursor.
- * Shooting stars. Two variants:
+ * Two star variants:
  *  - classic: dense diagonal band, brand-tinted stars (original look).
  *  - realistic: natural star distribution with subtle color temperature
- *    variation, diffraction glints on the brightest stars, and intermittent
- *    satellites crossing the full viewport (never more than 3 at once, with
- *    quiet gaps between passes).
- * Density (0–1) scales the realistic field up to ~10× and compact it into
- * the Classic milky-way band. Colors resolve from the active theme as rgba().
+ *    variation and diffraction glints on the brightest stars.
+ * Shooting stars, satellites, and comets are separate layers with their own
+ * On/Off and zoom — they do not inherit the star-field zoom.
+ * Density (0–1) is a shared 1–10 control. Classic level 5 is the original
+ * band; Realistic 1×–10× still scales the natural field and packs into the
+ * band at the high end. Colors resolve from the active theme as rgba().
  */
 export function VersaConstellation({
   variant = "classic",
-  density = 0,
+  density = SKY_DENSITY_DEFAULT,
+  zoom = 1,
+  effects,
   preview = false,
 }: {
   variant?: ConstellationVariant;
   density?: number;
+  zoom?: number;
+  effects?: SkyEffects;
   preview?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const densityClamped = Math.max(0, Math.min(1, density));
+  const zoomClamped = clampSkyZoom(zoom);
+  const skyFx = resolveSkyEffects(effects);
+  const meteorZ = clampSkyZoom(skyFx.meteors.zoom);
+  const satZ = clampSkyZoom(skyFx.satellites.zoom);
+  const cometZ = clampSkyZoom(skyFx.comets.zoom);
+  const meteorsOn = skyFx.meteors.enabled;
+  const satsOn = skyFx.satellites.enabled;
+  const cometsOn = skyFx.comets.enabled;
+  const fxRef = useRef({ meteorZ, satZ, cometZ, meteorsOn, satsOn, cometsOn });
+  useEffect(() => {
+    fxRef.current = { meteorZ, satZ, cometZ, meteorsOn, satsOn, cometsOn };
+  }, [meteorZ, satZ, cometZ, meteorsOn, satsOn, cometsOn]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -210,10 +320,13 @@ export function VersaConstellation({
     let stars: Star[] = [];
     const meteors: Meteor[] = [];
     const satellites: Satellite[] = [];
+    const comets: Comet[] = [];
     let raf = 0;
     let last = performance.now();
     let spawnIn = rand(1.8, 4.2);
     let satelliteSpawnIn = rand(6, 14);
+    let cometSpawnIn = rand(2.2, 5.5);
+    let dpr = 1;
     const mouse = { tx: 0, ty: 0, x: 0, y: 0 };
     let palette = readTheme();
     let running = true;
@@ -253,8 +366,16 @@ export function VersaConstellation({
           });
         }
       } else {
-        const fieldCount = Math.round(Math.min(w, h) * 0.14);
-        const bandCount = Math.round(Math.min(w, h) * 0.42);
+        const classicScale =
+          skyDensityLevel(densityClamped) / SKY_DENSITY_LEVEL_DEFAULT;
+        const fieldCount = Math.max(
+          4,
+          Math.round(Math.min(w, h) * 0.14 * classicScale),
+        );
+        const bandCount = Math.max(
+          8,
+          Math.round(Math.min(w, h) * 0.42 * classicScale),
+        );
 
         for (let i = 0; i < fieldCount; i++) {
           next.push({
@@ -293,13 +414,15 @@ export function VersaConstellation({
 
     const resize = () => {
       const { w, h } = measure();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const vw = w / zoomClamped;
+      const vh = h / zoomClamped;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      seedStars(w, h);
+      ctx.setTransform(dpr * zoomClamped, 0, 0, dpr * zoomClamped, 0, 0);
+      seedStars(vw, vh);
     };
     // Mobile pull-down at the top fires a burst of resize events (browser
     // chrome shifts) - each one used to reseed every star, which read as the
@@ -368,6 +491,26 @@ export function VersaConstellation({
       });
     };
 
+    const spawnComet = (w: number, h: number) => {
+      const fromLeft = Math.random() > 0.42;
+      const speed = rand(36, 68);
+      const climb = rand(0.14, 0.42);
+      const vx = (fromLeft ? 1 : -1) * speed * Math.cos(climb);
+      const vy = speed * Math.sin(climb);
+      comets.push({
+        x: fromLeft ? -90 : w + 90,
+        y: rand(h * 0.05, h * 0.4),
+        vx,
+        vy,
+        life: 0,
+        maxLife: rand(5.8, 9.8),
+        comaR: rand(4.2, 7.2),
+        tailLen: rand(150, 250),
+        ionLen: rand(190, 300),
+        dustSpread: rand(11, 20),
+      });
+    };
+
     const starColor = (s: Star): Rgb => {
       if (s.tint) return s.tint;
       if (s.tone === 1) return palette.primary;
@@ -379,8 +522,9 @@ export function VersaConstellation({
       if (!running) return;
       const dt = Math.min((now - last) / 1000, 0.05);
       last = now;
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
+      const { w: cssW, h: cssH } = measure();
+      const w = cssW / zoomClamped;
+      const h = cssH / zoomClamped;
 
       try {
         if (!reduceMotion) {
@@ -416,60 +560,84 @@ export function VersaConstellation({
         }
 
         if (!reduceMotion) {
-          spawnIn -= dt;
-          if (spawnIn <= 0 && meteors.length < 2) {
-            spawnMeteor(w, h);
-            spawnIn = rand(2.4, 5.5);
-          }
-          for (let i = meteors.length - 1; i >= 0; i--) {
-            const m = meteors[i];
-            m.life += dt;
-            m.x += m.vx * dt;
-            m.y += m.vy * dt;
-            const speed = Math.hypot(m.vx, m.vy) || 1;
-            const tx = m.x - (m.vx / speed) * m.length + driftX;
-            const ty = m.y - (m.vy / speed) * m.length + driftY;
-            const hx = m.x + driftX;
-            const hy = m.y + driftY;
-            if (![tx, ty, hx, hy].every(Number.isFinite)) {
-              meteors.splice(i, 1);
-              continue;
+          const fx = fxRef.current;
+          ctx.save();
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          const ew = cssW;
+          const eh = cssH;
+
+          if (!fx.meteorsOn) {
+            meteors.length = 0;
+          } else {
+            spawnIn -= dt;
+            if (spawnIn <= 0 && meteors.length < 2) {
+              spawnMeteor(ew, eh);
+              spawnIn = rand(2.4, 5.5);
             }
-            const fadeLife = Math.max(0, 1 - m.life / m.maxLife);
-            const g = ctx.createLinearGradient(tx, ty, hx, hy);
-            g.addColorStop(0, rgba(palette.primary, 0));
-            g.addColorStop(0.65, rgba(palette.primary, 0.45 * fadeLife));
-            g.addColorStop(1, rgba(palette.fg, 0.95 * fadeLife));
-            ctx.strokeStyle = g;
-            ctx.lineWidth = 1.4;
-            ctx.lineCap = "round";
-            ctx.beginPath();
-            ctx.moveTo(tx, ty);
-            ctx.lineTo(hx, hy);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(hx, hy, 1.6, 0, Math.PI * 2);
-            ctx.fillStyle = rgba(palette.fg, 0.95 * fadeLife);
-            ctx.fill();
-            if (m.life >= m.maxLife || m.x < -120 || m.x > w + 120 || m.y > h + 80) {
-              meteors.splice(i, 1);
+            const mz = fx.meteorZ;
+            for (let i = meteors.length - 1; i >= 0; i--) {
+              const m = meteors[i];
+              m.life += dt;
+              m.x += m.vx * dt;
+              m.y += m.vy * dt;
+              const speed = Math.hypot(m.vx, m.vy) || 1;
+              const ux = m.vx / speed;
+              const uy = m.vy / speed;
+              const hx = m.x + driftX;
+              const hy = m.y + driftY;
+              if (![hx, hy].every(Number.isFinite)) {
+                meteors.splice(i, 1);
+                continue;
+              }
+              const fadeLife = Math.max(0, 1 - m.life / m.maxLife);
+              ctx.save();
+              ctx.translate(hx, hy);
+              ctx.scale(mz, mz);
+              const g = ctx.createLinearGradient(-ux * m.length, -uy * m.length, 0, 0);
+              g.addColorStop(0, rgba(palette.primary, 0));
+              g.addColorStop(0.65, rgba(palette.primary, 0.45 * fadeLife));
+              g.addColorStop(1, rgba(palette.fg, 0.95 * fadeLife));
+              ctx.strokeStyle = g;
+              ctx.lineWidth = 1.4;
+              ctx.lineCap = "round";
+              ctx.beginPath();
+              ctx.moveTo(-ux * m.length, -uy * m.length);
+              ctx.lineTo(0, 0);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.arc(0, 0, 1.6, 0, Math.PI * 2);
+              ctx.fillStyle = rgba(palette.fg, 0.95 * fadeLife);
+              ctx.fill();
+              ctx.restore();
+              if (m.life >= m.maxLife || m.x < -120 || m.x > ew + 120 || m.y > eh + 80) {
+                meteors.splice(i, 1);
+              }
             }
           }
 
-          if (realistic) {
+          if (!fx.satsOn) {
+            satellites.length = 0;
+          } else {
             satelliteSpawnIn -= dt;
             if (satelliteSpawnIn <= 0 && satellites.length < 3) {
-              spawnSatellite(w, h);
+              spawnSatellite(ew, eh);
               satelliteSpawnIn = rand(9, 22);
             }
+            const sz = fx.satZ;
             for (let i = satellites.length - 1; i >= 0; i--) {
               const sat = satellites[i];
               sat.x += sat.vx * dt;
               sat.y += sat.vy * dt;
               sat.phase += dt * 2.4;
               const edge = 48;
-              const fadeIn = Math.min(1, (sat.vx > 0 ? sat.x + 36 : w + 36 - sat.x) / 70);
-              const fadeOut = Math.min(1, (sat.vx > 0 ? w + 36 - sat.x : sat.x + 36) / 70);
+              const fadeIn = Math.min(
+                1,
+                (sat.vx > 0 ? sat.x + 36 : ew + 36 - sat.x) / 70,
+              );
+              const fadeOut = Math.min(
+                1,
+                (sat.vx > 0 ? ew + 36 - sat.x : sat.x + 36) / 70,
+              );
               const alpha = 0.9 * Math.max(0, Math.min(fadeIn, fadeOut));
               if (alpha > 0.01) {
                 const sx = sat.x + driftX * 0.18;
@@ -478,12 +646,10 @@ export function VersaConstellation({
                 const ux = sat.vx / mag;
                 const uy = sat.vy / mag;
                 const trail = 26 + sat.r * 10;
-                const g = ctx.createLinearGradient(
-                  sx - ux * trail,
-                  sy - uy * trail,
-                  sx,
-                  sy,
-                );
+                ctx.save();
+                ctx.translate(sx, sy);
+                ctx.scale(sz, sz);
+                const g = ctx.createLinearGradient(-ux * trail, -uy * trail, 0, 0);
                 g.addColorStop(0, rgba(palette.fg, 0));
                 g.addColorStop(0.7, rgba(palette.primary, alpha * 0.22));
                 g.addColorStop(1, rgba(palette.fg, alpha * 0.7));
@@ -491,12 +657,10 @@ export function VersaConstellation({
                 ctx.lineWidth = sat.r * 0.85;
                 ctx.lineCap = "round";
                 ctx.beginPath();
-                ctx.moveTo(sx - ux * trail, sy - uy * trail);
-                ctx.lineTo(sx, sy);
+                ctx.moveTo(-ux * trail, -uy * trail);
+                ctx.lineTo(0, 0);
                 ctx.stroke();
 
-                ctx.save();
-                ctx.translate(sx, sy);
                 ctx.rotate(Math.atan2(sat.vy, sat.vx));
                 if (sat.panels) {
                   ctx.fillStyle = rgba(palette.primary, alpha * 0.55);
@@ -516,14 +680,47 @@ export function VersaConstellation({
               }
               if (
                 sat.x < -edge * 2 ||
-                sat.x > w + edge * 2 ||
+                sat.x > ew + edge * 2 ||
                 sat.y < -edge * 2 ||
-                sat.y > h + edge * 2
+                sat.y > eh + edge * 2
               ) {
                 satellites.splice(i, 1);
               }
             }
           }
+
+          if (!fx.cometsOn) {
+            comets.length = 0;
+          } else {
+            cometSpawnIn -= dt;
+            if (cometSpawnIn <= 0 && comets.length < 1) {
+              spawnComet(ew, eh);
+              cometSpawnIn = rand(16, 40);
+            }
+            const cz = fx.cometZ;
+            for (let i = comets.length - 1; i >= 0; i--) {
+              const c = comets[i];
+              c.life += dt;
+              c.x += c.vx * dt;
+              c.y += c.vy * dt;
+              const fadeIn = Math.min(1, c.life / 0.9);
+              const fadeOut = Math.max(0, 1 - c.life / c.maxLife);
+              const fade = fadeIn * fadeOut;
+              if (fade > 0.01) {
+                drawComet(ctx, c, driftX, driftY, fade, cz);
+              }
+              if (
+                c.life >= c.maxLife ||
+                c.x < -220 ||
+                c.x > ew + 220 ||
+                c.y < -220 ||
+                c.y > eh + 220
+              ) {
+                comets.splice(i, 1);
+              }
+            }
+          }
+          ctx.restore();
         }
       } catch {
         /* keep the loop alive if a frame fails */
@@ -546,7 +743,7 @@ export function VersaConstellation({
       ro?.disconnect();
       themeObserver.disconnect();
     };
-  }, [variant, densityClamped, preview]);
+  }, [variant, densityClamped, zoomClamped, preview]);
 
   return (
     <canvas

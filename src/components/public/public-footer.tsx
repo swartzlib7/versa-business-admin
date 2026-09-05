@@ -61,23 +61,25 @@ export function PublicFooter({
       >
         <ChevronUp className="h-5 w-5" />
       </button>
-      <footer className="border-t border-border bg-background/50">
+      <footer className="border-t border-border bg-background/50 backdrop-blur-md">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-3 md:items-start">
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold">Mission Control</h4>
-            <div className="grid grid-cols-2 gap-x-6">
-              {linkCols.map((col, colIndex) => (
-                <ul key={colIndex} className="space-y-2 text-sm text-muted-foreground">
-                  {col.map((link) => (
-                    <li key={link.href}>
-                      <Link href={link.href} className="hover:text-foreground">
-                        {link.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ))}
+          <div className="flex flex-col items-center text-center">
+            <div className="inline-flex flex-col items-center">
+              <h4 className="w-full text-sm font-semibold">Mission Control</h4>
+              <div className="mt-3 grid w-full grid-cols-2 gap-x-6">
+                {linkCols.map((col, colIndex) => (
+                  <ul key={colIndex} className="space-y-2 text-sm text-muted-foreground">
+                    {col.map((link) => (
+                      <li key={link.href}>
+                        <Link href={link.href} className="hover:text-foreground">
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -106,7 +108,7 @@ export function PublicFooter({
             ) : null}
           </div>
 
-          <div className="space-y-3 md:text-right">
+          <div className="flex flex-col items-center space-y-3 text-center">
             <h4 className="text-sm font-semibold">Contact</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>

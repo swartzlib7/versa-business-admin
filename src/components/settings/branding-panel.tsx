@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { FileField } from "@/components/ui/file-field";
+import { BooleanSwitch } from "@/components/ui/boolean-switch";
 import { VersaConstellation } from "@/components/public/versa-constellation";
 import { useBrand } from "@/components/shell/brand-provider";
 import { cn } from "@/lib/utils";
@@ -17,13 +18,26 @@ import {
   LOGO_UPLOAD_HINT,
   SKY_PREVIEW_MAX_PX,
   SKY_PREVIEW_MIN_PX,
+  SKY_DENSITY_DEFAULT,
+  SKY_DENSITY_LEVEL_MAX,
+  SKY_DENSITY_LEVEL_MIN,
+  SKY_ZOOM_MAX,
+  SKY_ZOOM_MIN,
+  SKY_ZOOM_STEP,
   clampLogoScale,
+  clampSkyZoom,
   logoPx,
   logoSurfaceFilter,
   resolveLogoSurfaces,
+  resolveSkyEffects,
+  skyDensityFromLevel,
+  skyDensityLevel,
   type LogoSurfaceId,
   type LogoSurfaceStyle,
   type LogoSurfaces,
+  type SkyEffectId,
+  type SkyEffectStyle,
+  type SkyEffects,
 } from "@/lib/brand-display";
 
 export type BrandingSubTab = "brand" | "logo" | "sky";
@@ -36,6 +50,8 @@ type BrandDraft = {
   surfaces: LogoSurfaces;
   variant: "classic" | "realistic";
   density: number;
+  zoom: number;
+  effects: SkyEffects;
   headline: string;
   subhead: string;
 };
@@ -47,7 +63,9 @@ const emptyDraft = (brand: ReturnType<typeof useBrand>): BrandDraft => ({
   logoName: brand.brand_logo_url ? "Current logo" : "",
   surfaces: resolveLogoSurfaces(brand as unknown as Record<string, unknown>),
   variant: brand.constellation_variant === "realistic" ? "realistic" : "classic",
-  density: brand.constellation_density ?? 0,
+  density: brand.constellation_density ?? SKY_DENSITY_DEFAULT,
+  zoom: clampSkyZoom(brand.constellation_zoom),
+  effects: resolveSkyEffects(brand.constellation_effects),
   headline: "",
   subhead: "",
 });
@@ -210,6 +228,54 @@ function LogoSurfaceColumn({
   );
 }
 
+function SkyEffectRow({
+  title,
+  hint,
+  style,
+  color,
+  onChange,
+}: {
+  title: string;
+  hint: string;
+  style: SkyEffectStyle;
+  color: string;
+  onChange: (partial: Partial<SkyEffectStyle>) => void;
+}) {
+  return (
+    <div className="space-y-2 rounded-lg border border-border p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{title}</p>
+          <p className="text-xs text-muted-foreground">{hint}</p>
+        </div>
+        <BooleanSwitch
+          checked={style.enabled}
+          onChange={(enabled) => onChange({ enabled })}
+          label={style.enabled ? "On" : "Off"}
+          labelSide="start"
+        />
+      </div>
+      {style.enabled ? (
+        <div className="space-y-1">
+          <label className="text-xs font-medium">
+            Zoom ({Math.round(style.zoom * 100)}%)
+          </label>
+          <input
+            type="range"
+            min={SKY_ZOOM_MIN}
+            max={SKY_ZOOM_MAX}
+            step={SKY_ZOOM_STEP}
+            value={style.zoom}
+            onChange={(e) => onChange({ zoom: clampSkyZoom(Number(e.target.value)) })}
+            className="w-full"
+            style={{ accentColor: color }}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function BrandingPanel({
   subTab,
   fill = false,
@@ -223,6 +289,21 @@ export function BrandingPanel({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [skyFullscreen, setSkyFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!skyFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSkyFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [skyFullscreen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -242,7 +323,9 @@ export function BrandingPanel({
             typeof b.brand_logo_url === "string" && b.brand_logo_url ? "Current logo" : "",
           surfaces: resolveLogoSurfaces(b as Record<string, unknown>),
           variant: b.constellation_variant === "realistic" ? "realistic" : "classic",
-          density: typeof b.constellation_density === "number" ? b.constellation_density : 0,
+          density: typeof b.constellation_density === "number" ? b.constellation_density : SKY_DENSITY_DEFAULT,
+          zoom: clampSkyZoom(b.constellation_zoom),
+          effects: resolveSkyEffects(b.constellation_effects),
           headline: typeof p.hero_headline === "string" ? p.hero_headline : "",
           subhead: typeof p.hero_subhead === "string" ? p.hero_subhead : "",
         });
@@ -274,6 +357,17 @@ export function BrandingPanel({
     setSaved(false);
   };
 
+  const patchEffect = (id: SkyEffectId, partial: Partial<SkyEffectStyle>) => {
+    setDraft((prev) => ({
+      ...prev,
+      effects: {
+        ...prev.effects,
+        [id]: { ...prev.effects[id], ...partial },
+      },
+    }));
+    setSaved(false);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setSaveError(null);
@@ -295,6 +389,8 @@ export function BrandingPanel({
           brand_logo_scale_footer: draft.surfaces.footer.scale,
           constellation_variant: draft.variant,
           constellation_density: draft.density,
+          constellation_zoom: draft.zoom,
+          constellation_effects: draft.effects,
         }),
       });
       if (!res.ok) {
@@ -461,10 +557,11 @@ export function BrandingPanel({
 
       {subTab === "sky" ? (
         <div className="flex flex-1 flex-col gap-4">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
           <div
             role="radiogroup"
             aria-label="Sky animation"
-            className="flex shrink-0 flex-wrap gap-1 rounded-lg border p-1"
+            className="flex min-w-0 flex-1 flex-wrap gap-1 rounded-lg border p-1"
             style={{ borderColor: draft.color + "33", backgroundColor: draft.color + "0d" }}
           >
             {([
@@ -492,6 +589,14 @@ export function BrandingPanel({
               );
             })}
           </div>
+            <button
+              type="button"
+              onClick={() => setSkyFullscreen(true)}
+              className="rounded-md border border-border px-4 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+            >
+              Preview
+            </button>
+          </div>
           <div
             className="relative w-full flex-1 overflow-hidden rounded-lg border border-border bg-black"
             style={{ minHeight: SKY_PREVIEW_MIN_PX, maxHeight: SKY_PREVIEW_MAX_PX }}
@@ -499,35 +604,74 @@ export function BrandingPanel({
             <VersaConstellation
               variant={draft.variant}
               density={draft.density}
+              zoom={draft.zoom}
+              effects={draft.effects}
               preview
             />
           </div>
-          {draft.variant === "realistic" ? (
-            <div className="shrink-0 space-y-2">
-              <label className="text-sm font-medium">
-                Density ({Math.round(1 + draft.density * 9)}×)
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={draft.density}
-                onChange={(e) => patch({ density: Number(e.target.value) })}
-                className="w-full"
-                style={{ accentColor: draft.color }}
-              />
-              <p className="text-xs text-muted-foreground">
-                1× is the current field. At 10× the stars compact into the Classic
-                milky-way band.
-              </p>
-            </div>
-          ) : (
-            <p className="shrink-0 text-xs text-muted-foreground">
-              Classic is the original milky-way band. Switch to Realistic for
-              natural tints, glints, density, and satellites.
+          <div className="shrink-0 space-y-2">
+            <label className="text-sm font-medium">
+              Stars ({Math.round(draft.zoom * 100)}%)
+            </label>
+            <input
+              type="range"
+              min={SKY_ZOOM_MIN}
+              max={SKY_ZOOM_MAX}
+              step={SKY_ZOOM_STEP}
+              value={draft.zoom}
+              onChange={(e) => patch({ zoom: clampSkyZoom(Number(e.target.value)) })}
+              className="w-full"
+              style={{ accentColor: draft.color }}
+            />
+            <p className="text-xs text-muted-foreground">
+              25% is a wide night sky (browser zoomed out). 100% is the current
+              scale. 200% is close-in. Shooting stars, satellites, and comets
+              keep their own size.
             </p>
-          )}
+          </div>
+          <div className="grid shrink-0 gap-3 lg:grid-cols-3">
+            <SkyEffectRow
+              title="Shooting stars"
+              hint="Brief meteors. Independent of Stars zoom."
+              style={draft.effects.meteors}
+              color={draft.color}
+              onChange={(partial) => patchEffect("meteors", partial)}
+            />
+            <SkyEffectRow
+              title="Satellites"
+              hint="Slow crossings with quiet gaps. Independent of Stars zoom."
+              style={draft.effects.satellites}
+              color={draft.color}
+              onChange={(partial) => patchEffect("satellites", partial)}
+            />
+            <SkyEffectRow
+              title="Comets"
+              hint="Rare visitors with dust and ion tails."
+              style={draft.effects.comets}
+              color={draft.color}
+              onChange={(partial) => patchEffect("comets", partial)}
+            />
+          </div>
+          <div className="shrink-0 space-y-2">
+            <label className="text-sm font-medium">
+              Density ({skyDensityLevel(draft.density)}×)
+            </label>
+            <input
+              type="range"
+              min={SKY_DENSITY_LEVEL_MIN}
+              max={SKY_DENSITY_LEVEL_MAX}
+              step={1}
+              value={skyDensityLevel(draft.density)}
+              onChange={(e) => patch({ density: skyDensityFromLevel(Number(e.target.value)) })}
+              className="w-full"
+              style={{ accentColor: draft.color }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {draft.variant === "classic"
+                ? "5× is the original Classic band. 1× is sparse, 10× is twice as rich."
+                : "1× is the original Realistic field. At 10× the stars compact into the Classic milky-way band."}
+            </p>
+          </div>
         </div>
       ) : null}
 
@@ -539,6 +683,30 @@ export function BrandingPanel({
       {!loaded ? (
         <p className="shrink-0 text-xs text-muted-foreground">Loading…</p>
       ) : null}
+      {skyFullscreen ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Sky animation full screen preview"
+          className="fixed inset-0 z-[200] bg-black"
+        >
+          <VersaConstellation
+            variant={draft.variant}
+            density={draft.density}
+            zoom={draft.zoom}
+            effects={draft.effects}
+            preview
+          />
+          <button
+            type="button"
+            onClick={() => setSkyFullscreen(false)}
+            className="absolute right-4 top-4 z-10 rounded-md border border-white/25 bg-black/50 px-3 py-1.5 text-sm font-medium text-white hover:bg-black/70"
+          >
+            Close
+          </button>
+        </div>
+      ) : null}
+
       <Separator className="shrink-0" />
       <div className="flex shrink-0 gap-2">
         <button

@@ -78,6 +78,20 @@
       "when": 1788629999000,
       "tag": "0010_brand_logo_surfaces",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788633600000,
+      "tag": "0011_constellation_zoom",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788637200000,
+      "tag": "0012_constellation_effects",
+      "breakpoints": true
     }
   ]
 }

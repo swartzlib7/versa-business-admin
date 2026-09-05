@@ -14,6 +14,8 @@ import {
   logoPx,
   logoSurfaceFilter,
   resolveLogoSurfaces,
+  resolveSkyEffects,
+  SKY_DENSITY_DEFAULT,
 } from "@/lib/brand-display";
 import {
   enabledCycleSteps,
@@ -130,7 +132,9 @@ export default async function HomePage() {
       business={business}
       demo={demo}
       constellationVariant={site.constellation_variant === "realistic" ? "realistic" : "classic"}
-      constellationDensity={site.constellation_density ?? 0}
+      constellationDensity={site.constellation_density ?? SKY_DENSITY_DEFAULT}
+      constellationZoom={site.constellation_zoom ?? 1}
+      constellationEffects={resolveSkyEffects(site.constellation_effects)}
     >
       <PublicSection
         id="top"
@@ -205,7 +209,7 @@ export default async function HomePage() {
 
       {demo ? (
         <>
-          <PublicSection id="facets" nextId="systems" className="bg-background/20">
+          <PublicSection id="facets" nextId="systems" className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -253,7 +257,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="systems" nextId="integrations" className="bg-background/60">
+          <PublicSection id="systems" nextId="integrations" className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -285,7 +289,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="integrations" nextId="operations" className="bg-background/20">
+          <PublicSection id="integrations" nextId="operations" className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -331,7 +335,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="operations" nextId="support" className="bg-background/60">
+          <PublicSection id="operations" nextId="support" className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -407,7 +411,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="support" nextId="metrics" className="bg-background/20">
+          <PublicSection id="support" nextId="metrics" className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -455,7 +459,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="metrics" nextId="knowledge" className="bg-background/60">
+          <PublicSection id="metrics" nextId="knowledge" className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-8 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -484,7 +488,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="knowledge" nextId="about" className="bg-background/20">
+          <PublicSection id="knowledge" nextId="about" className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-8 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -517,7 +521,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="about" nextId="contact" className="bg-background/60">
+          <PublicSection id="about" nextId="contact" className="bg-transparent">
             <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-10 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -548,7 +552,7 @@ export default async function HomePage() {
         </>
       ) : (
         <>
-          <PublicSection id="integrations" nextId="operations" className="bg-background/20">
+          <PublicSection id="integrations" nextId="operations" className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">Integrations</h2>
@@ -592,7 +596,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="operations" nextId="metrics" className="bg-background/60">
+          <PublicSection id="operations" nextId="metrics" className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">Operations</h2>
@@ -669,7 +673,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="metrics" nextId="knowledge" className="bg-background/60">
+          <PublicSection id="metrics" nextId="knowledge" className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-8 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">Metrics</h2>
@@ -685,7 +689,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="knowledge" nextId="contact" className="bg-background/20">
+          <PublicSection id="knowledge" nextId="contact" className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-8 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">Knowledge</h2>
@@ -721,7 +725,7 @@ export default async function HomePage() {
         </>
       )}
 
-      <PublicSection id="contact" className="border-b-0 bg-background/20">
+      <PublicSection id="contact" className="border-b-0 bg-transparent">
         <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight">Get in Touch</h2>

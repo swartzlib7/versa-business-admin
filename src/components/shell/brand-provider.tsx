@@ -17,9 +17,12 @@ import {
   logoPx,
   logoSurfaceFilter,
   resolveLogoSurfaces,
+  resolveSkyEffects,
+  SKY_DENSITY_DEFAULT,
   type LogoSurfaceId,
   type LogoSurfaceStyle,
   type LogoSurfaces,
+  type SkyEffects,
 } from "@/lib/brand-display";
 
 export interface BrandConfig {
@@ -36,6 +39,8 @@ export interface BrandConfig {
   brand_logo_surfaces?: LogoSurfaces;
   constellation_variant?: "classic" | "realistic";
   constellation_density?: number;
+  constellation_zoom?: number;
+  constellation_effects?: SkyEffects;
 }
 
 const DEFAULT_BRAND: BrandConfig = {
@@ -51,7 +56,9 @@ const DEFAULT_BRAND: BrandConfig = {
   brand_logo_scale_footer: 1,
   brand_logo_surfaces: resolveLogoSurfaces({}),
   constellation_variant: "classic",
-  constellation_density: 0,
+  constellation_density: SKY_DENSITY_DEFAULT,
+  constellation_zoom: 1,
+  constellation_effects: resolveSkyEffects({}),
 };
 
 const BrandContext = createContext<BrandConfig>(DEFAULT_BRAND);

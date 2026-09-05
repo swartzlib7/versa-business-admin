@@ -476,6 +476,8 @@ export const siteSettings = pgTable(
     brandLogoScaleFooter: numeric('brand_logo_scale_footer', { precision: 4, scale: 2 }).notNull().default('1'),
     constellationVariant: text('constellation_variant', { enum: ['classic', 'realistic'] }).notNull().default('classic'),
     constellationDensity: numeric('constellation_density', { precision: 4, scale: 2 }).notNull().default('0'),
+    constellationZoom: numeric('constellation_zoom', { precision: 4, scale: 2 }).notNull().default('1'),
+    constellationEffects: jsonb('constellation_effects').notNull().default({}),
     brandLogoSurfaces: jsonb('brand_logo_surfaces').notNull().default({}),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

@@ -9,8 +9,8 @@ import fs from "fs";
 import path from "path";
 import { theme } from "@/lib/theme";
 import type { CycleStep } from "@/lib/public/site-types";
-import type { LogoSurfaces } from "@/lib/brand-display";
-import { resolveLogoSurfaces } from "@/lib/brand-display";
+import type { LogoSurfaces, SkyEffects } from "@/lib/brand-display";
+import { clampSkyZoom, resolveLogoSurfaces, resolveSkyEffects, SKY_DENSITY_DEFAULT } from "@/lib/brand-display";
 
 export type { CycleStep };
 
@@ -28,6 +28,8 @@ export interface FixtureSiteSettings {
   brand_logo_surfaces?: LogoSurfaces;
   constellation_variant?: "classic" | "realistic";
   constellation_density?: number;
+  constellation_zoom?: number;
+  constellation_effects?: SkyEffects;
   demo_mode?: boolean;
   maintenance_mode?: boolean;
   hero_headline?: string;
@@ -113,6 +115,9 @@ function readFile(): FixtureSiteSettings | null {
         typeof parsed.constellation_density === "number"
           ? parsed.constellation_density
           : undefined,
+      constellation_zoom:
+        parsed.constellation_zoom != null ? clampSkyZoom(parsed.constellation_zoom) : undefined,
+      constellation_effects: resolveSkyEffects(parsed.constellation_effects),
       demo_mode: parsed.demo_mode !== false,
       maintenance_mode: parsed.maintenance_mode === true,
       hero_headline: typeof parsed.hero_headline === "string" ? parsed.hero_headline : undefined,
@@ -157,7 +162,9 @@ function defaults(): FixtureSiteSettings {
     brand_logo_scale_footer: 1,
     brand_logo_surfaces: resolveLogoSurfaces({}),
     constellation_variant: "classic",
-    constellation_density: 0,
+    constellation_density: SKY_DENSITY_DEFAULT,
+    constellation_zoom: 1,
+    constellation_effects: resolveSkyEffects({}),
     demo_mode: true,
     maintenance_mode: false,
     public_login_enabled: true,
@@ -239,7 +246,16 @@ export function upsertSiteSettingsFixture(
     constellation_density:
       input.constellation_density !== undefined
         ? input.constellation_density
-        : current.constellation_density ?? 0,
+        : current.constellation_density ?? SKY_DENSITY_DEFAULT,
+    constellation_zoom:
+      input.constellation_zoom !== undefined
+        ? clampSkyZoom(input.constellation_zoom)
+        : clampSkyZoom(current.constellation_zoom ?? 1),
+    constellation_effects: resolveSkyEffects(
+      input.constellation_effects !== undefined
+        ? input.constellation_effects
+        : current.constellation_effects,
+    ),
     demo_mode:
       input.demo_mode !== undefined
         ? input.demo_mode

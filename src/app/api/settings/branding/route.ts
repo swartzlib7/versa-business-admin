@@ -10,7 +10,7 @@ import {
   upsertBrandLogoFile,
   upsertSiteSettingsFixture,
 } from '@/lib/fixtures/site-settings';
-import { parseLogoSurfaces } from '@/lib/brand-display';
+import { parseLogoSurfaces, parseSkyEffects, clampSkyZoom } from '@/lib/brand-display';
 
 // #252 Settings functionality slice (Stephen round-2 item 10): branding
 // persistence singleton. GET is authenticated; writes are admin-only
@@ -124,6 +124,20 @@ export async function PUT(request: Request) {
   const brandLogoScaleHome = clampScale(body.brand_logo_scale_home);
   const brandLogoScaleFooter = clampScale(body.brand_logo_scale_footer);
   const constellationDensity = clamp01(body.constellation_density);
+  const constellationZoom =
+    body.constellation_zoom != null ? clampSkyZoom(body.constellation_zoom) : undefined;
+  const constellationEffects = parseSkyEffects(body.constellation_effects);
+  if (body.constellation_effects != null && constellationEffects == null) {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'INVALID_SKY_EFFECTS',
+          message: 'constellation_effects must be an object with meteors, satellites, and comets.',
+        },
+      },
+      { status: 400 },
+    );
+  }
   let brandLogoGlowColor: string | undefined;
   if (body.brand_logo_glow_color != null) {
     const raw = String(body.brand_logo_glow_color).trim();
@@ -182,6 +196,8 @@ export async function PUT(request: Request) {
           brand_logo_scale_footer: brandLogoScaleFooter,
           constellation_variant: constellationVariant,
           constellation_density: constellationDensity,
+          constellation_zoom: constellationZoom,
+          constellation_effects: constellationEffects,
           brand_logo_surfaces: brandLogoSurfaces,
         })
       : upsertSiteSettingsFixture({
@@ -197,6 +213,8 @@ export async function PUT(request: Request) {
           brand_logo_scale_footer: brandLogoScaleFooter,
           constellation_variant: constellationVariant,
           constellation_density: constellationDensity,
+          constellation_zoom: constellationZoom,
+          constellation_effects: constellationEffects,
           brand_logo_surfaces: brandLogoSurfaces,
         });
     if (isPostgres() && brandLogoUrl !== undefined) {

@@ -53,6 +53,82 @@ export const LOGO_PX_MAX = 1024;
 export const LOGO_PREVIEW_BOX_PX = LOGO_BASE_PX.homeDesktop;
 export const SKY_PREVIEW_MIN_PX = 448;
 export const SKY_PREVIEW_MAX_PX = 4096;
+export const SKY_ZOOM_MIN = 0.25;
+export const SKY_ZOOM_MAX = 2;
+export const SKY_ZOOM_STEP = 0.25;
+export const SKY_ZOOM_DEFAULT = 1;
+export const SKY_DENSITY_LEVEL_MIN = 1;
+export const SKY_DENSITY_LEVEL_MAX = 10;
+export const SKY_DENSITY_LEVEL_DEFAULT = 5;
+/** Stored 0–1 value for density level 5 (Classic's original field). */
+export const SKY_DENSITY_DEFAULT = (SKY_DENSITY_LEVEL_DEFAULT - 1) / 9;
+
+export function clampSkyZoom(n: unknown): number {
+  const x = typeof n === "number" ? n : Number(n);
+  if (!Number.isFinite(x)) return SKY_ZOOM_DEFAULT;
+  const stepped = Math.round(x / SKY_ZOOM_STEP) * SKY_ZOOM_STEP;
+  return Math.max(SKY_ZOOM_MIN, Math.min(SKY_ZOOM_MAX, Number(stepped.toFixed(2))));
+}
+
+export function clampSkyDensity(n: unknown): number {
+  const x = typeof n === "number" ? n : Number(n);
+  if (!Number.isFinite(x)) return SKY_DENSITY_DEFAULT;
+  return Math.max(0, Math.min(1, x));
+}
+
+export function skyDensityLevel(density: unknown): number {
+  const d = clampSkyDensity(density);
+  return Math.max(
+    SKY_DENSITY_LEVEL_MIN,
+    Math.min(SKY_DENSITY_LEVEL_MAX, Math.round(1 + d * 9)),
+  );
+}
+
+export function skyDensityFromLevel(level: unknown): number {
+  const n = typeof level === "number" ? level : Number(level);
+  const L = Number.isFinite(n)
+    ? Math.max(SKY_DENSITY_LEVEL_MIN, Math.min(SKY_DENSITY_LEVEL_MAX, Math.round(n)))
+    : SKY_DENSITY_LEVEL_DEFAULT;
+  return (L - 1) / 9;
+}
+
+export type SkyEffectId = "meteors" | "satellites" | "comets";
+
+export type SkyEffectStyle = {
+  enabled: boolean;
+  zoom: number;
+};
+
+export type SkyEffects = Record<SkyEffectId, SkyEffectStyle>;
+
+export const DEFAULT_SKY_EFFECTS: SkyEffects = {
+  meteors: { enabled: true, zoom: SKY_ZOOM_DEFAULT },
+  satellites: { enabled: true, zoom: SKY_ZOOM_DEFAULT },
+  comets: { enabled: false, zoom: SKY_ZOOM_DEFAULT },
+};
+
+export function resolveSkyEffects(raw: unknown): SkyEffects {
+  const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const one = (id: SkyEffectId, fallbackEnabled: boolean): SkyEffectStyle => {
+    const row = obj[id];
+    const r = row && typeof row === "object" ? (row as Record<string, unknown>) : {};
+    return {
+      enabled: typeof r.enabled === "boolean" ? r.enabled : fallbackEnabled,
+      zoom: clampSkyZoom(r.zoom),
+    };
+  };
+  return {
+    meteors: one("meteors", true),
+    satellites: one("satellites", true),
+    comets: one("comets", false),
+  };
+}
+
+/** Nested `{ meteors, satellites, comets }` object from the API body. */
+export function parseSkyEffects(raw: unknown): SkyEffects | undefined {
+  if (raw == null || typeof raw !== "object") return undefined;
+  return resolveSkyEffects(raw);
+}
 export const LOGO_MAX_BYTES = 500 * 1024;
 export const LOGO_UPLOAD_HINT = `PNG, JPG, SVG, or WebP. Both width and height must be ${LOGO_PX_MIN}–${LOGO_PX_MAX} px. Max 500 KB. Initials are used when empty.`;
 

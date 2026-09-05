@@ -9,7 +9,7 @@ import { eq } from 'drizzle-orm';
 import { getDb } from './client';
 import { siteSettings as siteSettingsTable } from './schema';
 import { theme } from '@/lib/theme';
-import { resolveLogoSurfaces, type LogoSurfaces } from '@/lib/brand-display';
+import { resolveLogoSurfaces, clampSkyZoom, resolveSkyEffects, SKY_DENSITY_DEFAULT, type LogoSurfaces, type SkyEffects } from '@/lib/brand-display';
 
 export const SITE_SETTINGS_ID = 'site';
 
@@ -25,6 +25,8 @@ export interface SiteSettingsShape {
   brand_logo_scale_footer: number;
   constellation_variant: 'classic' | 'realistic';
   constellation_density: number;
+  constellation_zoom: number;
+  constellation_effects: SkyEffects;
   brand_logo_surfaces: LogoSurfaces;
 }
 
@@ -48,7 +50,9 @@ export async function getSiteSettingsDb(): Promise<SiteSettingsShape> {
       brand_logo_scale_home: 1,
       brand_logo_scale_footer: 1,
       constellation_variant: 'classic',
-      constellation_density: 0,
+      constellation_density: SKY_DENSITY_DEFAULT,
+      constellation_zoom: 1,
+      constellation_effects: resolveSkyEffects({}),
       brand_logo_surfaces: resolveLogoSurfaces({}),
     };
   }
@@ -74,7 +78,9 @@ export async function getSiteSettingsDb(): Promise<SiteSettingsShape> {
     brand_logo_scale_home: surfaces.home.scale,
     brand_logo_scale_footer: surfaces.footer.scale,
     constellation_variant: row.constellationVariant === 'realistic' ? 'realistic' : 'classic',
-    constellation_density: Number(row.constellationDensity ?? 0),
+    constellation_density: Number(row.constellationDensity ?? SKY_DENSITY_DEFAULT),
+    constellation_zoom: clampSkyZoom(Number(row.constellationZoom ?? 1)),
+    constellation_effects: resolveSkyEffects(row.constellationEffects),
     brand_logo_surfaces: surfaces,
   };
 }
@@ -106,6 +112,12 @@ export async function upsertSiteSettingsDb(
     brand_logo_scale_footer: surfaces.footer.scale,
     constellation_variant: input.constellation_variant ?? existing.constellation_variant,
     constellation_density: input.constellation_density ?? existing.constellation_density,
+    constellation_zoom: clampSkyZoom(
+      input.constellation_zoom ?? existing.constellation_zoom,
+    ),
+    constellation_effects: resolveSkyEffects(
+      input.constellation_effects ?? existing.constellation_effects,
+    ),
     brand_logo_surfaces: surfaces,
   };
   await db
@@ -123,6 +135,8 @@ export async function upsertSiteSettingsDb(
       brandLogoScaleFooter: String(next.brand_logo_scale_footer),
       constellationVariant: next.constellation_variant,
       constellationDensity: String(next.constellation_density),
+      constellationZoom: String(next.constellation_zoom),
+      constellationEffects: next.constellation_effects,
       brandLogoSurfaces: next.brand_logo_surfaces,
     })
     .onConflictDoUpdate({
@@ -139,6 +153,8 @@ export async function upsertSiteSettingsDb(
         brandLogoScaleFooter: String(next.brand_logo_scale_footer),
         constellationVariant: next.constellation_variant,
         constellationDensity: String(next.constellation_density),
+        constellationZoom: String(next.constellation_zoom),
+        constellationEffects: next.constellation_effects,
         brandLogoSurfaces: next.brand_logo_surfaces,
         updatedAt: new Date(),
       },
