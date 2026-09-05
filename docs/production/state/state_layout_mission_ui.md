@@ -187,7 +187,7 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 
 ## 0.7.107 — Chrome contract (2026-09-03)
 
-**Required on every operator page:** a main tab strip **and** a sub-tab strip. The standard first (often only) sub-tab is **Configuration**, including Settings **Menu** and **Information**. Contact uses Configuration (not Records) with an opening sentence and a full-width form.
+**Required on every operator page:** a main tab strip **and** a sub-tab strip. The standard first (often only) sub-tab is **Configuration**, including Settings **Menu** and **Modes**. Contact uses Configuration (not Records) with an opening sentence and a full-width form.
 
 **Listing action cluster (global):** the New Record (or equivalent) **button stays on the right** and does not wrap under the summary. The Dynamic Record / listing **tag sits under the button**, also right-aligned.
 
@@ -207,5 +207,5 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 
 **Default theme:** Dark (operator and public).
 
-**Settings:** Configuration strip on Branding, Appearance, Public, Menu, and Information.
+**Settings:** Branding, Menu, Cycle Strip, Appearance, Modes (`?tab=modes`; `information`/`system` aliases), Sky Animation. Configuration strip on Branding, Appearance, Cycle Strip, Menu, and Modes. Sky Animation has no sub-tab strip.
 

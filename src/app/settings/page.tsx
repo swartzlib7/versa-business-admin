@@ -22,19 +22,19 @@ import { MenuOrderPanel } from "@/components/settings/menu-order-panel";
 
 type SettingsTab =
   | "branding"
-  | "sky"
-  | "appearance"
-  | "public"
   | "menu"
-  | "information";
+  | "public"
+  | "appearance"
+  | "modes"
+  | "sky";
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: "branding", label: "Branding" },
-  { id: "sky", label: "Sky Animation" },
-  { id: "appearance", label: "Appearance" },
-  { id: "public", label: "Cycle Strip" },
   { id: "menu", label: "Menu" },
-  { id: "information", label: "Information" },
+  { id: "public", label: "Cycle Strip" },
+  { id: "appearance", label: "Appearance" },
+  { id: "modes", label: "Modes" },
+  { id: "sky", label: "Sky Animation" },
 ];
 
 const THEME_OPTIONS: {
@@ -286,11 +286,11 @@ function AppearancePanel() {
 
 const SETTINGS_TABS: SettingsTab[] = [
   "branding",
-  "sky",
-  "appearance",
-  "public",
   "menu",
-  "information",
+  "public",
+  "appearance",
+  "modes",
+  "sky",
 ];
 const BRANDING_SUBS = ["brand", "logo"] as const;
 
@@ -305,7 +305,7 @@ function settingsTabFromSearch(): SettingsTab {
     window.location.replace("/users");
     return "branding";
   }
-  if (q === "system") return "information";
+  if (q === "system" || q === "information") return "modes";
   if (q === "cycle") return "public";
   const sub = new URLSearchParams(window.location.search).get("sub");
   if (q === "sky" || (q === "branding" && sub === "sky")) return "sky";
@@ -450,14 +450,14 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {tab === "information" && (
+        {tab === "modes" && (
           <div role="tabpanel" className="space-y-3">
             <SubTabBar
               items={[{ id: "configuration", label: "Configuration" }]}
               activeId="configuration"
               accent={brand.brand_color}
               onSelect={() => undefined}
-              ariaLabel="Information sub-sections"
+              ariaLabel="Modes sub-sections"
             />
             <SystemPanel />
           </div>

@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Public site wiring + visitor chrome |
-| **Status** | 🔧 **0.7.129** — Sky Animation on Settings top tab bar |
+| **Status** | 🔧 **0.7.131** — shinier tumbling comet; Settings tab order |
 | **Last verified against code** | 2026-09-05 |
 | **Primary code** | `src/app/page.tsx`, `src/lib/public/site-content.ts`, `src/components/public/*`, `src/app/settings/page.tsx`, `src/components/settings/branding-panel.tsx`, `src/app/contact/page.tsx` |
 
@@ -66,7 +66,7 @@ New public fields live on the fixture JSON sidecar (`.data/site-settings.json`).
 Stephen named live surfaces, then stayed in IDE and shaped the visitor face (constellation, lockup, footer, themes).
 
 ### 2.2 Behavior today vs contract
-Matches §1 on beta `:3200` at **0.7.129**. WU-07 / WU-08 / WU-09 accepted by Stephen 2026-09-05.
+Matches §1 on beta `:3200` at **0.7.131**. WU-07 / WU-08 / WU-09 accepted by Stephen 2026-09-05.
 
 ### 2.3 Code anchors
 - Settings store: `src/lib/fixtures/site-settings.ts`
@@ -147,3 +147,5 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | 2026-09-05 | Dust no gravity | **0.7.127:** Comet dust no longer falls; it stays where it peels off. |
 | 2026-09-05 | Sky effect frequency | **0.7.128:** Each of shooting stars, satellites, and comets has Frequency ⅓×–3× (1× center). Shooting stars at 1× are ⅓ as often as before; 3× restores the old rate. |
 | 2026-09-05 | Sky Animation top tab | **0.7.129:** Sky Animation is a Settings top tab (`?tab=sky`), not a Branding sub-tab. Branding keeps Brand / Logo. `?tab=branding&sub=sky` still opens Sky Animation. Stephen accepted WU-07–09. |
+| 2026-09-05 | Settings order + comet rock | **0.7.130:** Settings tabs Branding, Menu, Cycle Strip, Appearance, Modes, Sky Animation. Information renamed Modes. Comet nucleus is a ~20-vertex tumbling rock with faceted faces. |
+| 2026-09-05 | Comet shine + tumble | **0.7.131:** Comet rock is shinier (sunward gleam) and tumbles ~2× faster. Stephen accepted; branding/sky train closed. |

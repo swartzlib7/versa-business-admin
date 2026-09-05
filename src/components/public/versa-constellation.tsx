@@ -49,6 +49,9 @@ type Satellite = {
   panels: boolean;
 };
 
+type RockVert = { x: number; y: number };
+type RockFacet = { pts: RockVert[]; shade: number };
+
 type Comet = {
   x: number;
   y: number;
@@ -66,7 +69,10 @@ type Comet = {
   size: number;
   phase: number;
   flicker: number;
-  rock: { x: number; y: number }[];
+  spin: number;
+  spinSpeed: number;
+  rock: RockVert[];
+  facets: RockFacet[];
 };
 
 type CometDust = {
@@ -226,16 +232,38 @@ function bezier1d(t: number, a: number, b: number, c: number): number {
   return 2 * (1 - t) * (b - a) + 2 * t * (c - b);
 }
 
-function makeCometRock(): { x: number; y: number }[] {
-  const n = 7 + Math.floor(Math.random() * 3);
-  const verts: { x: number; y: number }[] = [];
+function makeCometRock(): { rock: RockVert[]; facets: RockFacet[] } {
+  const n = 20;
+  const rock: RockVert[] = [];
   for (let i = 0; i < n; i++) {
-    const a = (i / n) * Math.PI * 2 + rand(-0.14, 0.14);
-    const rx = 1.7 * (0.68 + Math.random() * 0.5);
-    const ry = 0.78 * (0.62 + Math.random() * 0.48);
-    verts.push({ x: Math.cos(a) * rx, y: Math.sin(a) * ry });
+    const a = (i / n) * Math.PI * 2 + rand(-0.07, 0.07);
+    const r = 0.92 + Math.random() * 0.72;
+    const squash = 0.86 + Math.random() * 0.08;
+    rock.push({ x: Math.cos(a) * r, y: Math.sin(a) * r * squash });
   }
-  return verts;
+  const facets: RockFacet[] = [];
+  for (let k = 0; k < 9; k++) {
+    const i = (k * 3 + Math.floor(Math.random() * 2)) % n;
+    const j = (i + 1 + Math.floor(Math.random() * 2)) % n;
+    const m = (j + 1 + Math.floor(Math.random() * 3)) % n;
+    const inward = 0.18 + Math.random() * 0.38;
+    const cx = (rock[i].x + rock[j].x + rock[m].x) * (inward / 3);
+    const cy = (rock[i].y + rock[j].y + rock[m].y) * (inward / 3);
+    facets.push({
+      pts: [rock[i], rock[j], { x: cx, y: cy }],
+      shade: rand(0.12, 0.62),
+    });
+  }
+  for (let k = 0; k < 4; k++) {
+    const i = Math.floor(Math.random() * n);
+    const j = (i + 4 + Math.floor(Math.random() * 4)) % n;
+    const m = (i + 8 + Math.floor(Math.random() * 4)) % n;
+    facets.push({
+      pts: [rock[i], rock[j], rock[m]],
+      shade: rand(0.08, 0.4),
+    });
+  }
+  return { rock, facets };
 }
 
 function drawCometHead(
@@ -256,32 +284,52 @@ function drawCometHead(
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(heading);
+  ctx.rotate(c.spin);
   ctx.scale(scale * c.size, scale * c.size);
 
   ctx.beginPath();
   ctx.moveTo(c.rock[0].x, c.rock[0].y);
   for (let i = 1; i < c.rock.length; i++) ctx.lineTo(c.rock[i].x, c.rock[i].y);
   ctx.closePath();
-  ctx.fillStyle = rgba([46, 42, 40], 0.92 * appear);
+  ctx.fillStyle = rgba([58, 50, 46], 0.96 * appear);
   ctx.fill();
 
   ctx.save();
   ctx.clip();
-  const lit = ctx.createLinearGradient(1.8, 0, -1.1, 0.15);
-  lit.addColorStop(0, rgba([255, 236, 196], 0.95 * glow));
-  lit.addColorStop(0.28, rgba([255, 168, 92], 0.55 * glow));
-  lit.addColorStop(0.7, rgba([120, 70, 40], 0.12 * glow));
-  lit.addColorStop(1, rgba([40, 34, 32], 0));
+  for (const f of c.facets) {
+    ctx.beginPath();
+    ctx.moveTo(f.pts[0].x, f.pts[0].y);
+    for (let i = 1; i < f.pts.length; i++) ctx.lineTo(f.pts[i].x, f.pts[i].y);
+    ctx.closePath();
+    const cool = f.shade < 0.28;
+    ctx.fillStyle = cool
+      ? rgba([38, 34, 32], (0.35 + f.shade) * appear)
+      : rgba([92, 72, 58], (0.22 + f.shade * 0.55) * appear);
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.moveTo(c.rock[0].x, c.rock[0].y);
+  for (let i = 1; i < c.rock.length; i++) ctx.lineTo(c.rock[i].x, c.rock[i].y);
+  ctx.closePath();
+  const ca = Math.cos(-c.spin);
+  const sa = Math.sin(-c.spin);
+  const lit = ctx.createLinearGradient(ca * 1.4, sa * 1.4, ca * -1.1, sa * -1.1);
+  lit.addColorStop(0, rgba([255, 252, 240], 0.92 * glow));
+  lit.addColorStop(0.1, rgba([255, 228, 178], 0.72 * glow));
+  lit.addColorStop(0.28, rgba([255, 176, 98], 0.42 * glow));
+  lit.addColorStop(0.58, rgba([120, 78, 48], 0.12 * glow));
+  lit.addColorStop(1, rgba([24, 20, 18], 0));
   ctx.fillStyle = lit;
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(0.72, 0.08, 0.38, 0.16, 0.15, 0, Math.PI * 2);
-  ctx.fillStyle = rgba([255, 252, 240], 0.7 * glow);
+  ctx.ellipse(ca * 0.62, sa * 0.62, 0.32, 0.16, Math.atan2(sa, ca), 0, Math.PI * 2);
+  ctx.fillStyle = rgba([255, 255, 250], 0.7 * glow);
   ctx.fill();
   ctx.restore();
 
-  ctx.strokeStyle = rgba([255, 210, 150], 0.28 * glow);
-  ctx.lineWidth = 0.12;
+  ctx.strokeStyle = rgba([220, 190, 150], 0.72 * glow);
+  ctx.lineWidth = 0.08;
+  ctx.lineJoin = "miter";
   ctx.stroke();
   ctx.restore();
 }
@@ -610,6 +658,7 @@ export function VersaConstellation({
         ey = -80;
       }
       const duration = rand(42, 68);
+      const mesh = makeCometRock();
       comets.push({
         x: sx,
         y: sy,
@@ -627,7 +676,10 @@ export function VersaConstellation({
         size: rand(4.05, 6.15),
         phase: Math.random() * Math.PI * 2,
         flicker: rand(2.4, 4.8),
-        rock: makeCometRock(),
+        spin: Math.random() * Math.PI * 2,
+        spinSpeed: rand(0.36, 0.84) * (Math.random() > 0.5 ? 1 : -1),
+        rock: mesh.rock,
+        facets: mesh.facets,
       });
     };
 
@@ -855,6 +907,7 @@ export function VersaConstellation({
               const c = comets[i];
               c.born += dt;
               c.phase += c.flicker * dt;
+              c.spin += c.spinSpeed * dt;
               c.t += c.speed * dt;
               const t = Math.min(1, c.t);
               c.x = bezier1(t, c.sx, c.cx, c.ex);
