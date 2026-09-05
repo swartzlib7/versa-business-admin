@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { ChevronUp } from "lucide-react";
 import type { BusinessProfile } from "@/lib/data";
-import { BrandMark, brandLogoFilter, useBrand } from "@/components/shell/brand-provider";
+import { BrandMark, brandSurface, useBrand } from "@/components/shell/brand-provider";
 import { useSiteMode } from "@/components/shell/site-mode-provider";
-import { LOGO_BASE_PX, logoPx } from "@/lib/brand-display";
+import { LOGO_BASE_PX, logoPx, logoSurfaceFilter } from "@/lib/brand-display";
 import { scrollPublicToTop } from "./public-snap-scroll";
 
 const WIRED_LINKS = [
@@ -44,6 +44,7 @@ export function PublicFooter({
 }) {
   const year = new Date().getFullYear();
   const brand = useBrand();
+  const footerLogo = brandSurface(brand, "footer");
   const { demo_mode } = useSiteMode();
   const showDemo = demo && demo_mode;
   const links = showDemo ? [...WIRED_LINKS, ...DEMO_LINKS] : WIRED_LINKS;
@@ -89,9 +90,9 @@ export function PublicFooter({
                   alt={brand.brand_name}
                   className="h-auto object-contain"
                   style={{
-                    width: logoPx(LOGO_BASE_PX.footer, brand.brand_logo_scale_footer),
-                    opacity: brand.brand_logo_opacity ?? 1,
-                    filter: brandLogoFilter(brand),
+                    width: logoPx(LOGO_BASE_PX.footer, footerLogo.scale),
+                    opacity: footerLogo.opacity,
+                    filter: logoSurfaceFilter(footerLogo),
                   }}
                 />
               ) : (

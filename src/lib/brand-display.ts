@@ -47,6 +47,114 @@ export function logoGlowFilter(
   return `drop-shadow(0 0 ${radius}px rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha}))`;
 }
 
+export const LOGO_PX_MIN = 512;
+export const LOGO_PX_MAX = 1024;
+/** Preview well matches the home-page logo at 100% (center slot). */
+export const LOGO_PREVIEW_BOX_PX = LOGO_BASE_PX.homeDesktop;
+export const SKY_PREVIEW_MIN_PX = 448;
+export const SKY_PREVIEW_MAX_PX = 4096;
+export const LOGO_MAX_BYTES = 500 * 1024;
+export const LOGO_UPLOAD_HINT = `PNG, JPG, SVG, or WebP. Both width and height must be ${LOGO_PX_MIN}–${LOGO_PX_MAX} px. Max 500 KB. Initials are used when empty.`;
+
+export type LogoSurfaceId = "menu" | "home" | "footer";
+
+export type LogoSurfaceStyle = {
+  opacity: number;
+  glow: number;
+  glowColor: string;
+  glowSpread: number;
+  scale: number;
+};
+
+export type LogoSurfaces = Record<LogoSurfaceId, LogoSurfaceStyle>;
+
+export const DEFAULT_LOGO_SURFACE: LogoSurfaceStyle = {
+  opacity: 1,
+  glow: 0,
+  glowColor: DEFAULT_GLOW_COLOR,
+  glowSpread: DEFAULT_GLOW_SPREAD,
+  scale: LOGO_SCALE_DEFAULT,
+};
+
+export function normalizeLogoSurface(
+  raw: unknown,
+  fallback: Partial<LogoSurfaceStyle> = {},
+): LogoSurfaceStyle {
+  const row = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const color =
+    typeof row.glowColor === "string" && hexToRgb(row.glowColor)
+      ? row.glowColor
+      : fallback.glowColor ?? DEFAULT_GLOW_COLOR;
+  return {
+    opacity: clamp01(
+      typeof row.opacity === "number" ? row.opacity : (fallback.opacity ?? 1),
+    ),
+    glow: clamp01(typeof row.glow === "number" ? row.glow : (fallback.glow ?? 0)),
+    glowColor: color,
+    glowSpread: clamp01(
+      typeof row.glowSpread === "number"
+        ? row.glowSpread
+        : (fallback.glowSpread ?? DEFAULT_GLOW_SPREAD),
+    ),
+    scale: clampLogoScale(
+      typeof row.scale === "number" ? row.scale : fallback.scale,
+    ),
+  };
+}
+
+export function resolveLogoSurfaces(
+  raw: Record<string, unknown> | null | undefined,
+): LogoSurfaces {
+  const r = raw ?? {};
+  const nested =
+    r.brand_logo_surfaces && typeof r.brand_logo_surfaces === "object"
+      ? (r.brand_logo_surfaces as Record<string, unknown>)
+      : {};
+  const legacy: Partial<LogoSurfaceStyle> = {
+    opacity: typeof r.brand_logo_opacity === "number" ? r.brand_logo_opacity : 1,
+    glow: typeof r.brand_logo_glow === "number" ? r.brand_logo_glow : 0,
+    glowColor:
+      typeof r.brand_logo_glow_color === "string" ? r.brand_logo_glow_color : DEFAULT_GLOW_COLOR,
+    glowSpread:
+      typeof r.brand_logo_glow_spread === "number"
+        ? r.brand_logo_glow_spread
+        : DEFAULT_GLOW_SPREAD,
+  };
+  const scaleFallback = (id: LogoSurfaceId, flat: string) => {
+    const nestedScale = (nested[id] as { scale?: unknown } | undefined)?.scale;
+    const flatScale = r[flat];
+    if (typeof nestedScale === "number") return nestedScale;
+    if (typeof flatScale === "number") return flatScale;
+    return 1;
+  };
+  return {
+    menu: normalizeLogoSurface(nested.menu, {
+      ...legacy,
+      scale: scaleFallback("menu", "brand_logo_scale_menu"),
+    }),
+    home: normalizeLogoSurface(nested.home, {
+      ...legacy,
+      scale: scaleFallback("home", "brand_logo_scale_home"),
+    }),
+    footer: normalizeLogoSurface(nested.footer, {
+      ...legacy,
+      scale: scaleFallback("footer", "brand_logo_scale_footer"),
+    }),
+  };
+}
+
+export function logoSurfaceFilter(surface: LogoSurfaceStyle): string | undefined {
+  return logoGlowFilter(surface.glow, surface.glowColor, surface.glowSpread);
+}
+
+/** `raw` is the nested `{ menu, home, footer }` object from the API body. */
+export function parseLogoSurfaces(raw: unknown): LogoSurfaces | undefined {
+  if (raw == null || typeof raw !== "object") return undefined;
+  return resolveLogoSurfaces({ brand_logo_surfaces: raw });
+}
+
 export function logoPx(base: number, scale: number | undefined | null): number {
   return Math.round(base * clampLogoScale(scale));
 }
+
+

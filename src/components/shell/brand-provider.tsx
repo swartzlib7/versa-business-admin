@@ -14,8 +14,12 @@ import {
   DEFAULT_GLOW_COLOR,
   DEFAULT_GLOW_SPREAD,
   LOGO_BASE_PX,
-  logoGlowFilter,
   logoPx,
+  logoSurfaceFilter,
+  resolveLogoSurfaces,
+  type LogoSurfaceId,
+  type LogoSurfaceStyle,
+  type LogoSurfaces,
 } from "@/lib/brand-display";
 
 export interface BrandConfig {
@@ -29,6 +33,7 @@ export interface BrandConfig {
   brand_logo_scale_menu?: number;
   brand_logo_scale_home?: number;
   brand_logo_scale_footer?: number;
+  brand_logo_surfaces?: LogoSurfaces;
   constellation_variant?: "classic" | "realistic";
   constellation_density?: number;
 }
@@ -44,6 +49,7 @@ const DEFAULT_BRAND: BrandConfig = {
   brand_logo_scale_menu: 1,
   brand_logo_scale_home: 1,
   brand_logo_scale_footer: 1,
+  brand_logo_surfaces: resolveLogoSurfaces({}),
   constellation_variant: "classic",
   constellation_density: 0,
 };
@@ -73,12 +79,15 @@ export function brandInitials(brandName: string): string {
   return brandName.slice(0, 2).toUpperCase() || theme.brand.shortName;
 }
 
+export function brandSurface(
+  brand: BrandConfig,
+  id: LogoSurfaceId,
+): LogoSurfaceStyle {
+  return resolveLogoSurfaces(brand as unknown as Record<string, unknown>)[id];
+}
+
 export function brandLogoFilter(brand: BrandConfig): string | undefined {
-  return logoGlowFilter(
-    brand.brand_logo_glow ?? 0,
-    brand.brand_logo_glow_color ?? DEFAULT_GLOW_COLOR,
-    brand.brand_logo_glow_spread ?? DEFAULT_GLOW_SPREAD,
-  );
+  return logoSurfaceFilter(brandSurface(brand, "menu"));
 }
 
 export function BrandMark({
@@ -89,10 +98,11 @@ export function BrandMark({
   className?: string;
 }) {
   const brand = useBrand();
+  const surface = brandSurface(brand, "menu");
   const base = size === "md" ? 48 : LOGO_BASE_PX.menu;
-  const px = logoPx(base, brand.brand_logo_scale_menu);
-  const opacity = brand.brand_logo_opacity ?? 1;
-  const glowFilter = brandLogoFilter(brand);
+  const px = logoPx(base, surface.scale);
+  const opacity = surface.opacity;
+  const glowFilter = logoSurfaceFilter(surface);
   if (brand.brand_logo_url) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- uploaded/data URL logos

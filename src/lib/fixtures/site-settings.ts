@@ -9,6 +9,8 @@ import fs from "fs";
 import path from "path";
 import { theme } from "@/lib/theme";
 import type { CycleStep } from "@/lib/public/site-types";
+import type { LogoSurfaces } from "@/lib/brand-display";
+import { resolveLogoSurfaces } from "@/lib/brand-display";
 
 export type { CycleStep };
 
@@ -23,6 +25,7 @@ export interface FixtureSiteSettings {
   brand_logo_scale_menu?: number;
   brand_logo_scale_home?: number;
   brand_logo_scale_footer?: number;
+  brand_logo_surfaces?: LogoSurfaces;
   constellation_variant?: "classic" | "realistic";
   constellation_density?: number;
   demo_mode?: boolean;
@@ -101,6 +104,7 @@ function readFile(): FixtureSiteSettings | null {
         typeof parsed.brand_logo_scale_footer === "number"
           ? parsed.brand_logo_scale_footer
           : undefined,
+      brand_logo_surfaces: resolveLogoSurfaces(parsed as Record<string, unknown>),
       constellation_variant:
         parsed.constellation_variant === "realistic" || parsed.constellation_variant === "classic"
           ? parsed.constellation_variant
@@ -151,6 +155,7 @@ function defaults(): FixtureSiteSettings {
     brand_logo_scale_menu: 1,
     brand_logo_scale_home: 1,
     brand_logo_scale_footer: 1,
+    brand_logo_surfaces: resolveLogoSurfaces({}),
     constellation_variant: "classic",
     constellation_density: 0,
     demo_mode: true,
@@ -213,6 +218,20 @@ export function upsertSiteSettingsFixture(
       input.brand_logo_scale_footer !== undefined
         ? input.brand_logo_scale_footer
         : current.brand_logo_scale_footer ?? 1,
+    brand_logo_surfaces:
+      input.brand_logo_surfaces !== undefined
+        ? resolveLogoSurfaces({
+            brand_logo_surfaces: input.brand_logo_surfaces,
+            brand_logo_opacity: input.brand_logo_opacity ?? current.brand_logo_opacity,
+            brand_logo_glow: input.brand_logo_glow ?? current.brand_logo_glow,
+            brand_logo_glow_color: input.brand_logo_glow_color ?? current.brand_logo_glow_color,
+            brand_logo_glow_spread: input.brand_logo_glow_spread ?? current.brand_logo_glow_spread,
+            brand_logo_scale_menu: input.brand_logo_scale_menu ?? current.brand_logo_scale_menu,
+            brand_logo_scale_home: input.brand_logo_scale_home ?? current.brand_logo_scale_home,
+            brand_logo_scale_footer: input.brand_logo_scale_footer ?? current.brand_logo_scale_footer,
+          })
+        : current.brand_logo_surfaces ??
+          resolveLogoSurfaces(current as unknown as Record<string, unknown>),
     constellation_variant:
       input.constellation_variant !== undefined
         ? input.constellation_variant
@@ -258,6 +277,17 @@ export function upsertSiteSettingsFixture(
         ? input.org_board_enabled
         : current.org_board_enabled !== false,
   };
+  const surfaces =
+    next.brand_logo_surfaces ??
+    resolveLogoSurfaces(next as unknown as Record<string, unknown>);
+  next.brand_logo_surfaces = surfaces;
+  next.brand_logo_opacity = surfaces.home.opacity;
+  next.brand_logo_glow = surfaces.home.glow;
+  next.brand_logo_glow_color = surfaces.home.glowColor;
+  next.brand_logo_glow_spread = surfaces.home.glowSpread;
+  next.brand_logo_scale_menu = surfaces.menu.scale;
+  next.brand_logo_scale_home = surfaces.home.scale;
+  next.brand_logo_scale_footer = surfaces.footer.scale;
   writeStore(next);
   writeFile(next);
   return { ...next };

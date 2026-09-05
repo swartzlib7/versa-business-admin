@@ -10,6 +10,7 @@ import {
   upsertBrandLogoFile,
   upsertSiteSettingsFixture,
 } from '@/lib/fixtures/site-settings';
+import { parseLogoSurfaces } from '@/lib/brand-display';
 
 // #252 Settings functionality slice (Stephen round-2 item 10): branding
 // persistence singleton. GET is authenticated; writes are admin-only
@@ -144,6 +145,18 @@ export async function PUT(request: Request) {
     body.constellation_variant === 'realistic' || body.constellation_variant === 'classic'
       ? (body.constellation_variant as 'realistic' | 'classic')
       : undefined;
+  const brandLogoSurfaces = parseLogoSurfaces(body.brand_logo_surfaces);
+  if (body.brand_logo_surfaces != null && brandLogoSurfaces == null) {
+    return NextResponse.json(
+      {
+        error: {
+          code: 'INVALID_LOGO_SURFACES',
+          message: 'brand_logo_surfaces must be an object with menu, home, and footer styles.',
+        },
+      },
+      { status: 400 },
+    );
+  }
   if (brandColor != null && !HEX_COLOR_RE.test(brandColor)) {
     return NextResponse.json(
       {
@@ -169,6 +182,7 @@ export async function PUT(request: Request) {
           brand_logo_scale_footer: brandLogoScaleFooter,
           constellation_variant: constellationVariant,
           constellation_density: constellationDensity,
+          brand_logo_surfaces: brandLogoSurfaces,
         })
       : upsertSiteSettingsFixture({
           brand_name: brandName,
@@ -183,6 +197,7 @@ export async function PUT(request: Request) {
           brand_logo_scale_footer: brandLogoScaleFooter,
           constellation_variant: constellationVariant,
           constellation_density: constellationDensity,
+          brand_logo_surfaces: brandLogoSurfaces,
         });
     if (isPostgres() && brandLogoUrl !== undefined) {
       upsertBrandLogoFile(brandLogoUrl);

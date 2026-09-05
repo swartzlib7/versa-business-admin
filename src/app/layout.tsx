@@ -6,6 +6,7 @@ import { BrandProvider } from "@/components/shell/brand-provider";
 import { SiteModeProvider } from "@/components/shell/site-mode-provider";
 import { getSiteSettingsDb } from "@/lib/db/settings-store";
 import { getBrandLogoOverlay, getSiteSettingsFixture } from "@/lib/fixtures/site-settings";
+import { resolveLogoSurfaces, type LogoSurfaces } from "@/lib/brand-display";
 import { theme } from "@/lib/theme";
 import "@/lib/catalog/install-durable";
 import "./globals.css";
@@ -45,6 +46,7 @@ type LoadedSite = {
   brand_logo_scale_footer: number;
   constellation_variant: "classic" | "realistic";
   constellation_density: number;
+  brand_logo_surfaces: LogoSurfaces;
   demo_mode: boolean;
   maintenance_mode: boolean;
   public_login_enabled: boolean;
@@ -67,23 +69,22 @@ async function loadBrand(): Promise<LoadedSite> {
     const num = (v: unknown, fallback: number) =>
       typeof v === "number" && Number.isFinite(v) ? v : fallback;
     const settingsRec = settings as unknown as Record<string, unknown>;
+    const surfaces = resolveLogoSurfaces(settingsRec);
     return {
       brand_name: settings.brand_name,
       brand_color: settings.brand_color,
       brand_logo_url: typeof logo === "string" && logo ? logo : null,
-      brand_logo_opacity: num(settingsRec.brand_logo_opacity, 1),
-      brand_logo_glow: num(settingsRec.brand_logo_glow, 0),
-      brand_logo_glow_color:
-        typeof settingsRec.brand_logo_glow_color === "string" && settingsRec.brand_logo_glow_color
-          ? settingsRec.brand_logo_glow_color
-          : "#ffffff",
-      brand_logo_glow_spread: num(settingsRec.brand_logo_glow_spread, 0.5),
-      brand_logo_scale_menu: num(settingsRec.brand_logo_scale_menu, 1),
-      brand_logo_scale_home: num(settingsRec.brand_logo_scale_home, 1),
-      brand_logo_scale_footer: num(settingsRec.brand_logo_scale_footer, 1),
+      brand_logo_opacity: surfaces.home.opacity,
+      brand_logo_glow: surfaces.home.glow,
+      brand_logo_glow_color: surfaces.home.glowColor,
+      brand_logo_glow_spread: surfaces.home.glowSpread,
+      brand_logo_scale_menu: surfaces.menu.scale,
+      brand_logo_scale_home: surfaces.home.scale,
+      brand_logo_scale_footer: surfaces.footer.scale,
       constellation_variant:
         settingsRec.constellation_variant === "realistic" ? "realistic" : "classic",
       constellation_density: num(settingsRec.constellation_density, 0),
+      brand_logo_surfaces: surfaces,
       demo_mode: fixture.demo_mode !== false,
       maintenance_mode: fixture.maintenance_mode === true,
       public_login_enabled: fixture.public_login_enabled !== false,
@@ -105,6 +106,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_logo_scale_footer: 1,
       constellation_variant: "classic",
       constellation_density: 0,
+      brand_logo_surfaces: resolveLogoSurfaces({}),
       demo_mode: true,
       maintenance_mode: false,
       public_login_enabled: true,
@@ -133,6 +135,7 @@ export default async function RootLayout({
     brand_logo_scale_footer: site.brand_logo_scale_footer,
     constellation_variant: site.constellation_variant,
     constellation_density: site.constellation_density,
+    brand_logo_surfaces: site.brand_logo_surfaces,
   };
   const mode = {
     demo_mode: site.demo_mode,

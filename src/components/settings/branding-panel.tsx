@@ -7,14 +7,23 @@ import { VersaConstellation } from "@/components/public/versa-constellation";
 import { useBrand } from "@/components/shell/brand-provider";
 import { cn } from "@/lib/utils";
 import {
-  DEFAULT_GLOW_COLOR,
-  DEFAULT_GLOW_SPREAD,
   LOGO_BASE_PX,
+  LOGO_MAX_BYTES,
+  LOGO_PREVIEW_BOX_PX,
+  LOGO_PX_MAX,
+  LOGO_PX_MIN,
   LOGO_SCALE_MAX,
   LOGO_SCALE_MIN,
+  LOGO_UPLOAD_HINT,
+  SKY_PREVIEW_MAX_PX,
+  SKY_PREVIEW_MIN_PX,
   clampLogoScale,
-  logoGlowFilter,
   logoPx,
+  logoSurfaceFilter,
+  resolveLogoSurfaces,
+  type LogoSurfaceId,
+  type LogoSurfaceStyle,
+  type LogoSurfaces,
 } from "@/lib/brand-display";
 
 export type BrandingSubTab = "brand" | "logo" | "sky";
@@ -24,13 +33,7 @@ type BrandDraft = {
   color: string;
   logo: string;
   logoName: string;
-  opacity: number;
-  glow: number;
-  glowColor: string;
-  glowSpread: number;
-  scaleMenu: number;
-  scaleHome: number;
-  scaleFooter: number;
+  surfaces: LogoSurfaces;
   variant: "classic" | "realistic";
   density: number;
   headline: string;
@@ -42,13 +45,7 @@ const emptyDraft = (brand: ReturnType<typeof useBrand>): BrandDraft => ({
   color: brand.brand_color,
   logo: brand.brand_logo_url ?? "",
   logoName: brand.brand_logo_url ? "Current logo" : "",
-  opacity: brand.brand_logo_opacity ?? 1,
-  glow: brand.brand_logo_glow ?? 0,
-  glowColor: brand.brand_logo_glow_color ?? DEFAULT_GLOW_COLOR,
-  glowSpread: brand.brand_logo_glow_spread ?? DEFAULT_GLOW_SPREAD,
-  scaleMenu: clampLogoScale(brand.brand_logo_scale_menu),
-  scaleHome: clampLogoScale(brand.brand_logo_scale_home),
-  scaleFooter: clampLogoScale(brand.brand_logo_scale_footer),
+  surfaces: resolveLogoSurfaces(brand as unknown as Record<string, unknown>),
   variant: brand.constellation_variant === "realistic" ? "realistic" : "classic",
   density: brand.constellation_density ?? 0,
   headline: "",
@@ -59,55 +56,52 @@ function fieldClass() {
   return "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 }
 
-function ScaleSlider({
+function readDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Could not read the file."));
+    };
+    reader.onerror = () => reject(new Error("Could not read the file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function measureImage(src: string): Promise<{ w: number; h: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => reject(new Error("That file is not a readable image."));
+    img.src = src;
+  });
+}
+
+function LogoSurfaceColumn({
   label,
-  value,
-  accent,
+  surfaceId,
+  logoSize,
+  draft,
   onChange,
 }: {
   label: string;
-  value: number;
-  accent: string;
-  onChange: (next: number) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium">
-        {label} ({Math.round(value * 100)}%)
-      </label>
-      <input
-        type="range"
-        min={LOGO_SCALE_MIN}
-        max={LOGO_SCALE_MAX}
-        step={0.01}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full"
-        style={{ accentColor: accent }}
-      />
-    </div>
-  );
-}
-
-function LogoPreviewSlot({
-  label,
-  width,
-  height,
-  draft,
-}: {
-  label: string;
-  width: number;
-  height?: number;
+  surfaceId: LogoSurfaceId;
+  logoSize: number;
   draft: BrandDraft;
+  onChange: (id: LogoSurfaceId, patch: Partial<LogoSurfaceStyle>) => void;
 }) {
-  const filter = logoGlowFilter(draft.glow, draft.glowColor, draft.glowSpread);
-  const boxH = height ?? width;
+  const surface = draft.surfaces[surfaceId];
+  const filter = logoSurfaceFilter(surface);
+  const patch = (partial: Partial<LogoSurfaceStyle>) => onChange(surfaceId, partial);
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="text-xs text-muted-foreground">
-        {label} · {width}px
+        {label} · {logoSize}px
       </div>
-      <div className="flex min-h-[4.5rem] items-center justify-center overflow-auto rounded-md border border-border/70 bg-muted/20 p-3">
+      <div
+        className="grid place-items-center overflow-hidden rounded-md border border-border/70 bg-muted/20"
+        style={{ width: "100%", height: LOGO_PREVIEW_BOX_PX }}
+      >
         {draft.logo ? (
           // eslint-disable-next-line @next/next/no-img-element -- live preview of uploaded logo
           <img
@@ -115,10 +109,9 @@ function LogoPreviewSlot({
             alt={draft.name || "Logo"}
             className="object-contain"
             style={{
-              width,
-              height: height ?? "auto",
-              maxHeight: boxH,
-              opacity: draft.opacity,
+              width: logoSize,
+              height: logoSize,
+              opacity: surface.opacity,
               filter,
             }}
           />
@@ -126,10 +119,10 @@ function LogoPreviewSlot({
           <div
             className="flex items-center justify-center rounded-md text-sm font-bold text-white"
             style={{
-              width,
-              height: boxH,
+              width: logoSize,
+              height: logoSize,
               backgroundColor: draft.color,
-              opacity: draft.opacity,
+              opacity: surface.opacity,
               filter,
             }}
           >
@@ -137,11 +130,93 @@ function LogoPreviewSlot({
           </div>
         )}
       </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">
+          Translucency ({Math.round(surface.opacity * 100)}%)
+        </label>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={surface.opacity}
+          onChange={(e) => patch({ opacity: Number(e.target.value) })}
+          className="w-full"
+          style={{ accentColor: draft.color }}
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">
+          Glow ({Math.round(surface.glow * 100)}%)
+        </label>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={surface.glow}
+          onChange={(e) => patch({ glow: Number(e.target.value) })}
+          className="w-full"
+          style={{ accentColor: draft.color }}
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Color</label>
+        <div className="flex gap-2">
+          <input
+            type="color"
+            value={surface.glowColor}
+            onChange={(e) => patch({ glowColor: e.target.value })}
+            className="h-10 w-14 cursor-pointer p-1"
+          />
+          <input
+            value={surface.glowColor}
+            onChange={(e) => patch({ glowColor: e.target.value })}
+            className={fieldClass()}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">
+          Spread ({Math.round(surface.glowSpread * 100)}%)
+        </label>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={surface.glowSpread}
+          onChange={(e) => patch({ glowSpread: Number(e.target.value) })}
+          className="w-full"
+          style={{ accentColor: draft.color }}
+        />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium">
+          Size ({Math.round(surface.scale * 100)}%)
+        </label>
+        <input
+          type="range"
+          min={LOGO_SCALE_MIN}
+          max={LOGO_SCALE_MAX}
+          step={0.01}
+          value={surface.scale}
+          onChange={(e) => patch({ scale: clampLogoScale(Number(e.target.value)) })}
+          className="w-full"
+          style={{ accentColor: draft.color }}
+        />
+      </div>
     </div>
   );
 }
 
-export function BrandingPanel({ subTab }: { subTab: BrandingSubTab }) {
+export function BrandingPanel({
+  subTab,
+  fill = false,
+}: {
+  subTab: BrandingSubTab;
+  fill?: boolean;
+}) {
   const brand = useBrand();
   const [draft, setDraft] = useState<BrandDraft>(() => emptyDraft(brand));
   const [saved, setSaved] = useState(false);
@@ -165,19 +240,7 @@ export function BrandingPanel({ subTab }: { subTab: BrandingSubTab }) {
           logo: typeof b.brand_logo_url === "string" && b.brand_logo_url ? b.brand_logo_url : "",
           logoName:
             typeof b.brand_logo_url === "string" && b.brand_logo_url ? "Current logo" : "",
-          opacity: typeof b.brand_logo_opacity === "number" ? b.brand_logo_opacity : 1,
-          glow: typeof b.brand_logo_glow === "number" ? b.brand_logo_glow : 0,
-          glowColor:
-            typeof b.brand_logo_glow_color === "string" && b.brand_logo_glow_color
-              ? b.brand_logo_glow_color
-              : DEFAULT_GLOW_COLOR,
-          glowSpread:
-            typeof b.brand_logo_glow_spread === "number"
-              ? b.brand_logo_glow_spread
-              : DEFAULT_GLOW_SPREAD,
-          scaleMenu: clampLogoScale(b.brand_logo_scale_menu),
-          scaleHome: clampLogoScale(b.brand_logo_scale_home),
-          scaleFooter: clampLogoScale(b.brand_logo_scale_footer),
+          surfaces: resolveLogoSurfaces(b as Record<string, unknown>),
           variant: b.constellation_variant === "realistic" ? "realistic" : "classic",
           density: typeof b.constellation_density === "number" ? b.constellation_density : 0,
           headline: typeof p.hero_headline === "string" ? p.hero_headline : "",
@@ -200,6 +263,17 @@ export function BrandingPanel({ subTab }: { subTab: BrandingSubTab }) {
     setSaved(false);
   };
 
+  const patchSurface = (id: LogoSurfaceId, partial: Partial<LogoSurfaceStyle>) => {
+    setDraft((prev) => ({
+      ...prev,
+      surfaces: {
+        ...prev.surfaces,
+        [id]: { ...prev.surfaces[id], ...partial },
+      },
+    }));
+    setSaved(false);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setSaveError(null);
@@ -211,13 +285,14 @@ export function BrandingPanel({ subTab }: { subTab: BrandingSubTab }) {
           brand_name: draft.name.trim(),
           brand_color: draft.color,
           brand_logo_url: draft.logo || null,
-          brand_logo_opacity: draft.opacity,
-          brand_logo_glow: draft.glow,
-          brand_logo_glow_color: draft.glowColor,
-          brand_logo_glow_spread: draft.glowSpread,
-          brand_logo_scale_menu: draft.scaleMenu,
-          brand_logo_scale_home: draft.scaleHome,
-          brand_logo_scale_footer: draft.scaleFooter,
+          brand_logo_surfaces: draft.surfaces,
+          brand_logo_opacity: draft.surfaces.home.opacity,
+          brand_logo_glow: draft.surfaces.home.glow,
+          brand_logo_glow_color: draft.surfaces.home.glowColor,
+          brand_logo_glow_spread: draft.surfaces.home.glowSpread,
+          brand_logo_scale_menu: draft.surfaces.menu.scale,
+          brand_logo_scale_home: draft.surfaces.home.scale,
+          brand_logo_scale_footer: draft.surfaces.footer.scale,
           constellation_variant: draft.variant,
           constellation_density: draft.density,
         }),
@@ -241,7 +316,10 @@ export function BrandingPanel({ subTab }: { subTab: BrandingSubTab }) {
         return;
       }
       setSaved(true);
-      window.location.reload();
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", "branding");
+      url.searchParams.set("sub", subTab);
+      window.location.assign(`${url.pathname}${url.search}`);
     } catch {
       setSaveError("Network error. Please try again.");
     } finally {
@@ -255,8 +333,29 @@ export function BrandingPanel({ subTab }: { subTab: BrandingSubTab }) {
     setSaved(false);
   };
 
+  const handleLogoFile = async (file: File) => {
+    if (file.size > LOGO_MAX_BYTES) {
+      setSaveError("Logo must be 500 KB or smaller.");
+      return;
+    }
+    try {
+      const data = await readDataUrl(file);
+      const { w, h } = await measureImage(data);
+      if (w < LOGO_PX_MIN || h < LOGO_PX_MIN || w > LOGO_PX_MAX || h > LOGO_PX_MAX) {
+        setSaveError(
+          `Logo must be ${LOGO_PX_MIN}–${LOGO_PX_MAX} px on both sides (this file is ${w}×${h}).`,
+        );
+        return;
+      }
+      patch({ logo: data, logoName: file.name });
+      setSaveError(null);
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Could not read the logo file.");
+    }
+  };
+
   return (
-    <div className="space-y-4">
+    <div className={cn(fill ? "flex flex-1 flex-col gap-4" : "space-y-4")}>
       {subTab === "brand" ? (
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -320,140 +419,52 @@ export function BrandingPanel({ subTab }: { subTab: BrandingSubTab }) {
               chooseLabel="Choose file"
               emptyLabel="No file chosen"
               removeLabel="Remove logo"
-              hint="Optional. PNG, JPG, SVG, or WebP. Initials are used when empty."
+              hint={LOGO_UPLOAD_HINT}
               onFile={(file) => {
-                if (file.size > 500 * 1024) {
-                  setSaveError("Logo must be 500 KB or smaller.");
-                  return;
-                }
-                const reader = new FileReader();
-                reader.onload = () => {
-                  patch({
-                    logo: typeof reader.result === "string" ? reader.result : "",
-                    logoName: file.name,
-                  });
-                  setSaveError(null);
-                };
-                reader.readAsDataURL(file);
+                void handleLogoFile(file);
               }}
               onRemove={() => patch({ logo: "", logoName: "" })}
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Translucency ({Math.round(draft.opacity * 100)}%)
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={draft.opacity}
-                onChange={(e) => patch({ opacity: Number(e.target.value) })}
-                className="w-full"
-                style={{ accentColor: draft.color }}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Glow ({Math.round(draft.glow * 100)}%)
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={draft.glow}
-                onChange={(e) => patch({ glow: Number(e.target.value) })}
-                className="w-full"
-                style={{ accentColor: draft.color }}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Color</label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={draft.glowColor}
-                  onChange={(e) => patch({ glowColor: e.target.value })}
-                  className="h-10 w-14 cursor-pointer p-1"
-                />
-                <input
-                  value={draft.glowColor}
-                  onChange={(e) => patch({ glowColor: e.target.value })}
-                  className={fieldClass()}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Spread ({Math.round(draft.glowSpread * 100)}%)
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={draft.glowSpread}
-                onChange={(e) => patch({ glowSpread: Number(e.target.value) })}
-                className="w-full"
-                style={{ accentColor: draft.color }}
-              />
-            </div>
-          </div>
           <div className="space-y-3 rounded-lg border p-4" style={{ borderColor: draft.color }}>
             <div className="text-xs text-muted-foreground">Preview</div>
             <div className="grid gap-4 lg:grid-cols-3">
-              <LogoPreviewSlot
+              <LogoSurfaceColumn
                 label="Menu"
-                width={logoPx(LOGO_BASE_PX.menu, draft.scaleMenu)}
+                surfaceId="menu"
+                logoSize={logoPx(LOGO_BASE_PX.menu, draft.surfaces.menu.scale)}
                 draft={draft}
+                onChange={patchSurface}
               />
-              <LogoPreviewSlot
+              <LogoSurfaceColumn
                 label="Home page"
-                width={logoPx(LOGO_BASE_PX.homeDesktop, draft.scaleHome)}
+                surfaceId="home"
+                logoSize={logoPx(LOGO_BASE_PX.homeDesktop, draft.surfaces.home.scale)}
                 draft={draft}
+                onChange={patchSurface}
               />
-              <LogoPreviewSlot
+              <LogoSurfaceColumn
                 label="Footer"
-                width={logoPx(LOGO_BASE_PX.footer, draft.scaleFooter)}
+                surfaceId="footer"
+                logoSize={logoPx(LOGO_BASE_PX.footer, draft.surfaces.footer.scale)}
                 draft={draft}
-              />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <ScaleSlider
-                label="Menu"
-                value={draft.scaleMenu}
-                accent={draft.color}
-                onChange={(scaleMenu) => patch({ scaleMenu })}
-              />
-              <ScaleSlider
-                label="Home page"
-                value={draft.scaleHome}
-                accent={draft.color}
-                onChange={(scaleHome) => patch({ scaleHome })}
-              />
-              <ScaleSlider
-                label="Footer"
-                value={draft.scaleFooter}
-                accent={draft.color}
-                onChange={(scaleFooter) => patch({ scaleFooter })}
+                onChange={patchSurface}
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              Sliders are centered on the current sizes. Range is 75% to 125%.
+              Each well is {LOGO_PREVIEW_BOX_PX}×{LOGO_PREVIEW_BOX_PX} px (home size at 100%).
+              Size sliders are 75% to 125% of the current surface size.
             </p>
           </div>
         </div>
       ) : null}
 
       {subTab === "sky" ? (
-        <div className="space-y-4">
+        <div className="flex flex-1 flex-col gap-4">
           <div
             role="radiogroup"
             aria-label="Sky animation"
-            className="flex flex-wrap gap-1 rounded-lg border p-1"
+            className="flex shrink-0 flex-wrap gap-1 rounded-lg border p-1"
             style={{ borderColor: draft.color + "33", backgroundColor: draft.color + "0d" }}
           >
             {([
@@ -481,7 +492,10 @@ export function BrandingPanel({ subTab }: { subTab: BrandingSubTab }) {
               );
             })}
           </div>
-          <div className="relative h-56 overflow-hidden rounded-lg border border-border bg-black">
+          <div
+            className="relative w-full flex-1 overflow-hidden rounded-lg border border-border bg-black"
+            style={{ minHeight: SKY_PREVIEW_MIN_PX, maxHeight: SKY_PREVIEW_MAX_PX }}
+          >
             <VersaConstellation
               variant={draft.variant}
               density={draft.density}
@@ -489,7 +503,7 @@ export function BrandingPanel({ subTab }: { subTab: BrandingSubTab }) {
             />
           </div>
           {draft.variant === "realistic" ? (
-            <div className="space-y-2">
+            <div className="shrink-0 space-y-2">
               <label className="text-sm font-medium">
                 Density ({Math.round(1 + draft.density * 9)}×)
               </label>
@@ -509,7 +523,7 @@ export function BrandingPanel({ subTab }: { subTab: BrandingSubTab }) {
               </p>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">
+            <p className="shrink-0 text-xs text-muted-foreground">
               Classic is the original milky-way band. Switch to Realistic for
               natural tints, glints, density, and satellites.
             </p>
@@ -518,15 +532,15 @@ export function BrandingPanel({ subTab }: { subTab: BrandingSubTab }) {
       ) : null}
 
       {saveError ? (
-        <p className="text-sm text-destructive" role="alert">
+        <p className="shrink-0 text-sm text-destructive" role="alert">
           {saveError}
         </p>
       ) : null}
       {!loaded ? (
-        <p className="text-xs text-muted-foreground">Loading…</p>
+        <p className="shrink-0 text-xs text-muted-foreground">Loading…</p>
       ) : null}
-      <Separator />
-      <div className="flex gap-2">
+      <Separator className="shrink-0" />
+      <div className="flex shrink-0 gap-2">
         <button
           type="button"
           onClick={() => void handleSave()}

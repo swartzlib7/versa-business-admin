@@ -10,11 +10,10 @@ import { cn } from "@/lib/utils";
 import { theme } from "@/lib/theme";
 import { adapter } from "@/lib/data";
 import {
-  DEFAULT_GLOW_COLOR,
-  DEFAULT_GLOW_SPREAD,
   LOGO_BASE_PX,
-  logoGlowFilter,
   logoPx,
+  logoSurfaceFilter,
+  resolveLogoSurfaces,
 } from "@/lib/brand-display";
 import {
   enabledCycleSteps,
@@ -113,6 +112,7 @@ export default async function HomePage() {
     ? { projects: [], tasks: [], activeProjects: 0, openTasks: 0 }
     : listPublicOperations();
   const liveStats = demo ? [] : listPublicStats();
+  const homeLogo = resolveLogoSurfaces(site as unknown as Record<string, unknown>).home;
 
   const business = {
     ...businessProfile,
@@ -146,14 +146,10 @@ export default async function HomePage() {
                 alt={site.brand_name}
                 className="mb-6 h-auto w-[var(--logo-m)] object-contain sm:w-[var(--logo-d)]"
                 style={{
-                  ["--logo-m" as string]: `${logoPx(LOGO_BASE_PX.homeMobile, site.brand_logo_scale_home)}px`,
-                  ["--logo-d" as string]: `${logoPx(LOGO_BASE_PX.homeDesktop, site.brand_logo_scale_home)}px`,
-                  opacity: site.brand_logo_opacity ?? 1,
-                  filter: logoGlowFilter(
-                    site.brand_logo_glow ?? 0,
-                    site.brand_logo_glow_color ?? DEFAULT_GLOW_COLOR,
-                    site.brand_logo_glow_spread ?? DEFAULT_GLOW_SPREAD,
-                  ),
+                  ["--logo-m" as string]: `${logoPx(LOGO_BASE_PX.homeMobile, homeLogo.scale)}px`,
+                  ["--logo-d" as string]: `${logoPx(LOGO_BASE_PX.homeDesktop, homeLogo.scale)}px`,
+                  opacity: homeLogo.opacity,
+                  filter: logoSurfaceFilter(homeLogo),
                 }}
               />
             ) : (

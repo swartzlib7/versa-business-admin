@@ -71,16 +71,18 @@ const THEME_OPTIONS: {
 function PanelShell({
   summary,
   badge,
+  fill = false,
   children,
 }: {
   summary: string;
   badge?: string;
+  fill?: boolean;
   children: ReactNode;
 }) {
   const brand = useBrand();
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="border-b bg-muted/30">
+    <Card className={cn("overflow-hidden", fill && "flex flex-1 flex-col")}>
+      <CardHeader className="shrink-0 border-b bg-muted/30">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="mt-1 text-sm text-muted-foreground">{summary}</p>
@@ -95,7 +97,7 @@ function PanelShell({
           ) : null}
         </div>
       </CardHeader>
-      <CardContent className="p-6">{children}</CardContent>
+      <CardContent className={cn("p-6", fill && "flex flex-1 flex-col")}>{children}</CardContent>
     </Card>
   );
 }
@@ -275,38 +277,63 @@ function AppearancePanel() {
   );
 }
 
+const BRANDING_SUBS = ["brand", "logo", "sky"] as const;
+
+function settingsTabFromSearch(): SettingsTab {
+  if (typeof window === "undefined") return "branding";
+  const q = new URLSearchParams(window.location.search).get("tab");
+  if (q === "records") {
+    window.location.replace("/records-editor");
+    return "branding";
+  }
+  if (q === "users") {
+    window.location.replace("/users");
+    return "branding";
+  }
+  if (q === "system") return "information";
+  if (q === "cycle") return "public";
+  if (q && ["branding", "appearance", "public", "menu", "information"].includes(q)) {
+    return q as SettingsTab;
+  }
+  return "branding";
+}
+
+function settingsSubFromSearch(tab: SettingsTab): string {
+  if (typeof window === "undefined") return tab === "branding" ? "brand" : "configuration";
+  const sub = new URLSearchParams(window.location.search).get("sub");
+  if (tab === "branding" && sub && (BRANDING_SUBS as readonly string[]).includes(sub)) {
+    return sub;
+  }
+  if (tab === "appearance" || tab === "public") return "configuration";
+  return tab === "branding" ? "brand" : "configuration";
+}
+
+function writeSettingsSearch(tab: SettingsTab, sub: string) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("tab", tab);
+  if (tab === "branding" && sub !== "brand") url.searchParams.set("sub", sub);
+  else url.searchParams.delete("sub");
+  const next = `${url.pathname}${url.search}`;
+  if (next !== `${window.location.pathname}${window.location.search}`) {
+    window.history.replaceState(null, "", next);
+  }
+}
+
 export default function SettingsPage() {
-  const [tab, setTab] = useState<SettingsTab>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const q = params.get('tab');
-      // I5.6.43 #209 — redirect old tab params to new top-level pages
-      if (q === 'records') {
-        window.location.replace('/records-editor');
-        return 'branding'; // fallback during redirect
-      }
-      if (q === 'users') {
-        window.location.replace('/users');
-        return 'branding'; // fallback during redirect
-      }
-      if (q === "system") {
-        return "information";
-      }
-      if (q === "cycle") {
-        return "public";
-      }
-      if (q && ["branding", "appearance", "public", "menu", "information"].includes(q)) {
-        return q as SettingsTab;
-      }
-    }
-    return 'branding';
-  });
-  const [subTab, setSubTab] = useState<string>("brand");
+  const [tab, setTab] = useState<SettingsTab>(() => settingsTabFromSearch());
+  const [subTab, setSubTab] = useState<string>(() =>
+    settingsSubFromSearch(settingsTabFromSearch()),
+  );
   const brand = useBrand();
+  const skyFill = tab === "branding" && subTab === "sky";
+
+  useEffect(() => {
+    writeSettingsSearch(tab, subTab);
+  }, [tab, subTab]);
 
   return (
-    <AppShell>
-      <div className="space-y-3">
+    <AppShell fillViewport={skyFill}>
+      <div className={cn(skyFill ? "flex h-full flex-1 flex-col gap-3" : "space-y-3")}>
         <PageHeader
           title="Settings"
           subtitle="White-label configuration and system preferences."
@@ -318,12 +345,13 @@ export default function SettingsPage() {
             setTab(next);
             if (next === "branding") setSubTab("brand");
             else if (next === "appearance" || next === "public") setSubTab("configuration");
+            else setSubTab("configuration");
           }}
           tabsAriaLabel="Settings sections"
         />
 
         {tab === "branding" && (
-          <div role="tabpanel" className="space-y-3">
+          <div role="tabpanel" className={cn(skyFill ? "flex h-full min-h-0 flex-1 flex-col gap-3" : "space-y-3")}>
             <SubTabBar
               items={[
                 { id: "brand", label: "Brand" },
@@ -338,8 +366,12 @@ export default function SettingsPage() {
             <PanelShell
               summary="Customize how Mission Control appears. Name, color, logo, and sky are saved permanently and survive a restart."
               badge="Brand"
+              fill={skyFill}
             >
-              <BrandingPanel subTab={(["brand", "logo", "sky"].includes(subTab) ? subTab : "brand") as BrandingSubTab} />
+              <BrandingPanel
+                fill={skyFill}
+                subTab={(["brand", "logo", "sky"].includes(subTab) ? subTab : "brand") as BrandingSubTab}
+              />
             </PanelShell>
           </div>
         )}

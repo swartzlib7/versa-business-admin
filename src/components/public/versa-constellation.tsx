@@ -178,9 +178,9 @@ function drawGlint(
  * Shooting stars. Two variants:
  *  - classic: dense diagonal band, brand-tinted stars (original look).
  *  - realistic: natural star distribution with subtle color temperature
- *    variation, a faint galactic haze, diffraction glints on the brightest
- *    stars, and intermittent satellites crossing the full viewport
- *    (never more than 3 at once, with quiet gaps between passes).
+ *    variation, diffraction glints on the brightest stars, and intermittent
+ *    satellites crossing the full viewport (never more than 3 at once, with
+ *    quiet gaps between passes).
  * Density (0–1) scales the realistic field up to ~10× and compact it into
  * the Classic milky-way band. Colors resolve from the active theme as rgba().
  */
@@ -392,17 +392,6 @@ export function VersaConstellation({
 
         const driftX = mouse.x * 28;
         const driftY = mouse.y * 18;
-
-        if (realistic) {
-          const haze = ctx.createLinearGradient(0, h * 0.95, w, -0.05 * h);
-          const hazeA = 0.03 + densityClamped * 0.05;
-          haze.addColorStop(0, rgba(palette.fg, 0));
-          haze.addColorStop(0.42, rgba(palette.fg, hazeA));
-          haze.addColorStop(0.58, rgba(palette.primary, hazeA * 0.8));
-          haze.addColorStop(1, rgba(palette.fg, 0));
-          ctx.fillStyle = haze;
-          ctx.fillRect(0, 0, w, h);
-        }
 
         for (const s of stars) {
           if (!reduceMotion) s.phase += s.twinkle * dt;
