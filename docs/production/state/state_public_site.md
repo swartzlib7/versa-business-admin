@@ -8,8 +8,8 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Public site wiring + visitor chrome |
-| **Status** | ✅ Milestone **0.7.109** — full-viewport sections, snap scroll, nowrap header |
-| **Last verified against code** | 2026-09-04 |
+| **Status** | 🔧 **0.7.112** — independent public vs operator theme stores (WU-07) |
+| **Last verified against code** | 2026-09-05 |
 | **Primary code** | `src/app/page.tsx`, `src/lib/public/site-content.ts`, `src/components/public/*`, `src/app/settings/page.tsx`, `src/app/contact/page.tsx` |
 
 ---
@@ -49,7 +49,7 @@ This instance currently has **Demo Off** in `.data/site-settings.json`.
 ### Visitor chrome
 
 - Constellation: full-viewport star field, milky-way **star band only** (no halo/glow rings), flicker on ~40% of stars, shooting stars, cursor parallax, theme RGB via `rgba()`. No connecting lines.
-- Public theme cycle: **Architect (default) → Slate → Dark** only. Light/Dusk stay on Mission Control. Keys: `versa-public-ui-theme` vs `versa-ui-theme`.
+- Public theme cycle: **Dark (default) → Architect → Slate**. Light/Dusk stay on operator Mission Control. Keys: `versa-public-ui-theme` vs `versa-ui-theme`. Public and operator stores are independent; pathname selects which store to apply.
 - Header links are **nowrap**. Desktop nav starts at `xl`; below that the hamburger menu is used so labels do not wrap.
 - Footer: **50% opacity** `bg-background/50` bar; back-to-top chevron sits on the top edge (same control as next-section). Three columns — Mission Control links **split into two sub-columns**, centered brand + slogan/tagline, Contact right-aligned with address segments on own lines.
 
@@ -65,7 +65,7 @@ New public fields live on the fixture JSON sidecar (`.data/site-settings.json`).
 Stephen named live surfaces, then stayed in IDE and shaped the visitor face (constellation, lockup, footer, themes).
 
 ### 2.2 Behavior today vs contract
-Matches §1 on beta `:3200` at **0.7.109**.
+Matches §1 on beta `:3200` at **0.7.112** (theme stores decoupled). Visual QA of WU-07 still with Stephen.
 
 ### 2.3 Code anchors
 - Settings store: `src/lib/fixtures/site-settings.ts`
@@ -95,6 +95,7 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | WU-04 | Stats menu + type/sparkline (not Environment tab) | — | ✅ | ✅ | ✅ | IDE |
 | WU-05 | Constellation + public themes + footer + hero lockup | WU-02 | ✅ | ✅ | ✅ | IDE |
 | WU-06 | Commit / handoff hygiene with web-dev | WU-05 | ⬜ | ⬜ | ⬜ | |
+| WU-07 | Default Dark on public + operator; independent theme stores (public toggle must not change operator) | — | ✅ | ⬜ | 🔧 | 265 |
 
 ---
 
@@ -106,7 +107,7 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | 2026-09-02 | Halo rings | Removed milky-way radial glow; stars + flicker only | — |
 | 2026-09-02 | Cycle wrap | `flex-nowrap` | — |
 | 2026-09-02 | Slogan / logo / Mission Control badge | Two-line lockup; 350px logo; badge removed | — |
-| 2026-09-02 | Stats on Environment | Moved to sidebar Menu (`/stats`) | — |
+| 2026-09-05 | Theme decoupling | Cycle public Architect/Slate/Dark; operator theme in another tab/login stays on its own store. Pathname `/` vs `/login` reapplies the correct store. | Confirm visually on :3200 |
 
 ---
 
@@ -120,3 +121,4 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | 2026-09-02 | Beta versions | 0.7.92 → **0.7.103** on `:3200` (uncommitted working tree) |
 | 2026-09-02 | Stats IA | Moved off Environment zone onto sidebar **Stats** menu (`/stats`) |
 | 2026-09-03 | Login / public chrome | Backend login “Open home page” in a new window; System toggle hides public Sign In; proof-of-work login challenge |
+| 2026-09-05 | Themes | Public toggle wrote operator `versa-ui-theme`. **0.7.112:** `persistSurface` writes one key; pathname reapplies the matching store. Dark remains default on both. WU-07 agent-verified; Stephen QA. |
