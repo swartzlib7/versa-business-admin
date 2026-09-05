@@ -57,6 +57,13 @@
       "when": 1788453600000,
       "tag": "0007_brand_logo_display_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788457200000,
+      "tag": "0008_constellation_variant",
+      "breakpoints": true
     }
   ]
 }

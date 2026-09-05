@@ -18,6 +18,7 @@ export interface FixtureSiteSettings {
   brand_logo_url?: string | null;
   brand_logo_opacity?: number;
   brand_logo_glow?: number;
+  constellation_variant?: "classic" | "realistic";
   demo_mode?: boolean;
   maintenance_mode?: boolean;
   hero_headline?: string;
@@ -74,6 +75,10 @@ function readFile(): FixtureSiteSettings | null {
         typeof parsed.brand_logo_glow === "number"
           ? parsed.brand_logo_glow
           : undefined,
+      constellation_variant:
+        parsed.constellation_variant === "realistic" || parsed.constellation_variant === "classic"
+          ? parsed.constellation_variant
+          : undefined,
       demo_mode: parsed.demo_mode !== false,
       maintenance_mode: parsed.maintenance_mode === true,
       hero_headline: typeof parsed.hero_headline === "string" ? parsed.hero_headline : undefined,
@@ -111,6 +116,7 @@ function defaults(): FixtureSiteSettings {
     brand_logo_url: null,
     brand_logo_opacity: 1,
     brand_logo_glow: 0,
+    constellation_variant: "classic",
     demo_mode: true,
     maintenance_mode: false,
     public_login_enabled: true,
@@ -151,6 +157,10 @@ export function upsertSiteSettingsFixture(
       input.brand_logo_glow !== undefined
         ? input.brand_logo_glow
         : current.brand_logo_glow ?? 0,
+    constellation_variant:
+      input.constellation_variant !== undefined
+        ? input.constellation_variant
+        : current.constellation_variant ?? "classic",
     demo_mode:
       input.demo_mode !== undefined
         ? input.demo_mode

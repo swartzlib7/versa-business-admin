@@ -112,6 +112,11 @@ export async function PUT(request: Request) {
   };
   const brandLogoOpacity = clamp01(body.brand_logo_opacity);
   const brandLogoGlow = clamp01(body.brand_logo_glow);
+  // Constellation variant (Stephen 2026-09-05): classic | realistic.
+  const constellationVariant =
+    body.constellation_variant === 'realistic' || body.constellation_variant === 'classic'
+      ? (body.constellation_variant as 'realistic' | 'classic')
+      : undefined;
   if (brandColor != null && !HEX_COLOR_RE.test(brandColor)) {
     return NextResponse.json(
       {
@@ -130,6 +135,7 @@ export async function PUT(request: Request) {
           brand_color: brandColor,
           brand_logo_opacity: brandLogoOpacity,
           brand_logo_glow: brandLogoGlow,
+          constellation_variant: constellationVariant,
         })
       : upsertSiteSettingsFixture({
           brand_name: brandName,
@@ -137,6 +143,7 @@ export async function PUT(request: Request) {
           brand_logo_url: brandLogoUrl,
           brand_logo_opacity: brandLogoOpacity,
           brand_logo_glow: brandLogoGlow,
+          constellation_variant: constellationVariant,
         });
     if (isPostgres() && brandLogoUrl !== undefined) {
       upsertBrandLogoFile(brandLogoUrl);

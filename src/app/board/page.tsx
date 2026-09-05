@@ -17,7 +17,7 @@ export default async function PublicBoardPage() {
     address: pub.contact_address,
   };
   return (
-    <PublicLayout business={business} demo={site.demo_mode !== false}>
+    <PublicLayout business={business} demo={site.demo_mode !== false} constellationVariant={site.constellation_variant === "realistic" ? "realistic" : "classic"}>
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <PublicOrgBoard />
       </div>

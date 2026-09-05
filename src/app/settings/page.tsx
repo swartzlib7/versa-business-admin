@@ -301,6 +301,9 @@ export default function SettingsPage() {
   const [brandLogo, setBrandLogo] = useState<string>(brand.brand_logo_url ?? "");
   const [brandLogoOpacity, setBrandLogoOpacity] = useState<number>(brand.brand_logo_opacity ?? 1);
   const [brandLogoGlow, setBrandLogoGlow] = useState<number>(brand.brand_logo_glow ?? 0);
+  const [constellationVariant, setConstellationVariant] = useState<"classic" | "realistic">(
+    brand.constellation_variant ?? "classic",
+  );
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -314,6 +317,7 @@ export default function SettingsPage() {
       setBrandLogo(brand.brand_logo_url ?? "");
       setBrandLogoOpacity(brand.brand_logo_opacity ?? 1);
       setBrandLogoGlow(brand.brand_logo_glow ?? 0);
+      setConstellationVariant(brand.constellation_variant ?? "classic");
       hydrated.current = true;
     }
   }, [
@@ -322,6 +326,7 @@ export default function SettingsPage() {
     brand.brand_logo_url,
     brand.brand_logo_opacity,
     brand.brand_logo_glow,
+    brand.constellation_variant,
   ]);
 
   const handleSave = async () => {
@@ -337,6 +342,7 @@ export default function SettingsPage() {
           brand_logo_url: brandLogo || null,
           brand_logo_opacity: brandLogoOpacity,
           brand_logo_glow: brandLogoGlow,
+          constellation_variant: constellationVariant,
         }),
       });
       if (!res.ok) {
@@ -361,6 +367,7 @@ export default function SettingsPage() {
     setBrandLogo(brand.brand_logo_url ?? "");
     setBrandLogoOpacity(brand.brand_logo_opacity ?? 1);
     setBrandLogoGlow(brand.brand_logo_glow ?? 0);
+    setConstellationVariant(brand.constellation_variant ?? "classic");
   };
 
   return (
@@ -529,6 +536,38 @@ export default function SettingsPage() {
                         Mission Control
                       </div>
                     </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Sky Animation</label>
+                  <p className="text-xs text-muted-foreground">
+                    Constellation style for the public site. Saved with your
+                    branding settings.
+                  </p>
+                  <div className="flex gap-2">
+                    {([
+                      { id: "classic", label: "Classic" },
+                      { id: "realistic", label: "Realistic" },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setConstellationVariant(opt.id)}
+                        className={cn(
+                          "rounded-md border px-3 py-1.5 text-sm font-medium",
+                          constellationVariant === opt.id
+                            ? "border-transparent text-white"
+                            : "border-border text-muted-foreground hover:bg-muted",
+                        )}
+                        style={
+                          constellationVariant === opt.id
+                            ? { backgroundColor: brandColor }
+                            : undefined
+                        }
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
                 {saveError ? (

@@ -469,6 +469,7 @@ export const siteSettings = pgTable(
     brandColor: text('brand_color').notNull(),
     brandLogoOpacity: numeric('brand_logo_opacity', { precision: 4, scale: 2 }).notNull().default('1'),
     brandLogoGlow: numeric('brand_logo_glow', { precision: 4, scale: 2 }).notNull().default('0'),
+    constellationVariant: text('constellation_variant', { enum: ['classic', 'realistic'] }).notNull().default('classic'),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
 );

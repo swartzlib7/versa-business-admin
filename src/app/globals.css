@@ -266,14 +266,9 @@
   --sidebar-ring: oklch(0.55 0 0);
 }
 
-@media (max-width: 1023px) {
-  html {
-    /* Disable native pull-to-refresh and overscroll bounce on mobile/tablet
-       (PU report 2026-09-05): pausing mid-swipe no longer triggers a refresh
-       or content jump. Desktop unaffected. */
-    overscroll-behavior-y: none;
-  }
-}
+/* Pull-to-refresh re-enabled 2026-09-05 (PU request, msg 6AYrQX6A): the 0.7.114
+   auto-scroll fix (PublicSnapScroll guard) resolved the mid-swipe jumping on its
+   own, so the native refresh gesture is back on mobile/tablet. */
 
 @layer base {
   * {

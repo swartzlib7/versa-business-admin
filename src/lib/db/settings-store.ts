@@ -17,6 +17,7 @@ export interface SiteSettingsShape {
   brand_color: string;
   brand_logo_opacity: number;
   brand_logo_glow: number;
+  constellation_variant: 'classic' | 'realistic';
 }
 
 export async function getSiteSettingsDb(): Promise<SiteSettingsShape> {
@@ -33,6 +34,7 @@ export async function getSiteSettingsDb(): Promise<SiteSettingsShape> {
       brand_color: theme.colors.brand,
       brand_logo_opacity: 1,
       brand_logo_glow: 0,
+      constellation_variant: 'classic',
     };
   }
   const row = rows[0];
@@ -41,6 +43,7 @@ export async function getSiteSettingsDb(): Promise<SiteSettingsShape> {
     brand_color: row.brandColor,
     brand_logo_opacity: Number(row.brandLogoOpacity ?? 1),
     brand_logo_glow: Number(row.brandLogoGlow ?? 0),
+    constellation_variant: row.constellationVariant === 'realistic' ? 'realistic' : 'classic',
   };
 }
 
@@ -54,6 +57,7 @@ export async function upsertSiteSettingsDb(
     brand_color: input.brand_color ?? existing.brand_color,
     brand_logo_opacity: input.brand_logo_opacity ?? existing.brand_logo_opacity,
     brand_logo_glow: input.brand_logo_glow ?? existing.brand_logo_glow,
+    constellation_variant: input.constellation_variant ?? existing.constellation_variant,
   };
   await db
     .insert(siteSettingsTable)
@@ -63,6 +67,7 @@ export async function upsertSiteSettingsDb(
       brandColor: next.brand_color,
       brandLogoOpacity: String(next.brand_logo_opacity),
       brandLogoGlow: String(next.brand_logo_glow),
+      constellationVariant: next.constellation_variant,
     })
     .onConflictDoUpdate({
       target: siteSettingsTable.id,
@@ -71,6 +76,7 @@ export async function upsertSiteSettingsDb(
         brandColor: next.brand_color,
         brandLogoOpacity: String(next.brand_logo_opacity),
         brandLogoGlow: String(next.brand_logo_glow),
+        constellationVariant: next.constellation_variant,
         updatedAt: new Date(),
       },
     });

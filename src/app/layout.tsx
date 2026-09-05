@@ -58,6 +58,11 @@ async function loadBrand() {
         "number"
           ? (settings as { brand_logo_glow: number }).brand_logo_glow
           : 0,
+      constellation_variant:
+        (settings as { constellation_variant?: "classic" | "realistic" })
+          .constellation_variant === "realistic"
+          ? "realistic"
+          : "classic",
       demo_mode: fixture.demo_mode !== false,
       maintenance_mode: fixture.maintenance_mode === true,
       public_login_enabled: fixture.public_login_enabled !== false,

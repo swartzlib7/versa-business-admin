@@ -7,15 +7,17 @@ import type { BusinessProfile } from "@/lib/data";
 export function PublicLayout({
   business,
   demo = true,
+  constellationVariant = "classic",
   children,
 }: {
   business: BusinessProfile;
   demo?: boolean;
+  constellationVariant?: "classic" | "realistic";
   children: React.ReactNode;
 }) {
   return (
     <div className="relative flex min-h-screen flex-col bg-transparent">
-      <VersaConstellation />
+      <VersaConstellation variant={constellationVariant} />
       <div className="relative z-10 flex min-h-screen flex-col">
         <PublicHeader />
         <main className="flex-1 bg-transparent">

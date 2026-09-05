@@ -119,7 +119,7 @@ export default async function HomePage() {
   }
 
   return (
-    <PublicLayout business={business} demo={demo}>
+    <PublicLayout business={business} demo={demo} constellationVariant={site.constellation_variant === "realistic" ? "realistic" : "classic"}>
       <PublicSection
         id="top"
         nextId={demo ? "facets" : "integrations"}
