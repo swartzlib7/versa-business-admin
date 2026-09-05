@@ -266,6 +266,15 @@
   --sidebar-ring: oklch(0.55 0 0);
 }
 
+@media (max-width: 1023px) {
+  html {
+    /* Disable native pull-to-refresh and overscroll bounce on mobile/tablet
+       (PU report 2026-09-05): pausing mid-swipe no longer triggers a refresh
+       or content jump. Desktop unaffected. */
+    overscroll-behavior-y: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

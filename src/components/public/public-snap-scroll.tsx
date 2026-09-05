@@ -26,6 +26,9 @@ export function scrollPublicToTop() {
  */
 export function PublicSnapScroll() {
   useEffect(() => {
+    // Mobile/tablet: no section snapping - it fights the responsive layout
+    // on narrow screens (PU report 2026-09-05). Desktop keeps the snap.
+    if (window.matchMedia("(max-width: 1023px)").matches) return;
     const main = document.querySelector("main");
     if (!main) return;
 
