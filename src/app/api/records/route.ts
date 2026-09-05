@@ -61,7 +61,14 @@ export async function POST(request: Request) {
     parent_api_name: String(body.parent_api_name || ''),
     name: String(body.name || ''),
     status: body.status != null ? String(body.status) : undefined,
-    data: body.data as Record<string, string> | undefined,
+    data: {
+      ...(typeof body.data === 'object' && body.data && !Array.isArray(body.data)
+        ? (body.data as Record<string, string>)
+        : {}),
+      ...(session?.userId
+        ? { created_by: String(session.userId), last_modified_by: String(session.userId) }
+        : {}),
+    },
     lines: body.lines as Array<{ line_group?: string; data: Record<string, string> }> | undefined,
     // #249 Slice E2 (rev E section 2.5/3.2): explicit org override + executive
     // relations (fixture path ignores both).

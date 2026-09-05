@@ -190,23 +190,29 @@ export interface DataAdapter {
 // ---------------------------------------------------------------------------
 
 import { agents as agentFixtures } from '@/lib/fixtures/agents';
-import { projects as projectFixtures } from '@/lib/fixtures/projects';
-import { tasks as taskFixtures } from '@/lib/fixtures/tasks';
 import { integrations as integrationFixtures } from '@/lib/fixtures/integrations';
 import { business as businessFixture } from '@/lib/fixtures/business';
 import { services as serviceFixtures } from '@/lib/fixtures/services';
-import { products as productFixtures } from '@/lib/fixtures/products';
 import { staff as staffFixtures } from '@/lib/fixtures/staff';
 import { users as userFixtures } from '@/lib/fixtures/users';
 import { otherSystems as otherSystemFixtures } from '@/lib/fixtures/other-systems';
 import { supportTickets as supportTicketFixtures } from '@/lib/fixtures/support-tickets';
 import { metrics as metricFixtures } from '@/lib/fixtures/metrics';
 import { knowledgeArticles as knowledgeArticleFixtures } from '@/lib/fixtures/knowledge-articles';
+import {
+  createBridgedProject,
+  createBridgedTask,
+  getBridgedProject,
+  getBridgedTask,
+  listBridgedProducts,
+  listBridgedProjects,
+  listBridgedTasks,
+  updateBridgedProject,
+  updateBridgedTask,
+} from '@/lib/records/zone-core-bridge';
 
 // Mutable copies so the optional PATCH can mutate in-process state.
 let mutableAgents: Agent[] = [...agentFixtures];
-let mutableProjects: Project[] = [...projectFixtures];
-let mutableTasks: Task[] = [...taskFixtures];
 const mutableUsers = userFixtures.map((u) => ({ ...u, data: u.data ? { ...u.data } : {} }));
 
 // Slice F latent-bug repair: fixtureAdapter had NO organizations methods, so
@@ -229,11 +235,11 @@ export function resetAgents(): void {
 }
 
 export function resetProjects(): void {
-  mutableProjects = [...projectFixtures];
+  /* executive_project record instances are the store */
 }
 
 export function resetTasks(): void {
-  mutableTasks = [...taskFixtures];
+  /* executive_task record instances are the store */
 }
 
 export const fixtureAdapter: DataAdapter = {
@@ -369,50 +375,19 @@ export const fixtureAdapter: DataAdapter = {
   },
 
   async listProjects(filters?: ProjectFilters) {
-    let result = mutableProjects;
-    if (filters?.status) {
-      result = result.filter((p) => p.status === filters.status);
-    }
-    if (filters?.q) {
-      const q = filters.q.toLowerCase();
-      result = result.filter(
-        (p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q),
-      );
-    }
-    return result;
+    return listBridgedProjects(filters);
   },
 
   async getProject(id: string) {
-    return mutableProjects.find((p) => p.id === id) ?? null;
+    return getBridgedProject(id);
   },
 
   async listTasks(filters?: TaskFilters) {
-    let result = mutableTasks;
-    if (filters?.status) {
-      result = result.filter((t) => t.status === filters.status);
-    }
-    if (filters?.projectId) {
-      result = result.filter((t) => t.projectId === filters.projectId);
-    }
-    if (filters?.priority) {
-      result = result.filter((t) => t.priority === filters.priority);
-    }
-    if (filters?.assignee) {
-      result = result.filter(
-        (t) => t.assigneeUserId === filters.assignee || t.assigneeName === filters.assignee,
-      );
-    }
-    if (filters?.q) {
-      const q = filters.q.toLowerCase();
-      result = result.filter(
-        (t) => t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q),
-      );
-    }
-    return result;
+    return listBridgedTasks(filters);
   },
 
   async getTask(id: string) {
-    return mutableTasks.find((t) => t.id === id) ?? null;
+    return getBridgedTask(id);
   },
 
   async listIntegrations(status?: string) {
@@ -432,7 +407,7 @@ export const fixtureAdapter: DataAdapter = {
   },
 
   async listProducts() {
-    return productFixtures;
+    return listBridgedProducts();
   },
 
   async listStaff() {
@@ -541,121 +516,19 @@ export const fixtureAdapter: DataAdapter = {
 
 
   async createProject(input: CreateProjectInput) {
-    const name = (input.name || '').trim();
-    if (!name) throw new Error('VALIDATION: name is required');
-    const status = input.status ?? 'active';
-    const priority = input.priority ?? 'normal';
-    if (!['active', 'paused', 'completed', 'archived'].includes(status)) throw new Error('VALIDATION: invalid status');
-    if (!['low', 'normal', 'high'].includes(priority)) throw new Error('VALIDATION: invalid priority');
-    const id = 'proj-' + Date.now().toString(36);
-    const project: Project = {
-      id,
-      name,
-      description: input.description ?? '',
-      status,
-      ownerUserId: input.ownerUserId ?? '',
-      ownerName: mutableUsers.find((u) => u.id === input.ownerUserId)?.name ?? '',
-      priority,
-      startDate: input.startDate ?? null,
-      targetDate: input.targetDate ?? null,
-      taskCount: 0,
-    };
-    mutableProjects.push(project);
-    return { ...project };
+    return createBridgedProject(input);
   },
 
   async updateProject(id: string, input: UpdateProjectInput) {
-    const idx = mutableProjects.findIndex((p) => p.id === id);
-    if (idx < 0) return null;
-    const cur = mutableProjects[idx];
-    if (input.name !== undefined) {
-      const name = input.name.trim();
-      if (!name) throw new Error('VALIDATION: name cannot be empty');
-      cur.name = name;
-    }
-    if (input.description !== undefined) cur.description = input.description;
-    if (input.status !== undefined) {
-      if (!['active', 'paused', 'completed', 'archived'].includes(input.status)) throw new Error('VALIDATION: invalid status');
-      cur.status = input.status;
-    }
-    if (input.priority !== undefined) {
-      if (!['low', 'normal', 'high'].includes(input.priority)) throw new Error('VALIDATION: invalid priority');
-      cur.priority = input.priority;
-    }
-    if (input.ownerUserId !== undefined) {
-      cur.ownerUserId = input.ownerUserId;
-      cur.ownerName = mutableUsers.find((u) => u.id === input.ownerUserId)?.name ?? '';
-    }
-    if (input.startDate !== undefined) cur.startDate = input.startDate;
-    if (input.targetDate !== undefined) cur.targetDate = input.targetDate;
-    mutableProjects[idx] = cur;
-    return { ...cur };
+    return updateBridgedProject(id, input);
   },
 
   async createTask(input: CreateTaskInput) {
-    const title = (input.title || '').trim();
-    if (!title) throw new Error('VALIDATION: title is required');
-    if (!input.projectId) throw new Error('VALIDATION: projectId is required');
-    const status = input.status ?? 'planned';
-    const priority = input.priority ?? 'normal';
-    if (!['planned', 'in_progress', 'waiting', 'blocked', 'done'].includes(status)) throw new Error('VALIDATION: invalid status');
-    if (!['low', 'normal', 'high', 'urgent'].includes(priority)) throw new Error('VALIDATION: invalid priority');
-    const project = mutableProjects.find((p) => p.id === input.projectId);
-    if (!project) throw new Error('VALIDATION: projectId does not reference an existing project');
-    const id = 'task-' + Date.now().toString(36);
-    const now = new Date().toISOString();
-    const assignee = mutableUsers.find((u) => u.id === input.assigneeUserId);
-    const task: Task = {
-      id,
-      title,
-      description: input.description ?? '',
-      status,
-      priority,
-      projectId: input.projectId,
-      projectName: project.name,
-      assigneeUserId: input.assigneeUserId ?? '',
-      assigneeName: assignee?.name ?? '',
-      dueDate: input.dueDate ?? '',
-      createdAt: now,
-      updatedAt: now,
-    };
-    mutableTasks.push(task);
-    project.taskCount = mutableTasks.filter((t) => t.projectId === project.id).length;
-    return { ...task };
+    return createBridgedTask(input);
   },
 
   async updateTask(id: string, input: UpdateTaskInput) {
-    const idx = mutableTasks.findIndex((t) => t.id === id);
-    if (idx < 0) return null;
-    const cur = mutableTasks[idx];
-    if (input.title !== undefined) {
-      const title = input.title.trim();
-      if (!title) throw new Error('VALIDATION: title cannot be empty');
-      cur.title = title;
-    }
-    if (input.description !== undefined) cur.description = input.description;
-    if (input.status !== undefined) {
-      if (!['planned', 'in_progress', 'waiting', 'blocked', 'done'].includes(input.status)) throw new Error('VALIDATION: invalid status');
-      cur.status = input.status;
-    }
-    if (input.priority !== undefined) {
-      if (!['low', 'normal', 'high', 'urgent'].includes(input.priority)) throw new Error('VALIDATION: invalid priority');
-      cur.priority = input.priority;
-    }
-    if (input.projectId !== undefined) {
-      const project = mutableProjects.find((p) => p.id === input.projectId);
-      if (!project) throw new Error('VALIDATION: projectId does not reference an existing project');
-      cur.projectId = input.projectId;
-      cur.projectName = project.name;
-    }
-    if (input.assigneeUserId !== undefined) {
-      cur.assigneeUserId = input.assigneeUserId;
-      cur.assigneeName = mutableUsers.find((u) => u.id === input.assigneeUserId)?.name ?? '';
-    }
-    if (input.dueDate !== undefined) cur.dueDate = input.dueDate ?? '';
-    cur.updatedAt = new Date().toISOString();
-    mutableTasks[idx] = cur;
-    return { ...cur };
+    return updateBridgedTask(id, input);
   },
 
   // --- Mission Control facets (I5.3) ---

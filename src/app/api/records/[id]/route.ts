@@ -71,10 +71,22 @@ export async function PATCH(
       { status: 400 },
     );
   }
+  const incoming =
+    typeof body.data === 'object' && body.data && !Array.isArray(body.data)
+      ? (body.data as Record<string, string>)
+      : undefined;
+  const current = adapter.getRecord ? await adapter.getRecord(id) : getInstance(id);
+  const data =
+    incoming !== undefined || session?.userId
+      ? {
+          ...(incoming ?? current?.data ?? {}),
+          ...(session?.userId ? { last_modified_by: String(session.userId) } : {}),
+        }
+      : undefined;
   const input = {
     name: body.name != null ? String(body.name) : undefined,
     status: body.status != null ? String(body.status) : undefined,
-    data: body.data as Record<string, string> | undefined,
+    data,
     lines: body.lines as Array<{ line_group?: string; data: Record<string, string> }> | undefined,
     // #249 Slice E2 (rev E section 2.5/3.2): org move + relations replace-in-full
     // (fixture path ignores both).

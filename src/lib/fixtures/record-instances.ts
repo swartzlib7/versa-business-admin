@@ -76,6 +76,8 @@ export function getInstance(id: string): RecordInstance | undefined {
 }
 
 export interface CreateInstanceInput {
+  /** Optional stable id (typed-core fold / sample seed). Generated if omitted. */
+  id?: string;
   type_api_name: string;
   parent_kind: string;
   parent_api_name: string;
@@ -116,7 +118,14 @@ export function createInstance(input: CreateInstanceInput): CreateInstanceResult
   if (!input.name?.trim())
     return { ok: false, code: 'NAME_REQUIRED', message: 'name is required.' };
 
-  const id = `rec-${nextId++}`;
+  let id = (input.id || '').trim();
+  if (id) {
+    if (mutableInstances.some((row) => row.id === id)) {
+      return { ok: false, code: 'ID_EXISTS', message: `Instance '${id}' already exists.` };
+    }
+  } else {
+    id = `rec-${nextId++}`;
+  }
   const now = new Date().toISOString();
   const lines: RecordInstanceLine[] = (input.lines || []).map((lineData, idx) => ({
     id: `rec-line-${nextId++}`,
