@@ -1,19 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { EntityListing } from "@/components/listing/entity-listing";
 import { theme } from "@/lib/theme";
 import { PageHeader } from "@/components/ui/page-header";
-import { projects, type ProjectFixture } from "@/lib/fixtures/projects";
 import {
   listingFieldsFromCatalog,
   resolvePicklistLabel,
 } from "@/lib/catalog/layout-to-fields";
 import type { ListingField } from "@/components/listing/entity-listing";
+import type { Project } from "@/lib/data";
+import { apiJson } from "@/lib/client/api-json";
 
-type LocalRow = ProjectFixture & { _local?: boolean } & Record<string, unknown>;
+type LocalRow = Project & Record<string, unknown>;
 
 function toCatalogValues(r: LocalRow): Record<string, string> {
   return {
@@ -29,9 +30,9 @@ function toCatalogValues(r: LocalRow): Record<string, string> {
 }
 
 export default function ProjectsPage() {
-  const [rows, setRows] = useState<LocalRow[]>(() =>
-    projects.map((r) => ({ ...r }) as LocalRow),
-  );
+  const [rows, setRows] = useState<LocalRow[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState("");
   const [note, setNote] = useState("");
 
   const catalogFields = useMemo(
@@ -51,6 +52,26 @@ export default function ProjectsPage() {
       })),
     [catalogFields],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    apiJson<{ data: Project[] }>("/api/projects")
+      .then((json) => {
+        if (cancelled) return;
+        setRows((json.data ?? []) as LocalRow[]);
+        setError("");
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : "Failed to load projects.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const getCell = (row: LocalRow, key: string) => {
     const vals = toCatalogValues(row);
@@ -76,44 +97,50 @@ export default function ProjectsPage() {
     return text;
   };
 
-  const onAdd = (draft: Record<string, string>) => {
-    const id = `local-proj-${Date.now()}`;
-    const next: LocalRow = {
-      id,
-      name: draft.name || "New project",
-      description: draft.description || "",
-      status: (draft.status as ProjectFixture["status"]) || "active",
-      ownerUserId: "",
-      ownerName: draft.owner_name || "",
-      priority: (draft.priority as ProjectFixture["priority"]) || "normal",
-      startDate: draft.start_date || null,
-      targetDate: draft.target_date || null,
-      taskCount: Number(draft.task_count || 0) || 0,
-      _local: true,
-    };
-    setRows((prev) => [...prev, next]);
-    setNote("Added locally (mock) — catalog layout; not persisted.");
+  const onAdd = async (draft: Record<string, string>) => {
+    try {
+      const json = await apiJson<{ data: Project }>("/api/projects", {
+        method: "POST",
+        body: JSON.stringify({
+          name: draft.name || "New project",
+          description: draft.description || "",
+          status: draft.status || "active",
+          priority: draft.priority || "normal",
+          ownerName: draft.owner_name || "",
+          startDate: draft.start_date || null,
+          targetDate: draft.target_date || null,
+        }),
+      });
+      setRows((prev) => [...prev, json.data as LocalRow]);
+      setNote("Saved.");
+      return true;
+    } catch (e: unknown) {
+      setNote(e instanceof Error ? e.message : "Could not save project.");
+      return false;
+    }
   };
 
-  const onUpdate = (id: string, draft: Record<string, string>) => {
-    setRows((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? {
-              ...r,
-              name: draft.name || r.name,
-              description: draft.description || r.description,
-              status: (draft.status as ProjectFixture["status"]) || r.status,
-              ownerName: draft.owner_name || r.ownerName,
-              priority: (draft.priority as ProjectFixture["priority"]) || r.priority,
-              startDate: draft.start_date || r.startDate,
-              targetDate: draft.target_date || r.targetDate,
-              taskCount: Number(draft.task_count || r.taskCount) || 0,
-            }
-          : r,
-      ),
-    );
-    setNote("Updated in this session (mock) — catalog layout.");
+  const onUpdate = async (id: string, draft: Record<string, string>) => {
+    try {
+      const json = await apiJson<{ data: Project }>(`/api/projects/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: draft.name,
+          description: draft.description,
+          status: draft.status,
+          priority: draft.priority,
+          ownerName: draft.owner_name,
+          startDate: draft.start_date || null,
+          targetDate: draft.target_date || null,
+        }),
+      });
+      setRows((prev) => prev.map((r) => (r.id === id ? (json.data as LocalRow) : r)));
+      setNote("Saved.");
+      return true;
+    } catch (e: unknown) {
+      setNote(e instanceof Error ? e.message : "Could not update project.");
+      return false;
+    }
   };
 
   return (
@@ -130,7 +157,7 @@ export default function ProjectsPage() {
             href="/users"
             className="text-sm text-muted-foreground underline-offset-4 hover:underline"
           >
-            Users pilot
+            Users
           </Link>
         </div>
 
@@ -140,23 +167,29 @@ export default function ProjectsPage() {
           </p>
         )}
 
-        <EntityListing<LocalRow>
-          title="Projects"
-          summary="Fixture data · catalog list layout · inline New/Edit"
-          accent={theme.colors.brand}
-          fields={fields}
-          rows={rows}
-          getRowId={(r) => r.id}
-          getCell={getCell}
-          renderCell={renderCell}
-          onAdd={onAdd}
-          onUpdate={onUpdate}
-          headerExtra={
-            <span className="text-xs text-muted-foreground">
-              {rows.length} project{rows.length === 1 ? "" : "s"}
-            </span>
-          }
-        />
+        {!loaded ? (
+          <p className="text-sm text-muted-foreground">Loading projects…</p>
+        ) : error ? (
+          <p className="text-sm text-destructive">{error}</p>
+        ) : (
+          <EntityListing<LocalRow>
+            title="Projects"
+            summary="Live records · catalog list layout · inline New/Edit"
+            accent={theme.colors.brand}
+            fields={fields}
+            rows={rows}
+            getRowId={(r) => r.id}
+            getCell={getCell}
+            renderCell={renderCell}
+            onAdd={onAdd}
+            onUpdate={onUpdate}
+            headerExtra={
+              <span className="text-xs text-muted-foreground">
+                {rows.length} project{rows.length === 1 ? "" : "s"}
+              </span>
+            }
+          />
+        )}
       </div>
     </AppShell>
   );

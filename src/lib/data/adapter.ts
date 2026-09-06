@@ -87,6 +87,7 @@ export interface CreateProjectInput {
   description?: string;
   status?: Project['status'];
   ownerUserId?: string;
+  ownerName?: string;
   priority?: Project['priority'];
   startDate?: string | null;
   targetDate?: string | null;
@@ -99,6 +100,7 @@ export interface UpdateProjectInput {
   description?: string;
   status?: Project['status'];
   ownerUserId?: string;
+  ownerName?: string;
   priority?: Project['priority'];
   startDate?: string | null;
   targetDate?: string | null;
@@ -113,6 +115,7 @@ export interface CreateTaskInput {
   priority?: Task['priority'];
   projectId: string;
   assigneeUserId?: string;
+  assigneeName?: string;
   dueDate?: string | null;
   data?: Record<string, unknown>;
 }
@@ -125,8 +128,27 @@ export interface UpdateTaskInput {
   priority?: Task['priority'];
   projectId?: string;
   assigneeUserId?: string;
+  assigneeName?: string;
   dueDate?: string | null;
   data?: Record<string, unknown>;
+}
+
+export interface CreateProductInput {
+  name: string;
+  tagline?: string;
+  description?: string;
+  category?: string;
+  status?: Product['status'];
+  features?: string[];
+}
+
+export interface UpdateProductInput {
+  name?: string;
+  tagline?: string;
+  description?: string;
+  category?: string;
+  status?: Product['status'];
+  features?: string[];
 }
 
 export interface DataAdapter {
@@ -142,6 +164,9 @@ export interface DataAdapter {
   getBusinessProfile(): Promise<BusinessProfile>;
   listServices(): Promise<Service[]>;
   listProducts(): Promise<Product[]>;
+  getProduct?(id: string): Promise<Product | null>;
+  createProduct?(input: CreateProductInput): Promise<Product>;
+  updateProduct?(id: string, input: UpdateProductInput): Promise<Product | null>;
   listStaff(): Promise<StaffMember[]>;
   // Users (I5 + Phase 3 writes)
   listUsers(type?: string): Promise<User[]>;
@@ -200,13 +225,16 @@ import { supportTickets as supportTicketFixtures } from '@/lib/fixtures/support-
 import { metrics as metricFixtures } from '@/lib/fixtures/metrics';
 import { knowledgeArticles as knowledgeArticleFixtures } from '@/lib/fixtures/knowledge-articles';
 import {
+  createBridgedProduct,
   createBridgedProject,
   createBridgedTask,
+  getBridgedProduct,
   getBridgedProject,
   getBridgedTask,
   listBridgedProducts,
   listBridgedProjects,
   listBridgedTasks,
+  updateBridgedProduct,
   updateBridgedProject,
   updateBridgedTask,
 } from '@/lib/records/zone-core-bridge';
@@ -410,6 +438,18 @@ export const fixtureAdapter: DataAdapter = {
     return listBridgedProducts();
   },
 
+  async getProduct(id: string) {
+    return getBridgedProduct(id);
+  },
+
+  async createProduct(input: CreateProductInput) {
+    return createBridgedProduct(input);
+  },
+
+  async updateProduct(id: string, input: UpdateProductInput) {
+    return updateBridgedProduct(id, input);
+  },
+
   async listStaff() {
     return staffFixtures;
   },
@@ -590,8 +630,8 @@ function createAdapter(): DataAdapter {
     return fixtureAdapter;
   }
 
-  // Phase 2 pilot: User read + health from Postgres; everything else stays fixture
-  // so public pages and hub keep working. Flip remaining resources in later phases.
+  // Phase 2+: User/org/integration reads from Postgres; projects/tasks/products
+  // fold onto the record table (same zone types as the fixture path).
   return {
     ...fixtureAdapter,
     listUsers: (type?: string) => postgresAdapter.listUsers(type),
@@ -609,12 +649,24 @@ function createAdapter(): DataAdapter {
     listTasks: (filters?: TaskFilters) => postgresAdapter.listTasks(filters),
     getTask: (id: string) => postgresAdapter.getTask(id),
     listProducts: () => postgresAdapter.listProducts(),
+    getProduct: (id: string) => {
+      if (!postgresAdapter.getProduct) throw new Error('getProduct not available');
+      return postgresAdapter.getProduct(id);
+    },
+    createProduct: (input) => {
+      if (!postgresAdapter.createProduct) throw new Error('createProduct not available');
+      return postgresAdapter.createProduct(input);
+    },
+    updateProduct: (id, input) => {
+      if (!postgresAdapter.updateProduct) throw new Error('updateProduct not available');
+      return postgresAdapter.updateProduct(id, input);
+    },
     listIntegrations: (status?: string) => postgresAdapter.listIntegrations(status),
     listStaff: () => postgresAdapter.listStaff(),
     getBusinessProfile: () => postgresAdapter.getBusinessProfile(),
     listAgents: (status?: string) => postgresAdapter.listAgents(status),
     getAgent: (id: string) => postgresAdapter.getAgent(id),
-    createProject: (input) => {
+  createProject: (input) => {
       if (!postgresAdapter.createProject) throw new Error('createProject not available');
       return postgresAdapter.createProject(input);
     },

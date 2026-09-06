@@ -400,16 +400,27 @@ export async function createRecordDb(
   header.name = input.name.trim();
   header.status = input.status || 'active';
 
-  const inserted = await db
-    .insert(recordTable)
-    .values({
-      orgId: orgResolved.orgId,
-      recordTypeId: type.id,
-      header,
-      createdBy: opts?.createdBy ?? null,
-    })
-    .returning({ id: recordTable.id });
-  const recordId = inserted[0].id;
+  const stableId = input.id?.trim();
+  let recordId: string;
+  try {
+    const inserted = await db
+      .insert(recordTable)
+      .values({
+        ...(stableId ? { id: stableId } : {}),
+        orgId: orgResolved.orgId,
+        recordTypeId: type.id,
+        header,
+        createdBy: opts?.createdBy ?? null,
+      })
+      .returning({ id: recordTable.id });
+    recordId = inserted[0].id;
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (stableId && /unique|duplicate/i.test(msg)) {
+      return { ok: false, code: 'ID_EXISTS', message: `Instance '${stableId}' already exists.` };
+    }
+    throw e;
+  }
 
   const lines = input.lines ?? [];
   if (lines.length) {

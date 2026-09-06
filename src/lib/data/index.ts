@@ -1,2 +1,2 @@
-export { type DataAdapter, type ProjectFilters, type TaskFilters, type CreateUserInput, type UpdateUserInput, fixtureAdapter, adapter, resetAgents, resetProjects, resetTasks } from './adapter';
+export { type DataAdapter, type ProjectFilters, type TaskFilters, type CreateUserInput, type UpdateUserInput, type CreateProductInput, type UpdateProductInput, fixtureAdapter, adapter, resetAgents, resetProjects, resetTasks } from './adapter';
 export type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember, User, Session, OtherSystem, SupportTicket, Metric, KnowledgeArticle } from './types';

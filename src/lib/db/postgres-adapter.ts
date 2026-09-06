@@ -1,7 +1,7 @@
 // Postgres adapter — Phase 2 User pilot + Phase 3 writes + Phase 4 reads.
 // All methods implemented. Behind DATA_SOURCE=postgres. Fixture default stays safe.
 
-import type { DataAdapter, ProjectFilters, TaskFilters, CreateUserInput, UpdateUserInput, CreateProjectInput, UpdateProjectInput, CreateTaskInput, UpdateTaskInput } from "../data/adapter";
+import type { DataAdapter, ProjectFilters, TaskFilters, CreateUserInput, UpdateUserInput, CreateProjectInput, UpdateProjectInput, CreateTaskInput, UpdateTaskInput, CreateProductInput, UpdateProductInput } from "../data/adapter";
 import type {
   Agent,
   Project,
@@ -26,12 +26,23 @@ import {
   users as usersTable,
   departments as departmentsTable,
   organizations as organizationsTable,
-  projects as projectsTable,
-  tasks as tasksTable,
-  products as productsTable,
   integrations as integrationsTable,
 } from "./schema";
-import { eq, and, ilike, or, count } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+import {
+  createPgProduct,
+  createPgProject,
+  createPgTask,
+  getPgProduct,
+  getPgProject,
+  getPgTask,
+  listPgProducts,
+  listPgProjects,
+  listPgTasks,
+  updatePgProduct,
+  updatePgProject,
+  updatePgTask,
+} from "../records/zone-core-bridge-pg";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 import {
@@ -72,59 +83,6 @@ function mapOrganizationRow(row: typeof organizationsTable.$inferSelect): Organi
     parent_organization_id: row.parentOrganizationId ?? null,
     is_primary: data.is_primary === true,
     data,
-  };
-}
-
-function mapProjectRow(
-  row: typeof projectsTable.$inferSelect,
-  ownerName?: string | null,
-  taskCount?: number,
-): Project {
-  return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    status: row.status as Project["status"],
-    ownerUserId: row.ownerUserId ?? "",
-    ownerName: ownerName ?? "",
-    priority: row.priority as Project["priority"],
-    startDate: row.startDate ?? null,
-    targetDate: row.targetDate ?? null,
-    taskCount: taskCount ?? 0,
-  };
-}
-
-function mapTaskRow(
-  row: typeof tasksTable.$inferSelect,
-  projectName?: string | null,
-  assigneeName?: string | null,
-): Task {
-  return {
-    id: row.id,
-    title: row.title,
-    description: row.description,
-    status: row.status as Task["status"],
-    priority: row.priority as Task["priority"],
-    projectId: row.projectId,
-    projectName: projectName ?? "",
-    assigneeUserId: row.assigneeUserId ?? "",
-    assigneeName: assigneeName ?? "",
-    dueDate: row.dueDate ?? "",
-    createdAt: row.createdAt?.toISOString() ?? "",
-    updatedAt: row.updatedAt?.toISOString() ?? "",
-  };
-}
-
-function mapProductRow(row: typeof productsTable.$inferSelect): Product {
-  const data = (row.data ?? {}) as Record<string, unknown>;
-  return {
-    id: row.id,
-    name: row.name,
-    tagline: row.tagline,
-    description: row.description,
-    category: row.category ?? "",
-    status: row.status as Product["status"],
-    features: Array.isArray(data.features) ? (data.features as string[]) : [],
   };
 }
 
@@ -185,222 +143,38 @@ export const postgresAdapter: DataAdapter = {
     return postgresAdapter.getAgent(id);
   },
 
-  // --- Projects ---
+  // --- Projects (zone records: executive_project) ---
   async listProjects(filters?: ProjectFilters): Promise<Project[]> {
-    const db = getDb();
-    const conditions = [];
-    if (filters?.status) conditions.push(eq(projectsTable.status, filters.status));
-    if (filters?.q) {
-      const q = `%${filters.q}%`;
-      conditions.push(or(ilike(projectsTable.name, q), ilike(projectsTable.description, q))!);
-    }
-    const rows = await db
-      .select({
-        project: projectsTable,
-        ownerName: usersTable.name,
-      })
-      .from(projectsTable)
-      .leftJoin(usersTable, eq(projectsTable.ownerUserId, usersTable.id))
-      .where(conditions.length ? and(...conditions) : undefined);
-
-    // Compute task counts per project
-    const taskCounts = await db
-      .select({ projectId: tasksTable.projectId, cnt: count() })
-      .from(tasksTable)
-      .groupBy(tasksTable.projectId);
-    const countMap = new Map(taskCounts.map((r) => [r.projectId, r.cnt]));
-
-    return rows.map((r) => mapProjectRow(r.project, r.ownerName, countMap.get(r.project.id) ?? 0));
+    return listPgProjects(filters);
   },
 
   async getProject(id: string): Promise<Project | null> {
-    const db = getDb();
-    const rows = await db
-      .select({
-        project: projectsTable,
-        ownerName: usersTable.name,
-      })
-      .from(projectsTable)
-      .leftJoin(usersTable, eq(projectsTable.ownerUserId, usersTable.id))
-      .where(eq(projectsTable.id, id))
-      .limit(1);
-    if (!rows.length) return null;
-    const taskCount = await db
-      .select({ cnt: count() })
-      .from(tasksTable)
-      .where(eq(tasksTable.projectId, id));
-    return mapProjectRow(rows[0].project, rows[0].ownerName, taskCount[0]?.cnt ?? 0);
+    return getPgProject(id);
   },
 
   async createProject(input: CreateProjectInput): Promise<Project> {
-    const name = (input.name || "").trim();
-    if (!name) throw new Error("VALIDATION: name is required");
-    const status = input.status ?? "active";
-    const priority = input.priority ?? "normal";
-    if (!["active", "paused", "completed", "archived"].includes(status)) throw new Error("VALIDATION: invalid status");
-    if (!["low", "normal", "high"].includes(priority)) throw new Error("VALIDATION: invalid priority");
-    const db = getDb();
-    const id = randomUUID();
-    const orgRows = await db.select().from(organizationsTable).limit(1);
-    if (!orgRows.length) throw new Error("VALIDATION: no organization found — seed first");
-    const orgId = orgRows[0].id;
-    await db.insert(projectsTable).values({
-      id,
-      organizationId: orgId,
-      name,
-      description: input.description ?? "",
-      status,
-      ownerUserId: input.ownerUserId ?? null,
-      priority,
-      startDate: input.startDate ?? null,
-      targetDate: input.targetDate ?? null,
-      data: input.data ?? {},
-    });
-    const created = await postgresAdapter.getProject(id);
-    if (!created) throw new Error("Failed to load created project");
-    return created;
+    return createPgProject(input);
   },
 
   async updateProject(id: string, input: UpdateProjectInput): Promise<Project | null> {
-    const db = getDb();
-    const existing = await db.select().from(projectsTable).where(eq(projectsTable.id, id)).limit(1);
-    if (!existing.length) return null;
-    const patch: Partial<typeof projectsTable.$inferInsert> = { updatedAt: new Date() };
-    if (input.name !== undefined) {
-      const name = input.name.trim();
-      if (!name) throw new Error("VALIDATION: name cannot be empty");
-      patch.name = name;
-    }
-    if (input.description !== undefined) patch.description = input.description;
-    if (input.status !== undefined) {
-      if (!["active", "paused", "completed", "archived"].includes(input.status)) throw new Error("VALIDATION: invalid status");
-      patch.status = input.status;
-    }
-    if (input.priority !== undefined) {
-      if (!["low", "normal", "high"].includes(input.priority)) throw new Error("VALIDATION: invalid priority");
-      patch.priority = input.priority;
-    }
-    if (input.ownerUserId !== undefined) patch.ownerUserId = input.ownerUserId || null;
-    if (input.startDate !== undefined) patch.startDate = input.startDate;
-    if (input.targetDate !== undefined) patch.targetDate = input.targetDate;
-    if (input.data) {
-      const curData = (existing[0].data ?? {}) as Record<string, unknown>;
-      patch.data = { ...curData, ...input.data };
-    }
-    await db.update(projectsTable).set(patch).where(eq(projectsTable.id, id));
-    return postgresAdapter.getProject(id);
+    return updatePgProject(id, input);
   },
 
-  // --- Tasks ---
+  // --- Tasks (zone records: executive_task) ---
   async listTasks(filters?: TaskFilters): Promise<Task[]> {
-    const db = getDb();
-    const conditions = [];
-    if (filters?.status) conditions.push(eq(tasksTable.status, filters.status));
-    if (filters?.projectId) conditions.push(eq(tasksTable.projectId, filters.projectId));
-    if (filters?.priority) conditions.push(eq(tasksTable.priority, filters.priority));
-    if (filters?.q) {
-      const q = `%${filters.q}%`;
-      conditions.push(or(ilike(tasksTable.title, q), ilike(tasksTable.description, q))!);
-    }
-    const rows = await db
-      .select({
-        task: tasksTable,
-        projectName: projectsTable.name,
-        assigneeName: usersTable.name,
-      })
-      .from(tasksTable)
-      .leftJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id))
-      .leftJoin(usersTable, eq(tasksTable.assigneeUserId, usersTable.id))
-      .where(conditions.length ? and(...conditions) : undefined);
-
-    let mapped = rows.map((r) => mapTaskRow(r.task, r.projectName, r.assigneeName));
-    // assignee filter (by userId or name — match fixture behavior)
-    if (filters?.assignee) {
-      mapped = mapped.filter(
-        (t) => t.assigneeUserId === filters.assignee || t.assigneeName === filters.assignee,
-      );
-    }
-    return mapped;
+    return listPgTasks(filters);
   },
 
   async getTask(id: string): Promise<Task | null> {
-    const db = getDb();
-    const rows = await db
-      .select({
-        task: tasksTable,
-        projectName: projectsTable.name,
-        assigneeName: usersTable.name,
-      })
-      .from(tasksTable)
-      .leftJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id))
-      .leftJoin(usersTable, eq(tasksTable.assigneeUserId, usersTable.id))
-      .where(eq(tasksTable.id, id))
-      .limit(1);
-    if (!rows.length) return null;
-    return mapTaskRow(rows[0].task, rows[0].projectName, rows[0].assigneeName);
+    return getPgTask(id);
   },
 
   async createTask(input: CreateTaskInput): Promise<Task> {
-    const title = (input.title || "").trim();
-    if (!title) throw new Error("VALIDATION: title is required");
-    if (!input.projectId) throw new Error("VALIDATION: projectId is required");
-    const status = input.status ?? "planned";
-    const priority = input.priority ?? "normal";
-    if (!["planned", "in_progress", "waiting", "blocked", "done"].includes(status)) throw new Error("VALIDATION: invalid status");
-    if (!["low", "normal", "high", "urgent"].includes(priority)) throw new Error("VALIDATION: invalid priority");
-    const db = getDb();
-    // Validate project exists
-    const projRows = await db.select().from(projectsTable).where(eq(projectsTable.id, input.projectId)).limit(1);
-    if (!projRows.length) throw new Error("VALIDATION: projectId does not reference an existing project");
-    const id = randomUUID();
-    await db.insert(tasksTable).values({
-      id,
-      projectId: input.projectId,
-      title,
-      description: input.description ?? "",
-      status,
-      priority,
-      assigneeUserId: input.assigneeUserId ?? null,
-      dueDate: input.dueDate ?? null,
-      data: input.data ?? {},
-    });
-    const created = await postgresAdapter.getTask(id);
-    if (!created) throw new Error("Failed to load created task");
-    return created;
+    return createPgTask(input);
   },
 
   async updateTask(id: string, input: UpdateTaskInput): Promise<Task | null> {
-    const db = getDb();
-    const existing = await db.select().from(tasksTable).where(eq(tasksTable.id, id)).limit(1);
-    if (!existing.length) return null;
-    const patch: Partial<typeof tasksTable.$inferInsert> = { updatedAt: new Date() };
-    if (input.title !== undefined) {
-      const title = input.title.trim();
-      if (!title) throw new Error("VALIDATION: title cannot be empty");
-      patch.title = title;
-    }
-    if (input.description !== undefined) patch.description = input.description;
-    if (input.status !== undefined) {
-      if (!["planned", "in_progress", "waiting", "blocked", "done"].includes(input.status)) throw new Error("VALIDATION: invalid status");
-      patch.status = input.status;
-    }
-    if (input.priority !== undefined) {
-      if (!["low", "normal", "high", "urgent"].includes(input.priority)) throw new Error("VALIDATION: invalid priority");
-      patch.priority = input.priority;
-    }
-    if (input.projectId !== undefined) {
-      const projRows = await db.select().from(projectsTable).where(eq(projectsTable.id, input.projectId)).limit(1);
-      if (!projRows.length) throw new Error("VALIDATION: projectId does not reference an existing project");
-      patch.projectId = input.projectId;
-    }
-    if (input.assigneeUserId !== undefined) patch.assigneeUserId = input.assigneeUserId || null;
-    if (input.dueDate !== undefined) patch.dueDate = input.dueDate;
-    if (input.data) {
-      const curData = (existing[0].data ?? {}) as Record<string, unknown>;
-      patch.data = { ...curData, ...input.data };
-    }
-    await db.update(tasksTable).set(patch).where(eq(tasksTable.id, id));
-    return postgresAdapter.getTask(id);
+    return updatePgTask(id, input);
   },
 
   // --- Integrations ---
@@ -447,11 +221,21 @@ export const postgresAdapter: DataAdapter = {
     return [];
   },
 
-  // --- Products ---
+  // --- Products (zone records: production_product) ---
   async listProducts(): Promise<Product[]> {
-    const db = getDb();
-    const rows = await db.select().from(productsTable);
-    return rows.map(mapProductRow);
+    return listPgProducts();
+  },
+
+  async getProduct(id: string): Promise<Product | null> {
+    return getPgProduct(id);
+  },
+
+  async createProduct(input: CreateProductInput): Promise<Product> {
+    return createPgProduct(input);
+  },
+
+  async updateProduct(id: string, input: UpdateProductInput): Promise<Product | null> {
+    return updatePgProduct(id, input);
   },
 
   // --- Staff (public projection from users) ---

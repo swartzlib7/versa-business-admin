@@ -1,19 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { EntityListing } from "@/components/listing/entity-listing";
 import { theme } from "@/lib/theme";
 import { PageHeader } from "@/components/ui/page-header";
-import { products, type Product } from "@/lib/fixtures/products";
 import {
   listingFieldsFromCatalog,
   resolvePicklistLabel,
 } from "@/lib/catalog/layout-to-fields";
 import type { ListingField } from "@/components/listing/entity-listing";
+import type { Product } from "@/lib/data";
+import { apiJson } from "@/lib/client/api-json";
 
-type LocalRow = Product & { _local?: boolean } & Record<string, unknown>;
+type LocalRow = Product & Record<string, unknown>;
 
 function featuresToText(features: unknown): string {
   if (Array.isArray(features)) return (features as string[]).join("\n");
@@ -39,9 +40,9 @@ function toCatalogValues(r: LocalRow): Record<string, string> {
 }
 
 export default function ProductsPage() {
-  const [rows, setRows] = useState<LocalRow[]>(() =>
-    products.map((r) => ({ ...r }) as LocalRow),
-  );
+  const [rows, setRows] = useState<LocalRow[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState("");
   const [note, setNote] = useState("");
 
   const catalogFields = useMemo(() => listingFieldsFromCatalog("product"), []);
@@ -58,6 +59,26 @@ export default function ProductsPage() {
       })),
     [catalogFields],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    apiJson<{ data: Product[] }>("/api/public/products")
+      .then((json) => {
+        if (cancelled) return;
+        setRows((json.data ?? []) as LocalRow[]);
+        setError("");
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : "Failed to load products.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const getCell = (row: LocalRow, key: string) => {
     const vals = toCatalogValues(row);
@@ -81,39 +102,48 @@ export default function ProductsPage() {
     return text;
   };
 
-  const onAdd = (draft: Record<string, string>) => {
-    const id = `local-prod-${Date.now()}`;
-    const next: LocalRow = {
-      id,
-      name: draft.name || "New product",
-      tagline: draft.tagline || "",
-      description: draft.description || "",
-      category: draft.category || "Packages",
-      status: (draft.status as Product["status"]) || "available",
-      features: textToFeatures(draft.features || ""),
-      _local: true,
-    };
-    setRows((prev) => [...prev, next]);
-    setNote("Added locally (mock) — catalog layout; not persisted.");
+  const onAdd = async (draft: Record<string, string>) => {
+    try {
+      const json = await apiJson<{ data: Product }>("/api/products", {
+        method: "POST",
+        body: JSON.stringify({
+          name: draft.name || "New product",
+          tagline: draft.tagline || "",
+          description: draft.description || "",
+          category: draft.category || "Packages",
+          status: draft.status || "available",
+          features: textToFeatures(draft.features || ""),
+        }),
+      });
+      setRows((prev) => [...prev, json.data as LocalRow]);
+      setNote("Saved.");
+      return true;
+    } catch (e: unknown) {
+      setNote(e instanceof Error ? e.message : "Could not save product.");
+      return false;
+    }
   };
 
-  const onUpdate = (id: string, draft: Record<string, string>) => {
-    setRows((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? {
-              ...r,
-              name: draft.name || r.name,
-              tagline: draft.tagline || r.tagline,
-              description: draft.description || r.description,
-              category: draft.category || r.category,
-              status: (draft.status as Product["status"]) || r.status,
-              features: textToFeatures(draft.features || ""),
-            }
-          : r,
-      ),
-    );
-    setNote("Updated in this session (mock) — catalog layout.");
+  const onUpdate = async (id: string, draft: Record<string, string>) => {
+    try {
+      const json = await apiJson<{ data: Product }>(`/api/products/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: draft.name,
+          tagline: draft.tagline,
+          description: draft.description,
+          category: draft.category,
+          status: draft.status,
+          features: textToFeatures(draft.features || ""),
+        }),
+      });
+      setRows((prev) => prev.map((r) => (r.id === id ? (json.data as LocalRow) : r)));
+      setNote("Saved.");
+      return true;
+    } catch (e: unknown) {
+      setNote(e instanceof Error ? e.message : "Could not update product.");
+      return false;
+    }
   };
 
   return (
@@ -130,7 +160,7 @@ export default function ProductsPage() {
             href="/users"
             className="text-sm text-muted-foreground underline-offset-4 hover:underline"
           >
-            Users pilot
+            Users
           </Link>
         </div>
 
@@ -140,23 +170,29 @@ export default function ProductsPage() {
           </p>
         )}
 
-        <EntityListing<LocalRow>
-          title="Products"
-          summary="Fixture data · catalog list layout · inline New/Edit"
-          accent={theme.colors.brand}
-          fields={fields}
-          rows={rows}
-          getRowId={(r) => r.id}
-          getCell={getCell}
-          renderCell={renderCell}
-          onAdd={onAdd}
-          onUpdate={onUpdate}
-          headerExtra={
-            <span className="text-xs text-muted-foreground">
-              {rows.length} product{rows.length === 1 ? "" : "s"}
-            </span>
-          }
-        />
+        {!loaded ? (
+          <p className="text-sm text-muted-foreground">Loading products…</p>
+        ) : error ? (
+          <p className="text-sm text-destructive">{error}</p>
+        ) : (
+          <EntityListing<LocalRow>
+            title="Products"
+            summary="Live records · catalog list layout · inline New/Edit"
+            accent={theme.colors.brand}
+            fields={fields}
+            rows={rows}
+            getRowId={(r) => r.id}
+            getCell={getCell}
+            renderCell={renderCell}
+            onAdd={onAdd}
+            onUpdate={onUpdate}
+            headerExtra={
+              <span className="text-xs text-muted-foreground">
+                {rows.length} product{rows.length === 1 ? "" : "s"}
+              </span>
+            }
+          />
+        )}
       </div>
     </AppShell>
   );

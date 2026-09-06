@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
@@ -8,9 +8,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
 import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
 import { theme } from "@/lib/theme";
-import { projects, type ProjectFixture } from "@/lib/fixtures/projects";
+import type { Project } from "@/lib/data";
+import { apiJson } from "@/lib/client/api-json";
 
-type LocalRow = ProjectFixture & Record<string, unknown>;
+type LocalRow = Project & Record<string, unknown>;
 
 function toCatalogValues(r: LocalRow): Record<string, string> {
   return {
@@ -25,49 +26,40 @@ function toCatalogValues(r: LocalRow): Record<string, string> {
   };
 }
 
-
-function applyDraft(row: LocalRow, draft: Record<string, string>): LocalRow {
-  return {
-    ...row,
-    name: draft.name || row.name,
-    description: draft.description || row.description,
-    status: (draft.status as ProjectFixture["status"]) || row.status,
-    ownerName: draft.owner_name || row.ownerName,
-    priority: (draft.priority as ProjectFixture["priority"]) || row.priority,
-    startDate: draft.start_date || row.startDate,
-    targetDate: draft.target_date || row.targetDate,
-    taskCount: Number(draft.task_count || row.taskCount) || 0,
-  };
-}
-
 export default function ProjectsDetailPage() {
   const params = useParams();
   const id = String(params?.id ?? "");
-  const seed = projects.find((r) => r.id === id);
-
-  const [row, setRow] = useState<LocalRow | null>(
-    () => (seed ? ({ ...seed } as LocalRow) : null),
-  );
+  const [row, setRow] = useState<LocalRow | null>(null);
+  const [fetchedId, setFetchedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const runtimeSections = useSavedRuntimeLayouts("project");
 
-  if (!row) {
-    return (
-      <AppShell>
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">Project not found in fixtures.</p>
-          <Link href="/projects" className="text-sm underline">
-            Back to Projects
-          </Link>
-        </div>
-      </AppShell>
-    );
-  }
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    apiJson<{ data: Project }>(`/api/projects/${encodeURIComponent(id)}`)
+      .then((json) => {
+        if (cancelled) return;
+        setRow(json.data as LocalRow);
+        setNote("");
+        setFetchedId(id);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setRow(null);
+        setNote(e instanceof Error ? e.message : "Project not found.");
+        setFetchedId(id);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
-  const values = toCatalogValues(row);
+  const values = row ? toCatalogValues(row) : {};
 
   const startEdit = () => {
     setDraft({ ...values });
@@ -79,15 +71,46 @@ export default function ProjectsDetailPage() {
     setDraft({});
   };
 
-  const save = () => {
-    setRow((prev) => (prev ? applyDraft(prev, draft) : prev));
-    setEditing(false);
-    setNote("Updated in this session (mock). The active saved or catalog fallback layout was applied; fixtures are not persisted.");
+  const save = async () => {
+    if (!row) return;
+    setSaving(true);
+    try {
+      const json = await apiJson<{ data: Project }>(`/api/projects/${encodeURIComponent(row.id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: draft.name,
+          description: draft.description,
+          status: draft.status,
+          priority: draft.priority,
+          ownerName: draft.owner_name,
+          startDate: draft.start_date || null,
+          targetDate: draft.target_date || null,
+        }),
+      });
+      setRow(json.data as LocalRow);
+      setEditing(false);
+      setNote("Saved.");
+    } catch (e: unknown) {
+      setNote(e instanceof Error ? e.message : "Could not save project.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <AppShell>
       <div className="space-y-6">
+        {fetchedId !== id ? (
+          <p className="text-sm text-muted-foreground">Loading project…</p>
+        ) : !row ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">{note || "Project not found."}</p>
+            <Link href="/projects" className="text-sm underline">
+              Back to Projects
+            </Link>
+          </div>
+        ) : (
+          <>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <Link
@@ -97,10 +120,10 @@ export default function ProjectsDetailPage() {
               ← Projects
             </Link>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              {values.name || values.title || row.id}
+              {values.name || row.id}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Runtime saved-layout pilot — {editing ? "edit" : "detail"} uses a saved layout when available, otherwise the catalog default.
+              Runtime saved-layout — {editing ? "edit" : "detail"} uses a saved layout when available, otherwise the catalog default.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -117,11 +140,12 @@ export default function ProjectsDetailPage() {
               <>
                 <button
                   type="button"
-                  onClick={save}
-                  className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                  onClick={() => void save()}
+                  disabled={saving}
+                  className="rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
                   style={{ backgroundColor: theme.colors.brand }}
                 >
-                  Save
+                  {saving ? "Saving…" : "Save"}
                 </button>
                 <button
                   type="button"
@@ -156,8 +180,9 @@ export default function ProjectsDetailPage() {
             />
           </CardContent>
         </Card>
+          </>
+        )}
       </div>
     </AppShell>
   );
 }
-

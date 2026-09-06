@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
@@ -8,9 +8,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
 import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
 import { theme } from "@/lib/theme";
-import { tasks, type TaskFixture } from "@/lib/fixtures/tasks";
+import type { Project, Task } from "@/lib/data";
+import { apiJson } from "@/lib/client/api-json";
 
-type LocalRow = TaskFixture & Record<string, unknown>;
+type LocalRow = Task & Record<string, unknown>;
 
 function toCatalogValues(r: LocalRow): Record<string, string> {
   return {
@@ -24,49 +25,55 @@ function toCatalogValues(r: LocalRow): Record<string, string> {
   };
 }
 
-
-function applyDraft(row: LocalRow, draft: Record<string, string>): LocalRow {
-  return {
-    ...row,
-    title: draft.title || row.title,
-    description: draft.description || row.description,
-    status: (draft.status as TaskFixture["status"]) || row.status,
-    priority: (draft.priority as TaskFixture["priority"]) || row.priority,
-    projectName: draft.project_name || row.projectName,
-    assigneeName: draft.assignee_name || row.assigneeName,
-    dueDate: draft.due_date || row.dueDate,
-    updatedAt: new Date().toISOString(),
-  };
+function resolveProjectId(projects: Project[], raw: string): string | null {
+  const value = raw.trim();
+  if (!value) return null;
+  const byId = projects.find((p) => p.id === value);
+  if (byId) return byId.id;
+  const lower = value.toLowerCase();
+  const matches = projects.filter((p) => p.name.toLowerCase() === lower);
+  return matches.length === 1 ? matches[0].id : null;
 }
 
 export default function TasksDetailPage() {
   const params = useParams();
   const id = String(params?.id ?? "");
-  const seed = tasks.find((r) => r.id === id);
-
-  const [row, setRow] = useState<LocalRow | null>(
-    () => (seed ? ({ ...seed } as LocalRow) : null),
-  );
+  const [row, setRow] = useState<LocalRow | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [fetchedId, setFetchedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const runtimeSections = useSavedRuntimeLayouts("task");
 
-  if (!row) {
-    return (
-      <AppShell>
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">Task not found in fixtures.</p>
-          <Link href="/tasks" className="text-sm underline">
-            Back to Tasks
-          </Link>
-        </div>
-      </AppShell>
-    );
-  }
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    Promise.all([
+      apiJson<{ data: Task }>(`/api/tasks/${encodeURIComponent(id)}`),
+      apiJson<{ data: Project[] }>("/api/projects"),
+    ])
+      .then(([taskJson, projectJson]) => {
+        if (cancelled) return;
+        setRow(taskJson.data as LocalRow);
+        setProjects(projectJson.data ?? []);
+        setNote("");
+        setFetchedId(id);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setRow(null);
+        setNote(e instanceof Error ? e.message : "Task not found.");
+        setFetchedId(id);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
-  const values = toCatalogValues(row);
+  const values = row ? toCatalogValues(row) : {};
 
   const startEdit = () => {
     setDraft({ ...values });
@@ -78,15 +85,52 @@ export default function TasksDetailPage() {
     setDraft({});
   };
 
-  const save = () => {
-    setRow((prev) => (prev ? applyDraft(prev, draft) : prev));
-    setEditing(false);
-    setNote("Updated in this session (mock). The active saved or catalog fallback layout was applied; fixtures are not persisted.");
+  const save = async () => {
+    if (!row) return;
+    const projectId =
+      resolveProjectId(projects, draft.project_name || "") || row.projectId;
+    if (!projectId) {
+      setNote("Set Project to an existing project name (or id) before saving.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const json = await apiJson<{ data: Task }>(`/api/tasks/${encodeURIComponent(row.id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          title: draft.title,
+          description: draft.description,
+          status: draft.status,
+          priority: draft.priority,
+          projectId,
+          assigneeName: draft.assignee_name,
+          dueDate: draft.due_date || null,
+        }),
+      });
+      setRow(json.data as LocalRow);
+      setEditing(false);
+      setNote("Saved.");
+    } catch (e: unknown) {
+      setNote(e instanceof Error ? e.message : "Could not save task.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <AppShell>
       <div className="space-y-6">
+        {fetchedId !== id ? (
+          <p className="text-sm text-muted-foreground">Loading task…</p>
+        ) : !row ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">{note || "Task not found."}</p>
+            <Link href="/tasks" className="text-sm underline">
+              Back to Tasks
+            </Link>
+          </div>
+        ) : (
+          <>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <Link
@@ -96,10 +140,10 @@ export default function TasksDetailPage() {
               ← Tasks
             </Link>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              {values.name || values.title || row.id}
+              {values.title || row.id}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Runtime saved-layout pilot — {editing ? "edit" : "detail"} uses a saved layout when available, otherwise the catalog default.
+              Runtime saved-layout — {editing ? "edit" : "detail"} uses a saved layout when available, otherwise the catalog default.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -116,11 +160,12 @@ export default function TasksDetailPage() {
               <>
                 <button
                   type="button"
-                  onClick={save}
-                  className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
+                  onClick={() => void save()}
+                  disabled={saving}
+                  className="rounded-md px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
                   style={{ backgroundColor: theme.colors.brand }}
                 >
-                  Save
+                  {saving ? "Saving…" : "Save"}
                 </button>
                 <button
                   type="button"
@@ -155,8 +200,9 @@ export default function TasksDetailPage() {
             />
           </CardContent>
         </Card>
+          </>
+        )}
       </div>
     </AppShell>
   );
 }
-

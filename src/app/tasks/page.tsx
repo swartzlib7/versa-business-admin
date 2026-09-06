@@ -1,19 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { EntityListing } from "@/components/listing/entity-listing";
 import { theme } from "@/lib/theme";
 import { PageHeader } from "@/components/ui/page-header";
-import { tasks, type TaskFixture } from "@/lib/fixtures/tasks";
 import {
   listingFieldsFromCatalog,
   resolvePicklistLabel,
 } from "@/lib/catalog/layout-to-fields";
 import type { ListingField } from "@/components/listing/entity-listing";
+import type { Project, Task } from "@/lib/data";
+import { apiJson } from "@/lib/client/api-json";
 
-type LocalRow = TaskFixture & { _local?: boolean } & Record<string, unknown>;
+type LocalRow = Task & Record<string, unknown>;
 
 function toCatalogValues(r: LocalRow): Record<string, string> {
   return {
@@ -27,10 +28,21 @@ function toCatalogValues(r: LocalRow): Record<string, string> {
   };
 }
 
+function resolveProjectId(projects: Project[], raw: string): string | null {
+  const value = raw.trim();
+  if (!value) return null;
+  const byId = projects.find((p) => p.id === value);
+  if (byId) return byId.id;
+  const lower = value.toLowerCase();
+  const matches = projects.filter((p) => p.name.toLowerCase() === lower);
+  return matches.length === 1 ? matches[0].id : null;
+}
+
 export default function TasksPage() {
-  const [rows, setRows] = useState<LocalRow[]>(() =>
-    tasks.map((r) => ({ ...r }) as LocalRow),
-  );
+  const [rows, setRows] = useState<LocalRow[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState("");
   const [note, setNote] = useState("");
 
   const catalogFields = useMemo(
@@ -50,6 +62,30 @@ export default function TasksPage() {
       })),
     [catalogFields],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([
+      apiJson<{ data: Task[] }>("/api/tasks"),
+      apiJson<{ data: Project[] }>("/api/projects"),
+    ])
+      .then(([taskJson, projectJson]) => {
+        if (cancelled) return;
+        setRows((taskJson.data ?? []) as LocalRow[]);
+        setProjects(projectJson.data ?? []);
+        setError("");
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : "Failed to load tasks.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const getCell = (row: LocalRow, key: string) => {
     const vals = toCatalogValues(row);
@@ -75,48 +111,62 @@ export default function TasksPage() {
     return text;
   };
 
-  const onAdd = (draft: Record<string, string>) => {
-    const id = `local-task-${Date.now()}`;
-    const now = new Date().toISOString();
-    const next: LocalRow = {
-      id,
-      title: draft.title || "New task",
-      description: draft.description || "",
-      status: (draft.status as TaskFixture["status"]) || "planned",
-      priority: (draft.priority as TaskFixture["priority"]) || "normal",
-      projectId: "",
-      projectName: draft.project_name || "",
-      assigneeUserId: "",
-      assigneeName: draft.assignee_name || "",
-      dueDate: draft.due_date || "",
-      createdAt: now,
-      updatedAt: now,
-      _local: true,
-    };
-    setRows((prev) => [...prev, next]);
-    setNote("Added locally (mock) — catalog layout; not persisted.");
+  const onAdd = async (draft: Record<string, string>) => {
+    const projectId = resolveProjectId(projects, draft.project_name || "");
+    if (!projectId) {
+      setNote("Set Project to an existing project name (or id) before saving.");
+      return false;
+    }
+    try {
+      const json = await apiJson<{ data: Task }>("/api/tasks", {
+        method: "POST",
+        body: JSON.stringify({
+          title: draft.title || "New task",
+          description: draft.description || "",
+          status: draft.status || "planned",
+          priority: draft.priority || "normal",
+          projectId,
+          assigneeName: draft.assignee_name || "",
+          dueDate: draft.due_date || null,
+        }),
+      });
+      setRows((prev) => [...prev, json.data as LocalRow]);
+      setNote("Saved.");
+      return true;
+    } catch (e: unknown) {
+      setNote(e instanceof Error ? e.message : "Could not save task.");
+      return false;
+    }
   };
 
-  const onUpdate = (id: string, draft: Record<string, string>) => {
-    const now = new Date().toISOString();
-    setRows((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? {
-              ...r,
-              title: draft.title || r.title,
-              description: draft.description || r.description,
-              status: (draft.status as TaskFixture["status"]) || r.status,
-              priority: (draft.priority as TaskFixture["priority"]) || r.priority,
-              projectName: draft.project_name || r.projectName,
-              assigneeName: draft.assignee_name || r.assigneeName,
-              dueDate: draft.due_date || r.dueDate,
-              updatedAt: now,
-            }
-          : r,
-      ),
-    );
-    setNote("Updated in this session (mock) — catalog layout.");
+  const onUpdate = async (id: string, draft: Record<string, string>) => {
+    const current = rows.find((r) => r.id === id);
+    const projectId =
+      resolveProjectId(projects, draft.project_name || "") || current?.projectId;
+    if (!projectId) {
+      setNote("Set Project to an existing project name (or id) before saving.");
+      return false;
+    }
+    try {
+      const json = await apiJson<{ data: Task }>(`/api/tasks/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          title: draft.title,
+          description: draft.description,
+          status: draft.status,
+          priority: draft.priority,
+          projectId,
+          assigneeName: draft.assignee_name,
+          dueDate: draft.due_date || null,
+        }),
+      });
+      setRows((prev) => prev.map((r) => (r.id === id ? (json.data as LocalRow) : r)));
+      setNote("Saved.");
+      return true;
+    } catch (e: unknown) {
+      setNote(e instanceof Error ? e.message : "Could not update task.");
+      return false;
+    }
   };
 
   return (
@@ -133,7 +183,7 @@ export default function TasksPage() {
             href="/users"
             className="text-sm text-muted-foreground underline-offset-4 hover:underline"
           >
-            Users pilot
+            Users
           </Link>
         </div>
 
@@ -143,23 +193,29 @@ export default function TasksPage() {
           </p>
         )}
 
-        <EntityListing<LocalRow>
-          title="Tasks"
-          summary="Fixture data · catalog list layout · inline New/Edit"
-          accent={theme.colors.brand}
-          fields={fields}
-          rows={rows}
-          getRowId={(r) => r.id}
-          getCell={getCell}
-          renderCell={renderCell}
-          onAdd={onAdd}
-          onUpdate={onUpdate}
-          headerExtra={
-            <span className="text-xs text-muted-foreground">
-              {rows.length} task{rows.length === 1 ? "" : "s"}
-            </span>
-          }
-        />
+        {!loaded ? (
+          <p className="text-sm text-muted-foreground">Loading tasks…</p>
+        ) : error ? (
+          <p className="text-sm text-destructive">{error}</p>
+        ) : (
+          <EntityListing<LocalRow>
+            title="Tasks"
+            summary="Live records · catalog list layout · inline New/Edit"
+            accent={theme.colors.brand}
+            fields={fields}
+            rows={rows}
+            getRowId={(r) => r.id}
+            getCell={getCell}
+            renderCell={renderCell}
+            onAdd={onAdd}
+            onUpdate={onUpdate}
+            headerExtra={
+              <span className="text-xs text-muted-foreground">
+                {rows.length} task{rows.length === 1 ? "" : "s"}
+              </span>
+            }
+          />
+        )}
       </div>
     </AppShell>
   );
