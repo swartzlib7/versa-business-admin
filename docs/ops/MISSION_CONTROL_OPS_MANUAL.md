@@ -3,7 +3,7 @@
 **Product:** Versa AGi Mission (business Mission Control)  
 **Repo / project:** `versa-admin-system` · Project **#26**  
 **Audience:** Agents and humans implementing, hosting, maintaining, and upgrading Mission Control  
-**Status:** **Authorized 2026-09-05** — durable catalog overlay has landed (0.7.105–0.7.111). Expand *TBD* as D3/D5 and packaging land. Host snapshot in §4.4 is from 2026-08-19 and may lag HEAD.  
+**Status:** **D3/D5 landed 2026-09-05/06** — durable catalog overlay (0.7.105–0.7.135: fixture `.data/catalog.json` / postgres `catalog_overlay`, seed∪overlay merge, `c_` namespace, seed-pack stamp, Primary-Org scope, agent-package install/uninstall API). Remaining *TBD*: production packaging + post-deploy smoke script. Host snapshot in §4.4 is from 2026-08-19 and may lag HEAD.  
 **Governing design:** `docs/production/state/state_upgradability.md` (D1–D6 **locked**)  
 **Map:** `docs/production/state/shape_mission_control.md`  
 **Roadmap:** `docs/coa/MISSION_CONTROL_PRODUCTION_PLAN.md` — Horizon 3  
@@ -146,7 +146,7 @@ Deep checklist: `state_db_cutover_checklist.md`.
 
 | Port | Role (current practice) |
 |------|-------------------------|
-| **3200** | Primary Stephen Gate 3 / beta review (`next dev`) |
+| **3200** | Primary Stephen Gate 3 / beta review — production-mode `next start` since 2026-09-04 (rebuild+restart every deploy) |
 | **3100** | Historically production-like review board (`next start`) — may be down |
 | **3210** | Scratch / worktree experiments — do not treat as Gate 3 |
 
@@ -211,11 +211,12 @@ From `STALE_UI_AND_DEPLOY.md`:
 
 ```bash
 # Example: restart Gate 3 dev board on 3200 (adjust if process manager changes)
-# 1) stop existing next dev on 3200
+# 1) identify PID: ss -tlnp | grep 3200  (kill that PID; never pkill -f — it self-matches)
 # 2) cd repo && git checkout beta && git pull --ff-only
 # 3) rm -rf .next   # when switching SHAs or after bad build
-# 4) npx next dev --port 3200
-# 5) curl health + /login
+# 4) npm run build
+# 5) nohup ./node_modules/.bin/next start -p 3200 > __tmp/next3200.log 2>&1 &
+# 6) verify in a SEPARATE call: curl -s localhost:3200/api/health  (root may stall; never relaunch on timeout)
 ```
 
 ### 3.6 Credentials & host permissions (AGi co-hosting)
@@ -234,8 +235,10 @@ When Mission Control shares a Versa AGi host with agents:
 |-------|-------------|
 | Git | Remote is source of truth for code |
 | `.env.local` | Host backup only; encrypted |
-| Postgres | Scheduled dump when DB is source of truth |
-| Tenant catalog overlays | Backup with DB; restore must not re-seed wipe `c_*` |
+| Postgres (DATA_SOURCE=postgres) | Scheduled `pg_dump` — includes `catalog_overlay` + zone tables (`executive_project`, `executive_task`, `production_product`) |
+| Durable catalog overlay (fixture mode) | `.data/catalog.json` IS the tenant customization store when no DB — back up the file |
+| Overlay restore rule | Restore must not re-seed wipe `c_*`; seed∪overlay merge on boot makes system seed re-runnable, overlay must survive |
+| Sample data | Rows tagged `mc_sample:`; insert/delete via Settings → Modes — never hand-delete the Primary Org |
 | Fixture-only dev | Disposable; do not treat as production data |
 
 ---
@@ -316,11 +319,13 @@ Flow: agent branch → COA Gate 2 → fast-forward **beta** → Stephen Gate 3 �
 - Install agent packages before durable catalog cutover  
 - Silent `master` promote without Stephen  
 
-### 5.4 Future: agent packages (*blocked on D5 prerequisite*)
+### 5.4 Agent packages (D5 — landed 0.7.132)
 
-See sketch in `state_upgradability.md` §6. Manual section reserved:
+Install/uninstall API is live: `c_`-prefixed seeds, hide-not-delete of system fields, Primary-Org-scoped overlay rows. Operator flow:
 
-- Package verify → install seed merge → enable → smoke → rollback=disable  
+- Package verify → install seed merge → enable → smoke → rollback=disable
+- Uninstall removes the package's overlay rows; hidden system fields reappear (hide-not-delete)
+- Package format sketch: `state_upgradability.md` §6; expand here as packages are authored  
 
 ### 5.5 Branding upgrades (D6 parallel)
 
@@ -335,9 +340,9 @@ See sketch in `state_upgradability.md` §6. Manual section reserved:
 
 | Concern | Today (approx.) | Target |
 |---------|-----------------|--------|
-| Catalog durability | Partial / session gaps on layouts | Durable org-scoped store |
+| Catalog durability | **Durable** — fixture `.data/catalog.json` / postgres `catalog_overlay` (0.7.105+), Primary-Org-scoped (0.7.132) | All zones honor saved layouts |
 | Runtime layouts | Improving via I5.6.32; Gate 3 in flight | All zones honor saved layouts |
-| Seeds | `scripts/seed.mjs` + fixtures | Versioned system seed packs |
+| Seeds | `scripts/seed.mjs` + fixtures; seed∪overlay merge on boot with `seed_pack` stamp | Versioned system seed packs |
 
 ### 6.2 Operator rules for Records Editor
 
@@ -345,15 +350,16 @@ See sketch in `state_upgradability.md` §6. Manual section reserved:
 - After layout changes: hard-reload; verify **runtime** form/list, not only editor canvas  
 - Do not hand-edit production catalog JSON without a backup  
 
-### 6.3 Durable catalog cutover (*TBD runbook when planned*)
+### 6.3 Durable catalog operations (landed 0.7.105–0.7.132 — no future cutover runbook required)
 
-Placeholder steps (align with Task 239 sequencing):
+The planned big-bang cutover was superseded by incremental delivery:
 
-1. Schema for catalog tables  
-2. Import fixture baseline as system seed  
-3. Dual-read period  
-4. Cutover flag  
-5. Disable session Map authority  
+- **Storage:** fixture mode → `.data/catalog.json`; postgres → `catalog_overlay` table. Legacy `site`-keyed overlay rows migrate to the Primary Org on boot (0.7.132).
+- **Merge:** system seed ∪ overlay on boot; system fields hide-not-delete; new custom fields enforce the `c_` prefix (0.7.106).
+- **Version stamp:** `overlay.seed_pack` records which seed-pack generation the overlay merged against (0.7.106).
+- **Agent packages:** install/uninstall API writes `c_` seeds and overlay rows scoped to the Primary Org (0.7.132).
+- **Operator rules:** back up `.data/catalog.json` / `catalog_overlay` before any seed work; never re-seed wipe `c_*`; verify Primary-Org scope after a migration boot.
+- **Sample data:** Settings → Modes → Insert/Delete Sample Data (0.7.133); rows tagged `mc_sample:`; Demo mode writes none; the Primary Org is never deleted.  
 
 ---
 
@@ -375,11 +381,9 @@ Placeholder steps (align with Task 239 sequencing):
 
 | Gap | Impact | Tracker |
 |-----|--------|---------|
-| Durable catalog overlay | D3 Primary-Org scope + D5 package API landed 0.7.132. Remaining: ops manual expansion + `mission_control` skill | #239 / #256 / #240 |
-| Mission Control skill not authored | Other agents / new COAs have no loadable procedure for style, API, install, operate-for-other-PUs | Horizon 3 / #240 — authorized 2026-09-05; author after this outline's procedures stay aligned to D1–D6 |
-| Insert / Delete Sample Data | Demo must not swap the live backend; sample rows use `external_id` and can be inserted/deleted | New task — locked approach 2026-09-04 |
-| Production packaging (container/systemd unit) | Customer install thin | *TBD* |
-| Production packaging (container/systemd unit) | Customer install thin | *TBD* |
+| Durable catalog overlay | Landed 0.7.105–0.7.133 (D3 Primary-Org scope, D5 package API, Insert/Delete Sample Data). #239 closed 2026-09-06; #256/#269 done | Closed |
+| Mission Control skill | Draft authored 2026-09-06 (`.agent/skills/mission_control.md`, status draft) — not marked ready until Stephen approves | #240 |
+| Production packaging (container/systemd unit) | Customer install thin — real remaining gap | *TBD* |
 | Automated post-deploy smoke script | Manual curls today | *TBD* |
 | README version pins lag HEAD | Prefer `git` + health version | refresh on release |
 
@@ -415,6 +419,7 @@ npx next dev --port 3200
 | 2026-08-19 | Initial filled outline: setup, maintenance, gates, seed-only upgrade posture, host port map, troubleshooting; aligned to locked D1–D6 |
 | 2026-09-03 | Outline merged onto this working tree for Stephen's review. Horizon 3 now also includes a Mission Control skill (not authored yet). No TBD runbooks invented. |
 | 2026-09-05 | Stephen authorized remaining overlay (D3/D5), Insert/Delete Sample Data, and authoring the Mission Control skill. Durable-catalog sequencing gate is closed. |
+| 2026-09-06 | Expanded TBD sections to shipped reality: §2.7 prod-mode note, §3.5 restart recipe, §3.7 backups, §5.4 D5 landed, §6.1 today column, §6.3 durable-catalog ops runbook (replaces planned-cutover placeholder); §8 gaps updated (sample data shipped 0.7.133, packaging dedupe, skill drafted). #239 closed. `mission_control` skill authored as draft — pending Stephen approval. |
 
 ---
 
