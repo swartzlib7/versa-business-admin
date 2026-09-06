@@ -83,6 +83,7 @@ function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
         body: JSON.stringify({
           email,
           password,
@@ -99,8 +100,8 @@ function LoginForm() {
         return;
       }
 
-      router.push(redirect);
-      router.refresh();
+      // Full navigation so the `__session` cookie is sent through Hosting.
+      window.location.assign(redirect);
     } catch {
       setError("Network error. Please try again.");
       setLoading(false);
