@@ -7,7 +7,7 @@
 |-------|-------|
 | **Feature** | Public + staff Mission Control on `https://versa-agi.web.app` |
 | **Status** | Live on `https://versa-agi.web.app` with hosted Supabase Postgres |
-| **Last verified** | 2026-09-05 — `/api/health` ok v0.7.70, `latencyMs` 466 (not fixture 0) |
+| **Last verified** | 2026-09-06 — master 0.7.135 deployed; Supabase remigrated 0000–0012 + seed |
 | **Primary config** | `firebase.json`, `.firebaserc` |
 | **Deploy from** | This repo only (`versa-agi-mission`) |
 
@@ -30,7 +30,7 @@
 - Supabase project `etxwzbxsuvcfbpxwhhtq` (us-west-2 pooler): Drizzle migrate applied; seed wrote 1 org, 5 depts, 6 users, catalog, 5 projects, 5 tasks, 4 products, 5 integrations.
 - Live `/api/health` reports `ok` / `0.7.70` with real DB latency (~466ms). `/api/users` requires login (expected).
 - Connection lives in gitignored `.env.local` / `.env.production`. Parent `docs/supabase/` is gitignored.
-- `main` is based on `origin/beta` @ 0.7.135 plus Firebase hosting / `__session` cookie. Live Hosting is still the pre-beta build until the next deploy (new Drizzle migrations 0001–0012 are not applied to Supabase yet).
+- `master` and `main` are at 0.7.135 plus Firebase hosting / `__session` cookie. Next deploy applies Drizzle 0000–0012 on Supabase (overwrite allowed).
 
 ## 3. Target State
 
@@ -98,3 +98,4 @@ Supabase free/pro is enough for fixture-sized data. Do not point this at the Ver
 | 2026-09-05 | Connected via pooler (IPv4); migrate + seed; redeployed `ssrversaagi` with `DATA_SOURCE=postgres`. Did not adopt supabase-js starter from dashboard prompt. |
 | 2026-09-05 | Login bounce: Hosting strips non-`__session` cookies. Renamed cookie; full navigation after login. |
 | 2026-09-05 | Merged `origin/beta` (0.7.135) onto `main`; kept COA login challenge + `__session` / Hosting config. |
+| 2026-09-06 | Fast-forwarded `master` to same tip; remigrated Supabase; deployed 0.7.135 to versa-agi.web.app. |
