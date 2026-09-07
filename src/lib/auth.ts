@@ -8,7 +8,9 @@ import { getDb } from "@/lib/db/client";
 import { users as usersTable, departments as departmentsTable } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-const SESSION_COOKIE = "versa_session";
+// Firebase Hosting only forwards `__session` to Cloud Functions / Cloud Run.
+// Any other cookie name is stripped, so login appears to do nothing after submit.
+const SESSION_COOKIE = process.env.AUTH_COOKIE_NAME || "__session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
 function encodeSession(session: Session): string {
@@ -127,12 +129,19 @@ export const AUTH_CONFIG = {
   maxAge: SESSION_MAX_AGE,
 };
 
+function cookieFlags(): string {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}${secure}`;
+}
+
 export function createSessionCookieHeader(token: string): string {
-  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}`;
+  return `${SESSION_COOKIE}=${token}; ${cookieFlags()}`;
 }
 
 export function createClearSessionCookieHeader(): string {
-  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+  return `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${
+    process.env.NODE_ENV === "production" ? "; Secure" : ""
+  }`;
 }
 
 export function isAdmin(session: Session | null): boolean {
