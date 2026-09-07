@@ -160,10 +160,18 @@ type AsteroidDust = {
   life: number;
   maxLife: number;
   r: number;
-  warm: boolean;
+  color: Rgb;
   spark: boolean;
   phase: number;
   twinkle: number;
+};
+
+type CometTrail = {
+  x: number;
+  y: number;
+  life: number;
+  maxLife: number;
+  r: number;
 };
 
 type TrueComet = {
@@ -182,6 +190,7 @@ type TrueComet = {
   born: number;
   size: number;
   phase: number;
+  path: { x: number; y: number }[];
 };
 
 type Rgb = [number, number, number];
@@ -445,11 +454,7 @@ function drawAsteroidDust(
   const wink = Math.sin(p.phase * 3.2) > 0.72 ? 1.35 : 0.55;
   const spark = p.spark ? wink : 1;
   const alpha = fade * flicker * spark * (p.spark ? 0.95 : 0.42);
-  const color: Rgb = p.spark
-    ? [255, 255, 255]
-    : p.warm
-      ? [255, 226, 178]
-      : [186, 220, 255];
+  const color: Rgb = p.spark ? [255, 255, 255] : p.color;
   const r = Math.max(0.15, p.r * scale * (0.65 + 0.35 * flicker));
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -457,7 +462,7 @@ function drawAsteroidDust(
   ctx.fill();
   if (p.spark && flicker > 0.62 && fade > 0.2) {
     const spike = r * 3.4;
-    ctx.strokeStyle = rgba([255, 255, 255], alpha * 0.85);
+    ctx.strokeStyle = rgba(p.color, alpha * 0.85);
     ctx.lineWidth = 0.35 * scale;
     ctx.lineCap = "round";
     ctx.beginPath();
@@ -467,6 +472,51 @@ function drawAsteroidDust(
     ctx.lineTo(x, y + spike);
     ctx.stroke();
   }
+}
+
+function drawCometPath(
+  ctx: CanvasRenderingContext2D,
+  c: TrueComet,
+  driftX: number,
+  driftY: number,
+  scale: number,
+) {
+  const pts = c.path;
+  if (pts.length < 2) return;
+  const appear = Math.min(1, c.born / 1.8);
+  const n = pts.length - 1;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (let i = 1; i < pts.length; i++) {
+    const t = i / n;
+    const a = appear * t * t * 0.7;
+    if (a < 0.02) continue;
+    ctx.strokeStyle = rgba([255, 255, 255], a);
+    ctx.lineWidth = (0.45 + 1.65 * t) * scale * c.size;
+    ctx.beginPath();
+    ctx.moveTo(pts[i - 1].x + driftX * 0.08, pts[i - 1].y + driftY * 0.08);
+    ctx.lineTo(pts[i].x + driftX * 0.08, pts[i].y + driftY * 0.08);
+    ctx.stroke();
+  }
+}
+
+function drawCometTrail(
+  ctx: CanvasRenderingContext2D,
+  p: CometTrail,
+  driftX: number,
+  driftY: number,
+  scale: number,
+) {
+  const fade = Math.max(0, 1 - p.life / p.maxLife);
+  if (fade <= 0.02) return;
+  const x = p.x + driftX * 0.08;
+  const y = p.y + driftY * 0.08;
+  const alpha = fade * fade * 0.72;
+  const r = Math.max(0.35, p.r * scale * (0.45 + 0.55 * fade));
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = rgba([255, 255, 255], alpha);
+  ctx.fill();
 }
 
 function drawTrueComet(
@@ -480,60 +530,24 @@ function drawTrueComet(
   const y = c.y + driftY * 0.08;
   const appear = Math.min(1, c.born / 1.8);
   if (appear <= 0.02) return;
-  const mag = Math.hypot(c.vx, c.vy) || 1;
-  const ux = c.vx / mag;
-  const uy = c.vy / mag;
-  const heading = Math.atan2(c.vy, c.vx);
   const s = scale * c.size;
   const pulse = 0.85 + 0.15 * Math.sin(c.phase);
 
   ctx.save();
   ctx.translate(x, y);
-  ctx.rotate(heading);
 
-  const ionLen = 280 * s;
-  const dustLen = 190 * s;
-  const ion = ctx.createLinearGradient(-ionLen, 0, 0, 0);
-  ion.addColorStop(0, rgba([120, 190, 255], 0));
-  ion.addColorStop(0.45, rgba([150, 210, 255], 0.12 * appear));
-  ion.addColorStop(0.82, rgba([210, 240, 255], 0.38 * appear * pulse));
-  ion.addColorStop(1, rgba([255, 255, 255], 0.55 * appear));
-  ctx.strokeStyle = ion;
-  ctx.lineWidth = 2.2 * s;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(-ionLen, 0);
-  ctx.lineTo(0, 0);
-  ctx.stroke();
-
-  ctx.save();
-  ctx.rotate(-0.12);
-  const dust = ctx.createLinearGradient(-dustLen, 0, 0, 0);
-  dust.addColorStop(0, rgba([255, 210, 140], 0));
-  dust.addColorStop(0.4, rgba([255, 196, 120], 0.08 * appear));
-  dust.addColorStop(0.78, rgba([255, 230, 190], 0.28 * appear));
-  dust.addColorStop(1, rgba([255, 250, 230], 0.45 * appear));
-  ctx.strokeStyle = dust;
-  ctx.lineWidth = 7.5 * s;
-  ctx.beginPath();
-  ctx.moveTo(-dustLen, 0);
-  ctx.quadraticCurveTo(-dustLen * 0.45, 10 * s, 0, 0);
-  ctx.stroke();
-  ctx.restore();
-
-  const coma = ctx.createRadialGradient(0, 0, 0, 0, 0, 18 * s);
-  coma.addColorStop(0, rgba([255, 255, 255], 0.85 * appear * pulse));
-  coma.addColorStop(0.18, rgba([210, 240, 255], 0.42 * appear));
-  coma.addColorStop(0.5, rgba([140, 200, 255], 0.14 * appear));
-  coma.addColorStop(1, rgba([140, 200, 255], 0));
+  const coma = ctx.createRadialGradient(0, 0, 0, 0, 0, 10 * s);
+  coma.addColorStop(0, rgba([255, 255, 255], 0.9 * appear * pulse));
+  coma.addColorStop(0.35, rgba([230, 245, 255], 0.28 * appear));
+  coma.addColorStop(1, rgba([230, 245, 255], 0));
   ctx.fillStyle = coma;
   ctx.beginPath();
-  ctx.arc(0, 0, 18 * s, 0, Math.PI * 2);
+  ctx.arc(0, 0, 10 * s, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = rgba([255, 255, 255], 0.95 * appear);
   ctx.beginPath();
-  ctx.ellipse(ux * 0.4, uy * 0.15, 2.1 * s, 1.55 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, 2.1 * s, 1.55 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
@@ -640,6 +654,7 @@ export function VersaConstellation({
     const asteroids: Asteroid[] = [];
     const asteroidDust: AsteroidDust[] = [];
     const trueComets: TrueComet[] = [];
+    const cometTrail: CometTrail[] = [];
     const gap = (lo: number, hi: number, freq: number) =>
       rand(lo, hi) / Math.max(freq, SKY_FREQ_MIN);
     let raf = 0;
@@ -649,6 +664,7 @@ export function VersaConstellation({
     let asteroidSpawnIn = gap(4, 10, fxRef.current.asteroidF);
     let trueCometSpawnIn = gap(8, 18, fxRef.current.cometF);
     let dustAcc = 0;
+    let cometTrailAcc = 0;
     let asteroidTintSeq = 0;
     let dpr = 1;
     const mouse = { tx: 0, ty: 0, x: 0, y: 0 };
@@ -890,7 +906,29 @@ export function VersaConstellation({
         born: 0,
         size: rand(0.85, 1.25),
         phase: Math.random() * Math.PI * 2,
+        path: [{ x: path.sx, y: path.sy }],
       });
+    };
+
+    const emitCometTrail = (c: TrueComet) => {
+      const mag = Math.hypot(c.vx, c.vy) || 1;
+      const ux = c.vx / mag;
+      const uy = c.vy / mag;
+      const px = -uy;
+      const py = ux;
+      const n = Math.random() < 0.55 ? 3 : 2;
+      for (let i = 0; i < n; i++) {
+        if (cometTrail.length >= 520) break;
+        const along = rand(c.size * 0.4, c.size * 6);
+        const side = gauss() * c.size * 1.1;
+        cometTrail.push({
+          x: c.x - ux * along + px * side,
+          y: c.y - uy * along + py * side,
+          life: 0,
+          maxLife: rand(9, 16),
+          r: rand(0.55, 1.35),
+        });
+      }
     };
 
     const emitAsteroidDust = (c: Asteroid) => {
@@ -905,6 +943,8 @@ export function VersaConstellation({
         const along = rand(c.size * 0.2, c.size * 1.5);
         const side = gauss() * c.size * 0.35;
         const spark = Math.random() < 0.34;
+        const dustColor: Rgb =
+          Math.random() < 0.45 ? c.tint.lit1 : Math.random() < 0.5 ? c.tint.lit2 : c.tint.stroke;
         asteroidDust.push({
           x: c.x - ux * along + px * side,
           y: c.y - uy * along + py * side,
@@ -913,7 +953,7 @@ export function VersaConstellation({
           life: 0,
           maxLife: rand(5.2, 9.2),
           r: spark ? rand(0.1, 0.26) : rand(0.12, 0.38),
-          warm: Math.random() > 0.35,
+          color: dustColor,
           spark,
           phase: Math.random() * Math.PI * 2,
           twinkle: rand(4.5, 11),
@@ -1157,6 +1197,8 @@ export function VersaConstellation({
           if (!fx.cometsOn) {
             const waiting = trueCometSpawnIn > 1000;
             trueComets.length = 0;
+            cometTrail.length = 0;
+            cometTrailAcc = 0;
             if (waiting) trueCometSpawnIn = gap(8, 18, fx.cometF);
           } else {
             const cz = fx.cometZ;
@@ -1175,12 +1217,28 @@ export function VersaConstellation({
               c.y = bezier1(t, c.sy, c.cy, c.ey);
               c.vx = bezier1d(t, c.sx, c.cx, c.ex);
               c.vy = bezier1d(t, c.sy, c.cy, c.ey);
+              c.path.push({ x: c.x, y: c.y });
+              if (c.path.length > 960) c.path.splice(0, c.path.length - 960);
+              cometTrailAcc += dt;
+              while (cometTrailAcc >= 1 / 48) {
+                emitCometTrail(c);
+                cometTrailAcc -= 1 / 48;
+              }
               if (c.t >= 1) {
                 trueComets.splice(i, 1);
                 trueCometSpawnIn = gap(20, 80, fx.cometF);
               }
             }
+            for (let i = cometTrail.length - 1; i >= 0; i--) {
+              const p = cometTrail[i];
+              p.life += dt;
+              if (p.life >= p.maxLife) cometTrail.splice(i, 1);
+            }
+            for (const p of cometTrail) {
+              drawCometTrail(ctx, p, driftX, driftY, cz);
+            }
             for (const c of trueComets) {
+              drawCometPath(ctx, c, driftX, driftY, cz);
               drawTrueComet(ctx, c, driftX, driftY, cz);
             }
           }
