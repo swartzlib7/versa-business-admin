@@ -92,6 +92,7 @@ Implementer-facing procedures live in `docs/ops/MISSION_CONTROL_OPS_MANUAL.md` (
 | 2026-09-05 | Stephen closed branding/sky (D6 parallel) at 0.7.131 and tasked remaining overlay: D3 Primary-Org-scoped catalog, D5 agent packages, Insert/Delete Sample Data (`external_id`, not Demo swap), and #240 ops manual + skill. |
 | 2026-09-05 | 0.7.132: D3 overlay keyed to Primary Org (legacy `site` migrates); D5 package install/uninstall API; Insert/Delete Sample Data (`mc_sample:`); AGi Org → MC field mapping in the record-type inventory. #240 still waiting. |
 | 2026-09-05 | 0.7.133: ERD-locked catalog seed (audit lookups, staff person fields, policy lines, transaction document kinds, schedule interval, file type, Vendor Credentials/Integrations/Exchange). Seed-pack rebase lets system rows win on pack bump. #240 still waiting. |
+| 2026-09-07 | 0.7.136 (#274): packaged DB ships EMPTY — seed.mjs is install-only (Primary Org + first admin via ON CONFLICT DO NOTHING, never modifies an existing tenant; + value-set catalog); fixtureAdapter preloads only the Primary Org (4 demo orgs removed); demo orgs/partner/branch/tasks/txn/integration now live ONLY in the mc_sample: pack (4 orgs + 9 records). Closes the re-seed-overwrites-tenant risk flagged in D4 posture. E2E 15/15 on :3200 (fixture mode). |
 
 ---
 
