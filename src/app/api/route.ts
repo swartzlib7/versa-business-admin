@@ -1,42 +1,7 @@
 import { NextResponse } from 'next/server';
+import pkg from '../../../package.json';
+import { apiIndexPayload } from '@/lib/api/inventory';
 
 export async function GET() {
-  return NextResponse.json({
-    name: 'Business Workspace API',
-    version: '0.7.52',
-    endpoints: {
-      health: '/api/health',
-      login: '/api/auth/login',
-      logout: '/api/auth/logout',
-      session: '/api/auth/session',
-      catalog: '/api/catalog',
-      catalogObjects: '/api/catalog/objects',
-      catalogObjectDetail: '/api/catalog/objects/{object_api_name}',
-      catalogFields: '/api/catalog/fields',
-      catalogExtendField: 'POST /api/catalog/fields',
-      catalogLayouts: '/api/catalog/layouts',
-      catalogValueSets: '/api/catalog/value-sets',
-      catalogRecordTypes: '/api/catalog/record-types',
-      catalogRecordTypeDetail: '/api/catalog/record-types/{api_name}',
-      publicBusiness: '/api/public/business',
-      publicServices: '/api/public/services',
-      publicProducts: '/api/public/products',
-      publicStaff: '/api/public/staff',
-      users: '/api/users',
-      userDetail: '/api/users/{id}',
-      userCreate: 'POST /api/users (admin)',
-      userUpdate: 'PATCH /api/users/{id} (admin or self)',
-      agents: '/api/agents (deprecated — redirect to /api/users?type=agent)',
-      agentDetail: '/api/agents/{id} (deprecated — redirect to /api/users/{id})',
-      projects: '/api/projects',
-      projectDetail: '/api/projects/{id}',
-      projectCreate: 'POST /api/projects (admin)',
-      projectUpdate: 'PATCH /api/projects/{id} (admin)',
-      tasks: '/api/tasks',
-      taskDetail: '/api/tasks/{id}',
-      taskCreate: 'POST /api/tasks (admin)',
-      taskUpdate: 'PATCH /api/tasks/{id} (admin or assignee)',
-      integrations: '/api/integrations',
-    },
-  });
+  return NextResponse.json(apiIndexPayload(pkg.version));
 }

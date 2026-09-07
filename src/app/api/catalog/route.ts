@@ -2,6 +2,8 @@ import '@/lib/catalog/install-durable';
 import { NextResponse } from 'next/server';
 import { getSessionFromRequest, isAuthenticated } from '@/lib/auth';
 import { listObjects } from '@/lib/fixtures/catalog';
+import pkg from '../../../../package.json';
+import { API_DOCS } from '@/lib/api/inventory';
 
 /**
  * GET /api/catalog — schema index for agents and UI.
@@ -19,9 +21,14 @@ export async function GET(request: Request) {
   const objects = listObjects();
   return NextResponse.json({
     name: 'Mission Control object catalog',
-    version: '0.7.46',
+    version: pkg.version,
+    docs: {
+      operator: API_DOCS.operator,
+      index: '/api',
+      contract: API_DOCS.contract,
+    },
     description:
-      'Read object schema (fields, layouts, value sets). Extend with custom fields via POST /api/catalog/fields. Typed cores (project/task/product/user) stay first-class tables; faculty_* are config-driven record types.',
+      'Read object schema (fields, layouts, value sets, record types). Extend with custom fields via POST /api/catalog/fields. Typed cores (project/task/product/user) stay first-class tables; faculty_* are config-driven record types.',
     endpoints: {
       index: 'GET /api/catalog',
       objects: 'GET /api/catalog/objects',
@@ -31,6 +38,9 @@ export async function GET(request: Request) {
       layouts: 'GET /api/catalog/layouts?object={object_api_name}&type=detail|edit|list',
       valueSets: 'GET /api/catalog/value-sets',
       valueSetDetail: 'GET /api/catalog/value-sets/{api_name}',
+      recordTypes: 'GET /api/catalog/record-types',
+      recordTypeDetail: 'GET /api/catalog/record-types/{api_name}',
+      productIndex: 'GET /api',
     },
     extension: {
       method: 'POST /api/catalog/fields',

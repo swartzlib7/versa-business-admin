@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adapter } from '@/lib/data';
 
-// GET /api/public/other-systems — alias of /api/public/system-landscape (0.7.141).
+/** Canonical public name for the System Landscape facet (0.7.141). */
 export async function GET() {
   const systems = await adapter.listOtherSystems();
   return NextResponse.json({ data: systems, count: systems.length });

@@ -59,7 +59,7 @@ export function Header() {
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="p-0">
-          <Sidebar />
+          <Sidebar variant="drawer" />
         </SheetContent>
       </Sheet>
       <div className="flex-1" />

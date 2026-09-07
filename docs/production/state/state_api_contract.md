@@ -8,9 +8,9 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Product HTTP API (`/api/*`) |
-| **Status** | Phase 0-4 done (0.7.52) — fixture + postgres hybrid; all reads/writes via adapter; /api/agents deprecated to redirect |
-| **Last verified against code** | 2026-07-24 (DB wrap slice; package `0.7.52`) |
-| **Primary code** | `src/app/api/**`, fixture adapters |
+| **Status** | ✅ 0.7.141 catalog complete for the shipped feature set |
+| **Last verified against code** | 2026-09-07 (package `0.7.141`) |
+| **Primary code** | `src/app/api/**`, `src/lib/api/inventory.ts` |
 | **Former doc** | `docs/api/API_CONTRACT.md` (stub → this file) |
 
 **Folded sources (2026-07-20):** `docs/api/API_CONTRACT.md` content merged here; original path kept as pointer stub.
@@ -35,34 +35,17 @@
 - **Status codes:** 200, 201, 400, 401, 403, 404, 500, 501
 - **Filters:** unrecognized keys silently ignored. Common: `status`, `type`, `q`, `orgUnitId`, resource-specific filters.
 
-### 1.3 Implemented routes (code inventory 2026-07-20)
+### 1.3 Implemented routes (code inventory 2026-09-07)
 
-| Method + path | Auth | Notes |
-|---------------|------|-------|
-| GET `/api` | open | Index + endpoint map |
-| GET `/api/health` | open | Health; **reports package version `0.7.45`** |
-| POST `/api/auth/login` | open | Session login |
-| POST `/api/auth/logout` | session | |
-| GET `/api/auth/session` | session | Session (contract historically said `/me` in target map — **implemented name is session**) |
-| GET `/api/users`, GET `/api/users/{id}` | session | `type`: human | agent |
-| GET `/api/agents`, GET `/api/agents/{id}` | session | **Deprecated** — 308 redirect to `/api/users?type=agent` and `/api/users/{id}` |
-| GET `/api/projects`, GET `/api/projects/{id}` | session | Business projects |
-| POST `/api/projects` | admin | Create project (Phase 3, 0.7.52) |
-| PATCH `/api/projects/{id}` | admin | Update project — data JSONB merged (Phase 3, 0.7.52) |
-| GET `/api/tasks`, GET `/api/tasks/{id}` | session | Work items; filters status/projectId/priority/assignee/q |
-| POST `/api/tasks` | admin | Create task (Phase 3, 0.7.52) |
-| PATCH `/api/tasks/{id}` | admin or assignee | Update task — assignee can only change status (Phase 3, 0.7.52) |
-| GET `/api/integrations` | session | Optional seed; not spine MVP |
-| GET `/api/public/business` | open | |
-| GET `/api/public/services` | open | |
-| GET `/api/public/products` | open | |
-| GET `/api/public/staff` | open | |
-| GET `/api/public/knowledge-articles` | open | Public sample facet |
-| GET `/api/public/metrics` | open | Public sample facet |
-| GET `/api/public/other-systems` | open | Public sample facet |
-| GET `/api/public/support-tickets` | open | Public sample facet |
+The live catalog is `src/lib/api/inventory.ts`. GET `/api` (open) returns `version` from `package.json`, `docs` links, and `resources[]`. Settings → **API** (`/settings?tab=api`) renders that same catalog in the operator backend.
 
-**Not implemented yet (target spine):** `/api/roles*`, `/api/org-units*`, `/api/kb/*`, `/api/settings/branding`, full Organization/Collaboration/Environment CRUD.
+Canonical public System Landscape path is `/api/public/system-landscape`. `/api/public/other-systems` is a deprecated alias.
+
+`/api/agents*` remains a deprecated redirect to `/api/users`.
+
+Do not duplicate the endpoint table here — change `inventory.ts`, then this file’s Current State / Change Log.
+
+**Not in this version (do not invent):** `/api/roles*`, `/api/org-units*`, `/api/kb/*` as separate modules, receipt tabs, page-builder APIs. Zone CRUD goes through `/api/records` + `/api/organizations`.
 
 ### 1.4 Task / project shapes (I6 — still binding)
 
@@ -73,12 +56,12 @@
 ### 1.5 Versioning policy
 | Label | Meaning |
 |-------|---------|
-| Contract doc series | Historically 0.2 → 0.3 → **0.4.0** (I6 work surfaces) |
-| Product package (`package.json`) | **0.7.52** (DB wrap slice) |
-| GET `/api` index `version` | Still **0.4.0** (API capability label — lag intentional until API bump) |
-| GET `/api/health` `version` | Tracks **package** `0.7.52` |
+| Product package (`package.json`) | **0.7.141** |
+| GET `/api` index `version` | Same as package |
+| GET `/api/health` `version` | Same as package |
+| GET `/api/catalog` `version` | Same as package |
 
-Do not invent agent-fleet endpoints. Grow toward zone entities per `state_i5_6_zone_erd.md`.
+Operator documentation surface: Settings → API. Machine index: GET `/api`. Living contract: this file.
 
 ### 1.6 Non-goals (API v1)
 - Host Versa AGi control-plane ops
@@ -88,37 +71,38 @@ Do not invent agent-fleet endpoints. Grow toward zone entities per `state_i5_6_z
 ---
 
 ## 2. Current State
-- Fixture-backed route handlers live and match inventory above.
-- Auth + users + projects + tasks + public facets shipped.
-- Agents routes still present as deprecated aliases.
-- Contract file was stale on ERD pointer (pointed at keystone path now stubbed) and understated public facet routes.
-- Version triple (package / health / api index) is inconsistent by design until next API series bump — document, do not silently “fix” without product decision.
+- `src/lib/api/inventory.ts` is the route catalog for 0.7.141. GET `/api` and Settings → API consume it.
+- Catalog, records, organizations, settings (system/branding/public-content/sample-data/agent-packages), element-config, auth challenge, and public facets are implemented.
+- `/api/public/system-landscape` is the canonical public facet; `/api/public/other-systems` is an alias.
+- `/api/agents*` remains a deprecated alias of users.
+- Fixture + postgres hybrid still applies per adapter; Demo never swaps the live backend.
 
 ## 3. Target State
-- Single living API state doc (this file).
-- Align index version with product when Stephen wants a 0.5/0.8 API series.
-- Add zone-aligned resources after baseline ERD lock (see zone ERD state).
-- Remove or hard-redirect `/api/agents*` when safe.
+- Keep inventory.ts in lockstep with `src/app/api/**`.
+- Remove `/api/agents*` and `/api/public/other-systems` when Stephen retires aliases.
+- Do not add page-builder or I5.6.34+ routes until tasked.
 
 ## 4. Backlog / Plan
 | ID | Item | Priority |
 |----|------|----------|
-| API-1 | Keep this doc in sync when routes change | ongoing |
-| API-3 | POST/PATCH /api/projects + /api/tasks write routes added (0.7.52) — admin RBAC; task assignee can update status only | done |
-| API-2 | Decide API series bump vs keep 0.4.0 capability label | Stephen/COA |
-| API-3 | Document write methods (POST/PATCH) when implemented | **done 2026-07-23** |
-| API-4 | Zone entity routes after ERD baseline lock | blocked on I5.6 baseline |
+| API-1 | Keep inventory.ts in sync when routes change | ongoing |
+| API-3 | POST/PATCH /api/projects + /api/tasks write routes | done |
+| API-2 | Align GET `/api` version with package | **done 2026-09-07** |
+| API-4 | Zone entity routes after ERD baseline lock | done via `/api/records` + `/api/organizations` |
 | API-5 | Deprecation timeline for `/api/agents*` | later |
+| API-6 | Operator Settings → API + docs links on GET `/api` | **done 2026-09-07** |
 
 ## 5. Results Feedback
 | Date | Result |
 |------|--------|
 | 2026-07-20 | Statefold created from API_CONTRACT.md; route inventory verified against `src/app/api` |
+| 2026-09-07 | 0.7.141: catalog complete vs handlers; Settings → API; System Landscape alias |
 
 ## 6. Change Log
 | Date | Change |
 |------|--------|
 | 2026-07-20 | I5.6.30 docs: statefold API contract; stub old path |
+| 2026-09-07 | 0.7.141: living inventory, operator docs tab, version alignment |
 
 ---
 

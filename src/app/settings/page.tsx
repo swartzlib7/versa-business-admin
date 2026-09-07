@@ -20,6 +20,7 @@ import { PublicSitePanel } from "@/components/settings/public-site-panel";
 import { BrandingPanel, type BrandingSubTab } from "@/components/settings/branding-panel";
 import { MenuItemsPanel } from "@/components/settings/menu-items-panel";
 import { SampleDataPanel } from "@/components/settings/sample-data-panel";
+import { ApiDocsPanel } from "@/components/settings/api-docs-panel";
 
 type SettingsTab =
   | "branding"
@@ -27,7 +28,8 @@ type SettingsTab =
   | "public"
   | "appearance"
   | "modes"
-  | "sky";
+  | "sky"
+  | "api";
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: "branding", label: "Branding" },
@@ -36,6 +38,7 @@ const TABS: { id: SettingsTab; label: string }[] = [
   { id: "appearance", label: "Appearance" },
   { id: "modes", label: "Modes" },
   { id: "sky", label: "Sky Animation" },
+  { id: "api", label: "API" },
 ];
 
 const THEME_OPTIONS: {
@@ -293,6 +296,7 @@ const SETTINGS_TABS: SettingsTab[] = [
   "appearance",
   "modes",
   "sky",
+  "api",
 ];
 const BRANDING_SUBS = ["brand", "logo"] as const;
 
@@ -470,6 +474,24 @@ export default function SettingsPage() {
               ariaLabel="Modes sub-sections"
             />
             <SystemPanel />
+          </div>
+        )}
+
+        {tab === "api" && (
+          <div role="tabpanel" className="space-y-3">
+            <SubTabBar
+              items={[{ id: "configuration", label: "Configuration" }]}
+              activeId="configuration"
+              accent={brand.brand_color}
+              onSelect={() => undefined}
+              ariaLabel="API sub-sections"
+            />
+            <PanelShell
+              summary="HTTP API for this version. Agents and operators use the same catalog. Open JSON index for the machine-readable map."
+              badge="API"
+            >
+              <ApiDocsPanel />
+            </PanelShell>
           </div>
         )}
 

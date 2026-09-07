@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Application layout / IA chrome |
-| **Status** | 🔧 In progress — 0.7.107 chrome + Primary Org IA |
+| **Status** | 🔧 In progress — 0.7.141 collapsible rail + Settings API |
 | **Last verified against code** | 2026-09-07 |
 | **Primary code** | `src/app/**`, hub scene components, zone pages |
 | **Former doc** | `docs/research/LAYOUT_PROPOSAL.md` (superseded seed) |
@@ -208,5 +208,17 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 
 **Default theme:** Dark (operator and public).
 
-**Settings:** Branding, Menu (Operator / Public sub-tabs), Cycle Strip, Appearance, Modes (`?tab=modes`; `information`/`system` aliases), Sky Animation. Configuration strip on Branding, Appearance, Cycle Strip, and Modes. Menu uses Operator / Public. Sky Animation has no sub-tab strip. Operator and public menu items have On/Off; off also 404s the route (Settings cannot be turned off).
+**Settings:** Branding, Menu (Operator / Public sub-tabs), Cycle Strip, Appearance, Modes (`?tab=modes`; `information`/`system` aliases), Sky Animation, **API** (0.7.141 — live HTTP catalog). Configuration strip on Branding, Appearance, Cycle Strip, Modes, and API. Menu uses Operator / Public. Sky Animation has no sub-tab strip. Operator and public menu items have On/Off; off also 404s the route (Settings cannot be turned off).
+
+## 0.7.141 — Collapsible operator rail + API docs (2026-09-07)
+
+**Stephen (IDE):** API complete for this version with documentation linked in the backend. Backend menu collapsible with symbols only.
+
+**Behavior:**
+- Operator sidebar (`variant=rail`) collapses to a 3.5rem icon rail. Collapse control at the bottom; labels become `title` tooltips. Preference: `localStorage` key `mc.sidebarCollapsed`.
+- Phone sheet uses `variant=drawer` (labels always on).
+- Main column padding follows the rail (`lg:pl-56` / `lg:pl-14`).
+- Settings → **API** renders GET `/api` (same catalog agents read).
+
+**Code:** `sidebar.tsx`, `app-shell.tsx`, `header.tsx`, `api-docs-panel.tsx`, `lib/api/inventory.ts`, `src/app/api/route.ts`.
 
