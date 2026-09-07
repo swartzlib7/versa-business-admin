@@ -7,21 +7,7 @@ import { BrandMark, brandSurface, useBrand } from "@/components/shell/brand-prov
 import { useSiteMode } from "@/components/shell/site-mode-provider";
 import { LOGO_BASE_PX, logoPx, logoSurfaceFilter } from "@/lib/brand-display";
 import { scrollPublicToTop } from "./public-snap-scroll";
-
-const WIRED_LINKS = [
-  { href: "/#integrations", label: "Integrations" },
-  { href: "/#operations", label: "Operations" },
-  { href: "/#metrics", label: "Metrics" },
-  { href: "/#knowledge", label: "Knowledge" },
-  { href: "/#contact", label: "Contact" },
-];
-
-const DEMO_LINKS = [
-  { href: "/#facets", label: "Facets" },
-  { href: "/#systems", label: "Systems" },
-  { href: "/#support", label: "Support" },
-  { href: "/#about", label: "About" },
-];
+import { visiblePublicNavItems } from "@/lib/nav";
 
 function addressLines(address: string): string[] {
   const parts = address
@@ -45,9 +31,13 @@ export function PublicFooter({
   const year = new Date().getFullYear();
   const brand = useBrand();
   const footerLogo = brandSurface(brand, "footer");
-  const { demo_mode } = useSiteMode();
+  const { demo_mode, public_menu_enabled, public_menu_order } = useSiteMode();
   const showDemo = demo && demo_mode;
-  const links = showDemo ? [...WIRED_LINKS, ...DEMO_LINKS] : WIRED_LINKS;
+  const links = visiblePublicNavItems({
+    demo: showDemo,
+    enabled: public_menu_enabled,
+    order: public_menu_order,
+  }).filter((link) => link.href.startsWith("/#"));
   const splitAt = Math.ceil(links.length / 2);
   const linkCols = [links.slice(0, splitAt), links.slice(splitAt)];
 

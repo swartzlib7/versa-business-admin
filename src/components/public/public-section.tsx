@@ -5,13 +5,16 @@ export function PublicSection({
   id,
   nextId,
   className,
+  hidden,
   children,
 }: {
   id?: string;
   nextId?: string;
   className?: string;
+  hidden?: boolean;
   children: React.ReactNode;
 }) {
+  if (hidden) return null;
   return (
     <section
       id={id}

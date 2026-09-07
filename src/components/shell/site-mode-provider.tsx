@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
+import { defaultPublicNavHrefs } from "@/lib/nav";
 
 export interface SiteMode {
   demo_mode: boolean;
@@ -8,6 +9,8 @@ export interface SiteMode {
   public_login_enabled: boolean;
   glossary_in_menu: boolean;
   org_board_enabled: boolean;
+  public_menu_order: string[];
+  public_menu_enabled: string[];
 }
 
 const DEFAULT_MODE: SiteMode = {
@@ -16,6 +19,8 @@ const DEFAULT_MODE: SiteMode = {
   public_login_enabled: true,
   glossary_in_menu: true,
   org_board_enabled: true,
+  public_menu_order: defaultPublicNavHrefs(),
+  public_menu_enabled: defaultPublicNavHrefs(),
 };
 
 const SiteModeContext = createContext<SiteMode>(DEFAULT_MODE);

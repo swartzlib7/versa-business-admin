@@ -8,8 +8,8 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Public site wiring + visitor chrome |
-| **Status** | 🔧 **0.7.131** — shinier tumbling comet; Settings tab order |
-| **Last verified against code** | 2026-09-05 |
+| **Status** | 🔧 **0.7.137** — Public + operator menu On/Off (WU-10); awaiting Stephen visual QA |
+| **Last verified against code** | 2026-09-07 |
 | **Primary code** | `src/app/page.tsx`, `src/lib/public/site-content.ts`, `src/components/public/*`, `src/app/settings/page.tsx`, `src/components/settings/branding-panel.tsx`, `src/app/contact/page.tsx` |
 
 ---
@@ -50,8 +50,8 @@ This instance currently has **Demo Off** in `.data/site-settings.json`.
 
 - Constellation: full-viewport star field, flicker, cursor parallax, theme RGB via `rgba()`. No connecting lines. **Two variants** (Settings → **Sky Animation**, persisted `constellation_variant` + `constellation_density` + `constellation_zoom` + `constellation_effects` on site settings, fixture + postgres migrations 0009/0010/0011/0012): **Classic** — milky-way star band only, brand-tinted stars (original look). **Realistic** — natural star distribution with color-temperature tints and tapered diffraction glints on the brightest stars. No faded color-band overlay. **Density** 1×–10× is shared. Classic **5× is the original band** (1× sparse, 10× twice as rich). Realistic 1×–10× still scales the natural field and **compacts into the Classic milky-way band** at the high end. **Stars zoom** 25%–200% in 25% steps (25% is the wide night-sky look of browser zoom-out; 100% is the previous scale). **Shooting stars, satellites, and comets** are separate layers: they do **not** inherit Stars zoom, and each has On/Off, its own 25%–200% zoom, and a **Frequency** slider (⅓× / ½× / 1× / 2× / 3×; 1× is the usual rate). Wait between appearances is `base / frequency`. Shooting-star 1× is ⅓ the previous rate (the old cadence is 3×). Defaults: shooting stars On, satellites On, comets Off; all frequency 1×. Comets: one at a time, ballistic arc across the sky, particle trail that fades; 15–60s between passes at 1×. Variant/density/Stars-zoom switch re-seeds the star field; effect zoom and frequency do not. Settings preview fills remaining viewport below the Settings tab bar (min 448px, max 4096px). Old `?tab=branding&sub=sky` redirects to `?tab=sky`.
 - Public theme cycle: **Dark (default) → Architect → Slate**. Light/Dusk stay on operator Mission Control. Keys: `versa-public-ui-theme` vs `versa-ui-theme`. Public and operator stores are independent; pathname selects which store to apply.
-- Header links are **nowrap**. Desktop nav starts at `xl`; below that the hamburger menu is used so labels do not wrap.
-- Footer: **50% opacity** `bg-background/50` bar with backdrop blur; back-to-top chevron sits on the top edge (same control as next-section). Three columns — Mission Control links **split into two sub-columns under a spanning heading**, centered brand + slogan/tagline, Contact — **left and right columns are center-aligned**. Address segments on own lines.
+- Header links are **nowrap**. Desktop nav starts at `xl`; below that the hamburger menu is used so labels do not wrap. **Settings → Menu → Public** reorders and toggles those links. Off hides the link **and** disables the page (`/terms`, `/board` 404; homepage sections are not rendered).
+- Footer: **50% opacity** `bg-background/50` bar with backdrop blur; back-to-top chevron sits on the top edge (same control as next-section). Three columns — Mission Control links **split into two sub-columns under a spanning heading**, centered brand + slogan/tagline, Contact — **left and right columns are center-aligned**. Address segments on own lines. Footer hash-links follow the same Public Menu on/off list.
 - **Branding controls persist.** Root layout must pass opacity, glow (incl. color/spread), scales, **per-logo surfaces**, sky variant, density, zoom, and **sky effects** into `BrandProvider`. Settings Branding hydrates from `GET /api/settings/branding` (not from stripped context defaults). File picker uses `FileField` (outline Choose file + muted filename + ghost Remove) — native file chrome is out of style. Upload hint (512–1024 px) stays visible after a file is chosen. Save keeps the current Settings tab (`?tab=branding&sub=logo` or `?tab=sky`).
 
 ### Persist
@@ -102,6 +102,7 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | WU-07 | Default Dark on public + operator; independent theme stores (public toggle must not change operator) | — | ✅ | ✅ | ✅ | 265 |
 | WU-08 | Logo display + constellation variants + mobile scroll | WU-05 | ✅ | ✅ | ✅ | 267 |
 | WU-09 | Branding sub-tabs; persist sliders/sky; glow color/spread; logo scales; sky density; Cycle Strip cells; Information toggle text left | WU-08 | ✅ | ✅ | ✅ | 268 |
+| WU-10 | Public Menu + operator On/Off; hidden item also disables the route | — | ✅ | ⬜ | 🔧 | 275 |
 
 ---
 
@@ -116,6 +117,7 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | 2026-09-05 | Theme decoupling | Cycle public Architect/Slate/Dark; operator theme in another tab/login stays on its own store. Pathname `/` vs `/login` reapplies the correct store. | Confirm visually on :3200 |
 | 2026-09-05 | Branding persist + sky | Translucency/glow/sky sliders did not restore after save (layout dropped fields from BrandProvider). Fixed in 0.7.116; Branding hydrates from API. | Confirm sliders + Classic/Realistic radio after reload |
 | 2026-09-05 | Per-logo + sky fill | **0.7.117:** menu/home/footer each have Translucency, Glow, Color, Spread, Size. Preview wells are equal (home-sized) with logos centered. Upload 512–1024 px both sides. Sky preview fills remaining viewport (min 448px, max 4096px). Realistic faded color bands removed. | Visual QA on :3200 |
+| 2026-09-07 | Public + operator menus | **0.7.137 (WU-10):** Settings → Menu has Operator / Public. Off hides the link and 404s the route (Settings locked on). Homepage hash sections are not rendered when off. E2E 16/16 on :3200. | Stephen visual QA |
 
 ---
 
@@ -149,3 +151,4 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | 2026-09-05 | Sky Animation top tab | **0.7.129:** Sky Animation is a Settings top tab (`?tab=sky`), not a Branding sub-tab. Branding keeps Brand / Logo. `?tab=branding&sub=sky` still opens Sky Animation. Stephen accepted WU-07–09. |
 | 2026-09-05 | Settings order + comet rock | **0.7.130:** Settings tabs Branding, Menu, Cycle Strip, Appearance, Modes, Sky Animation. Information renamed Modes. Comet nucleus is a ~20-vertex tumbling rock with faceted faces. |
 | 2026-09-05 | Comet shine + tumble | **0.7.131:** Comet rock is shinier (sunward gleam) and tumbles ~2× faster. Stephen accepted; branding/sky train closed. |
+| 2026-09-07 | Public + operator menus | **0.7.137 (WU-10):** Settings → Menu has Operator / Public sub-tabs. Each item has On/Off. Off hides the link and 404s the route (Settings locked on). Homepage sections follow Public Menu. E2E 16/16 on :3200. |

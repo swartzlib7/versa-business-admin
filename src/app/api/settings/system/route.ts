@@ -4,17 +4,40 @@ import {
   getSiteSettingsFixture,
   upsertSiteSettingsFixture,
 } from "@/lib/fixtures/site-settings";
-import { defaultNavHrefs, sanitizeMenuOrder } from "@/lib/nav";
+import {
+  LOCKED_OPERATOR_HREFS,
+  defaultNavHrefs,
+  defaultPublicNavHrefs,
+  publicFlagsFromEnabled,
+  sanitizeMenuEnabled,
+  sanitizeMenuOrder,
+  withToggledHref,
+} from "@/lib/nav";
 
 function modesFromStore() {
   const settings = getSiteSettingsFixture();
+  const menu_enabled = sanitizeMenuEnabled(
+    settings.menu_enabled,
+    defaultNavHrefs(),
+    LOCKED_OPERATOR_HREFS,
+  );
+  const public_menu_enabled = sanitizeMenuEnabled(
+    settings.public_menu_enabled,
+    defaultPublicNavHrefs(),
+  );
+  const flags = publicFlagsFromEnabled(public_menu_enabled);
   return {
     demo_mode: settings.demo_mode !== false,
     maintenance_mode: settings.maintenance_mode === true,
     menu_order: sanitizeMenuOrder(settings.menu_order) ?? defaultNavHrefs(),
+    menu_enabled,
+    public_menu_order:
+      sanitizeMenuOrder(settings.public_menu_order, defaultPublicNavHrefs()) ??
+      defaultPublicNavHrefs(),
+    public_menu_enabled,
     public_login_enabled: settings.public_login_enabled !== false,
-    glossary_in_menu: settings.glossary_in_menu !== false,
-    org_board_enabled: settings.org_board_enabled !== false,
+    glossary_in_menu: flags.glossary_in_menu,
+    org_board_enabled: flags.org_board_enabled,
   };
 }
 
@@ -52,10 +75,14 @@ export async function PUT(request: Request) {
       { status: 400 },
     );
   }
+  const current = modesFromStore();
   const patch: {
     demo_mode?: boolean;
     maintenance_mode?: boolean;
     menu_order?: string[];
+    menu_enabled?: string[];
+    public_menu_order?: string[];
+    public_menu_enabled?: string[];
     public_login_enabled?: boolean;
     glossary_in_menu?: boolean;
     org_board_enabled?: boolean;
@@ -66,27 +93,6 @@ export async function PUT(request: Request) {
   }
   if (typeof body.public_login_enabled === "boolean") {
     patch.public_login_enabled = body.public_login_enabled;
-  }
-  if (typeof body.glossary_in_menu === "boolean") {
-    patch.glossary_in_menu = body.glossary_in_menu;
-  }
-  if (typeof body.org_board_enabled === "boolean") {
-    patch.org_board_enabled = body.org_board_enabled;
-  }
-  if (body.menu_order !== undefined) {
-    const order = sanitizeMenuOrder(body.menu_order);
-    if (!order) {
-      return NextResponse.json(
-        {
-          error: {
-            code: "INVALID_MENU_ORDER",
-            message: "menu_order must be an array of known menu hrefs.",
-          },
-        },
-        { status: 400 },
-      );
-    }
-    patch.menu_order = order;
   }
   if (body.demo_mode != null && typeof body.demo_mode !== "boolean") {
     return NextResponse.json(
@@ -115,6 +121,85 @@ export async function PUT(request: Request) {
       },
       { status: 400 },
     );
+  }
+  if (body.menu_order !== undefined) {
+    const order = sanitizeMenuOrder(body.menu_order);
+    if (!order) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "INVALID_MENU_ORDER",
+            message: "menu_order must be an array of known menu hrefs.",
+          },
+        },
+        { status: 400 },
+      );
+    }
+    patch.menu_order = order;
+  }
+  if (body.menu_enabled !== undefined) {
+    if (!Array.isArray(body.menu_enabled)) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "INVALID_MENU_ENABLED",
+            message: "menu_enabled must be an array of known menu hrefs.",
+          },
+        },
+        { status: 400 },
+      );
+    }
+    patch.menu_enabled = sanitizeMenuEnabled(
+      body.menu_enabled,
+      defaultNavHrefs(),
+      LOCKED_OPERATOR_HREFS,
+    );
+  }
+  if (body.public_menu_order !== undefined) {
+    const order = sanitizeMenuOrder(body.public_menu_order, defaultPublicNavHrefs());
+    if (!order) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "INVALID_PUBLIC_MENU_ORDER",
+            message: "public_menu_order must be an array of known public menu hrefs.",
+          },
+        },
+        { status: 400 },
+      );
+    }
+    patch.public_menu_order = order;
+  }
+  let publicEnabled = current.public_menu_enabled;
+  if (body.public_menu_enabled !== undefined) {
+    if (!Array.isArray(body.public_menu_enabled)) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "INVALID_PUBLIC_MENU_ENABLED",
+            message: "public_menu_enabled must be an array of known public menu hrefs.",
+          },
+        },
+        { status: 400 },
+      );
+    }
+    publicEnabled = sanitizeMenuEnabled(body.public_menu_enabled, defaultPublicNavHrefs());
+  }
+  if (typeof body.glossary_in_menu === "boolean") {
+    publicEnabled = withToggledHref(publicEnabled, "/terms", body.glossary_in_menu);
+  }
+  if (typeof body.org_board_enabled === "boolean") {
+    publicEnabled = withToggledHref(publicEnabled, "/board", body.org_board_enabled);
+  }
+  if (
+    body.public_menu_enabled !== undefined ||
+    typeof body.glossary_in_menu === "boolean" ||
+    typeof body.org_board_enabled === "boolean"
+  ) {
+    patch.public_menu_enabled = publicEnabled;
+    const flags = publicFlagsFromEnabled(publicEnabled);
+    patch.glossary_in_menu = flags.glossary_in_menu;
+    patch.org_board_enabled = flags.org_board_enabled;
   }
   upsertSiteSettingsFixture(patch);
   return NextResponse.json({ data: modesFromStore() });

@@ -9,21 +9,7 @@ import { cn } from "@/lib/utils";
 import { BrandMark, useBrand } from "@/components/shell/brand-provider";
 import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
 import { useSiteMode } from "@/components/shell/site-mode-provider";
-
-const WIRED_LINKS = [
-  { href: "/#integrations", label: "Integrations" },
-  { href: "/#operations", label: "Operations" },
-  { href: "/#metrics", label: "Metrics" },
-  { href: "/#knowledge", label: "Knowledge" },
-  { href: "/#contact", label: "Contact" },
-];
-
-const DEMO_LINKS = [
-  { href: "/#facets", label: "Facets" },
-  { href: "/#systems", label: "Systems" },
-  { href: "/#support", label: "Support" },
-  { href: "/#about", label: "About" },
-];
+import { visiblePublicNavItems } from "@/lib/nav";
 
 function ThemeIcon({ theme }: { theme: UiTheme }) {
   if (theme === "architect") return <Compass className="h-4 w-4" />;
@@ -41,14 +27,12 @@ export function PublicHeader() {
   const [open, setOpen] = useState(false);
   const brand = useBrand();
   const { theme, cyclePublicTheme, ensurePublicTheme } = useUiTheme();
-  const { demo_mode, public_login_enabled, glossary_in_menu, org_board_enabled } = useSiteMode();
-  const extras = [
-    ...(glossary_in_menu !== false ? [{ href: "/terms", label: "Glossary" }] : []),
-    ...(org_board_enabled !== false ? [{ href: "/board", label: "Org Board" }] : []),
-  ];
-  const navLinks = demo_mode
-    ? [...WIRED_LINKS, ...extras, ...DEMO_LINKS]
-    : [...WIRED_LINKS, ...extras];
+  const { demo_mode, public_login_enabled, public_menu_enabled, public_menu_order } = useSiteMode();
+  const navLinks = visiblePublicNavItems({
+    demo: demo_mode,
+    enabled: public_menu_enabled,
+    order: public_menu_order,
+  });
 
   useEffect(() => {
     ensurePublicTheme();

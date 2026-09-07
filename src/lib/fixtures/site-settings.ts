@@ -40,6 +40,9 @@ export interface FixtureSiteSettings {
   contact_phone?: string;
   contact_address?: string;
   menu_order?: string[];
+  menu_enabled?: string[];
+  public_menu_order?: string[];
+  public_menu_enabled?: string[];
   public_login_enabled?: boolean;
   glossary_in_menu?: boolean;
   org_board_enabled?: boolean;
@@ -129,6 +132,15 @@ function readFile(): FixtureSiteSettings | null {
       contact_address: typeof parsed.contact_address === "string" ? parsed.contact_address : undefined,
       menu_order: Array.isArray(parsed.menu_order)
         ? parsed.menu_order.filter((href): href is string => typeof href === "string")
+        : undefined,
+      menu_enabled: Array.isArray(parsed.menu_enabled)
+        ? parsed.menu_enabled.filter((href): href is string => typeof href === "string")
+        : undefined,
+      public_menu_order: Array.isArray(parsed.public_menu_order)
+        ? parsed.public_menu_order.filter((href): href is string => typeof href === "string")
+        : undefined,
+      public_menu_enabled: Array.isArray(parsed.public_menu_enabled)
+        ? parsed.public_menu_enabled.filter((href): href is string => typeof href === "string")
         : undefined,
       public_login_enabled: parsed.public_login_enabled !== false,
       glossary_in_menu: parsed.glossary_in_menu !== false,
@@ -280,6 +292,16 @@ export function upsertSiteSettingsFixture(
       input.contact_address !== undefined ? input.contact_address : current.contact_address,
     menu_order:
       input.menu_order !== undefined ? input.menu_order : current.menu_order,
+    menu_enabled:
+      input.menu_enabled !== undefined ? input.menu_enabled : current.menu_enabled,
+    public_menu_order:
+      input.public_menu_order !== undefined
+        ? input.public_menu_order
+        : current.public_menu_order,
+    public_menu_enabled:
+      input.public_menu_enabled !== undefined
+        ? input.public_menu_enabled
+        : current.public_menu_enabled,
     public_login_enabled:
       input.public_login_enabled !== undefined
         ? input.public_login_enabled

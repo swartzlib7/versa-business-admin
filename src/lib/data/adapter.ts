@@ -253,7 +253,7 @@ let orgSeq = 0;
 // are not preloaded — they come from the mc_sample: pack via
 // Settings -> Modes -> Insert Sample Data, tagged so Delete removes exactly them.
 const mutableOrganizations: Organization[] = [
-  { id: "org-fixture-1", name: "Sample Maker Workspace", is_person: false, org_type: "internal", parent_organization_id: null, is_primary: true, data: { is_primary: true } },
+  { id: "org-fixture-1", name: "Primary Org", is_person: false, org_type: "internal", parent_organization_id: null, is_primary: true, data: { is_primary: true } },
 ];
 const ORG_TYPES = ["vendor", "customer", "partner", "branch", "internal"];
 

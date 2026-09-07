@@ -18,7 +18,7 @@ import { Moon, Sun, Compass, Cloud, Sunset } from "lucide-react";
 import { BooleanSwitch } from "@/components/ui/boolean-switch";
 import { PublicSitePanel } from "@/components/settings/public-site-panel";
 import { BrandingPanel, type BrandingSubTab } from "@/components/settings/branding-panel";
-import { MenuOrderPanel } from "@/components/settings/menu-order-panel";
+import { MenuItemsPanel } from "@/components/settings/menu-items-panel";
 import { SampleDataPanel } from "@/components/settings/sample-data-panel";
 
 type SettingsTab =
@@ -323,14 +323,16 @@ function settingsSubFromSearch(tab: SettingsTab): string {
   if (tab === "branding" && sub && (BRANDING_SUBS as readonly string[]).includes(sub)) {
     return sub;
   }
+  if (tab === "menu" && sub && (sub === "operator" || sub === "public")) return sub;
   if (tab === "appearance" || tab === "public") return "configuration";
-  return tab === "branding" ? "brand" : "configuration";
+  return tab === "branding" ? "brand" : tab === "menu" ? "operator" : "configuration";
 }
 
 function writeSettingsSearch(tab: SettingsTab, sub: string) {
   const url = new URL(window.location.href);
   url.searchParams.set("tab", tab);
   if (tab === "branding" && sub !== "brand") url.searchParams.set("sub", sub);
+  else if (tab === "menu" && sub !== "operator") url.searchParams.set("sub", sub);
   else url.searchParams.delete("sub");
   const next = `${url.pathname}${url.search}`;
   if (next !== `${window.location.pathname}${window.location.search}`) {
@@ -363,6 +365,7 @@ export default function SettingsPage() {
             const next = id as SettingsTab;
             setTab(next);
             if (next === "branding") setSubTab("brand");
+            else if (next === "menu") setSubTab("operator");
             else setSubTab("configuration");
           }}
           tabsAriaLabel="Settings sections"
@@ -437,17 +440,24 @@ export default function SettingsPage() {
         {tab === "menu" && (
           <div role="tabpanel" className="space-y-3">
             <SubTabBar
-              items={[{ id: "configuration", label: "Configuration" }]}
-              activeId="configuration"
+              items={[
+                { id: "operator", label: "Operator" },
+                { id: "public", label: "Public" },
+              ]}
+              activeId={subTab === "public" ? "public" : "operator"}
               accent={brand.brand_color}
-              onSelect={() => undefined}
+              onSelect={setSubTab}
               ariaLabel="Menu sub-sections"
             />
             <PanelShell
-              summary="Reorder the sidebar menu. Changes apply immediately."
-              badge="Menu"
+              summary={
+                subTab === "public"
+                  ? "Visitor header and footer. Off hides the link and disables the page."
+                  : "Operator sidebar. Off hides the item and disables its routes. Settings stays on."
+              }
+              badge={subTab === "public" ? "Public" : "Operator"}
             >
-              <MenuOrderPanel />
+              <MenuItemsPanel kind={subTab === "public" ? "public" : "operator"} />
             </PanelShell>
           </div>
         )}

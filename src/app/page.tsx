@@ -26,6 +26,12 @@ import {
   normalizePublicContent,
 } from "@/lib/public/site-content";
 import {
+  defaultPublicNavHrefs,
+  nextPublicSectionId,
+  sanitizeMenuEnabled,
+  visiblePublicSectionIds,
+} from "@/lib/nav";
+import {
   Server,
   Plug,
   LayoutDashboard,
@@ -96,6 +102,15 @@ export default async function HomePage() {
   const cycle = enabledCycleSteps(site);
   const demo = site.demo_mode !== false;
   const showLogin = site.public_login_enabled !== false;
+  const publicEnabled = sanitizeMenuEnabled(site.public_menu_enabled, defaultPublicNavHrefs());
+  const sectionIds = visiblePublicSectionIds({
+    demo,
+    enabled: publicEnabled,
+    order: site.public_menu_order,
+  });
+  const sectionOn = (id: string) => sectionIds.includes(id);
+  const nextOf = (id: string) => nextPublicSectionId(id, sectionIds);
+  const firstSection = sectionIds[0];
 
   const [businessProfile, services, otherSystems, supportTickets, demoIntegrations, demoMetrics, demoKnowledge, liveIntegrations] =
     await Promise.all([
@@ -138,7 +153,7 @@ export default async function HomePage() {
     >
       <PublicSection
         id="top"
-        nextId={demo ? "facets" : "integrations"}
+        nextId={firstSection}
         className="bg-transparent"
       >
         <div className="mx-auto flex w-full max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-8">
@@ -171,16 +186,20 @@ export default async function HomePage() {
               {pub.hero_subhead}
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              {firstSection ? (
               <a
-                href={demo ? "#facets" : "#operations"}
+                href={`#${firstSection}`}
                 className={cn(buttonVariants({ size: "lg" }))}
               >
                 {demo ? "Explore Mission Control" : "See operations"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>
+              ) : null}
+              {sectionOn("contact") ? (
               <a href="#contact" className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
                 Get in Touch
               </a>
+              ) : null}
             </div>
             {cycle.length > 0 ? (
               <div className="mt-12 w-full">
@@ -209,7 +228,7 @@ export default async function HomePage() {
 
       {demo ? (
         <>
-          <PublicSection id="facets" nextId="systems" className="bg-transparent">
+          <PublicSection id="facets" nextId={nextOf("facets")} hidden={!sectionOn("facets")} className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -257,7 +276,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="systems" nextId="integrations" className="bg-transparent">
+          <PublicSection id="systems" nextId={nextOf("systems")} hidden={!sectionOn("systems")} className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -289,7 +308,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="integrations" nextId="operations" className="bg-transparent">
+          <PublicSection id="integrations" nextId={nextOf("integrations")} hidden={!sectionOn("integrations")} className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -335,7 +354,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="operations" nextId="support" className="bg-transparent">
+          <PublicSection id="operations" nextId={nextOf("operations")} hidden={!sectionOn("operations")} className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -411,7 +430,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="support" nextId="metrics" className="bg-transparent">
+          <PublicSection id="support" nextId={nextOf("support")} hidden={!sectionOn("support")} className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -459,7 +478,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="metrics" nextId="knowledge" className="bg-transparent">
+          <PublicSection id="metrics" nextId={nextOf("metrics")} hidden={!sectionOn("metrics")} className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-8 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -488,7 +507,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="knowledge" nextId="about" className="bg-transparent">
+          <PublicSection id="knowledge" nextId={nextOf("knowledge")} hidden={!sectionOn("knowledge")} className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-8 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -521,7 +540,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="about" nextId="contact" className="bg-transparent">
+          <PublicSection id="about" nextId={nextOf("about")} hidden={!sectionOn("about")} className="bg-transparent">
             <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-10 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -552,7 +571,7 @@ export default async function HomePage() {
         </>
       ) : (
         <>
-          <PublicSection id="integrations" nextId="operations" className="bg-transparent">
+          <PublicSection id="integrations" nextId={nextOf("integrations")} hidden={!sectionOn("integrations")} className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">Integrations</h2>
@@ -596,7 +615,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="operations" nextId="metrics" className="bg-transparent">
+          <PublicSection id="operations" nextId={nextOf("operations")} hidden={!sectionOn("operations")} className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">Operations</h2>
@@ -673,7 +692,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="metrics" nextId="knowledge" className="bg-transparent">
+          <PublicSection id="metrics" nextId={nextOf("metrics")} hidden={!sectionOn("metrics")} className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-8 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">Metrics</h2>
@@ -689,7 +708,7 @@ export default async function HomePage() {
             </div>
           </PublicSection>
 
-          <PublicSection id="knowledge" nextId="contact" className="bg-transparent">
+          <PublicSection id="knowledge" nextId={nextOf("knowledge")} hidden={!sectionOn("knowledge")} className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-8 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">Knowledge</h2>
@@ -725,7 +744,7 @@ export default async function HomePage() {
         </>
       )}
 
-      <PublicSection id="contact" className="border-b-0 bg-transparent">
+      <PublicSection id="contact" hidden={!sectionOn("contact")} className="border-b-0 bg-transparent">
         <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight">Get in Touch</h2>

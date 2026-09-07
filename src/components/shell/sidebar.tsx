@@ -32,8 +32,10 @@ export function Sidebar() {
   const loadMenu = () => {
     void fetch("/api/settings/system", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("menu order unavailable"))))
-      .then((json: { data?: { menu_order?: string[] } }) => {
-        setNavItems(orderNavItems(DEFAULT_NAV_ITEMS, json.data?.menu_order));
+      .then((json: { data?: { menu_order?: string[]; menu_enabled?: string[] } }) => {
+        const ordered = orderNavItems(DEFAULT_NAV_ITEMS, json.data?.menu_order);
+        const enabled = new Set(json.data?.menu_enabled ?? ordered.map((item) => item.href));
+        setNavItems(ordered.filter((item) => enabled.has(item.href)));
       })
       .catch(() => undefined);
   };

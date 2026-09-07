@@ -3,11 +3,13 @@ import { PublicOrgBoard } from "@/components/glossary/public-surfaces";
 import { getSiteSettingsFixture } from "@/lib/fixtures/site-settings";
 import { adapter } from "@/lib/data";
 import { normalizePublicContent } from "@/lib/public/site-content";
+import { gatePublicHref } from "@/lib/nav-server";
 import { resolveSkyEffects, SKY_DENSITY_DEFAULT } from "@/lib/brand-display";
 
 export const dynamic = "force-dynamic";
 
 export default async function PublicBoardPage() {
+  gatePublicHref("/board");
   const site = getSiteSettingsFixture();
   const pub = normalizePublicContent(site);
   const businessProfile = await adapter.getBusinessProfile();

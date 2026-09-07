@@ -9,7 +9,7 @@
 |-------|-------|
 | **Feature** | Application layout / IA chrome |
 | **Status** | 🔧 In progress — 0.7.107 chrome + Primary Org IA |
-| **Last verified against code** | 2026-09-03 |
+| **Last verified against code** | 2026-09-07 |
 | **Primary code** | `src/app/**`, hub scene components, zone pages |
 | **Former doc** | `docs/research/LAYOUT_PROPOSAL.md` (superseded seed) |
 
@@ -184,6 +184,7 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 | 2026-09-03 | 0.7.106 singular main / plural sub-tab IA; dashboard Open home page; homepage logo 20% |
 | 2026-09-03 | 0.7.107: required sub-tab on every page; zone twin drawer; listing action stack; Glossary Configuration |
 | 2026-09-04 | 0.7.109: zone/Statistics main tabs use PageHeader (same height); Contacts + UI Components match Settings card header shading |
+| 2026-09-07 | 0.7.137: Settings → Menu Operator / Public; On/Off + route 404 |
 
 ## 0.7.107 — Chrome contract (2026-09-03)
 
@@ -207,5 +208,5 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 
 **Default theme:** Dark (operator and public).
 
-**Settings:** Branding, Menu, Cycle Strip, Appearance, Modes (`?tab=modes`; `information`/`system` aliases), Sky Animation. Configuration strip on Branding, Appearance, Cycle Strip, Menu, and Modes. Sky Animation has no sub-tab strip.
+**Settings:** Branding, Menu (Operator / Public sub-tabs), Cycle Strip, Appearance, Modes (`?tab=modes`; `information`/`system` aliases), Sky Animation. Configuration strip on Branding, Appearance, Cycle Strip, and Modes. Menu uses Operator / Public. Sky Animation has no sub-tab strip. Operator and public menu items have On/Off; off also 404s the route (Settings cannot be turned off).
 

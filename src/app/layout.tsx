@@ -8,6 +8,12 @@ import { getSiteSettingsDb } from "@/lib/db/settings-store";
 import { getBrandLogoOverlay, getSiteSettingsFixture } from "@/lib/fixtures/site-settings";
 import { resolveLogoSurfaces, clampSkyZoom, resolveSkyEffects, SKY_DENSITY_DEFAULT, type LogoSurfaces, type SkyEffects } from "@/lib/brand-display";
 import { theme } from "@/lib/theme";
+import {
+  defaultPublicNavHrefs,
+  publicFlagsFromEnabled,
+  sanitizeMenuEnabled,
+  sanitizeMenuOrder,
+} from "@/lib/nav";
 import "@/lib/catalog/install-durable";
 import "./globals.css";
 
@@ -54,6 +60,8 @@ type LoadedSite = {
   public_login_enabled: boolean;
   glossary_in_menu: boolean;
   org_board_enabled: boolean;
+  public_menu_order: string[];
+  public_menu_enabled: string[];
 };
 
 async function loadBrand(): Promise<LoadedSite> {
@@ -72,6 +80,14 @@ async function loadBrand(): Promise<LoadedSite> {
       typeof v === "number" && Number.isFinite(v) ? v : fallback;
     const settingsRec = settings as unknown as Record<string, unknown>;
     const surfaces = resolveLogoSurfaces(settingsRec);
+    const public_menu_enabled = sanitizeMenuEnabled(
+      fixture.public_menu_enabled,
+      defaultPublicNavHrefs(),
+    );
+    const public_menu_order =
+      sanitizeMenuOrder(fixture.public_menu_order, defaultPublicNavHrefs()) ??
+      defaultPublicNavHrefs();
+    const flags = publicFlagsFromEnabled(public_menu_enabled);
     return {
       brand_name: settings.brand_name,
       brand_color: settings.brand_color,
@@ -92,8 +108,10 @@ async function loadBrand(): Promise<LoadedSite> {
       demo_mode: fixture.demo_mode !== false,
       maintenance_mode: fixture.maintenance_mode === true,
       public_login_enabled: fixture.public_login_enabled !== false,
-      glossary_in_menu: fixture.glossary_in_menu !== false,
-      org_board_enabled: fixture.org_board_enabled !== false,
+      glossary_in_menu: flags.glossary_in_menu,
+      org_board_enabled: flags.org_board_enabled,
+      public_menu_order,
+      public_menu_enabled,
     };
   } catch {
     // Branding must never take the app down - fall back to static defaults.
@@ -118,6 +136,8 @@ async function loadBrand(): Promise<LoadedSite> {
       public_login_enabled: true,
       glossary_in_menu: true,
       org_board_enabled: true,
+      public_menu_order: defaultPublicNavHrefs(),
+      public_menu_enabled: defaultPublicNavHrefs(),
     };
   }
 }
@@ -151,6 +171,8 @@ export default async function RootLayout({
     public_login_enabled: site.public_login_enabled,
     glossary_in_menu: site.glossary_in_menu,
     org_board_enabled: site.org_board_enabled,
+    public_menu_order: site.public_menu_order,
+    public_menu_enabled: site.public_menu_enabled,
   };
   return (
     <html
