@@ -29,7 +29,7 @@ import {
   defaultPublicNavHrefs,
   nextPublicSectionId,
   sanitizeMenuEnabled,
-  visiblePublicSectionIds,
+  homepageVisibleSectionIds,
 } from "@/lib/nav";
 import {
   Server,
@@ -103,7 +103,7 @@ export default async function HomePage() {
   const demo = site.demo_mode !== false;
   const showLogin = site.public_login_enabled !== false;
   const publicEnabled = sanitizeMenuEnabled(site.public_menu_enabled, defaultPublicNavHrefs());
-  const sectionIds = visiblePublicSectionIds({
+  const sectionIds = homepageVisibleSectionIds({
     demo,
     enabled: publicEnabled,
     order: site.public_menu_order,

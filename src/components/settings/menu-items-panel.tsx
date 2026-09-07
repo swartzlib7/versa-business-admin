@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { BooleanSwitch } from "@/components/ui/boolean-switch";
-import { Badge } from "@/components/ui/badge";
 import {
   DEFAULT_NAV_ITEMS,
   DEFAULT_PUBLIC_NAV_ITEMS,
@@ -14,7 +13,6 @@ import {
   orderNavItems,
   withToggledHref,
   type NavItem,
-  type PublicNavItem,
 } from "@/lib/nav";
 import { theme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -124,13 +122,12 @@ export function MenuItemsPanel({ kind }: { kind: MenuKind }) {
       <p className="text-sm text-muted-foreground">
         {isOperator
           ? "Drag to reorder the operator sidebar. Turn an item off to hide it and block its routes. Settings stays on so you can always get back here."
-          : "Drag to reorder the visitor header and footer. Turn an item off to hide it; dedicated pages (Glossary, Org Board) also 404. Demo-only items appear on the public site only when Demo mode is on."}
+          : "Drag to reorder the visitor header and footer. Turn an item off to hide it; dedicated pages (Glossary, Org Board) also 404."}
       </p>
       <ol className="divide-y divide-border rounded-lg border border-border">
         {items.map((item) => {
           const lockedOn = locked.includes(item.href);
           const on = enabled.includes(item.href);
-          const demoOnly = "demoOnly" in item && Boolean((item as PublicNavItem).demoOnly);
           const Icon = "icon" in item ? (item as NavItem).icon : null;
           return (
             <li
@@ -169,11 +166,6 @@ export function MenuItemsPanel({ kind }: { kind: MenuKind }) {
               <span className={cn("flex-1 text-sm font-medium", !on && "text-muted-foreground")}>
                 {item.label}
               </span>
-              {demoOnly ? (
-                <Badge variant="outline" className="text-[10px] uppercase tracking-wide">
-                  Demo
-                </Badge>
-              ) : null}
               <BooleanSwitch
                 checked={on}
                 onChange={(next) => toggle(item.href, next)}

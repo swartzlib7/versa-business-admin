@@ -125,7 +125,7 @@ export function formatSkyFrequency(n: unknown): string {
   return `${f}×`;
 }
 
-export type SkyEffectId = "meteors" | "satellites" | "comets";
+export type SkyEffectId = "meteors" | "satellites" | "asteroids" | "comets";
 
 export type SkyEffectStyle = {
   enabled: boolean;
@@ -138,28 +138,32 @@ export type SkyEffects = Record<SkyEffectId, SkyEffectStyle>;
 export const DEFAULT_SKY_EFFECTS: SkyEffects = {
   meteors: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
   satellites: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
+  asteroids: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
   comets: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
 };
 
-export function resolveSkyEffects(raw: unknown): SkyEffects {
-  const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  const one = (id: SkyEffectId, fallbackEnabled: boolean): SkyEffectStyle => {
-    const row = obj[id];
-    const r = row && typeof row === "object" ? (row as Record<string, unknown>) : {};
-    return {
-      enabled: typeof r.enabled === "boolean" ? r.enabled : fallbackEnabled,
-      zoom: clampSkyZoom(r.zoom),
-      frequency: clampSkyFrequency(r.frequency),
-    };
-  };
+function readSkyEffectStyle(row: unknown, fallbackEnabled: boolean): SkyEffectStyle {
+  const r = row && typeof row === "object" ? (row as Record<string, unknown>) : {};
   return {
-    meteors: one("meteors", true),
-    satellites: one("satellites", true),
-    comets: one("comets", false),
+    enabled: typeof r.enabled === "boolean" ? r.enabled : fallbackEnabled,
+    zoom: clampSkyZoom(r.zoom),
+    frequency: clampSkyFrequency(r.frequency),
   };
 }
 
-/** Nested `{ meteors, satellites, comets }` object from the API body. */
+export function resolveSkyEffects(raw: unknown): SkyEffects {
+  const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const hasAsteroids = obj.asteroids != null && typeof obj.asteroids === "object";
+  return {
+    meteors: readSkyEffectStyle(obj.meteors, true),
+    satellites: readSkyEffectStyle(obj.satellites, true),
+    // Pre-0.7.138 `comets` was the tumbling rock — that design is now Asteroids.
+    asteroids: readSkyEffectStyle(hasAsteroids ? obj.asteroids : obj.comets, false),
+    comets: readSkyEffectStyle(hasAsteroids ? obj.comets : undefined, false),
+  };
+}
+
+/** Nested `{ meteors, satellites, asteroids, comets }` object from the API body. */
 export function parseSkyEffects(raw: unknown): SkyEffects | undefined {
   if (raw == null || typeof raw !== "object") return undefined;
   return resolveSkyEffects(raw);

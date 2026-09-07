@@ -346,15 +346,14 @@ export default function SettingsPage() {
     settingsSubFromSearch(settingsTabFromSearch()),
   );
   const brand = useBrand();
-  const skyFill = tab === "sky";
 
   useEffect(() => {
     writeSettingsSearch(tab, subTab);
   }, [tab, subTab]);
 
   return (
-    <AppShell fillViewport={skyFill}>
-      <div className={cn(skyFill ? "flex h-full flex-1 flex-col gap-3" : "space-y-3")}>
+    <AppShell>
+      <div className="space-y-3">
         <PageHeader
           title="Settings"
           subtitle="White-label configuration and system preferences."
@@ -395,13 +394,12 @@ export default function SettingsPage() {
         )}
 
         {tab === "sky" && (
-          <div role="tabpanel" className="flex h-full min-h-0 flex-1 flex-col gap-3">
+          <div role="tabpanel" className="space-y-3">
             <PanelShell
               summary="Visitor homepage sky. Variant, zoom, density, and effects are saved permanently and survive a restart."
               badge="Sky"
-              fill
             >
-              <BrandingPanel fill subTab="sky" />
+              <BrandingPanel subTab="sky" />
             </PanelShell>
           </div>
         )}

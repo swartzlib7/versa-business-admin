@@ -28,8 +28,6 @@ export const LOCKED_OPERATOR_HREFS = ["/settings"];
 export type PublicNavItem = {
   href: string;
   label: string;
-  /** Only shown on the visitor site when Demo mode is on. */
-  demoOnly?: boolean;
 };
 
 /** Default visitor header/footer links. Settings → Menu → Public can reorder and toggle. */
@@ -41,11 +39,22 @@ export const DEFAULT_PUBLIC_NAV_ITEMS: PublicNavItem[] = [
   { href: "/#contact", label: "Contact" },
   { href: "/terms", label: "Glossary" },
   { href: "/board", label: "Org Board" },
-  { href: "/#facets", label: "Facets", demoOnly: true },
-  { href: "/#systems", label: "Systems", demoOnly: true },
-  { href: "/#support", label: "Support", demoOnly: true },
-  { href: "/#about", label: "About", demoOnly: true },
 ];
+
+/** Demo-mode homepage sections. Not Public Menu items — Demo mode is the switch. */
+export const DEMO_HOMEPAGE_SECTIONS = ["facets", "systems", "support", "about"] as const;
+
+const HOMEPAGE_SECTION_ORDER = [
+  "facets",
+  "systems",
+  "integrations",
+  "operations",
+  "support",
+  "metrics",
+  "knowledge",
+  "about",
+  "contact",
+] as const;
 
 export function defaultPublicNavHrefs(): string[] {
   return DEFAULT_PUBLIC_NAV_ITEMS.map((item) => item.href);
@@ -92,14 +101,7 @@ export function publicSectionId(href: string): string | null {
   return href.startsWith("/#") ? href.slice(2) : null;
 }
 
-export function isPublicHrefEnabled(
-  href: string,
-  enabled: string[],
-  demo: boolean,
-): boolean {
-  const item = DEFAULT_PUBLIC_NAV_ITEMS.find((row) => row.href === href);
-  if (!item) return enabled.includes(href);
-  if (item.demoOnly && !demo) return false;
+export function isPublicHrefEnabled(href: string, enabled: string[]): boolean {
   return enabled.includes(href);
 }
 
@@ -109,7 +111,7 @@ export function visiblePublicNavItems(opts: {
   order?: string[] | null;
 }): PublicNavItem[] {
   const ordered = orderNavItems(DEFAULT_PUBLIC_NAV_ITEMS, opts.order);
-  return ordered.filter((item) => isPublicHrefEnabled(item.href, opts.enabled, opts.demo));
+  return ordered.filter((item) => isPublicHrefEnabled(item.href, opts.enabled));
 }
 
 export function visiblePublicSectionIds(opts: {
@@ -123,6 +125,19 @@ export function visiblePublicSectionIds(opts: {
     if (id) ids.push(id);
   }
   return ids;
+}
+
+/** Homepage section ids in render order. Demo sections follow Demo mode, not Public Menu. */
+export function homepageVisibleSectionIds(opts: {
+  demo: boolean;
+  enabled: string[];
+  order?: string[] | null;
+}): string[] {
+  const fromMenu = new Set(visiblePublicSectionIds(opts));
+  if (opts.demo) {
+    for (const id of DEMO_HOMEPAGE_SECTIONS) fromMenu.add(id);
+  }
+  return HOMEPAGE_SECTION_ORDER.filter((id) => fromMenu.has(id));
 }
 
 export function nextPublicSectionId(currentId: string, visibleIds: string[]): string | undefined {

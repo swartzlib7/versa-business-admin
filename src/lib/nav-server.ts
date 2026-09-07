@@ -24,6 +24,5 @@ export function gateOperatorPath(pathname: string): void {
 }
 
 export function gatePublicHref(href: string): void {
-  const demo = getSiteSettingsFixture().demo_mode !== false;
-  if (!isPublicHrefEnabled(href, publicMenuEnabled(), demo)) notFound();
+  if (!isPublicHrefEnabled(href, publicMenuEnabled())) notFound();
 }

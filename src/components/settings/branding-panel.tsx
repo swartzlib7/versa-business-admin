@@ -16,8 +16,6 @@ import {
   LOGO_SCALE_MAX,
   LOGO_SCALE_MIN,
   LOGO_UPLOAD_HINT,
-  SKY_PREVIEW_MAX_PX,
-  SKY_PREVIEW_MIN_PX,
   SKY_DENSITY_DEFAULT,
   SKY_DENSITY_LEVEL_MAX,
   SKY_DENSITY_LEVEL_MIN,
@@ -634,8 +632,8 @@ export function BrandingPanel({
             </button>
           </div>
           <div
-            className="relative w-full flex-1 overflow-hidden rounded-lg border border-border bg-black"
-            style={{ minHeight: SKY_PREVIEW_MIN_PX, maxHeight: SKY_PREVIEW_MAX_PX }}
+            className="relative w-full overflow-hidden rounded-lg border border-border bg-black"
+            style={{ height: "min(42vh, 28rem)", minHeight: 220 }}
           >
             <VersaConstellation
               variant={draft.variant}
@@ -661,11 +659,10 @@ export function BrandingPanel({
             />
             <p className="text-xs text-muted-foreground">
               25% is a wide night sky (browser zoomed out). 100% is the current
-              scale. 200% is close-in. Shooting stars, satellites, and comets
-              keep their own size.
+              scale. 200% is close-in. Shooting stars, satellites, asteroids, and comets keep their own size.
             </p>
           </div>
-          <div className="grid shrink-0 gap-3 lg:grid-cols-3">
+          <div className="grid shrink-0 gap-3 sm:grid-cols-2">
             <SkyEffectRow
               title="Shooting stars"
               hint="Brief meteors. Independent of Stars zoom. 1× is the usual rate; 3× is the previous rate."
@@ -681,8 +678,15 @@ export function BrandingPanel({
               onChange={(partial) => patchEffect("satellites", partial)}
             />
             <SkyEffectRow
+              title="Asteroids"
+              hint="Tumbling rocks in gold, ice blue, emerald, royal red, or silver. 1× waits 15–60s between appearances."
+              style={draft.effects.asteroids}
+              color={draft.color}
+              onChange={(partial) => patchEffect("asteroids", partial)}
+            />
+            <SkyEffectRow
               title="Comets"
-              hint="One at a time, arcing across the sky. 1× waits 15–60s between appearances."
+              hint="Icy nucleus with a long tail. Much slower than a shooting star. 1× waits 20–80s between appearances."
               style={draft.effects.comets}
               color={draft.color}
               onChange={(partial) => patchEffect("comets", partial)}
