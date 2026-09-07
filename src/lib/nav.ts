@@ -32,6 +32,8 @@ export type PublicNavItem = {
 
 /** Default visitor header/footer links. Settings → Menu → Public can reorder and toggle. */
 export const DEFAULT_PUBLIC_NAV_ITEMS: PublicNavItem[] = [
+  { href: "/#facets", label: "Mission Control Facets" },
+  { href: "/#systems", label: "System Landscape" },
   { href: "/#integrations", label: "Integrations" },
   { href: "/#operations", label: "Operations" },
   { href: "/#metrics", label: "Metrics" },
@@ -41,8 +43,11 @@ export const DEFAULT_PUBLIC_NAV_ITEMS: PublicNavItem[] = [
   { href: "/board", label: "Org Board" },
 ];
 
-/** Demo-mode homepage sections. Not Public Menu items — Demo mode is the switch. */
-export const DEMO_HOMEPAGE_SECTIONS = ["facets", "systems", "support", "about"] as const;
+/** Demo-mode homepage sections that are not Public Menu items. */
+export const DEMO_HOMEPAGE_SECTIONS = ["support", "about"] as const;
+
+/** Added 0.7.140. Default On until they appear in a saved order (then Off is sticky). */
+const PUBLIC_MENU_INTRODUCED_HREFS = ["/#facets", "/#systems"] as const;
 
 const HOMEPAGE_SECTION_ORDER = [
   "facets",
@@ -127,7 +132,7 @@ export function visiblePublicSectionIds(opts: {
   return ids;
 }
 
-/** Homepage section ids in render order. Demo sections follow Demo mode, not Public Menu. */
+/** Homepage section ids in render order. Support/About follow Demo mode; Facets and System Landscape follow Public Menu. */
 export function homepageVisibleSectionIds(opts: {
   demo: boolean;
   enabled: string[];
@@ -138,6 +143,32 @@ export function homepageVisibleSectionIds(opts: {
     for (const id of DEMO_HOMEPAGE_SECTIONS) fromMenu.add(id);
   }
   return HOMEPAGE_SECTION_ORDER.filter((id) => fromMenu.has(id));
+}
+
+/**
+ * Resolve saved Public Menu lists against the current catalog.
+ * New catalog items default On until a saved order has seen them.
+ */
+export function resolvePublicMenu(opts: {
+  enabled: unknown;
+  order?: unknown;
+}): { enabled: string[]; order: string[] } {
+  const allowed = defaultPublicNavHrefs();
+  const rawOrder = Array.isArray(opts.order)
+    ? opts.order.filter((href): href is string => typeof href === "string")
+    : [];
+  let enabled = sanitizeMenuEnabled(opts.enabled, allowed);
+  for (const href of PUBLIC_MENU_INTRODUCED_HREFS) {
+    if (!rawOrder.includes(href) && allowed.includes(href) && !enabled.includes(href)) {
+      enabled = [href, ...enabled];
+    }
+  }
+  const order = orderNavItems(
+    DEFAULT_PUBLIC_NAV_ITEMS,
+    sanitizeMenuOrder(opts.order, allowed) ?? allowed,
+  ).map((item) => item.href);
+  enabled = order.filter((href) => enabled.includes(href));
+  return { enabled, order };
 }
 
 export function nextPublicSectionId(currentId: string, visibleIds: string[]): string | undefined {
@@ -213,7 +244,7 @@ export function defaultNavHrefs(): string[] {
   return DEFAULT_NAV_ITEMS.map((item) => item.href);
 }
 
-/** Apply a stored href order. Unknown hrefs are ignored; missing items stay at the end. */
+/** Apply a stored href order. Unknown hrefs are ignored; missing catalog items insert at their default position. */
 export function orderNavItems<T extends { href: string }>(
   items: T[],
   order?: string[] | null,
@@ -229,8 +260,19 @@ export function orderNavItems<T extends { href: string }>(
       seen.add(href);
     }
   }
-  for (const item of items) {
-    if (!seen.has(item.href)) out.push(item);
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (seen.has(item.href)) continue;
+    let insertAt = 0;
+    for (let j = i - 1; j >= 0; j--) {
+      const idx = out.findIndex((row) => row.href === items[j].href);
+      if (idx >= 0) {
+        insertAt = idx + 1;
+        break;
+      }
+    }
+    out.splice(insertAt, 0, item);
+    seen.add(item.href);
   }
   return out;
 }

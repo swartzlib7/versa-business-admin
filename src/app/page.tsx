@@ -26,9 +26,8 @@ import {
   normalizePublicContent,
 } from "@/lib/public/site-content";
 import {
-  defaultPublicNavHrefs,
   nextPublicSectionId,
-  sanitizeMenuEnabled,
+  resolvePublicMenu,
   homepageVisibleSectionIds,
 } from "@/lib/nav";
 import {
@@ -102,11 +101,14 @@ export default async function HomePage() {
   const cycle = enabledCycleSteps(site);
   const demo = site.demo_mode !== false;
   const showLogin = site.public_login_enabled !== false;
-  const publicEnabled = sanitizeMenuEnabled(site.public_menu_enabled, defaultPublicNavHrefs());
+  const publicMenu = resolvePublicMenu({
+    enabled: site.public_menu_enabled,
+    order: site.public_menu_order,
+  });
   const sectionIds = homepageVisibleSectionIds({
     demo,
-    enabled: publicEnabled,
-    order: site.public_menu_order,
+    enabled: publicMenu.enabled,
+    order: publicMenu.order,
   });
   const sectionOn = (id: string) => sectionIds.includes(id);
   const nextOf = (id: string) => nextPublicSectionId(id, sectionIds);
@@ -226,88 +228,96 @@ export default async function HomePage() {
         </div>
       </PublicSection>
 
-      {demo ? (
-        <>
-          <PublicSection id="facets" nextId={nextOf("facets")} hidden={!sectionOn("facets")} className="bg-transparent">
-            <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-              <div className="mb-12 text-center">
-                <h2 className="text-3xl font-bold tracking-tight">
-                  Mission Control Facets
-                  <SampleMark />
-                </h2>
-                <p className="mt-3 text-muted-foreground">
-                  Six areas that keep the business running — all visible from one dashboard.
-                </p>
-              </div>
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {services.map((service) => {
-                  const Icon = ICON_MAP[service.icon] ?? LayoutDashboard;
-                  return (
-                    <Card key={service.id} className="flex flex-col">
-                      <CardHeader>
-                        <div
-                          className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg"
-                          style={{
-                            backgroundColor: theme.colors.brand + "20",
-                            color: theme.colors.brand,
-                          }}
-                        >
-                          <Icon className="h-6 w-6" />
-                        </div>
-                        <CardTitle className="text-lg">{service.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-1">
-                        <p className="text-sm text-muted-foreground">
-                          {service.description}
-                        </p>
-                        <ul className="mt-4 space-y-2">
-                          {service.features.map((feature) => (
-                            <li key={feature} className="flex items-start gap-2 text-sm">
-                              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-                              <span className="text-muted-foreground">{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            </div>
-          </PublicSection>
-
-          <PublicSection id="systems" nextId={nextOf("systems")} hidden={!sectionOn("systems")} className="bg-transparent">
-            <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-              <div className="mb-12 text-center">
-                <h2 className="text-3xl font-bold tracking-tight">
-                  Other Systems
-                  <SampleMark />
-                </h2>
-                <p className="mt-3 text-muted-foreground">
-                  Adjacent systems the business runs alongside Mission Control.
-                </p>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {otherSystems.map((sys) => (
-                  <Card key={sys.id}>
+      <PublicSection id="facets" nextId={nextOf("facets")} hidden={!sectionOn("facets")} className="bg-transparent">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+          <div className="mb-12 text-center">
+            <h2 className="text-3xl font-bold tracking-tight">
+              Mission Control Facets
+              {demo ? <SampleMark /> : null}
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Six areas that keep the business running — all visible from one dashboard.
+            </p>
+          </div>
+          {demo && services.length ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {services.map((service) => {
+                const Icon = ICON_MAP[service.icon] ?? LayoutDashboard;
+                return (
+                  <Card key={service.id} className="flex flex-col">
                     <CardHeader>
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-base">{sys.name}</CardTitle>
-                        <Badge variant={SYSTEM_STATUS_VARIANT[sys.status] ?? "outline"}>
-                          {sys.status}
-                        </Badge>
+                      <div
+                        className="mb-2 flex h-12 w-12 items-center justify-center rounded-lg"
+                        style={{
+                          backgroundColor: theme.colors.brand + "20",
+                          color: theme.colors.brand,
+                        }}
+                      >
+                        <Icon className="h-6 w-6" />
                       </div>
-                      <p className="text-xs text-muted-foreground">{sys.category}</p>
+                      <CardTitle className="text-lg">{service.name}</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">{sys.description}</p>
+                    <CardContent className="flex-1">
+                      <p className="text-sm text-muted-foreground">
+                        {service.description}
+                      </p>
+                      <ul className="mt-4 space-y-2">
+                        {service.features.map((feature) => (
+                          <li key={feature} className="flex items-start gap-2 text-sm">
+                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
+                            <span className="text-muted-foreground">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          </PublicSection>
+          ) : (
+            <EmptyLive message="No facets published yet." />
+          )}
+        </div>
+      </PublicSection>
 
+      <PublicSection id="systems" nextId={nextOf("systems")} hidden={!sectionOn("systems")} className="bg-transparent">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+          <div className="mb-12 text-center">
+            <h2 className="text-3xl font-bold tracking-tight">
+              System Landscape
+              {demo ? <SampleMark /> : null}
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Adjacent systems the business runs alongside Mission Control.
+            </p>
+          </div>
+          {demo && otherSystems.length ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {otherSystems.map((sys) => (
+                <Card key={sys.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="text-base">{sys.name}</CardTitle>
+                      <Badge variant={SYSTEM_STATUS_VARIANT[sys.status] ?? "outline"}>
+                        {sys.status}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{sys.category}</p>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">{sys.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <EmptyLive message="No systems published yet." />
+          )}
+        </div>
+      </PublicSection>
+
+      {demo ? (
+        <>
           <PublicSection id="integrations" nextId={nextOf("integrations")} hidden={!sectionOn("integrations")} className="bg-transparent">
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
               <div className="mb-12 text-center">

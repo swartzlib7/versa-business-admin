@@ -9,9 +9,12 @@ import {
   defaultNavHrefs,
   defaultPublicNavHrefs,
   publicFlagsFromEnabled,
+  resolvePublicMenu,
   sanitizeMenuEnabled,
   sanitizeMenuOrder,
   withToggledHref,
+  DEFAULT_PUBLIC_NAV_ITEMS,
+  orderNavItems,
 } from "@/lib/nav";
 
 function modesFromStore() {
@@ -21,20 +24,18 @@ function modesFromStore() {
     defaultNavHrefs(),
     LOCKED_OPERATOR_HREFS,
   );
-  const public_menu_enabled = sanitizeMenuEnabled(
-    settings.public_menu_enabled,
-    defaultPublicNavHrefs(),
-  );
-  const flags = publicFlagsFromEnabled(public_menu_enabled);
+  const publicMenu = resolvePublicMenu({
+    enabled: settings.public_menu_enabled,
+    order: settings.public_menu_order,
+  });
+  const flags = publicFlagsFromEnabled(publicMenu.enabled);
   return {
     demo_mode: settings.demo_mode !== false,
     maintenance_mode: settings.maintenance_mode === true,
     menu_order: sanitizeMenuOrder(settings.menu_order) ?? defaultNavHrefs(),
     menu_enabled,
-    public_menu_order:
-      sanitizeMenuOrder(settings.public_menu_order, defaultPublicNavHrefs()) ??
-      defaultPublicNavHrefs(),
-    public_menu_enabled,
+    public_menu_order: publicMenu.order,
+    public_menu_enabled: publicMenu.enabled,
     public_login_enabled: settings.public_login_enabled !== false,
     glossary_in_menu: flags.glossary_in_menu,
     org_board_enabled: flags.org_board_enabled,
@@ -168,7 +169,10 @@ export async function PUT(request: Request) {
         { status: 400 },
       );
     }
-    patch.public_menu_order = order;
+    patch.public_menu_order = orderNavItems(
+      DEFAULT_PUBLIC_NAV_ITEMS,
+      order,
+    ).map((item) => item.href);
   }
   let publicEnabled = current.public_menu_enabled;
   if (body.public_menu_enabled !== undefined) {
@@ -197,6 +201,12 @@ export async function PUT(request: Request) {
     typeof body.org_board_enabled === "boolean"
   ) {
     patch.public_menu_enabled = publicEnabled;
+    if (patch.public_menu_order === undefined) {
+      patch.public_menu_order = orderNavItems(
+        DEFAULT_PUBLIC_NAV_ITEMS,
+        current.public_menu_order,
+      ).map((item) => item.href);
+    }
     const flags = publicFlagsFromEnabled(publicEnabled);
     patch.glossary_in_menu = flags.glossary_in_menu;
     patch.org_board_enabled = flags.org_board_enabled;

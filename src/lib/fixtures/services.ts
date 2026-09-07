@@ -13,7 +13,7 @@ export interface Service {
 export const services: Service[] = [
   {
     id: 'facet-systems',
-    name: 'Other Systems',
+    name: 'System Landscape',
     description:
       'See every system the business runs — accounting, CRM, inventory, HR — and how they connect to Mission Control.',
     icon: 'Server',

@@ -11,8 +11,7 @@ import { theme } from "@/lib/theme";
 import {
   defaultPublicNavHrefs,
   publicFlagsFromEnabled,
-  sanitizeMenuEnabled,
-  sanitizeMenuOrder,
+  resolvePublicMenu,
 } from "@/lib/nav";
 import "@/lib/catalog/install-durable";
 import "./globals.css";
@@ -80,13 +79,10 @@ async function loadBrand(): Promise<LoadedSite> {
       typeof v === "number" && Number.isFinite(v) ? v : fallback;
     const settingsRec = settings as unknown as Record<string, unknown>;
     const surfaces = resolveLogoSurfaces(settingsRec);
-    const public_menu_enabled = sanitizeMenuEnabled(
-      fixture.public_menu_enabled,
-      defaultPublicNavHrefs(),
-    );
-    const public_menu_order =
-      sanitizeMenuOrder(fixture.public_menu_order, defaultPublicNavHrefs()) ??
-      defaultPublicNavHrefs();
+    const { enabled: public_menu_enabled, order: public_menu_order } = resolvePublicMenu({
+      enabled: fixture.public_menu_enabled,
+      order: fixture.public_menu_order,
+    });
     const flags = publicFlagsFromEnabled(public_menu_enabled);
     return {
       brand_name: settings.brand_name,

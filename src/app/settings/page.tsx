@@ -173,7 +173,7 @@ function SystemPanel() {
           <div className="max-w-lg space-y-1">
             <p className="text-sm font-medium">Demo mode</p>
             <p className="text-sm text-muted-foreground">
-              Shows polished sample Facets, Other Systems, Integrations,
+              Shows polished sample Facets, System Landscape, Integrations,
               Operations, Support, Metrics, Knowledge, and About on the visitor
               site. Those samples are not live records. Turn off to show only
               wired live sections. This toggle does not fill empty database

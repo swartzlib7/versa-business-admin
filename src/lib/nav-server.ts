@@ -3,9 +3,9 @@ import { getSiteSettingsFixture } from "@/lib/fixtures/site-settings";
 import {
   LOCKED_OPERATOR_HREFS,
   defaultNavHrefs,
-  defaultPublicNavHrefs,
   isOperatorPathEnabled,
   isPublicHrefEnabled,
+  resolvePublicMenu,
   sanitizeMenuEnabled,
 } from "@/lib/nav";
 
@@ -16,7 +16,10 @@ export function operatorMenuEnabled(): string[] {
 
 export function publicMenuEnabled(): string[] {
   const settings = getSiteSettingsFixture();
-  return sanitizeMenuEnabled(settings.public_menu_enabled, defaultPublicNavHrefs());
+  return resolvePublicMenu({
+    enabled: settings.public_menu_enabled,
+    order: settings.public_menu_order,
+  }).enabled;
 }
 
 export function gateOperatorPath(pathname: string): void {

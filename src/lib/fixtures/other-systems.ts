@@ -1,4 +1,4 @@
-// Placeholder fixture for the "Other Systems" facet.
+// Placeholder fixture for the System Landscape section.
 // Generic adjacent systems a business might run alongside Mission Control.
 
 export interface OtherSystemFixture {
