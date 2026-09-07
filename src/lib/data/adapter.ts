@@ -248,12 +248,12 @@ const mutableUsers = userFixtures.map((u) => ({ ...u, data: u.data ? { ...u.data
 // the collab org-type tabs + Executive organizations list were dead. In-memory
 // store mirrors the postgres-adapter shape (Slice D rev E section 4.3).
 let orgSeq = 0;
+// #274 packaged-DB contract: live org tables start EMPTY except the Primary Org
+// (here the fixture-mode stand-in). Demo orgs (vendor/customer/partner/branch)
+// are not preloaded — they come from the mc_sample: pack via
+// Settings -> Modes -> Insert Sample Data, tagged so Delete removes exactly them.
 const mutableOrganizations: Organization[] = [
   { id: "org-fixture-1", name: "Sample Maker Workspace", is_person: false, org_type: "internal", parent_organization_id: null, is_primary: true, data: { is_primary: true } },
-  { id: "org-fixture-v1", name: "Acme Cloud Services", is_person: false, org_type: "vendor", parent_organization_id: null, data: {} },
-  { id: "org-fixture-c1", name: "Northwind Retail", is_person: false, org_type: "customer", parent_organization_id: null, data: {} },
-  { id: "org-fixture-p1", name: "Bright Channel Partners", is_person: false, org_type: "partner", parent_organization_id: null, data: {} },
-  { id: "org-fixture-b1", name: "Riverside Branch", is_person: false, org_type: "branch", parent_organization_id: null, data: {} },
 ];
 const ORG_TYPES = ["vendor", "customer", "partner", "branch", "internal"];
 

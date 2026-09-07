@@ -48,6 +48,18 @@ export const SAMPLE_ORGS: SampleOrgSeed[] = [
     external_id: sampleExternalId("org", "customer"),
     notes: "Migrated-shape customer. Wave Customer maps here via external_id.",
   },
+  {
+    name: "Sample Channel Partner",
+    org_type: "partner",
+    external_id: sampleExternalId("org", "partner"),
+    notes: "Partner org demo — Collaboration tab org_type rendering.",
+  },
+  {
+    name: "Sample Branch",
+    org_type: "branch",
+    external_id: sampleExternalId("org", "branch"),
+    notes: "Branch org demo — org_type=branch renders as a child section (ERD section 2.7).",
+  },
 ];
 
 export const SAMPLE_RECORDS: SampleRecordSeed[] = [
@@ -131,5 +143,45 @@ export const SAMPLE_RECORDS: SampleRecordSeed[] = [
       description: "Sample project hanging from the Primary Org.",
       external_id: sampleExternalId("project", "delivery"),
     },
+  },
+  {
+    type_api_name: "executive_task",
+    parent_kind: "faculty",
+    parent_api_name: "executive",
+    name: "Sample onboarding task",
+    status: "in_progress",
+    data: {
+      description: "Three-message buyer welcome sequence: thank you, how to use, how to get help.",
+      external_id: sampleExternalId("task", "onboarding"),
+    },
+  },
+  {
+    type_api_name: "treasury_transaction",
+    parent_kind: "faculty",
+    parent_api_name: "treasury",
+    name: "Sample vendor expense",
+    data: {
+      classification: "expense",
+      amount: "85.00",
+      currency: "USD",
+      category: "services",
+      transaction_date: "2026-09-02",
+      external_id: sampleExternalId("txn", "expense-1"),
+    },
+    org_external_id: sampleExternalId("org", "vendor"),
+  },
+  {
+    type_api_name: "vendor_integration",
+    parent_kind: "collaboration",
+    parent_api_name: "vendor",
+    name: "Sample vendor integration",
+    data: {
+      integration_type: "email",
+      status: "connected",
+      description: "Shared inbox for client and support mail (demo row).",
+      last_sync: "2026-09-01T23:00:00Z",
+      external_id: sampleExternalId("integration", "email"),
+    },
+    org_external_id: sampleExternalId("org", "vendor"),
   },
 ];

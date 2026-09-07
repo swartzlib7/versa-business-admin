@@ -70,10 +70,13 @@ export function SampleDataPanel() {
           <p className="text-sm text-muted-foreground">
             Inserts live collaboration parties and records tagged{" "}
             <code className="text-xs">mc_sample:</code> (vendor, customer,
-            location, product, transaction, staff, contact, project). This is
-            not Demo mode. Demo only changes the visitor site fixtures and never
-            writes these rows. After an AGi Org migration, disable the built-in
-            AGi Org module so the two catalogs do not both own the same parties.
+            partner, branch, location, product, transaction, task,
+            integration, staff, contact, project). The packaged database ships
+            empty except the Primary Org and the pre-configured catalog —
+            demo content arrives only here. Not Demo mode: Demo only changes
+            the visitor site fixtures and never writes these rows. After an
+            AGi Org migration, disable the built-in AGi Org module so the two
+            catalogs do not both own the same parties.
           </p>
           <p className="text-xs text-muted-foreground">
             {status
