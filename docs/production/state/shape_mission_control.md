@@ -51,8 +51,8 @@
 | I7 org hierarchy UI | Closed until Stephen explicitly opens |
 | Overlay implementation | Storage + D1 `c_` + seed-pack stamp in 0.7.106; Primary Org (not multi-tenant login) in 0.7.107; D3 org-scope and D5 packages still open (#239) |
 | Agent packages (D5) | After durable catalog |
-| Customer packaging / install | Horizon 3 TBD — do not invent runbooks |
-| Mission Control skill | Horizon 3 #4 — author after outline review; lives in `.agent/skills/`, not here |
+| Customer packaging / install | Horizon 3 — agent path is skill `mission_control` + manual §2.0; container/systemd still TBD |
+| Mission Control skill | Authored and marked ready 2026-09-07 — `.agent/skills/mission_control.md` |
 
 ## At a glance (2026-09-03)
 
@@ -62,7 +62,7 @@
 | Page chrome / menu | 0.7.109 zone tabs match PageHeader height; Contacts/UI Components share card shading | `state_layout_mission_ui.md` |
 | Records Editor | Train accepted with I5.6.33 | `state_records_editor_ux.md` |
 | Public site | 0.7.109 full-viewport sections, 25% snap, nowrap header | `state_public_site.md` |
-| API | Hybrid fixture/Postgres; catalog routes live | `state_api_contract.md` |
+| API | 0.7.141 catalog + Settings → API; System Landscape alias | `state_api_contract.md` |
 | DB cutover | Phase 0–4 done; fixtures still default on many boards | `state_db_cutover_checklist.md` |
 | Upgrades | Overlay storage + D1 `c_` + seed-pack stamp in 0.7.106; D3/D5 still open | `state_upgradability.md` |
 

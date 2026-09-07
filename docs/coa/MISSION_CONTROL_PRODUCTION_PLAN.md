@@ -66,7 +66,7 @@ We are now ready to sequence the path toward **Full Production Release**.
   1. Setup & deployment guides (Docker, local runtime, native reverse proxy).
   2. Ops runbooks for database backups, migrations, and maintenance.
   3. Implementer troubleshooting and self-healing diagnostics.
-  4. **Mission Control skill** (`mission_control`) — loadable procedure for other agents and new COAs: how to style solutions to this product, implement against the HTTP API, install a host, and operate via API / Script Tasks for other Primary Users. The manual is the human/ops source; the skill points at the manual + locked D1–D6. Author later; do not mark `ready` until Stephen reviews the outline.
+  4. **Mission Control skill** (`mission_control`) — loadable procedure for other agents and new COAs: how to style solutions to this product, implement against the HTTP API, install a host, and operate via API / Script Tasks for other Primary Users. The manual is the human/ops source; the skill points at the manual + locked D1–D6. **Authored and marked ready 2026-09-07** (manual §2.0).
 
 ### Horizon 4: Production Polish & Domain Cutover
 - **Objective:** Hardening, performance benchmarks, and formal production cutover (:3100 / public domain).
