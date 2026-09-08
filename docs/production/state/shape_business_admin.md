@@ -46,6 +46,7 @@
 | public_site | Public homepage / visitor chrome | `state_public_site.md` | extracted |
 | upgradability | D1–D6 upgrade model | `state_upgradability.md` | extracted |
 | migrate_agi_org | Host AGi Org → VBA | `state_migrate_agi_org.md` | extracted |
+| listing_toolbar | Shared backend table filter / columns / name search | `state_listing_toolbar.md` | extracted |
 
 ## Deferred / not built
 
@@ -66,7 +67,8 @@
 | Records Editor | Train accepted with I5.6.33 | `state_records_editor_ux.md` |
 | Public site | 0.7.109 full-viewport sections, 25% snap, nowrap header | `state_public_site.md` |
 | API | 0.7.142 catalog + Settings → API; no pre-launch aliases | `state_api_contract.md` |
-| AGi Org migrate | 0.7.149 extra own Wave businesses are Orgs not Branch; primary-source-org required | `state_migrate_agi_org.md` |
+| AGi Org migrate | 0.7.150 extra own Wave businesses are Orgs not Branch; primary-source-org required | `state_migrate_agi_org.md` |
+| Listing toolbar | Planned: filter chips + column picker + name search on all backend tables | `state_listing_toolbar.md` |
 | DB cutover | Shipped default `DATA_SOURCE=postgres` + `.env.local` `DATABASE_URL`. Fixture is opt-in. | `state_db_cutover_checklist.md` |
 | Upgrades | Overlay storage + D1 `c_` + seed-pack stamp in 0.7.106; D3/D5 still open | `state_upgradability.md` |
 
