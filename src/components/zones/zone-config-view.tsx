@@ -1814,7 +1814,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
         />
       ) : null}
 
-      <div className="relative flex flex-col gap-4 lg:flex-row">
+      <div role="tabpanel" className="relative flex min-h-[640px] flex-col gap-4 lg:flex-row">
         <div className="min-w-0 flex-1">
           {tab && (
             <TabPanel

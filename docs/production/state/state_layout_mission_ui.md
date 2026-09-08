@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Application layout / IA chrome |
-| **Status** | 🔧 In progress — 0.7.155 min-height floor on sub-tab content containers |
+| **Status** | 🔧 In progress — 0.7.156 min-height floor on sub-tab content containers (zones + glossary included) |
 | **Last verified against code** | 2026-09-07 |
 | **Primary code** | `src/app/**`, hub scene components, zone pages |
 | **Former doc** | `docs/research/LAYOUT_PROPOSAL.md` (superseded seed) |
@@ -33,7 +33,7 @@
 | Header (2D) | Search, profile, familiar business chrome; username → users |
 | 3D viewport | Keystone ERD hub; Versa AGi brand; lightbox expand; billboard labels; zone-embedded twins on zone routes |
 | Detail (2D) | Zone config tabs; projects/tasks tables; users admin |
-| Content container | Every page content container below the sub-tab strip (role=tabpanel) carries min-h 640px (0.7.155) so short pages keep a consistent working area |
+| Content container | Every page content container below the sub-tab strip (role=tabpanel) carries min-h 640px (0.7.156) so short pages keep a consistent working area — includes Settings/Users/Contact/UI Components/Records Editor, Glossary (5 tabs), and all zone pages via ZoneConfigView |
 
 ### 1.3 Explicit non-goals (from superseded seed)
 - Agent fleet status in sidebar
@@ -200,6 +200,7 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 | 2026-09-04 | 0.7.109: zone/Statistics main tabs use PageHeader (same height); Contacts + UI Components match Settings card header shading |
 | 2026-09-07 | 0.7.137: Settings → Menu Operator / Public; On/Off + route 404 |
 | 2026-09-08 | 0.7.155: min-h-[640px] on all 14 sub-tab content containers (role=tabpanel; contact, settings ×7, ui-components, users, records-editor ×4) — Stephen request; E2E computed-style verified 640px floor, tall pages unaffected |
+| 2026-09-08 | 0.7.156: same floor on the missed surfaces — Glossary (5 tabpanels) and ZoneConfigView content region below the sub-tab strip (Organization / Collaboration / Environment / Stats). 0.7.155 never reached those pages, which is why not every page held the floor. |
 
 ## 0.7.107 — Chrome contract (2026-09-03)
 

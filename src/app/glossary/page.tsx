@@ -377,7 +377,7 @@ export default function GlossaryPage() {
         />
 
         {activeTab === "configuration" && (
-          <div className="space-y-3">
+          <div role="tabpanel" className="min-h-[640px] space-y-3">
             <SubTabBar
               items={[{ id: "configuration", label: "Configuration" }]}
               activeId="configuration"
@@ -430,7 +430,7 @@ export default function GlossaryPage() {
         )}
 
         {activeTab === "org-board" && (
-          <div className="space-y-3">
+          <div role="tabpanel" className="min-h-[640px] space-y-3">
             <SubTabBar
               items={[{ id: "org-board", label: "Org Board" }]}
               activeId="org-board"
@@ -443,7 +443,7 @@ export default function GlossaryPage() {
         )}
 
         {activeTab === "view" && (
-          <div className="space-y-3">
+          <div role="tabpanel" className="min-h-[640px] space-y-3">
             <SubTabBar
               items={[{ id: "view", label: "View" }]}
               activeId="view"
@@ -462,7 +462,7 @@ export default function GlossaryPage() {
         )}
 
         {activeTab === "sections" && (
-        <div className="space-y-3">
+        <div role="tabpanel" className="min-h-[640px] space-y-3">
         <SubTabBar
           items={[{ id: "configuration", label: "Sections" }]}
           activeId={subTab}
@@ -577,7 +577,7 @@ export default function GlossaryPage() {
         )}
 
         {activeTab === "entries" && (
-        <div className="space-y-3">
+        <div role="tabpanel" className="min-h-[640px] space-y-3">
         <SubTabBar
           items={[{ id: "configuration", label: "Entries" }]}
           activeId={subTab}
