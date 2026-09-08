@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ListingBadge } from "@/components/ui/kind-badge";
 import { theme } from "@/lib/theme";
 import Link from "next/link";
+import { X } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { BooleanSwitch } from "@/components/ui/boolean-switch";
 import { SecretValueField, maskSecretDisplay } from "@/components/ui/secret-value-field";
@@ -82,6 +83,151 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   /** Drag headers to reorder. Default true. */
   reorderable?: boolean;
 };
+
+type ListingCriterion = { key: string; value: string };
+
+/**
+ * Shared listing toolbar (state_listing_toolbar.md WU-01): criteria chips for
+ * picklist-backed columns (select / boolean). Typed-value criteria and the
+ * column picker arrive with WU-02 / WU-03.
+ */
+function ListingToolbar({
+  fields,
+  criteria,
+  onAdd,
+  onRemove,
+  onClear,
+}: {
+  fields: ListingField[];
+  criteria: ListingCriterion[];
+  onAdd: (criterion: ListingCriterion) => void;
+  onRemove: (key: string, value: string) => void;
+  onClear: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [columnKey, setColumnKey] = useState("");
+  const [value, setValue] = useState("");
+  const filterable = useMemo(
+    () =>
+      fields.filter(
+        (f) =>
+          f.column !== false &&
+          (f.kind === "select" || f.kind === "boolean") &&
+          ((f.options?.length ?? 0) > 0 || f.kind === "boolean"),
+      ),
+    [fields],
+  );
+  const activeField = filterable.find((f) => f.key === columnKey);
+  const valueOptions = useMemo(() => {
+    if (!activeField) return [];
+    if (activeField.kind === "boolean") return ["true", "false"];
+    return activeField.options ?? [];
+  }, [activeField]);
+  const commit = () => {
+    if (!activeField || !value) return;
+    onAdd({ key: activeField.key, value });
+    setValue("");
+    setOpen(false);
+  };
+  const chipLabel = (c: ListingCriterion) => {
+    const field = fields.find((f) => f.key === c.key);
+    const idx = field?.options?.indexOf(c.value) ?? -1;
+    const shown = field?.optionLabels && idx >= 0 ? field.optionLabels[idx] : c.value;
+    return (field?.label ?? c.key) + ": " + shown;
+  };
+  if (filterable.length === 0 && criteria.length === 0) return null;
+  return (
+    <div className="border-b border-border bg-muted/20 px-4 py-2.5 sm:px-6">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setOpen((o) => !o);
+            setColumnKey("");
+            setValue("");
+          }}
+          className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+        >
+          Filter
+        </button>
+        {criteria.map((c) => (
+          <span
+            key={c.key + ":" + c.value}
+            className="flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-xs"
+          >
+            {chipLabel(c)}
+            <button
+              type="button"
+              aria-label={"Remove filter " + chipLabel(c)}
+              onClick={() => onRemove(c.key, c.value)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+        {criteria.length > 1 && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+      {open && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <select
+            className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            value={columnKey}
+            onChange={(e) => {
+              setColumnKey(e.target.value);
+              setValue("");
+            }}
+          >
+            <option value="">Column…</option>
+            {filterable.map((f) => (
+              <option key={f.key} value={f.key}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          {activeField && (
+            <select
+              className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            >
+              <option value="">Value…</option>
+              {valueOptions.map((v) => {
+                const idx = activeField.options?.indexOf(v) ?? -1;
+                return (
+                  <option key={v} value={v}>
+                    {activeField.optionLabels && idx >= 0 ? activeField.optionLabels[idx] : v}
+                  </option>
+                );
+              })}
+            </select>
+          )}
+          <button
+            type="button"
+            onClick={commit}
+            disabled={!activeField || !value}
+            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+            style={
+              activeField && value
+                ? { borderColor: theme.colors.brand, color: theme.colors.brand }
+                : undefined
+            }
+          >
+            Add
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function FieldInput({
   field,
@@ -284,15 +430,36 @@ export function EntityListing<T extends Record<string, unknown>>({
   const activeSort: TableSort = colKeys.includes(sort.key)
     ? sort
     : { key: colKeys[0] ?? "", dir: "asc" };
+  const [criteria, setCriteria] = useState<ListingCriterion[]>([]);
+  const addCriterion = (criterion: ListingCriterion) =>
+    setCriteria((cs) =>
+      cs.some((c) => c.key === criterion.key && c.value === criterion.value) ? cs : [...cs, criterion],
+    );
+  const removeCriterion = (key: string, value: string) =>
+    setCriteria((cs) => cs.filter((c) => !(c.key === key && c.value === value)));
+  const clearCriteria = () => setCriteria([]);
+  const filteredRows = useMemo(
+    () =>
+      criteria.length === 0
+        ? rows
+        : rows.filter((row) =>
+            criteria.every((c) => {
+              const raw = getCell(row, c.key);
+              const shown = formatCell ? formatCell(row, c.key, raw) : raw;
+              return shown.trim().toLowerCase() === c.value.trim().toLowerCase();
+            }),
+          ),
+    [rows, criteria, getCell, formatCell],
+  );
   const sortedRows = useMemo(
     () =>
       !activeSort.key
-        ? rows
-        : sortByText(rows, activeSort.dir, (row) => {
+        ? filteredRows
+        : sortByText(filteredRows, activeSort.dir, (row) => {
             const raw = getCell(row, activeSort.key);
             return formatCell ? formatCell(row, activeSort.key, raw) : raw;
           }),
-    [rows, activeSort, getCell, formatCell],
+    [filteredRows, activeSort, getCell, formatCell],
   );
 
   const [editor, setEditor] = useState<null | "new" | string>(null);
@@ -379,6 +546,13 @@ export function EntityListing<T extends Record<string, unknown>>({
         </div>
       </CardHeader>
       <CardContent className="space-y-0 p-0">
+        <ListingToolbar
+          fields={fields}
+          criteria={criteria}
+          onAdd={addCriterion}
+          onRemove={removeCriterion}
+          onClear={clearCriteria}
+        />
         {editor === "new" && (
           <InlineForm
             heading="New Record"

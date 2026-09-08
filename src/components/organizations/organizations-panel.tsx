@@ -191,13 +191,8 @@ export function OrganizationsPanel({ accent }: { accent?: string }) {
   const panelAccent = accent ?? theme.colors.brand;
   const { orgs, loading, error, reload } = useOrganizations();
   const [note, setNote] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'' | OrgType>('');
   const hasPrimary = orgs.some((o) => o.org_type === 'internal');
   const fields = useMemo(() => orgFields(orgs, { includeType: true, includeParent: true }), [orgs]);
-  const rows = useMemo(
-    () => (typeFilter ? orgs.filter((o) => o.org_type === typeFilter) : orgs),
-    [orgs, typeFilter],
-  );
 
   const onAdd = async (draft: Record<string, string>) => {
     const name = (draft.name ?? '').trim();
@@ -258,27 +253,10 @@ export function OrganizationsPanel({ accent }: { accent?: string }) {
         accent={panelAccent}
         columnStorageKey="mc.listing.orgs"
         fields={fields}
-        rows={rows as unknown as (Organization & Record<string, unknown>)[]}
+        rows={orgs as unknown as (Organization & Record<string, unknown>)[]}
         getRowId={(o) => o.id}
         getCell={(o, key) => orgCell(o, key, orgs)}
         formatCell={(o, key, raw) => orgFormat(o, key, raw, orgs)}
-        headerFilters={
-          <label className='flex items-center gap-2 text-sm'>
-            <span className='text-xs font-medium text-muted-foreground'>Filter by type</span>
-            <select
-              className='border-input bg-background rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring'
-              value={typeFilter}
-              onChange={(e) => setTypeFilter((e.target.value || '') as '' | OrgType)}
-            >
-              <option value=''>All types</option>
-              {ORG_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {ORG_TYPE_LABELS[t]}
-                </option>
-              ))}
-            </select>
-          </label>
-        }
         headerExtra={note ? <span className='text-xs text-muted-foreground'>{note}</span> : null}
         onAdd={onAdd}
         onUpdate={onUpdate}

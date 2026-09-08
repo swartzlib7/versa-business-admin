@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Shared listing toolbar on all backend `EntityListing` tables |
-| **Status** | 🟡 Planned — tasked 2026-09-08 (after this IDE session) |
+| **Status** | 🟡 Built (WU-01) 2026-09-08 — agent-verified, uncommitted; QA pending on :3200 |
 | **Last verified against code** | 2026-09-08 |
 | **Primary code** | `src/components/listing/entity-listing.tsx` |
 | **Task** | Parent **#282**; WU-01 **#283**; WU-02 **#284**; WU-03 **#285**; WU-04 **#286** |
@@ -95,7 +95,7 @@ Stephen (2026-09-08 IDE): enhance the Organizations-style filter, put it on all 
 
 | ID | Deliverable | Depends | Agent verify | QA | Status | Task ID |
 |----|-------------|---------|--------------|-----|--------|---------|
-| WU-01 | Shared toolbar on all backend `EntityListing` tables; replace one-off `headerFilters` | — | ⬜ | ⬜ | ⬜ | 283 |
+| WU-01 | Shared toolbar on all backend `EntityListing` tables; replace one-off `headerFilters` | — | ✅ | ⬜ | ✅ built 2026-09-08 | 283 |
 | WU-02 | Faceted filter: column picklist → value picklist or typed value → Add → chips with × | WU-01 | ⬜ | ⬜ | ⬜ | 284 |
 | WU-03 | Column visibility multi-select; removing a column drops its chips | WU-01 | ⬜ | ⬜ | ⬜ | 285 |
 | WU-04 | Record-name search on each table | WU-01 | ⬜ | ⬜ | ⬜ | 286 |
@@ -106,7 +106,7 @@ Stephen (2026-09-08 IDE): enhance the Organizations-style filter, put it on all 
 
 | Date | Scenario | Result | Follow-up |
 |------|----------|--------|-----------|
-| | | | |
+| 2026-09-08 | WU-01 build gates | tsc 0; scoped eslint clean (1 pre-existing set-state-in-effect error on title-reset effect, untouched); E2E 34/34 on :3200 | QA on :3200 pending (Stephen) |
 
 ---
 
@@ -115,3 +115,4 @@ Stephen (2026-09-08 IDE): enhance the Organizations-style filter, put it on all 
 | Date | Change | Items |
 |------|--------|-------|
 | 2026-09-08 | Extracted from Stephen IDE brief. Not built. | WU-01…04 tasked |
+| 2026-09-08 | WU-01 shipped: shared criteria-chip toolbar inside EntityListing (select/boolean columns); Organizations one-off type filter retired — now a chip via the shared toolbar. Typed-value criteria (WU-02), column picker (WU-03), name search (WU-04) still open. | #283 |
