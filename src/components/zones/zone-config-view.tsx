@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ListingBadge } from "@/components/ui/kind-badge";
 
 import { theme } from "@/lib/theme";
-import { MissionControlScene } from "@/components/r3f/mission-control-scene";
+import { BusinessAdminScene } from "@/components/r3f/business-admin-scene";
 import { EntityListing, type ListingField } from "@/components/listing/entity-listing";
 import { PageHeader } from "@/components/ui/page-header";
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
@@ -123,7 +123,7 @@ function isHubZone(id: ZoneConfig["id"]): id is ZoneId {
 const ORG_CONFIGURATION_TAB: ZoneTab = {
   id: "org-configuration",
   label: "Configuration",
-  summary: "Primary Org and appointed staff for this Mission Control.",
+  summary: "Primary Org and appointed staff for this Versa - Business Admin.",
   fields: [],
   relations: [],
 };
@@ -1852,7 +1852,7 @@ export function ZoneConfigView({ config }: { config: ZoneConfig }) {
                 data-hydrated={twinHydrated ? "1" : "0"}
               >
                 <div className="min-h-0 flex-1 overflow-hidden rounded-lg">
-                  <MissionControlScene
+                  <BusinessAdminScene
                     showCanvasChrome={false}
                     showLegend={false}
                     showViewGizmo={false}

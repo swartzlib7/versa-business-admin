@@ -50,7 +50,7 @@ export interface SceneNode {
   size: number;
 }
 
-interface MissionControlSceneProps {
+interface BusinessAdminSceneProps {
   onNodeClick?: (node: SceneNode) => void;
   focusedNodeId?: string | null;
   expanded?: boolean;
@@ -63,7 +63,7 @@ interface MissionControlSceneProps {
   onRingsModeChange?: (mode: 'on' | '50' | '25' | '10' | 'off') => void;
   /**
    * When true (default), render in-canvas axes/rings toggles.
-   * Set false when parent Mission Control chrome already owns those controls (I5.5.8).
+   * Set false when parent VBA chrome already owns those controls (I5.5.8).
    */
   showCanvasChrome?: boolean;
   /** Orbit animation speed multiplier (1 = default). */
@@ -1017,7 +1017,7 @@ function fmtVec(v: [number, number, number]) {
 // --- Main component ---
 
 
-export function MissionControlScene({
+export function BusinessAdminScene({
   onNodeClick,
   focusedNodeId,
   expanded = false,
@@ -1043,7 +1043,7 @@ export function MissionControlScene({
   onShowCameraTelemetryChange,
   className,
   cameraFitZone,
-}: MissionControlSceneProps) {
+}: BusinessAdminSceneProps) {
   const sceneMode = useSceneMode();
   const palette = getPalette(sceneMode);
   const [internalAxes, setInternalAxes] = useState(false); // I5.6.3 hide axes by default
@@ -1283,7 +1283,7 @@ export function MissionControlScene({
         )}
       </Canvas>
 
-      {/* Canvas chrome — omit when parent Mission Control already has controls (I5.5.8) */}
+      {/* Canvas chrome — omit when parent VBA already has controls (I5.5.8) */}
       {showCanvasChrome && (
         <div className="absolute top-3 left-3 right-3 z-20 flex max-w-full flex-wrap items-center gap-1.5">
           <button

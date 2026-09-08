@@ -3,7 +3,7 @@
 Use before accepting any new Mission build slice.
 
 **ERD source of truth:** `docs/production/state/state_i5_6_zone_erd.md`  
-**Map:** `docs/production/state/shape_mission_control.md`
+**Map:** `docs/production/state/shape_business_admin.md`
 
 ## Boundaries
 

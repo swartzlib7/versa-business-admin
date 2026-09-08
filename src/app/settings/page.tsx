@@ -180,7 +180,9 @@ function SystemPanel() {
               Operations, Support, Metrics, Knowledge, and About on the visitor
               site. Those samples are not live records. Turn off to show only
               wired live sections. This toggle does not fill empty database
-              tables with sample rows.
+              tables with sample rows. While Demo mode is on, the login page
+              shows install-account hints (passwords may have been changed) and
+              an alert to change the Administrator and COA passwords.
             </p>
           </div>
           <BooleanSwitch
@@ -255,7 +257,7 @@ function AppearancePanel() {
   const { theme: uiTheme, setTheme } = useUiTheme();
   return (
     <PanelShell
-      summary="Choose how Mission Control looks. Selection is remembered on this device and survives navigation (including Glossary on the side menu)."
+      summary="Choose how Versa - Business Admin looks. Selection is remembered on this device and survives navigation (including Glossary on the side menu)."
       badge="Theme"
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -387,7 +389,7 @@ export default function SettingsPage() {
               ariaLabel="Branding sub-sections"
             />
             <PanelShell
-              summary="Customize how Mission Control appears. Name, color, and logo are saved permanently and survive a restart."
+              summary="Customize how Versa - Business Admin appears. Name, color, and logo are saved permanently and survive a restart."
               badge="Brand"
             >
               <BrandingPanel

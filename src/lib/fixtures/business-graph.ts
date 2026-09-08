@@ -1,4 +1,4 @@
-// Business graph fixture for the 3D Mission Control hub visualization.
+// Business graph fixture for the 3D VBA hub visualization.
 // I5.6 org-board (Stephen 2026-07-21):
 //   Center = Executive (hub blue) — sphere at origin
 //   Executive is a real center sphere (not a floating clickable label)
@@ -13,7 +13,7 @@ import { hubDescriptionFor } from "@/lib/fixtures/org-board";
 
 export type GraphNodeType = 'organization' | 'collaboration' | 'environmental';
 
-/** Local pose in the Mission Control scene (Y-up, meters-ish units). */
+/** Local pose in the VBA scene (Y-up, meters-ish units). */
 export type GraphPosition = [number, number, number];
 
 /** Which half-axis a node occupies for even distribution. */
@@ -46,9 +46,6 @@ export const AXIS_STEP = 2.8;
 
 /** Zone circle radii (intersecting circles on XY / XZ / YZ planes). */
 export const ZONE_RADII = [0, AXIS_STEP, AXIS_STEP * 2, AXIS_STEP * 3] as const;
-
-/** @deprecated use ZONE_RADII */
-export const RING_RADII = ZONE_RADII;
 
 /** Suggested sphere radii (world units). */
 export const SPHERE_RADIUS = {

@@ -72,7 +72,7 @@ export function PrimaryOrgPanel({ accent }: { accent?: string }) {
         <div>
           <p className="text-sm font-medium">Primary Org</p>
           <p className="text-sm text-muted-foreground">
-            The single Org-type record this Mission Control belongs to. All records
+            The single Org-type record this Versa - Business Admin belongs to. All records
             carry its org_id. This flag is set once and cannot be changed.
           </p>
         </div>

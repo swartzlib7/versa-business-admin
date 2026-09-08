@@ -550,7 +550,7 @@ _No default fields defined in the catalog fixture for this object._
 ## AGi Org foundation → Mission Control mapping
 
 **Source excerpt:** `docs/_notes/_exerpt_(state_org_foundation).md` (AGi ERD v13 + SQLite cents rules).  
-**Visual review:** `RECORD_TYPE_FIELD_INVENTORY.erd.md` (mermaid). Sign off that ERD before seeding these types or writing `migrate_agi_org`.
+**Visual review:** `RECORD_TYPE_FIELD_INVENTORY.erd.md` (mermaid). Org-party migrate is `scripts/migrate_agi_org.mjs`.
 
 **MC honors:** one Primary Org (`org_type=internal`); collaboration parties are vendor | customer | partner | branch. Production owns Product/Service; Executive owns Policy/Projects/Tasks; Treasury owns transactions (including quote / estimate / invoice kinds); Environment Locations hold structured addresses.
 
@@ -672,12 +672,12 @@ Widget: count + unit (`every 2 weeks`). Stored as ISO 8601 duration (`interval_i
 
 ### Migration (script + skill — after ERD sign-off)
 
-Do **not** author `migrate_agi_org` until this inventory + ERD are signed off.
+Do **not** author further `migrate_agi_org` writers (products, treasury, secret copy, host-org disable) until tasked. Org-party dry-run/apply lives in `scripts/migrate_agi_org.mjs` (0.7.145). See `docs/production/state/state_migrate_agi_org.md`.
 
-A user-run script will read AGi Org SQLite and write MC organizations + records using `external_id` for idempotency. Sample rows use prefix `mc_sample:` and are **not** the migrator.
+A user-run script will read AGi Org SQLite and write MC organizations + records using `external_id` for idempotency. Sample rows use prefix `ba_sample:` and are **not** the migrator.
 
 Operator steps after a successful migrate:
 
 1. Confirm Primary Org is the single `internal` row; AGi extra “internal” orgs become `branch` or merge.
 2. Disable the built-in AGi Org module so Mission Control is the system of record.
-3. Do not run Insert Sample Data on a migrated host unless you want extra `mc_sample:` rows.
+3. Do not run Insert Sample Data on a migrated host unless you want extra `ba_sample:` rows.

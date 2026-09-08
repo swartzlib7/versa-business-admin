@@ -8,10 +8,13 @@ type SampleStatus = {
   inserted: boolean;
   org_count: number;
   record_count: number;
+  user_count?: number;
   created_orgs?: number;
   created_records?: number;
+  created_users?: number;
   deleted_orgs?: number;
   deleted_records?: number;
+  deleted_users?: number;
 };
 
 export function SampleDataPanel() {
@@ -35,7 +38,7 @@ export function SampleDataPanel() {
   const run = async (action: "insert" | "delete") => {
     if (action === "delete" && status?.inserted) {
       const ok = window.confirm(
-        "Delete all sample organizations and records tagged mc_sample:? The Primary Org is never deleted.",
+        "Delete all sample organizations, users, and records tagged ba_sample:? The Primary Org, Administrator, and COA accounts are never deleted.",
       );
       if (!ok) return;
     }
@@ -68,11 +71,12 @@ export function SampleDataPanel() {
         <div className="max-w-lg space-y-1">
           <p className="text-sm font-medium">Sample data</p>
           <p className="text-sm text-muted-foreground">
-            Inserts live collaboration parties and records tagged{" "}
-            <code className="text-xs">mc_sample:</code> (vendor, customer,
+            Inserts live collaboration parties, member users, and records tagged{" "}
+            <code className="text-xs">ba_sample:</code> (vendor, customer,
             partner, branch, location, product, transaction, task,
-            integration, staff, contact, project). The packaged database ships
-            empty except the Primary Org and the pre-configured catalog —
+            integration, staff, contact, project, and demo humans/agents). The
+            packaged database ships empty except the Primary Org, the
+            Administrator human, the COA agent, and the pre-configured catalog —
             demo content arrives only here. Not Demo mode: Demo only changes
             the visitor site fixtures and never writes these rows. After an
             AGi Org migration, disable the built-in AGi Org module so the two
@@ -81,7 +85,7 @@ export function SampleDataPanel() {
           <p className="text-xs text-muted-foreground">
             {status
               ? inserted
-                ? `Inserted — ${status.org_count} sample orgs, ${status.record_count} sample records.`
+                ? `Inserted — ${status.org_count} sample orgs, ${status.user_count ?? 0} sample users, ${status.record_count} sample records.`
                 : "No sample rows in the live store."
               : "Checking…"}
           </p>

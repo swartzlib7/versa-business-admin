@@ -22,7 +22,7 @@ function isGroup(entry: NavEntry): entry is NavGroup {
 }
 
 export const SIDEBAR_COLLAPSE_EVENT = "mc-sidebar-collapse";
-export const SIDEBAR_COLLAPSE_KEY = "mc.sidebarCollapsed";
+export const SIDEBAR_COLLAPSE_KEY = "ba.sidebarCollapsed";
 
 export function readSidebarCollapsed(): boolean {
   if (typeof window === "undefined") return false;

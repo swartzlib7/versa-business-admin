@@ -11,7 +11,7 @@
 #   ./scripts/vagrant-postgres.sh health  # ping DB from host
 #
 # Environment:
-#   DATABASE_URL=postgresql://mission:mission@localhost:5432/mission_control
+#   DATABASE_URL=postgresql://mission:mission@localhost:5432/business_admin
 #
 # The Vagrant VM forwards host port 5432 to guest port 5432.
 
@@ -20,7 +20,7 @@ set -euo pipefail
 KNOWLEDGEBASE_DIR="/home/agi-web-dev/workspace/knowledgebase"
 POSTGRES_USER="mission"
 POSTGRES_PASSWORD="mission"
-POSTGRES_DB="mission_control"
+POSTGRES_DB="business_admin"
 POSTGRES_PORT="5432"
 DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:${POSTGRES_PORT}/${POSTGRES_DB}"
 
@@ -48,10 +48,10 @@ vm_provision_postgres() {
 
     PGPASSWORD=postgres psql -U postgres -tc "SELECT 1 FROM pg_roles WHERE rolname=\x27mission\x27" | grep -q 1 || \
       psql -U postgres -c "CREATE ROLE mission WITH LOGIN PASSWORD \x27mission\x27 CREATEDB;"
-    psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname=\x27mission_control\x27" | grep -q 1 || \
-      createdb -U postgres -O mission mission_control
+    psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname=\x27business_admin\x27" | grep -q 1 || \
+      createdb -U postgres -O mission business_admin
 
-    psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE mission_control TO mission;"
+    psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE business_admin TO mission;"
 
     PG_HBA=$(ls /etc/postgresql/*/main/pg_hba.conf 2>/dev/null | head -1)
     if [ -n "$PG_HBA" ] && [ -f "$PG_HBA" ]; then
@@ -107,13 +107,13 @@ case "${1:-status}" in
 
   migrate)
     echo "Running drizzle-kit migrate against $DATABASE_URL ..."
-    cd /home/agi-web-dev/workspace/versa-admin-system
+    cd /home/agi-web-dev/workspace/Versa-BusinessAdmin
     DATABASE_URL="$DATABASE_URL" npx drizzle-kit migrate
     ;;
 
   health)
     echo "Pinging Postgres at $DATABASE_URL ..."
-    cd /home/agi-web-dev/workspace/versa-admin-system
+    cd /home/agi-web-dev/workspace/Versa-BusinessAdmin
     DATABASE_URL="$DATABASE_URL" DATA_SOURCE=postgres node -e "
       const postgres = require('postgres');
       const sql = postgres(process.env.DATABASE_URL);

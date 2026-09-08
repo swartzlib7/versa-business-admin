@@ -1,5 +1,5 @@
 // Placeholder fixture for the System Landscape section.
-// Generic adjacent systems a business might run alongside Mission Control.
+// Generic adjacent systems a business might run alongside VBA.
 
 export interface OtherSystemFixture {
   id: string;

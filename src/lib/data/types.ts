@@ -93,7 +93,7 @@ export interface StaffMember {
 }
 
 
-// --- I5.3: Mission Control facet types ---
+// --- I5.3: VBA facet types ---
 
 export interface OtherSystem {
   id: string;

@@ -38,7 +38,7 @@ export const INITIAL_SECTIONS: GlossarySection[] = [
   {
     id: "ui-pattern",
     name: "UI pattern",
-    description: "Shared Mission Control configuration patterns.",
+    description: "Shared VBA configuration patterns.",
   },
 ];
 

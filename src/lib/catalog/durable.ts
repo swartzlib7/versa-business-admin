@@ -15,7 +15,6 @@ import {
   resolveCatalogOverlayId,
 } from "@/lib/catalog/overlay-scope";
 
-/** @deprecated D3 uses the Primary Org id; "site" is the pre-0.7.132 row. */
 export const CATALOG_OVERLAY_ID = LEGACY_CATALOG_OVERLAY_ID;
 /** D4 v1 — stamp of the product seed pack last merged into this overlay. */
 export const CATALOG_SEED_PACK = "0.7.133";

@@ -1,5 +1,5 @@
 // Placeholder fixture for the "Metrics" facet.
-// Sample KPI snapshots for the Mission Control template.
+// Sample KPI snapshots for the VBA template.
 
 export interface MetricFixture {
   id: string;

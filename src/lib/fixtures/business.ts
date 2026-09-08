@@ -1,5 +1,5 @@
 // White-label business profile fixture.
-// Mission Control template — generic placeholder content any business can adopt.
+// VBA public facet template — generic placeholder content any business can adopt.
 // Replace this profile with your own brand and contact details.
 
 export interface BusinessProfile {
@@ -22,7 +22,7 @@ export const business: BusinessProfile = {
   tagline: '- built to fulfill expectations -',
   logoUrl: '/brand/logo.svg',
   description:
-    'Mission Control brings your projects, operations, customer support, integrations, and knowledge into a single dashboard — so every part of the business is visible and connected.',
+    'Versa - Business Admin brings your projects, operations, customer support, integrations, and knowledge into a single dashboard — so every part of the business is visible and connected.',
   purpose:
     'Give teams a single pane of glass to plan work, serve customers, and keep the business running smoothly.',
   production:

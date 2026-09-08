@@ -173,6 +173,7 @@ export interface DataAdapter {
   getUser(id: string): Promise<User | null>;
   createUser?(input: CreateUserInput): Promise<User>;
   updateUser?(id: string, input: UpdateUserInput): Promise<User | null>;
+  deleteUser?(id: string): Promise<boolean>;
   // #248 Slice D (rev E section 4.3): organizations CRUD for the Executive
   // organizations list + Collaboration zone rendering (C6).
   listOrganizations?(orgType?: string): Promise<Organization[]>;
@@ -190,7 +191,7 @@ export interface DataAdapter {
   updateProject?(id: string, input: UpdateProjectInput): Promise<Project | null>;
   createTask?(input: CreateTaskInput): Promise<Task>;
   updateTask?(id: string, input: UpdateTaskInput): Promise<Task | null>;
-  // Mission Control facets (I5.3)
+  // VBA facets (I5.3)
   listOtherSystems(): Promise<OtherSystem[]>;
   listSupportTickets(): Promise<SupportTicket[]>;
   listMetrics(): Promise<Metric[]>;
@@ -250,7 +251,7 @@ const mutableUsers = userFixtures.map((u) => ({ ...u, data: u.data ? { ...u.data
 let orgSeq = 0;
 // #274 packaged-DB contract: live org tables start EMPTY except the Primary Org
 // (here the fixture-mode stand-in). Demo orgs (vendor/customer/partner/branch)
-// are not preloaded — they come from the mc_sample: pack via
+// are not preloaded — they come from the ba_sample: pack via
 // Settings -> Modes -> Insert Sample Data, tagged so Delete removes exactly them.
 const mutableOrganizations: Organization[] = [
   { id: "org-fixture-1", name: "Primary Org", is_person: false, org_type: "internal", parent_organization_id: null, is_primary: true, data: { is_primary: true } },
@@ -554,6 +555,13 @@ export const fixtureAdapter: DataAdapter = {
     return user;
   },
 
+  async deleteUser(id: string) {
+    const idx = mutableUsers.findIndex((u) => u.id === id);
+    if (idx < 0) return false;
+    mutableUsers.splice(idx, 1);
+    return true;
+  },
+
 
   async createProject(input: CreateProjectInput) {
     return createBridgedProject(input);
@@ -571,7 +579,7 @@ export const fixtureAdapter: DataAdapter = {
     return updateBridgedTask(id, input);
   },
 
-  // --- Mission Control facets (I5.3) ---
+  // --- VBA facets (I5.3) ---
 
   async listOtherSystems() {
     return otherSystemFixtures;
@@ -643,6 +651,10 @@ function createAdapter(): DataAdapter {
     updateUser: (id, input) => {
       if (!postgresAdapter.updateUser) throw new Error("updateUser not available");
       return postgresAdapter.updateUser(id, input);
+    },
+    deleteUser: (id) => {
+      if (!postgresAdapter.deleteUser) throw new Error("deleteUser not available");
+      return postgresAdapter.deleteUser(id);
     },
     listProjects: (filters?: ProjectFilters) => postgresAdapter.listProjects(filters),
     getProject: (id: string) => postgresAdapter.getProject(id),

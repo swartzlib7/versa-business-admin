@@ -1,22 +1,22 @@
-# Product Specification — Versa AGi Mission
+# Product Specification — Versa - Business Admin
 
-**Project:** versa-admin-system (#26)  
-**Product name:** Versa AGi Mission (business Mission Control)  
+**Project:** Versa-BusinessAdmin (#26)  
+**Product name:** Versa - Business Admin (VBA)  
 **Phase:** Building — public + auth + users/roles + projects/tasks + I5.4 3D hub on beta; ERD keystone v1.1 locked 2026-07-18  
 **Owner (distribution/architecture):** Stephen Nortje  
 **Lead (planning & delivery orchestration):** Versa (COA)  
-**Updated:** 2026-07-18  
+**Updated:** 2026-09-07  
 
 **Canonical 3D / zone ERD:** `docs/production/state/state_i5_6_zone_erd.md`  
-**Feature map:** `docs/production/state/shape_mission_control.md`
+**Feature map:** `docs/production/state/shape_business_admin.md`
 
 ---
 
 ## 1. Essence
 
-**Client mission control for a Versa AGi-powered business** — a standalone, distributable product that customers install/use with their Versa AGi system so **business staff** can run the business: public presence, people, work, organization, collaboration parties, and environmental context (locations, knowledge, products/services, schedules).
+**Client admin system for a Versa AGi-powered business** — a standalone, distributable product that customers install/use with their Versa AGi system so **business staff** can run the business: public presence, people, work, organization, collaboration parties, and environmental context (locations, knowledge, products/services, schedules).
 
-**Not agitop (AGI Top).** agitop is the operator console for *running* a Versa AGi installation (Agents, host Projects/Tasks, host Organization, system ops). This product is the **customer-facing business Mission Control** — not the host infrastructure console.
+**Not agitop (AGI Top).** agitop is the operator console for *running* a Versa AGi installation (Agents, host Projects/Tasks, host Organization, system ops). This product is the **customer-facing Versa - Business Admin** — not the host infrastructure console.
 
 It must be **generic, white-labelable, and extensible**.
 
@@ -85,7 +85,7 @@ Secure authentication into the backend.
 | **Integrations** | Always under **Product** (factor of a product); Integrations dashboard OK; data sourced from Product |
 | Knowledgebase | Policies, processes, articles (aligns with Environmental → Knowledge; assignable as design matures) |
 | System information | Product vs agitop boundary; optional note on host Organization toggle / future migration |
-| 3D Mission Control | R3F spatial ERD of the three zones (keystone); lightbox expand; billboard labels |
+| 3D VBA hub | R3F spatial ERD of the three zones (keystone); lightbox expand; billboard labels |
 
 **Legacy spine wording** “divisions → departments → sections → units” remains a possible **I7** hierarchy under Organization departments — **I7 is closed** until explicitly opened. Do not implement agitop-style agent structure under Organization.
 
@@ -116,7 +116,7 @@ Secure authentication into the backend.
 |-------|--------|-------|
 | UI library | **React** | Primary UI foundation |
 | App framework | **Next.js** | Routing, layouts, API routes |
-| 3D | **React Three Fiber** | Mission Control spatial ERD |
+| 3D | **React Three Fiber** | VBA spatial ERD |
 | Styling / components | Tailwind CSS + shadcn/ui | White-label friendly |
 | Data | **Own DB + ERD** (TBD; fixtures → real store) | Portable adapters |
 | Auth / RBAC | Secure libraries (OSS) | Login + roles |
@@ -141,7 +141,7 @@ Secure authentication into the backend.
 9. Product → Integrations  
 10. Knowledgebase  
 11. System information (boundaries)  
-12. 3D Mission Control viewport  
+12. 3D VBA viewport  
 
 **Deprecated framing (do not reintroduce):** host agent fleet as primary nav; Games of Life as core UX; AGI Top-style system health as MVP center; Sales/Accounting/Teams rings as the conceptual ERD (I5.4 fixture is transitional until keystone build pass).
 
@@ -167,7 +167,7 @@ Secure authentication into the backend.
 
 - `docs/_notes/from_stephen_01.md` / `from_stephen_02.md`  
 - `docs/production/state/state_i5_6_zone_erd.md` (**3D/zone ERD source of truth**)  
-- `docs/production/state/shape_mission_control.md` (feature map)  
+- `docs/production/state/shape_business_admin.md` (feature map)  
 - Capability spine 2026-07-16  
 - Historical briefs: `docs/production/state/__archive/handoffs/`  
 
@@ -186,7 +186,7 @@ Secure authentication into the backend.
 | Prefer | Avoid |
 |--------|--------|
 | Users / people; type human \| agent | Agent fleet, Active Agents, Agent Status |
-| Business Mission Control | agitop / host ops console |
+| Versa - Business Admin | agitop / host ops console |
 | Organization / Collaboration / Environmental | Host Games hierarchy as product UX |
 | Executive / Projects / Tasks | Top-level Tasks with no Executive home |
 | Product / Integrations | Integrations as peer of Product |
@@ -197,7 +197,7 @@ Secure authentication into the backend.
 
 Ship a short **System information** (help/about/admin) that states:
 
-1. This app is **business Mission Control**, not Versa AGi agitop.  
+1. This app is **Versa - Business Admin**, not Versa AGi agitop.  
 2. **Agents** appear only as users with `type = agent`. Agent operations live in agitop.  
 3. **agitop Organization** may be disabled when using this product’s Organization model.  
 4. Migrating data from agitop Organization into this product is a **future** assisted path — not current scope.

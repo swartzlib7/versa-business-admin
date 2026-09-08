@@ -193,7 +193,7 @@ export default async function HomePage() {
                 href={`#${firstSection}`}
                 className={cn(buttonVariants({ size: "lg" }))}
               >
-                {demo ? "Explore Mission Control" : "See operations"}
+                {demo ? "Explore Versa - Business Admin" : "See operations"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>
               ) : null}
@@ -232,7 +232,7 @@ export default async function HomePage() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
           <div className="mb-12 text-center">
             <h2 className="text-3xl font-bold tracking-tight">
-              Mission Control Facets
+              Facets
               {demo ? <SampleMark /> : null}
             </h2>
             <p className="mt-3 text-muted-foreground">
@@ -288,7 +288,7 @@ export default async function HomePage() {
               {demo ? <SampleMark /> : null}
             </h2>
             <p className="mt-3 text-muted-foreground">
-              Adjacent systems the business runs alongside Mission Control.
+              Adjacent systems the business runs alongside Versa - Business Admin.
             </p>
           </div>
           {demo && otherSystems.length ? (
@@ -326,7 +326,7 @@ export default async function HomePage() {
                   <SampleMark />
                 </h2>
                 <p className="mt-3 text-muted-foreground">
-                  Tools and services wired into Mission Control.
+                  Tools and services wired into Versa - Business Admin.
                 </p>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -759,7 +759,7 @@ export default async function HomePage() {
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight">Get in Touch</h2>
             <p className="mt-3 text-muted-foreground">
-              Questions about setting up Mission Control for your business? Reach out.
+              Questions about setting up Versa - Business Admin for your business? Reach out.
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <a href={`mailto:${pub.contact_email}`} className={cn(buttonVariants({ size: "lg" }))}>

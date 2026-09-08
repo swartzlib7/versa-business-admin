@@ -56,7 +56,7 @@ export function PublicFooter({
         <div className="grid gap-10 md:grid-cols-3 md:items-start">
           <div className="flex flex-col items-center text-center">
             <div className="inline-flex flex-col items-center">
-              <h4 className="w-full text-sm font-semibold">Mission Control</h4>
+              <h4 className="w-full text-sm font-semibold">VBA</h4>
               <div className="mt-3 grid w-full grid-cols-2 gap-x-6">
                 {linkCols.map((col, colIndex) => (
                   <ul key={colIndex} className="space-y-2 text-sm text-muted-foreground">

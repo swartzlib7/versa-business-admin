@@ -1,14 +1,14 @@
 # State: Mission UI layout (2D chrome + 3D hub)
 
-> **Role:** Sole go-to for Mission Control shell layout direction (sidebar, header, 3D viewport, zone pages).
-> **Product:** versa-admin-system · Project #26
+> **Role:** Sole go-to for Versa - Business Admin shell layout direction (sidebar, header, 3D viewport, zone pages).
+> **Product:** Versa-BusinessAdmin · Project #26
 > **Doc home:** docs/production/state/
-> **Map:** shape_mission_control.md
+> **Map:** shape_business_admin.md
 
 | Field | Value |
 |-------|-------|
 | **Feature** | Application layout / IA chrome |
-| **Status** | 🔧 In progress — 0.7.141 collapsible rail + Settings API |
+| **Status** | 🔧 In progress — 0.7.142 VBA identity + collapsible rail + Settings API |
 | **Last verified against code** | 2026-09-07 |
 | **Primary code** | `src/app/**`, hub scene components, zone pages |
 | **Former doc** | `docs/research/LAYOUT_PROPOSAL.md` (superseded seed) |
@@ -20,7 +20,7 @@
 ## 1. Behavior / contract
 
 ### 1.1 Binding boundaries
-- Business Mission Control — **not** agitop.
+- Versa - Business Admin — **not** agitop.
 - Agents are only a **user type** — no Active Agents / Agent Status / fleet chrome.
 - 3D graph = Organization / Collaboration / Environment zones (keystone), not Games-of-Life or agent activity graphs.
 - Detail: zone UI pattern — nested tabs with parent self/default first (see `state_i5_6_zone_erd.md`).
@@ -81,7 +81,7 @@ Spatial node positions, orbit rules, and zone tab ownership live in **`state_i5_
 - Hub (`/dashboard` + scene internal default): `animSpeed` starts at **0** (Speed control still cycles 0→1→5…).
 - Sphere look: higher metalness, lower emissive wash, directional key/fill lights, BackSide rim shells, 48-seg meshes.
 
-**Code:** `zone-config-view.tsx`, `mission-control-scene.tsx`, `dashboard/page.tsx`.
+**Code:** `zone-config-view.tsx`, `business-admin-scene.tsx`, `dashboard/page.tsx`.
 
 ### Change log
 | Date | Change |
@@ -179,7 +179,7 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 | Date | Change |
 |------|--------|
 | 2026-09-02 | 0.7.104 chrome pattern + Statistics rename + menu reorder |
-| 2026-09-03 | Moved to docs/production/state/; shape_mission_control.md is the map |
+| 2026-09-03 | Moved to docs/production/state/; shape_business_admin.md is the map |
 | 2026-09-03 | Menu reorder is drag-and-drop (same pattern as table columns); 0.7.105 |
 | 2026-09-03 | 0.7.106 singular main / plural sub-tab IA; dashboard Open home page; homepage logo 20% |
 | 2026-09-03 | 0.7.107: required sub-tab on every page; zone twin drawer; listing action stack; Glossary Configuration |
@@ -208,14 +208,18 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 
 **Default theme:** Dark (operator and public).
 
-**Settings:** Branding, Menu (Operator / Public sub-tabs), Cycle Strip, Appearance, Modes (`?tab=modes`; `information`/`system` aliases), Sky Animation, **API** (0.7.141 — live HTTP catalog). Configuration strip on Branding, Appearance, Cycle Strip, Modes, and API. Menu uses Operator / Public. Sky Animation has no sub-tab strip. Operator and public menu items have On/Off; off also 404s the route (Settings cannot be turned off).
+**Settings:** Branding, Menu (Operator / Public sub-tabs), Cycle Strip, Appearance, Modes (`?tab=modes`; `information`/`system` aliases), Sky Animation, **API** (0.7.142 — live HTTP catalog). Configuration strip on Branding, Appearance, Cycle Strip, Modes, and API. Menu uses Operator / Public. Sky Animation has no sub-tab strip. Operator and public menu items have On/Off; off also 404s the route (Settings cannot be turned off).
+
+## 0.7.142 — Product identity VBA (2026-09-07)
+
+Dashboard heading **Versa - Business Admin**; hub **VBA Hub**; public Facets label (no “Mission Control Facets”); footer **VBA**.
 
 ## 0.7.141 — Collapsible operator rail + API docs (2026-09-07)
 
 **Stephen (IDE):** API complete for this version with documentation linked in the backend. Backend menu collapsible with symbols only.
 
 **Behavior:**
-- Operator sidebar (`variant=rail`) collapses to a 3.5rem icon rail. Collapse control at the bottom; labels become `title` tooltips. Preference: `localStorage` key `mc.sidebarCollapsed`.
+- Operator sidebar (`variant=rail`) collapses to a 3.5rem icon rail. Collapse control at the bottom; labels become `title` tooltips. Preference: `localStorage` key `ba.sidebarCollapsed`.
 - Phone sheet uses `variant=drawer` (labels always on).
 - Main column padding follows the rail (`lg:pl-56` / `lg:pl-14`).
 - Settings → **API** renders GET `/api` (same catalog agents read).

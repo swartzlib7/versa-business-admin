@@ -3,8 +3,8 @@
 
 export const theme = {
   brand: {
-    name: 'Versa AGi',
-    shortName: 'VA',
+    name: 'Versa - Business Admin',
+    shortName: 'VBA',
     logoUrl: '/logo.svg',
     faviconUrl: '/favicon.ico',
   },
@@ -22,7 +22,7 @@ export const theme = {
     statusError: '#ef4444',    // red-500
     statusOffline: '#6b7280',  // gray-500
   },
-  // 3D Mission Control scene — Versa-branded default.
+  // 3D VBA hub scene — Versa-branded default.
   // Override these to rebrand the hub visualization for a customer.
   scene: {
     hubName: 'Executive',

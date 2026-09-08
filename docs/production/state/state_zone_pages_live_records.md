@@ -1,9 +1,9 @@
 # State: Zone Pages Live Dynamic Records Integration (I5.6.32 Slice 1 residual)
 
 > **Role:** Sole go-to for wiring live dynamic records into baked-in zone tabs.
-> **Product:** versa-admin-system (Mission Control) - Project #26 - Game #109
+> **Product:** Versa-BusinessAdmin (Mission Control) - Project #26 - Game #109
 > **Doc home:** docs/production/state/
-> **Map:** shape_mission_control.md
+> **Map:** shape_business_admin.md
 
 | Field | Value |
 |-------|-------|

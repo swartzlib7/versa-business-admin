@@ -1,7 +1,7 @@
 # State: Firebase hosting (versa-agi.web.app)
 
 > **Role:** Sole go-to for deploying Mission Control to Firebase.
-> **Product:** versa-admin-system · Project #26
+> **Product:** Versa-BusinessAdmin · Project #26
 
 | Field | Value |
 |-------|-------|
@@ -9,7 +9,7 @@
 | **Status** | Live on `https://versa-agi.web.app` with hosted Supabase Postgres |
 | **Last verified** | 2026-09-06 — master 0.7.135 deployed; Supabase remigrated 0000–0012 + seed |
 | **Primary config** | `firebase.json`, `.firebaserc` |
-| **Deploy from** | This repo only (`versa-agi-mission`) |
+| **Deploy from** | This repo only (`versa-business-admin`) |
 
 ---
 

@@ -1,9 +1,9 @@
 # State: DB Cutover Checklist
 
 > **Role:** Sole go-to for the fixture → Postgres cutover plan and phase results.
-> **Product:** versa-admin-system (Mission Control) - Project #26 - Game #109
+> **Product:** Versa-BusinessAdmin (Mission Control) - Project #26 - Game #109
 > **Doc home:** docs/production/state/
-> **Map:** shape_mission_control.md
+> **Map:** shape_business_admin.md
 
 | Field | Value |
 |-------|-------|
@@ -316,7 +316,7 @@ Environment zone: locations, events, knowledge_assets, schedules + their M:N jun
 
 ```env
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/mission_control
+DATABASE_URL=postgresql://user:password@localhost:5432/business_admin
 
 # Auth (existing -- keep for session)
 AUTH_COOKIE_NAME=versa_session

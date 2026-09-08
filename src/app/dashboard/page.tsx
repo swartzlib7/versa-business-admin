@@ -7,9 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sun, Moon, Compass, Cloud, Sunset, Maximize2, Minimize2, X, Grid3x3, Circle, Layers, Play, Pause, Move, Expand } from "lucide-react";
 import {
-  MissionControlScene,
+  BusinessAdminScene,
   type SceneNode,
-} from "@/components/r3f/mission-control-scene";
+} from "@/components/r3f/business-admin-scene";
 import { businessGraphNodes } from "@/lib/fixtures";
 
 export default function DashboardPage() {
@@ -70,7 +70,7 @@ const [ringsMode, setRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>(()
       <div className="flex min-h-[600px] w-full flex-1 flex-col gap-4 lg:gap-6 lg:min-h-[750px]">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">Mission Control</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Versa - Business Admin</h1>
             <Button variant="outline" size="icon" onClick={toggleTheme} title={`Theme: ${uiTheme}`}>
               {uiTheme === "light" ? (
                 <Sun className="h-5 w-5" />
@@ -94,7 +94,7 @@ const [ringsMode, setRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>(()
         <Card className={expanded ? "invisible h-0 overflow-hidden p-0 border-0 shadow-none" : "flex min-h-0 w-full flex-1 flex-col overflow-visible"}>
           <CardHeader>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <CardTitle>Mission Control Hub</CardTitle>
+              <CardTitle>VBA Hub</CardTitle>
               <div className="flex max-w-full flex-wrap items-center gap-1.5">
                 <Button
                   variant={animOn ? "default" : "outline"}
@@ -190,7 +190,7 @@ const [ringsMode, setRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>(()
           </CardHeader>
           <CardContent className="flex min-h-0 flex-1 flex-col pt-0">
             {!expanded && (
-              <MissionControlScene
+              <BusinessAdminScene
                 className="min-h-[375px] w-full flex-1"
                 onNodeClick={handleNodeClick}
                 focusedNodeId={focusedNodeId}
@@ -221,7 +221,7 @@ const [ringsMode, setRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>(()
           <div className="fixed inset-0 z-[100] flex flex-col bg-background">
             <div className="flex flex-col gap-3 border-b border-border bg-background/95 px-4 py-3 shadow-sm backdrop-blur z-[110] sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 shrink">
-                <p className="text-sm font-semibold tracking-tight">Mission Control Hub</p>
+                <p className="text-sm font-semibold tracking-tight">VBA Hub</p>
                 <p className="text-xs text-muted-foreground">
                   Full screen — restore to return to the dashboard layout
                 </p>
@@ -326,7 +326,7 @@ const [ringsMode, setRingsMode] = useState<'on' | '50' | '25' | '10' | 'off'>(()
               </div>
             </div>
             <div className="relative min-h-0 flex-1">
-              <MissionControlScene
+              <BusinessAdminScene
                 onNodeClick={handleNodeClick}
                 focusedNodeId={focusedNodeId}
                 expanded={true}

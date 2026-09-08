@@ -76,7 +76,7 @@ export function GlossaryBookView({
           </CardTitle>
           <CardDescription className="mx-auto max-w-2xl text-base leading-relaxed">
             Definitions for the zones, divisions, departments, and patterns used across
-            Mission Control — set in dictionary order from the glossary entries.
+            Versa - Business Admin — set in dictionary order from the glossary entries.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 sm:px-10">

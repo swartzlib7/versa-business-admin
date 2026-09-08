@@ -5,10 +5,10 @@
 
 set -euo pipefail
 
-CONTAINER_NAME="mission-control-pg"
+CONTAINER_NAME="business-admin-pg"
 POSTGRES_USER="mission"
 POSTGRES_PASSWORD="mission"
-POSTGRES_DB="mission_control"
+POSTGRES_DB="business_admin"
 POSTGRES_PORT="5432"
 
 case "${1:-start}" in

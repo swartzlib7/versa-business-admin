@@ -1,14 +1,14 @@
 # State: Public Site Wiring
 
-> **Role:** Sole go-to for visitor homepage wiring against Mission Control.
-> **Product:** Mission Control / versa-admin-system
+> **Role:** Sole go-to for visitor homepage wiring against Versa - Business Admin.
+> **Product:** Versa - Business Admin / Versa-BusinessAdmin
 > **Doc home:** docs/production/state/
-> **Map:** shape_mission_control.md
+> **Map:** shape_business_admin.md
 
 | Field | Value |
 |-------|-------|
 | **Feature** | Public site wiring + visitor chrome |
-| **Status** | 🔧 **0.7.140** — Public Menu: Mission Control Facets + System Landscape |
+| **Status** | 🔧 **0.7.142** — Public Menu: Facets + System Landscape; product name VBA |
 | **Last verified against code** | 2026-09-07 |
 | **Primary code** | `src/app/page.tsx`, `src/lib/public/site-content.ts`, `src/components/public/*`, `src/app/settings/page.tsx`, `src/components/settings/branding-panel.tsx`, `src/app/contact/page.tsx` |
 
@@ -154,4 +154,5 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | 2026-09-07 | Public + operator menus | **0.7.137 (WU-10):** Settings → Menu has Operator / Public sub-tabs. Each item has On/Off. Off hides the link and 404s the route (Settings locked on). Homepage sections follow Public Menu. E2E 16/16 on :3200. |
 | 2026-09-07 | Sky + demo menu | **0.7.138:** Sky Animation page scrolls (preview no longer clips controls). Public Menu drops Demo-only items (Facets/Systems/Support/About) — Demo mode owns those sections. Current rock animation is **Asteroids** (gold / ice blue / emerald / royal red / silver). **Comets** are a slow long-tail icy body. |
 | 2026-09-07 | Comet trail + asteroid dust | **0.7.139:** Asteroid dust matches the rock tint. Comet brown stick removed; white shine is a fading trail left behind the nucleus. |
-| 2026-09-07 | Facets + System Landscape menu | **0.7.140:** Public Menu includes **Mission Control Facets** and **System Landscape** (renamed from Other Systems). On/Off controls the homepage section and header/footer. Support/About stay Demo-only. |
+| 2026-09-07 | Facets + System Landscape menu | **0.7.140:** Public Menu includes **Facets** (was labeled Mission Control Facets at the time) and **System Landscape** (renamed from Other Systems). On/Off controls the homepage section and header/footer. Support/About stay Demo-only. |
+| 2026-09-07 | Product identity | **0.7.142:** Public Facets heading/nav and footer use **Facets** / **VBA**. Formal product name **Versa - Business Admin**. |

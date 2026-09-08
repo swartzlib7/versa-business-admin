@@ -7,7 +7,7 @@
 //   4. Session: keep httpOnly cookie as-is (Phase 1-2). No JWT, no sessions table.
 //   5. Agents ARE Users: single users table; type=agent; agent-only fields in data JSONB.
 //   6. API version: bump /api index with cutover (document when API contract touched).
-//   7. /api/agents*: REMOVE (Phase 4, not Phase 1). Schema must NOT invent an agents table.
+//   7. Agents are users with type=agent. Schema must NOT invent an agents table.
 
 import {
   numeric,

@@ -1,4 +1,4 @@
-# Git Workflow — Mission Control (versa-admin-system)
+# Git Workflow — Versa - Business Admin (Versa-BusinessAdmin)
 
 **Project:** #26  
 **Updated:** 2026-07-15  
@@ -32,12 +32,13 @@ Optional short-lived branches: `feature/<slice>` off the owning agent branch whe
 
 ## Remote
 
-- Remote: `git@github.com:swartzlib7/versa-agi-mission.git` (GitHub, private).
+- Remote: `git@github.com:swartzlib7/versa-business-admin.git` (GitHub, **public production** repo).
+- Previous private remote `versa-agi-mission` is retired once this origin is live.
 - SSH key on this host authenticates as `swartzlib7`.
 - After remote exists:
 
 ```bash
-git remote add origin git@github.com:swartzlib7/<repo>.git
+git remote add origin git@github.com:swartzlib7/versa-business-admin.git
 git push -u origin master beta agent/coa agent/web-dev
 ```
 

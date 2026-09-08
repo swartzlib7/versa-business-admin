@@ -1,16 +1,16 @@
 # State: I5.6 Zone ERD + baseline persistence + zone config UI
 
 > **Role:** Sole go-to for Mission Control zone ERD, baseline data model, and tabbed zone config UI.
-> **Product:** versa-admin-system (Mission Control) · Project #26 · Game #109
+> **Product:** Versa-BusinessAdmin (Mission Control) · Project #26 · Game #109
 > **Doc home:** docs/production/state/
-> **Map:** shape_mission_control.md
+> **Map:** shape_business_admin.md
 
 | Field | Value |
 |-------|-------|
 | **Feature** | I5.6 Zone ERD + backend menu tabbed config + User-pilot baseline ERD |
 | **Status** | ✅ I5.6.33 Gate 3 accepted 2026-09-02. Hub / org / collab / env + Records Editor train closed. No I5.6.34+ until tasked. |
 | **Last verified against code** | 2026-09-02 (Gate 3 accept; Slice G on beta) |
-| **Primary code** | `mission-control-scene` hub; zone routes `/organization` `/collaboration` `/environment`; users admin |
+| **Primary code** | `business-admin-scene` hub; zone routes `/organization` `/collaboration` `/environment`; users admin |
 | **Task** | #176 (closed); I5.6.33 umbrella #185 closed |
 
 **Folded sources (2026-07-20):** keystone / zone ERD / baseline / zone-config → `__archive/pre-statefold/`.  

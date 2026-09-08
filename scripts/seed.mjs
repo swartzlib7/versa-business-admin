@@ -5,25 +5,27 @@
  * Demo workspace content (demo orgs, departments, extra users, projects, tasks,
  * products, integrations) is NOT seeded. Insert it at runtime via
  * Settings → Modes → Insert Sample Data: live rows tagged external_id
- * `mc_sample:…` from src/lib/sample-data/pack.ts (Delete removes only those).
+ * `ba_sample:…` from src/lib/sample-data/pack.ts (Delete removes only those).
  *
  * Idempotent and install-only:
  *  - Value sets / items: upsert by stable id (catalog maintenance is safe).
- *  - Primary Org + first admin: INSERT ... ON CONFLICT DO NOTHING — re-runs
+ *  - Primary Org + install admins: INSERT ... ON CONFLICT DO NOTHING — re-runs
  *    never modify an existing tenant's org or accounts.
+ *  - Pre-launch leftover fixture emails (Jordan, Ops Assistant, …) are removed
+ *    so they can return only as tagged sample data.
  *
  * Usage: DATABASE_URL=... node scripts/seed.mjs
  */
 import postgres from "postgres";
 import bcrypt from "bcryptjs";
 
-const url = process.env.DATABASE_URL || "postgresql://mission:mission@localhost:5432/mission_control";
+const url = process.env.DATABASE_URL || "postgresql://mission:mission@localhost:5432/business_admin";
 const sql = postgres(url, { max: 1 });
 
 // --- Primary Org (install bootstrap; rename in Settings after first login) ---
 const ORG = { id: "org-1", name: "Primary Org", data: {} };
 
-// --- First admin (fixture password; see docs/ops/MISSION_CONTROL_OPS_MANUAL.md) ---
+// --- Install admins (fixture password; see docs/ops/BUSINESS_ADMIN_OPS_MANUAL.md) ---
 const ADMIN = {
   id: "user-1",
   email: "admin@example.com",
@@ -34,6 +36,26 @@ const ADMIN = {
   password: "mission2026",
   data: { job_title: "Workspace administrator" },
 };
+
+const COA = {
+  id: "user-coa",
+  email: "coa@example.com",
+  name: "COA",
+  role: "admin",
+  type: "agent",
+  status: "active",
+  password: "mission2026",
+  data: { job_title: "Administrator agent (coa)" },
+};
+
+/** Former always-on fixture accounts — now sample-data only. */
+const LEGACY_DEMO_EMAILS = [
+  "ops-assistant@example.com",
+  "member@example.com",
+  "research@example.com",
+  "success@example.com",
+  "marketing@example.com",
+];
 
 // --- Value-set catalog (Records Editor pre-configured value sets) ---
 const VALUE_SETS = [
@@ -78,7 +100,7 @@ const VALUE_SET_ITEMS = [
 ];
 
 async function main() {
-  console.log("Seeding mission_control (install-only) at", url.replace(/:[^:@/]+@/, ":***@"));
+  console.log("Seeding business_admin (install-only) at", url.replace(/:[^:@/]+@/, ":***@"));
 
   // Primary Org — insert only; never modify an existing org on re-run.
   await sql`
@@ -96,6 +118,25 @@ async function main() {
     ON CONFLICT (id) DO NOTHING
   `;
   console.log("first admin ok (insert-if-missing)");
+
+  const coaHash = bcrypt.hashSync(COA.password, 10);
+  await sql`
+    INSERT INTO users (id, email, name, role, type, status, password_hash, data)
+    VALUES (${COA.id}, ${COA.email}, ${COA.name}, ${COA.role}, ${COA.type}, ${COA.status}, ${coaHash}, ${sql.json(COA.data)})
+    ON CONFLICT (id) DO NOTHING
+  `;
+  console.log("coa admin agent ok (insert-if-missing)");
+
+  // Pre-launch: extra fixture people are sample data, not install accounts.
+  const removed = await sql`
+    DELETE FROM users
+    WHERE lower(email) IN ${sql(LEGACY_DEMO_EMAILS)}
+      AND id NOT IN (${ADMIN.id}, ${COA.id})
+    RETURNING email
+  `;
+  if (removed.length) {
+    console.log("removed leftover demo users", removed.map((r) => r.email));
+  }
 
   // Value sets — catalog upsert by stable id.
   for (const vs of VALUE_SETS) {

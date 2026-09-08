@@ -9,10 +9,13 @@ import {
 import {
   SAMPLE_ORGS,
   SAMPLE_RECORDS,
+  SAMPLE_USERS,
   isSampleExternalId,
+  sampleExternalId,
   type SampleOrgSeed,
 } from "@/lib/sample-data/pack";
 import type { Organization } from "@/lib/data/types";
+import { isInstallUserEmail } from "@/lib/fixtures/users";
 
 const FLAG = "__versaSampleDataHydrated__";
 const FILE_PATH = path.join(process.cwd(), ".data", "sample-data.json");
@@ -65,10 +68,21 @@ async function allRecords() {
   return listInstances({});
 }
 
+function userExternalId(user: { data?: Record<string, unknown>; email?: string }): string | undefined {
+  const fromData = user.data?.external_id;
+  return typeof fromData === "string" ? fromData : undefined;
+}
+
+async function listUsers() {
+  const { adapter } = await import("@/lib/data/adapter");
+  return adapter.listUsers();
+}
+
 export async function sampleDataStatus(): Promise<{
   inserted: boolean;
   org_count: number;
   record_count: number;
+  user_count: number;
 }> {
   await hydrateSampleData();
   const orgs = await listOrgs();
@@ -76,10 +90,14 @@ export async function sampleDataStatus(): Promise<{
   const recordCount = (await allRecords()).filter((r) =>
     isSampleExternalId(r.data?.external_id),
   ).length;
+  const userCount = (await listUsers()).filter((u) =>
+    isSampleExternalId(userExternalId(u)),
+  ).length;
   return {
-    inserted: readFlag().inserted || orgCount + recordCount > 0,
+    inserted: readFlag().inserted || orgCount + recordCount + userCount > 0,
     org_count: orgCount,
     record_count: recordCount,
+    user_count: userCount,
   };
 }
 
@@ -87,8 +105,10 @@ export async function insertSampleData(): Promise<{
   inserted: boolean;
   org_count: number;
   record_count: number;
+  user_count: number;
   created_orgs: number;
   created_records: number;
+  created_users: number;
 }> {
   const { adapter } = await import("@/lib/data/adapter");
   (globalThis as Record<string, unknown>)[FLAG] = true;
@@ -148,14 +168,44 @@ export async function insertSampleData(): Promise<{
       : createInstance(input);
     if (result.ok) createdRecords += 1;
   }
+  let createdUsers = 0;
+  if (adapter.createUser) {
+    const existingUsers = await listUsers();
+    const byEmail = new Set(existingUsers.map((u) => u.email.toLowerCase()));
+    const byExternal = new Set(
+      existingUsers.map((u) => userExternalId(u)).filter((id): id is string => isSampleExternalId(id)),
+    );
+    for (const seed of SAMPLE_USERS) {
+      const externalId = sampleExternalId("user", seed.key);
+      if (isInstallUserEmail(seed.email)) continue;
+      if (byEmail.has(seed.email.toLowerCase()) || byExternal.has(externalId)) continue;
+      await adapter.createUser({
+        email: seed.email,
+        name: seed.name,
+        role: seed.role,
+        type: seed.type,
+        status: "active",
+        department: seed.department,
+        bio: seed.bio,
+        password: seed.password,
+        data: {
+          external_id: externalId,
+          job_title: seed.job_title ?? seed.bio,
+        },
+      });
+      createdUsers += 1;
+    }
+  }
   writeFlag(true);
   const status = await sampleDataStatus();
   return {
     inserted: true,
     org_count: status.org_count,
     record_count: status.record_count,
+    user_count: status.user_count,
     created_orgs: createdOrgs,
     created_records: createdRecords,
+    created_users: createdUsers,
   };
 }
 
@@ -163,6 +213,7 @@ export async function deleteSampleData(): Promise<{
   inserted: boolean;
   deleted_orgs: number;
   deleted_records: number;
+  deleted_users: number;
 }> {
   const { adapter } = await import("@/lib/data/adapter");
   let deletedRecords = 0;
@@ -189,8 +240,22 @@ export async function deleteSampleData(): Promise<{
       throw err;
     }
   }
+  let deletedUsers = 0;
+  if (adapter.deleteUser) {
+    for (const user of await listUsers()) {
+      if (isInstallUserEmail(user.email)) continue;
+      if (!isSampleExternalId(userExternalId(user))) continue;
+      const ok = await adapter.deleteUser(user.id);
+      if (ok) deletedUsers += 1;
+    }
+  }
   writeFlag(false);
-  return { inserted: false, deleted_orgs: deletedOrgs, deleted_records: deletedRecords };
+  return {
+    inserted: false,
+    deleted_orgs: deletedOrgs,
+    deleted_records: deletedRecords,
+    deleted_users: deletedUsers,
+  };
 }
 
 export async function hydrateSampleData(): Promise<void> {

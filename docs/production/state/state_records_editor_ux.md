@@ -1,9 +1,9 @@
 # State: Records Editor + Settings / Glossary chrome UX
 
 > **Role:** Sole go-to for Records Editor UX, Settings IA, and shared listing chrome.
-> **Product:** versa-admin-system · Project #26
+> **Product:** Versa-BusinessAdmin · Project #26
 > **Doc home:** docs/production/state/
-> **Map:** shape_mission_control.md
+> **Map:** shape_business_admin.md
 
 | Field | Value |
 |-------|-------|
@@ -129,7 +129,7 @@ Applied to:
 
 - Dashboard `ringsMode` useState initial value changed from `'on'` to `'50'`.
 - localStorage persistence: if `ringsMode` key exists in localStorage, that value is honored; otherwise default `'50'`.
-- MissionControlScene internal default changed from `'on'` to `'50'`.
+- BusinessAdminScene internal default changed from `'on'` to `'50'`.
 - ZoneConfigView twin scene `ringsMode` prop changed from `'on'` to `'50'`.
 - Cycle order unchanged: On → 50% → 25% → 10% → Off → On.
 
@@ -218,7 +218,7 @@ Applied to:
 |------|--------|
 | 2026-07-28 | I5.6.32 Slice 2 #219 Records Editor: contextual `?parent=` entry from zone Configuration links; Suspense boundary for useSearchParams; expanded type row editor (label, description, structure, sort_order, show_as_tab, active) via PATCH; fields preview on type expand + Manage Fields jump; CreateForm initialValues for parent prefill; ZoneConfigView record-types link → `/records-editor?parent=kind:api`. tsc clean. |
 | 2026-07-27 | State created from msg int_ba6a155650d240ab + prior #205; implementation brief issued to web-dev. |
-| 2026-07-27 | I5.6.44 #210 rings default 50% + heading hygiene (0.7.65, 46fe780): A) Rings default initial state 50% (dashboard + mission-control-scene + zone twin). localStorage persistence honors existing preference. B) Sitewide heading hygiene — removed CardTitle/EntityListing title that repeats active sub-tab label across Records Editor, Glossary, Settings, Users, ZoneConfigView. EntityListing title prop made optional. tsc+build clean. |
+| 2026-07-27 | I5.6.44 #210 rings default 50% + heading hygiene (0.7.65, 46fe780): A) Rings default initial state 50% (dashboard + business-admin-scene + zone twin). localStorage persistence honors existing preference. B) Sitewide heading hygiene — removed CardTitle/EntityListing title that repeats active sub-tab label across Records Editor, Glossary, Settings, Users, ZoneConfigView. EntityListing title prop made optional. tsc+build clean. |
 | 2026-07-27 | I5.6.43 #209 IA Configuration pattern (0.7.64, 604e4b3): Left nav restructured (Users→/users, Records Editor→/records-editor, Settings→/settings with Branding/Appearance/System only). Shared SubTabBar component. Configuration sub-tab under Glossary Sections/Entries, Records Editor Types/Fields/Picklists, Users, Settings Branding/Appearance. Information sub-tab under Settings System. Old ?tab=users/?tab=records redirect. Panel titles renamed to avoid duplication. tsc+build clean. |
 
 ## 7. Reconciliation — already specced vs new

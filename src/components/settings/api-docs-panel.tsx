@@ -72,7 +72,7 @@ export function ApiDocsPanel() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="text-sm font-medium">
-            {payload.name ?? "Mission Control API"}{" "}
+            {payload.name ?? "Versa - Business Admin API"}{" "}
             <span className="font-normal text-muted-foreground">
               v{payload.version}
             </span>
@@ -121,11 +121,6 @@ export function ApiDocsPanel() {
                   <Badge className={`border-0 ${methodClass(row.method)}`}>
                     {row.method}
                   </Badge>
-                  {row.deprecated ? (
-                    <Badge variant="outline" className="text-[10px]">
-                      Deprecated
-                    </Badge>
-                  ) : null}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-mono text-xs break-all">{row.path}</p>

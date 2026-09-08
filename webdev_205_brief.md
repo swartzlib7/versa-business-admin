@@ -101,4 +101,4 @@ Stephen confirmed several items were mentioned before and wants them **documente
 3. Commit + notify COA with commit hash and version.
 4. Stop for Gate 2 — do not merge to beta yourself.
 
-Brief path (agent home): `workspace/versa-admin-system/docs/handoff/web_dev_slice_2026-07-27_records_editor_ux_205.md`
+Brief path (agent home): `workspace/Versa-BusinessAdmin/docs/handoff/web_dev_slice_2026-07-27_records_editor_ux_205.md`

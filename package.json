@@ -1,6 +1,6 @@
 {
   "name": "versa-admin-system",
-  "version": "0.7.141",
+  "version": "0.7.145",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,7 +14,8 @@
     "db:stop": "bash scripts/vagrant-postgres.sh stop",
     "db:status": "bash scripts/vagrant-postgres.sh status",
     "db:health": "bash scripts/vagrant-postgres.sh health",
-    "db:seed": "node scripts/seed.mjs"
+    "db:seed": "node scripts/seed.mjs",
+    "migrate:agi-org": "node scripts/migrate_agi_org.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

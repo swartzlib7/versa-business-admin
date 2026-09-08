@@ -1,5 +1,5 @@
 /**
- * Living HTTP API inventory for Mission Control 0.7.x.
+ * Living HTTP API inventory for Versa - Business Admin (VBA) 0.7.x.
  * GET /api and Settings → API both render this list. Keep in lockstep with
  * src/app/api/** route handlers.
  */
@@ -19,7 +19,6 @@ export type ApiResource = {
   path: string;
   auth: ApiAuth;
   summary: string;
-  deprecated?: boolean;
 };
 
 export const API_RESOURCES: ApiResource[] = [
@@ -334,30 +333,6 @@ export const API_RESOURCES: ApiResource[] = [
   {
     group: "Work",
     method: "GET",
-    path: "/api/agents",
-    auth: "session",
-    summary: "Deprecated alias of GET /api/users?type=agent.",
-    deprecated: true,
-  },
-  {
-    group: "Work",
-    method: "GET",
-    path: "/api/agents/{id}",
-    auth: "session",
-    summary: "Deprecated alias of GET /api/users/{id}.",
-    deprecated: true,
-  },
-  {
-    group: "Work",
-    method: "PATCH",
-    path: "/api/agents/{id}",
-    auth: "admin-or-self",
-    summary: "Deprecated alias of PATCH /api/users/{id}.",
-    deprecated: true,
-  },
-  {
-    group: "Work",
-    method: "GET",
     path: "/api/projects",
     auth: "session",
     summary: "List business projects.",
@@ -514,7 +489,7 @@ export const API_RESOURCES: ApiResource[] = [
     method: "POST",
     path: "/api/settings/sample-data",
     auth: "admin",
-    summary: "Insert or delete mc_sample: rows.",
+    summary: "Insert or delete ba_sample: rows.",
   },
   {
     group: "Settings",
@@ -577,15 +552,7 @@ export const API_RESOURCES: ApiResource[] = [
     method: "GET",
     path: "/api/public/system-landscape",
     auth: "open",
-    summary: "Public System Landscape facet (canonical name since 0.7.141).",
-  },
-  {
-    group: "Public",
-    method: "GET",
-    path: "/api/public/other-systems",
-    auth: "open",
-    summary: "Alias of /api/public/system-landscape (kept for older clients).",
-    deprecated: true,
+    summary: "Public System Landscape facet.",
   },
   {
     group: "Public",
@@ -599,7 +566,7 @@ export const API_RESOURCES: ApiResource[] = [
 export const API_DOCS = {
   operator: "/settings?tab=api",
   contract: "docs/production/state/state_api_contract.md",
-  ops_manual: "docs/ops/MISSION_CONTROL_OPS_MANUAL.md",
+  ops_manual: "docs/ops/BUSINESS_ADMIN_OPS_MANUAL.md",
   conventions: {
     protocol: "HTTP JSON",
     list_envelope: "{ data: [...], count: N }",
@@ -612,12 +579,10 @@ export function apiIndexPayload(version: string) {
   const endpoints: Record<string, string> = {};
   for (const row of API_RESOURCES) {
     const key = `${row.method} ${row.path}`;
-    endpoints[key] = row.deprecated
-      ? `${row.summary} [deprecated]`
-      : row.summary;
+    endpoints[key] = row.summary;
   }
   return {
-    name: "Mission Control API",
+    name: "Versa - Business Admin API",
     version,
     docs: {
       operator: API_DOCS.operator,

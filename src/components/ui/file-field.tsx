@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 /**
  * Styled file picker. Native `<input type="file">` chrome ("Choose File" /
  * "No file chosen") is replaced with outline/ghost buttons so the control
- * matches the rest of Mission Control.
+ * matches the rest of VBA.
  */
 export function FileField({
   accept,

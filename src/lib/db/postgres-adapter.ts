@@ -384,6 +384,14 @@ export const postgresAdapter: DataAdapter = {
     return postgresAdapter.getUser(id);
   },
 
+  async deleteUser(id: string): Promise<boolean> {
+    const db = getDb();
+    const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, id)).limit(1);
+    if (!existing.length) return false;
+    await db.delete(usersTable).where(eq(usersTable.id, id));
+    return true;
+  },
+
   // --- Organizations (#248 Slice D, rev E section 4.3) ---
   async listOrganizations(orgType?: string): Promise<Organization[]> {
     const db = getDb();
@@ -502,7 +510,7 @@ export const postgresAdapter: DataAdapter = {
     return true;
   },
 
-  // --- Mission Control facets (no DB tables yet) ---
+  // --- VBA facets (no DB tables yet) ---
   // Empty when Postgres is on: never inject fixture sample rows into a live tenant.
   async listOtherSystems(): Promise<OtherSystem[]> {
     return [];
@@ -524,7 +532,6 @@ export const postgresAdapter: DataAdapter = {
 };
 
 // Map user status (active/inactive) to agent status (active/idle/error/offline).
-// This is a pragmatic mapping for the deprecated /api/agents view.
 function mapAgentStatus(userStatus: string): Agent["status"] {
   if (userStatus === "active") return "active";
   return "offline";

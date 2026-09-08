@@ -87,7 +87,7 @@ export const organizationZone: ZoneConfig = {
           presentation: "listing",
           listColumns: ["Project name", "Status", "Owner"],
           fields: [
-            { label: "Project name", placeholder: "Mission Control beta" },
+            { label: "Project name", placeholder: "VBA beta" },
             {
               label: "Status",
               placeholder: "Select status",
@@ -377,7 +377,7 @@ export const organizationZone: ZoneConfig = {
           presentation: "listing",
           listColumns: ["Name", "Kind"],
           fields: [
-            { label: "Name", placeholder: "Versa AGi Mission Control" },
+            { label: "Name", placeholder: "Versa - Business Admin" },
             {
               label: "Category",
               placeholder: "Select category",

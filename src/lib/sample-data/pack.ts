@@ -1,14 +1,14 @@
 /**
- * Sample Data pack — live records tagged with external_id `mc_sample:…`.
+ * Sample Data pack — live records tagged with external_id `ba_sample:…`.
  * Distinct from Demo mode (public fixtures that never write the live store).
  *
  * Mapped from Versa AGi org foundation (cents, org-owned products/transactions,
- * structured addresses) onto Mission Control zones. Invoices/estimates stay
+ * structured addresses) onto VBA zones. Invoices/estimates stay
  * proposed in the field inventory until tasked as record types.
  */
 import type { OrgType } from "@/lib/data/types";
 
-export const SAMPLE_EXTERNAL_PREFIX = "mc_sample:";
+export const SAMPLE_EXTERNAL_PREFIX = "ba_sample:";
 
 export function sampleExternalId(kind: string, key: string): string {
   return `${SAMPLE_EXTERNAL_PREFIX}${kind}:${key}`;
@@ -24,6 +24,76 @@ export type SampleOrgSeed = {
   external_id: string;
   notes?: string;
 };
+
+export type SampleUserSeed = {
+  name: string;
+  email: string;
+  role: "member";
+  type: "human" | "agent";
+  password: string;
+  department: string;
+  bio: string;
+  job_title?: string;
+  key: string;
+};
+
+export const SAMPLE_USERS: SampleUserSeed[] = [
+  {
+    key: "ops-assistant",
+    name: "Ops Assistant",
+    email: "ops-assistant@example.com",
+    role: "member",
+    type: "agent",
+    password: "mission2026",
+    department: "Operations",
+    job_title: "Sample agent account with member role for demos",
+    bio: "Sample agent account with member role for demos.",
+  },
+  {
+    key: "jordan",
+    name: "Jordan Lee",
+    email: "member@example.com",
+    role: "member",
+    type: "human",
+    password: "mission2026",
+    department: "Operations",
+    job_title: "Operations lead keeping production on cadence",
+    bio: "Operations lead keeping production on cadence.",
+  },
+  {
+    key: "research",
+    name: "Research Assistant",
+    email: "research@example.com",
+    role: "member",
+    type: "agent",
+    password: "mission2026",
+    department: "Research",
+    job_title: "Sample agent account with member role",
+    bio: "Sample agent account with member role.",
+  },
+  {
+    key: "casey",
+    name: "Casey Nguyen",
+    email: "success@example.com",
+    role: "member",
+    type: "human",
+    password: "mission2026",
+    department: "Customer",
+    job_title: "Customer partner helping buyers adopt what we ship",
+    bio: "Customer partner helping buyers adopt what we ship.",
+  },
+  {
+    key: "riley",
+    name: "Riley Brooks",
+    email: "marketing@example.com",
+    role: "member",
+    type: "human",
+    password: "mission2026",
+    department: "Outreach",
+    job_title: "Story and reach lead for the public brand",
+    bio: "Story and reach lead for the public brand.",
+  },
+];
 
 export type SampleRecordSeed = {
   type_api_name: string;

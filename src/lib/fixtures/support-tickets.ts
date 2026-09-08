@@ -1,5 +1,5 @@
 // Placeholder fixture for the "Customer Support" facet.
-// Sample support tickets for the Mission Control template.
+// Sample support tickets for the VBA template.
 
 export interface SupportTicketFixture {
   id: string;

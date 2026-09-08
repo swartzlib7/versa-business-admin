@@ -1,5 +1,5 @@
 // Public facet catalog fixture.
-// Maps 1:1 to the six Mission Control facets on the public homepage.
+// Maps 1:1 to the six VBA facets on the public homepage.
 // Generic placeholder content — any business can map onto these.
 
 export interface Service {
@@ -15,7 +15,7 @@ export const services: Service[] = [
     id: 'facet-systems',
     name: 'System Landscape',
     description:
-      'See every system the business runs — accounting, CRM, inventory, HR — and how they connect to Mission Control.',
+      'See every system the business runs — accounting, CRM, inventory, HR — and how they connect to Versa - Business Admin.',
     icon: 'Server',
     features: [
       'Connected system inventory',

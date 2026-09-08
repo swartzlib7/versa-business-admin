@@ -14,7 +14,6 @@ export { knowledgeArticles, type KnowledgeArticleFixture } from './knowledge-art
 export {
   businessGraphNodes,
   businessGraphLinks,
-  RING_RADII,
   ZONE_RADII,
   AXIS_STEP,
   SPHERE_RADIUS,

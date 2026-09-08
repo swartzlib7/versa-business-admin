@@ -1,18 +1,18 @@
-# State — Mission Control Upgradability
+# State — Versa - Business Admin Upgradability
 
 > **Doc home:** docs/production/state/
-> **Map:** shape_mission_control.md
+> **Map:** shape_business_admin.md
 
-**Project:** #26 versa-admin-system (Versa AGi Mission)  
+**Project:** #26 Versa-BusinessAdmin (Versa - Business Admin)  
 **Living doc:** yes — one fold for upgrade model  
 **Status:** Overlay storage + D1 `c_` namespace + seed-pack stamp shipped 0.7.106. Branding/sky parallel track (D6) closed 0.7.131. D3/D5/sample data 0.7.132. **ERD-locked catalog seed 0.7.133.** Ops manual + skill (#240) still waiting.  
-**Related tasks:** #239 (design), #240 (ops manual + Mission Control skill).
+**Related tasks:** #239 (design), #240 (ops manual + VBA skill `business_admin`).
 
 ---
 
 ## 1. Purpose
 
-Define how Mission Control upgrades without destroying tenant configuration or data, and how agents/customers extend the product safely.
+Define how Versa - Business Admin upgrades without destroying tenant configuration or data, and how agents/customers extend the product safely.
 
 ## 2. Three-layer model
 
@@ -65,19 +65,19 @@ Intent already visible in code: typed cores + catalog metadata + instance/JSONB 
 - Manifest: `publisher.name`, version, required MC version, catalog seeds (`c_` api names), optional later UI/route contributions.
 - Install = merge seeds into the Primary Org overlay + `installed_packages` enable flag (`POST /api/settings/agent-packages` `{ action: "install", package }`).
 - Uninstall = disable/hide those overlay fields (`active: false`); do **not** hard-delete tenant data written while the package was active.
-- No host agitop agent-fleet chrome inside Mission Control (product boundary unchanged).
-- Sample Data is **not** a package. It is live rows tagged `mc_sample:` (Settings → Modes). Demo mode never writes those rows.
+- No host agitop agent-fleet chrome inside Versa - Business Admin (product boundary unchanged).
+- Sample Data is **not** a package. It is live rows tagged `ba_sample:` (Settings → Modes). Demo mode never writes those rows.
 
 ## 7. Non-goals (v1)
 
 - Live multi-master catalog sync across hosts
 - Automatic rewrite of tenant JSONB instance shapes on every release
 - Implementing overlay code before Gate 3 + durable catalog plan
-- Conflating agitop host upgrades with Mission Control product upgrades
+- Conflating agitop host upgrades with Versa - Business Admin product upgrades
 
 ## 8. Ops manual linkage
 
-Implementer-facing procedures live in `docs/ops/MISSION_CONTROL_OPS_MANUAL.md` (Task #240). That manual must not invent upgrade runbooks that contradict **seed-only v1** or D1–D6.
+Implementer-facing procedures live in `docs/ops/BUSINESS_ADMIN_OPS_MANUAL.md` (Task #240). That manual must not invent upgrade runbooks that contradict **seed-only v1** or D1–D6.
 
 ## 9. Change log
 
@@ -90,9 +90,9 @@ Implementer-facing procedures live in `docs/ops/MISSION_CONTROL_OPS_MANUAL.md` (
 | 2026-09-03 | Durable catalog overlay shipped (0.7.105): fields/layouts/value sets persist; system seed ∪ overlay merge. Overlay runner / `c_` namespace still open. |
 | 2026-09-03 | 0.7.106: D1 `c_` required on new custom fields and record types; overlay `seed_pack` stamp (seed-only v1 runner). |
 | 2026-09-05 | Stephen closed branding/sky (D6 parallel) at 0.7.131 and tasked remaining overlay: D3 Primary-Org-scoped catalog, D5 agent packages, Insert/Delete Sample Data (`external_id`, not Demo swap), and #240 ops manual + skill. |
-| 2026-09-05 | 0.7.132: D3 overlay keyed to Primary Org (legacy `site` migrates); D5 package install/uninstall API; Insert/Delete Sample Data (`mc_sample:`); AGi Org → MC field mapping in the record-type inventory. #240 still waiting. |
+| 2026-09-05 | 0.7.132: D3 overlay keyed to Primary Org (legacy `site` migrates); D5 package install/uninstall API; Insert/Delete Sample Data (`ba_sample:`); AGi Org → MC field mapping in the record-type inventory. #240 still waiting. |
 | 2026-09-05 | 0.7.133: ERD-locked catalog seed (audit lookups, staff person fields, policy lines, transaction document kinds, schedule interval, file type, Vendor Credentials/Integrations/Exchange). Seed-pack rebase lets system rows win on pack bump. #240 still waiting. |
-| 2026-09-07 | 0.7.136 (#274): packaged DB ships EMPTY — seed.mjs is install-only (Primary Org + first admin via ON CONFLICT DO NOTHING, never modifies an existing tenant; + value-set catalog); fixtureAdapter preloads only the Primary Org (4 demo orgs removed); demo orgs/partner/branch/tasks/txn/integration now live ONLY in the mc_sample: pack (4 orgs + 9 records). Closes the re-seed-overwrites-tenant risk flagged in D4 posture. E2E 15/15 on :3200 (fixture mode). |
+| 2026-09-07 | 0.7.136 (#274): packaged DB ships EMPTY — seed.mjs is install-only (Primary Org + first admin via ON CONFLICT DO NOTHING, never modifies an existing tenant; + value-set catalog); fixtureAdapter preloads only the Primary Org (4 demo orgs removed); demo orgs/partner/branch/tasks/txn/integration now live ONLY in the ba_sample: pack (4 orgs + 9 records). Closes the re-seed-overwrites-tenant risk flagged in D4 posture. E2E 15/15 on :3200 (fixture mode). |
 
 ---
 

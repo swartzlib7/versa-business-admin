@@ -1,5 +1,5 @@
 // Placeholder fixture for the "Knowledge Articles" facet.
-// Sample handbook / process docs for the Mission Control template.
+// Sample handbook / process docs for the VBA template.
 
 export interface KnowledgeArticleFixture {
   id: string;

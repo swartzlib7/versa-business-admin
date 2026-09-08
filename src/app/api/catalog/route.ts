@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
   const objects = listObjects();
   return NextResponse.json({
-    name: 'Mission Control object catalog',
+    name: 'Versa - Business Admin object catalog',
     version: pkg.version,
     docs: {
       operator: API_DOCS.operator,

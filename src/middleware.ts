@@ -22,7 +22,6 @@ const PROTECTED_PAGE_PREFIXES = [
 ];
 
 const PROTECTED_API_PREFIXES = [
-  '/api/agents',
   '/api/projects',
   '/api/tasks',
   '/api/integrations',

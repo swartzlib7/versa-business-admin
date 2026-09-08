@@ -1,5 +1,5 @@
 # docs/production/state/_project.yml — Versa AGi statefold config for this project
-# Paths are relative to the project root (workspace/versa-admin-system/).
+# Paths are relative to the project root (workspace/Versa-BusinessAdmin/).
 doc_home: docs/production/state/
 archive_home: docs/production/state/__archive/
-shape_file: docs/production/state/shape_mission_control.md
+shape_file: docs/production/state/shape_business_admin.md

@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-05  
 **Source:** inventory as coded + Stephen locks (including 17:36 EDT feedback).  
-**Sign-off:** this file. Seed pack **0.7.133** matches this picture. `migrate_agi_org` still waits.
+**Sign-off:** this file. Seed pack **0.7.133** matches this picture. Org-party `migrate_agi_org` shipped 0.7.145 (productions/treasury still wait).
 
 Solid names = in the catalog today. Fields listed here are the seeded set.
 

@@ -3,7 +3,7 @@
 **Date:** 2026-07-18  
 **Branch audited:** `beta` @ `00db655` (includes I5.5 feat `8c37ba9` + docs accept + Stephen notes)  
 **Sources:** `docs/_notes/from_stephen_02.md`, `docs/specs/MISSION_CONTROL_ERD_KEYSTONE.md` v1.1  
-**Code:** `src/lib/fixtures/business-graph.ts`, `src/components/r3f/mission-control-scene.tsx`, `src/app/dashboard/page.tsx`, `src/components/shell/sidebar.tsx`, `src/lib/theme.ts`  
+**Code:** `src/lib/fixtures/business-graph.ts`, `src/components/r3f/business-admin-scene.tsx`, `src/app/dashboard/page.tsx`, `src/components/shell/sidebar.tsx`, `src/lib/theme.ts`  
 **Auditor:** Versa (COA)
 
 ---
@@ -56,7 +56,7 @@ Lightbox, billboards, org rim label, nav remap, hub name unchanged. I7 still clo
 ## Position math (current implementation)
 
 ```ts
-// mission-control-scene.tsx — computePositions()
+// business-admin-scene.tsx — computePositions()
 const theta = (i / count) * Math.PI * 2 - Math.PI / 2;
 positions.set(node.id, [cos(theta)*r, 0, sin(theta)*r]); // y always 0
 ```
@@ -125,9 +125,9 @@ Next.js **does not permanently “change” the app’s port**. Each `next dev` 
 
 | Port | Process | Working tree |
 |------|---------|----------------|
-| **3100** | `coa` next-server | `/home/coa/coa-env/workspace/versa-admin-system` (COA smoke after I5.5 merge) |
+| **3100** | `coa` next-server | `/home/coa/coa-env/workspace/Versa-BusinessAdmin` (COA smoke after I5.5 merge) |
 | **3101** | listening (web-dev related) | separate bind — used in prior smoke notes as `:3101` |
-| **3300** | `agi-web-dev` | `versa-admin-system-local` |
+| **3300** | `agi-web-dev` | `Versa-BusinessAdmin-local` |
 | **3099** | `agi-web-dev` | points at COA workspace path via next dev -p 3099 |
 
 **Why broken site on 3100?** Common causes when multiple Next processes exist:
@@ -137,7 +137,7 @@ Next.js **does not permanently “change” the app’s port**. Each `next dev` 
 3. **HMR / Turbopack conflict** — “Another next dev server is already running” (seen in `.logs/lan-dev.log`)  
 4. **Port reuse** — you *can* reuse a port only after the previous process exits; two apps cannot share one TCP port  
 
-**Recommendation:** Treat **one** port as the canonical preview for `beta` (e.g. kill stale servers, `npm run build && npx next start -p 3100` from the COA `versa-admin-system` on `beta`). Document that port in README; agents should not leave orphan `next dev` on random ports.
+**Recommendation:** Treat **one** port as the canonical preview for `beta` (e.g. kill stale servers, `npm run build && npx next start -p 3100` from the COA `Versa-BusinessAdmin` on `beta`). Document that port in README; agents should not leave orphan `next dev` on random ports.
 
 Ports are **reusable** after the listener stops. They “change” only because each smoke/dev session picks a free port when the preferred one is busy.
 

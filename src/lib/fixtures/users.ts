@@ -1,5 +1,4 @@
-// User fixture for auth + RBAC skeleton.
-// Demo accounts use example.com — not production identities.
+// Install accounts only. Extra demo people live in the sample-data pack.
 
 export interface UserFixture {
   id: string;
@@ -15,83 +14,39 @@ export interface UserFixture {
   data?: Record<string, unknown>;
 }
 
+/** Always-on install identities. Never tagged ba_sample: and never removed by Delete Sample Data. */
+export const INSTALL_USER_EMAILS = ["admin@example.com", "coa@example.com"] as const;
+
+export function isInstallUserEmail(email: string | undefined | null): boolean {
+  const normalized = (email ?? "").trim().toLowerCase();
+  return (INSTALL_USER_EMAILS as readonly string[]).includes(normalized);
+}
+
 export const users: UserFixture[] = [
   {
     id: 'user-1',
-    name: 'Alex Morgan',
+    name: 'Administrator',
     email: 'admin@example.com',
     role: 'admin',
     type: 'human',
     password: 'mission2026',
     department: 'Leadership',
     department_id: 'dept-leadership',
-    data: { job_title: 'Founder and producer for the sample maker worksp' },
-    bio: 'Founder and producer for the sample maker workspace.',
+    data: { job_title: 'Workspace administrator' },
+    bio: 'Workspace administrator.',
     status: 'active',
   },
   {
-    id: 'user-2',
-    name: 'Ops Assistant',
-    email: 'ops-assistant@example.com',
+    id: 'user-coa',
+    name: 'COA',
+    email: 'coa@example.com',
     role: 'admin',
     type: 'agent',
     password: 'mission2026',
-    department: 'Operations',
-    department_id: 'dept-operations',
-    data: { job_title: 'Sample agent account with admin role for demos' },
-    bio: 'Sample agent account with admin role for demos.',
-    status: 'active',
-  },
-  {
-    id: 'user-3',
-    name: 'Jordan Lee',
-    email: 'member@example.com',
-    role: 'member',
-    type: 'human',
-    password: 'mission2026',
-    department: 'Operations',
-    department_id: 'dept-operations',
-    data: { job_title: 'Operations lead keeping production on cadence' },
-    bio: 'Operations lead keeping production on cadence.',
-    status: 'active',
-  },
-  {
-    id: 'user-4',
-    name: 'Research Assistant',
-    email: 'research@example.com',
-    role: 'member',
-    type: 'agent',
-    password: 'mission2026',
-    department: 'Research',
-    department_id: 'dept-research',
-    data: { job_title: 'Sample agent account with member role' },
-    bio: 'Sample agent account with member role.',
-    status: 'active',
-  },
-  {
-    id: 'user-5',
-    name: 'Casey Nguyen',
-    email: 'success@example.com',
-    role: 'member',
-    type: 'human',
-    password: 'mission2026',
-    department: 'Customer',
-    department_id: 'dept-customer',
-    data: { job_title: 'Customer partner helping buyers adopt what we sh' },
-    bio: 'Customer partner helping buyers adopt what we ship.',
-    status: 'active',
-  },
-  {
-    id: 'user-6',
-    name: 'Riley Brooks',
-    email: 'marketing@example.com',
-    role: 'member',
-    type: 'human',
-    password: 'mission2026',
-    department: 'Outreach',
-    department_id: 'dept-outreach',
-    data: { job_title: 'Story and reach lead for the public brand' },
-    bio: 'Story and reach lead for the public brand.',
+    department: 'Leadership',
+    department_id: 'dept-leadership',
+    data: { job_title: 'Administrator agent (coa)' },
+    bio: 'Administrator agent account (coa).',
     status: 'active',
   },
 ];

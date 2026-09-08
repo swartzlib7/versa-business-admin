@@ -32,7 +32,7 @@ export type PublicNavItem = {
 
 /** Default visitor header/footer links. Settings → Menu → Public can reorder and toggle. */
 export const DEFAULT_PUBLIC_NAV_ITEMS: PublicNavItem[] = [
-  { href: "/#facets", label: "Mission Control Facets" },
+  { href: "/#facets", label: "Facets" },
   { href: "/#systems", label: "System Landscape" },
   { href: "/#integrations", label: "Integrations" },
   { href: "/#operations", label: "Operations" },

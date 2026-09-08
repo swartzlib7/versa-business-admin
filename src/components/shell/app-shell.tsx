@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Sidebar, SIDEBAR_COLLAPSE_EVENT, readSidebarCollapsed } from './sidebar';
 import { Header } from './header';
+import { DemoPasswordAlert } from './demo-password-alert';
 import { cn } from '@/lib/utils';
 
 export function AppShell({
@@ -10,7 +11,7 @@ export function AppShell({
   fillViewport = false,
 }: {
   children: React.ReactNode;
-  /** I5.6.22 — Mission Control: fill viewport height; content can set min-width. */
+  /** I5.6.22 — VBA: fill viewport height; content can set min-width. */
   fillViewport?: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -35,6 +36,7 @@ export function AppShell({
         )}
       >
         <Header />
+        <DemoPasswordAlert />
         <main
           className={cn(
             "flex-1 p-4 lg:p-6",
