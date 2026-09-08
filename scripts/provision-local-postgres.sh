@@ -65,8 +65,14 @@ fi
 if ! grep -q '^AUTH_SESSION_MAX_AGE=' "$TARGET"; then
   echo "AUTH_SESSION_MAX_AGE=604800" >> "$TARGET"
 fi
-chown "${APP_OWNER}:${APP_OWNER}" "$TARGET"
-chmod 600 "$TARGET"
+# App runs as coa; sudo may be the PU. Group `coa` must be able to read.
+if getent group coa >/dev/null 2>&1; then
+  chown "${APP_OWNER}:coa" "$TARGET"
+  chmod 640 "$TARGET"
+else
+  chown "${APP_OWNER}:${APP_OWNER}" "$TARGET"
+  chmod 600 "$TARGET"
+fi
 
 echo "Wrote DATA_SOURCE and DATABASE_URL to ${TARGET} (not committed)."
 echo "Next: npm run db:migrate && npm run db:seed"

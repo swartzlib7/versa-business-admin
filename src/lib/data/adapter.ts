@@ -658,6 +658,26 @@ function createAdapter(): DataAdapter {
       if (!postgresAdapter.updateProduct) throw new Error('updateProduct not available');
       return postgresAdapter.updateProduct(id, input);
     },
+    listOrganizations: (orgType?: string) => {
+      if (!postgresAdapter.listOrganizations) throw new Error("listOrganizations not available");
+      return postgresAdapter.listOrganizations(orgType);
+    },
+    getOrganization: (id: string) => {
+      if (!postgresAdapter.getOrganization) throw new Error("getOrganization not available");
+      return postgresAdapter.getOrganization(id);
+    },
+    createOrganization: (input) => {
+      if (!postgresAdapter.createOrganization) throw new Error("createOrganization not available");
+      return postgresAdapter.createOrganization(input);
+    },
+    updateOrganization: (id, input) => {
+      if (!postgresAdapter.updateOrganization) throw new Error("updateOrganization not available");
+      return postgresAdapter.updateOrganization(id, input);
+    },
+    deleteOrganization: (id: string) => {
+      if (!postgresAdapter.deleteOrganization) throw new Error("deleteOrganization not available");
+      return postgresAdapter.deleteOrganization(id);
+    },
     listIntegrations: (status?: string) => postgresAdapter.listIntegrations(status),
     listStaff: () => postgresAdapter.listStaff(),
     getBusinessProfile: () => postgresAdapter.getBusinessProfile(),
