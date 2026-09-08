@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Shared listing toolbar on all backend `EntityListing` tables |
-| **Status** | 🟡 Built (WU-01 + WU-02) 2026-09-08 — agent-verified on :3200 (0.7.152); QA pending (Stephen) |
+| **Status** | 🟢 Built (WU-01–WU-04) 2026-09-08 — agent-verified on :3200 (0.7.154); first QA batch approved by Stephen 2026-09-08, revisions + WU-03/04 awaiting his one-shot review |
 | **Last verified against code** | 2026-09-08 |
 | **Primary code** | `src/components/listing/entity-listing.tsx` |
 | **Task** | Parent **#282**; WU-01 **#283**; WU-02 **#284**; WU-03 **#285**; WU-04 **#286** |
@@ -46,8 +46,8 @@ Do not hide this behind a per-page `headerFilters` one-off (today Organizations 
 
 - Criteria render **below the toolbar, above the table, left-aligned**, one chip per criterion.
 - Each chip has a small **×** to remove that criterion.
-- Criteria **AND** together unless a better default is obvious in implementation (document the choice here if it changes).
-- Matching is **exact, case-insensitive** against the cell’s **raw value or displayed text** — picklists commit raw api values (e.g. `true`, org ids) while cells may render labels (Yes/No, org names), so either side matches. Typed values match raw or displayed text the same way.
+- Criteria **OR-combine by default** (Stephen QA 2026-09-08: "that or that or that, not and"); AND is not offered in v1.
+- Matching is **case-insensitive "contains"** (substring) against the cell’s **raw value or displayed text** — picklists commit raw api values (e.g. `true`, org ids) while cells may render labels (Yes/No, org names), so either side matches. Typed values match raw or displayed text the same way.
 - Removing a **column** from the picker **also removes** any chips for that column.
 
 ### 1.3 Columns vs secrets
@@ -119,3 +119,4 @@ Stephen (2026-09-08 IDE): enhance the Organizations-style filter, put it on all 
 | 2026-09-08 | Extracted from Stephen IDE brief. Not built. | WU-01…04 tasked |
 | 2026-09-08 | WU-01 shipped: shared criteria-chip toolbar inside EntityListing (select/boolean columns); Organizations one-off type filter retired — now a chip via the shared toolbar. Typed-value criteria (WU-02), column picker (WU-03), name search (WU-04) still open. | #283 |
 | 2026-09-08 | WU-02 shipped as 0.7.152: second stage is picklist (select-with-options, boolean) or typed input (all other rendered non-secret columns; Enter commits); matcher now matches raw value OR displayed text (fixes is_person true-vs-Yes and parent-id-vs-name never matching); boolean picklist + chips show Yes/No; Add disabled until value; typed values trimmed; lint cleanups (unused Badge import, activeSort memoized). | #284 |
+| 2026-09-08 | Stephen QA on 0.7.151: (1) Filter button made prominent (brand fill, white text); (2) matching switched exact → case-insensitive contains; (3) criteria combine OR by default; (4) WU-03 column picker + WU-04 name search built same cycle (0.7.154). Picker binds to persisted visible set (min 1 column; hiding a column drops its chips — verified); name search = name-column contains, combined with criteria. E2E: OR 36→3 rows, contains rim→1, search Primary→1, hide/restore headers 5/4/5. | #285 #286 |

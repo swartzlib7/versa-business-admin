@@ -96,16 +96,25 @@ function ListingToolbar({
   onAdd,
   onRemove,
   onClear,
+  visibleKeys,
+  onToggleColumn,
+  search,
+  onSearch,
 }: {
   fields: ListingField[];
   criteria: ListingCriterion[];
   onAdd: (criterion: ListingCriterion) => void;
   onRemove: (key: string, value: string) => void;
   onClear: () => void;
+  visibleKeys: string[];
+  onToggleColumn: (key: string) => void;
+  search: string;
+  onSearch: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [columnKey, setColumnKey] = useState("");
   const [value, setValue] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
   const filterable = useMemo(
     () => fields.filter((f) => f.column !== false && !f.secret),
     [fields],
@@ -153,10 +162,47 @@ function ListingToolbar({
             setColumnKey("");
             setValue("");
           }}
-          className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+          className="rounded-md px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:opacity-90"
+          style={{ backgroundColor: theme.colors.brand }}
         >
           Filter
         </button>
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+          placeholder="Search name…"
+          aria-label="Search records by name"
+          className="w-44 rounded-md border border-input bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        {filterable.length > 0 && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setPickerOpen((o) => !o)}
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+            >
+              Columns
+            </button>
+            {pickerOpen && (
+              <div className="absolute left-0 z-30 mt-1 w-64 rounded-md border border-border bg-background p-2 shadow-lg">
+                {filterable.map((f) => (
+                  <label
+                    key={f.key}
+                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-muted/50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={visibleKeys.includes(f.key)}
+                      onChange={() => onToggleColumn(f.key)}
+                    />
+                    <span>{f.label}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {criteria.map((c) => (
           <span
             key={c.key + ":" + c.value}
@@ -186,6 +232,7 @@ function ListingToolbar({
       {open && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <select
+            aria-label="Filter column"
             className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             value={columnKey}
             onChange={(e) => {
@@ -203,8 +250,8 @@ function ListingToolbar({
           {activeField &&
             (usePicklist ? (
               <select
+                aria-label="Filter value"
                 className="rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                value={value}
                 onChange={(e) => setValue(e.target.value)}
               >
                 <option value="">Value…</option>
@@ -436,7 +483,7 @@ export function EntityListing<T extends Record<string, unknown>>({
     return next;
   }, [columns, columnOrder]);
   const persistKey = columnStorageKey ?? `mc.listing.${title || "table"}.${defaultColKeys.join(".")}`;
-  const [colKeys, reorderCols] = usePersistedColumnOrder(persistKey, defaultColKeys);
+  const [colKeys, reorderCols, setColumnOrder] = usePersistedColumnOrder(persistKey, defaultColKeys);
   const [sort, setSort] = useState<TableSort>({ key: defaultColKeys[0] ?? "", dir: "asc" });
   const [dragOver, setDragOver] = useState<string | null>(null);
   const orderedColumns = useMemo(
@@ -447,6 +494,15 @@ export function EntityListing<T extends Record<string, unknown>>({
     () => (onAdd || onUpdate || onDelete || viewHref ? [...colKeys, "actions"] : colKeys),
     [colKeys, onAdd, onUpdate, onDelete, viewHref],
   );
+  const toggleColumnVisibility = (key: string) => {
+    if (!colKeys.includes(key)) {
+      setColumnOrder([...colKeys, key]);
+      return;
+    }
+    if (colKeys.length <= 1) return; // keep at least one column rendered
+    setColumnOrder(colKeys.filter((k) => k !== key));
+    setCriteria((cs) => cs.filter((c) => c.key !== key));
+  };
   const headerMeta = useMemo(() => {
     const meta: Record<string, { label: string; sortKey?: string }> = {
       actions: { label: "Actions" },
@@ -462,6 +518,7 @@ export function EntityListing<T extends Record<string, unknown>>({
     [colKeys, sort],
   );
   const [criteria, setCriteria] = useState<ListingCriterion[]>([]);
+  const [search, setSearch] = useState("");
   const addCriterion = (criterion: ListingCriterion) =>
     setCriteria((cs) =>
       cs.some((c) => c.key === criterion.key && c.value === criterion.value) ? cs : [...cs, criterion],
@@ -469,25 +526,45 @@ export function EntityListing<T extends Record<string, unknown>>({
   const removeCriterion = (key: string, value: string) =>
     setCriteria((cs) => cs.filter((c) => !(c.key === key && c.value === value)));
   const clearCriteria = () => setCriteria([]);
-  const filteredRows = useMemo(
-    () =>
-      criteria.length === 0
-        ? rows
-        : rows.filter((row) =>
-            criteria.every((c) => {
-              // WU-02: match the raw api value OR the displayed text
-              // (picklists commit raw values; cells may render labels).
-              const raw = getCell(row, c.key);
-              const shown = formatCell ? formatCell(row, c.key, raw) : raw;
-              const needle = c.value.trim().toLowerCase();
-              return (
-                raw.trim().toLowerCase() === needle ||
-                shown.trim().toLowerCase() === needle
-              );
-            }),
-          ),
-    [rows, criteria, getCell, formatCell],
-  );
+  // Name column for record search: explicit name key/label, else first visible column.
+  const nameKey = useMemo(() => {
+    const byKey = fields.find((f) => f.key === "name");
+    if (byKey) return byKey.key;
+    const byLabel = fields.find((f) => (f.label ?? "").toLowerCase() === "name");
+    if (byLabel) return byLabel.key;
+    const firstVisible = fields.find((f) => f.column !== false && !f.secret);
+    return firstVisible?.key ?? "";
+  }, [fields]);
+  const filteredRows = useMemo(() => {
+    let out = rows;
+    // Stephen QA (0.7.154): criteria OR-combine by default and match by
+    // case-insensitive "contains" on raw value or displayed text.
+    if (criteria.length > 0) {
+      out = out.filter((row) =>
+        criteria.some((c) => {
+          const raw = getCell(row, c.key);
+          const shown = formatCell ? formatCell(row, c.key, raw) : raw;
+          const needle = c.value.trim().toLowerCase();
+          return (
+            raw.toLowerCase().includes(needle) ||
+            shown.toLowerCase().includes(needle)
+          );
+        }),
+      );
+    }
+    const needle = search.trim().toLowerCase();
+    if (needle && nameKey) {
+      out = out.filter((row) => {
+        const raw = getCell(row, nameKey);
+        const shown = formatCell ? formatCell(row, nameKey, raw) : raw;
+        return (
+          raw.toLowerCase().includes(needle) ||
+          shown.toLowerCase().includes(needle)
+        );
+      });
+    }
+    return out;
+  }, [rows, criteria, getCell, formatCell, search, nameKey]);
   const sortedRows = useMemo(
     () =>
       !activeSort.key
@@ -589,6 +666,10 @@ export function EntityListing<T extends Record<string, unknown>>({
           onAdd={addCriterion}
           onRemove={removeCriterion}
           onClear={clearCriteria}
+          visibleKeys={colKeys}
+          onToggleColumn={toggleColumnVisibility}
+          search={search}
+          onSearch={setSearch}
         />
         {editor === "new" && (
           <InlineForm

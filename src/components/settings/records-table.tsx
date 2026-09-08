@@ -63,7 +63,22 @@ export function usePersistedColumnOrder<K extends string>(storageKey: string, de
     });
   }, [storageKey, defaults]);
 
-  return [cols, reorder] as const;
+  const setColumnOrder = useCallback(
+    (next: K[]) => {
+      setCols((prev) => {
+        if (next.length === 0) return prev; // never render zero columns
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(next));
+        } catch {
+          /* ignore quota / private mode */
+        }
+        return next;
+      });
+    },
+    [storageKey],
+  );
+
+  return [cols, reorder, setColumnOrder] as const;
 }
 
 export function SortTh({
