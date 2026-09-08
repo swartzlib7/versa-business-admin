@@ -728,7 +728,7 @@ export function BrandingPanel({
           role="dialog"
           aria-modal="true"
           aria-label="Sky animation full screen preview"
-          className="fixed inset-0 z-[200] bg-black"
+          className="fixed inset-0 z-[200] m-0 bg-black"
         >
           <VersaConstellation
             variant={draft.variant}
