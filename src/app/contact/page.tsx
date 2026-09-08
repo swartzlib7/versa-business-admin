@@ -68,7 +68,7 @@ export default function ContactPage() {
           onTabChange={() => undefined}
           tabsAriaLabel="Contact sections"
         />
-        <div role="tabpanel" className="space-y-3">
+        <div role="tabpanel" className="min-h-[640px] space-y-3">
         <SubTabBar
           items={[{ id: "configuration", label: "Configuration" }]}
           activeId="configuration"

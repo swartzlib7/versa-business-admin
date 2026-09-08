@@ -27,7 +27,7 @@ export default function UIComponentsPage() {
           onTabChange={setTab}
           tabsAriaLabel="UI Components sections"
         />
-        <div role="tabpanel" className="space-y-3">
+        <div role="tabpanel" className="min-h-[640px] space-y-3">
           <SubTabBar
             items={[{ id: tab, label: current?.label ?? "Components" }]}
             activeId={tab}

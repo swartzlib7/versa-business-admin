@@ -377,7 +377,7 @@ export default function SettingsPage() {
         />
 
         {tab === "branding" && (
-          <div role="tabpanel" className="space-y-3">
+          <div role="tabpanel" className="min-h-[640px] space-y-3">
             <SubTabBar
               items={[
                 { id: "brand", label: "Brand" },
@@ -400,7 +400,7 @@ export default function SettingsPage() {
         )}
 
         {tab === "sky" && (
-          <div role="tabpanel" className="space-y-3">
+          <div role="tabpanel" className="min-h-[640px] space-y-3">
             <PanelShell
               summary="Visitor homepage sky. Variant, zoom, density, and effects are saved permanently and survive a restart."
               badge="Sky"
@@ -411,7 +411,7 @@ export default function SettingsPage() {
         )}
 
         {tab === "appearance" && (
-          <div role="tabpanel" className="space-y-3">
+          <div role="tabpanel" className="min-h-[640px] space-y-3">
             <SubTabBar
               items={[{ id: "configuration", label: "Configuration" }]}
               activeId={subTab}
@@ -424,7 +424,7 @@ export default function SettingsPage() {
         )}
 
         {tab === "public" && (
-          <div role="tabpanel" className="space-y-3">
+          <div role="tabpanel" className="min-h-[640px] space-y-3">
             <SubTabBar
               items={[{ id: "configuration", label: "Configuration" }]}
               activeId={subTab}
@@ -442,7 +442,7 @@ export default function SettingsPage() {
         )}
 
         {tab === "menu" && (
-          <div role="tabpanel" className="space-y-3">
+          <div role="tabpanel" className="min-h-[640px] space-y-3">
             <SubTabBar
               items={[
                 { id: "operator", label: "Operator" },
@@ -467,7 +467,7 @@ export default function SettingsPage() {
         )}
 
         {tab === "modes" && (
-          <div role="tabpanel" className="space-y-3">
+          <div role="tabpanel" className="min-h-[640px] space-y-3">
             <SubTabBar
               items={[{ id: "configuration", label: "Configuration" }]}
               activeId="configuration"
@@ -480,7 +480,7 @@ export default function SettingsPage() {
         )}
 
         {tab === "api" && (
-          <div role="tabpanel" className="space-y-3">
+          <div role="tabpanel" className="min-h-[640px] space-y-3">
             <SubTabBar
               items={[{ id: "configuration", label: "Configuration" }]}
               activeId="configuration"

@@ -921,7 +921,7 @@ export function RecordsEditor() {
 
       {/* ── TYPES ── */}
       {section === "types" && (
-        <div role="tabpanel" className="space-y-3">
+        <div role="tabpanel" className="min-h-[640px] space-y-3">
           <SubTabBar
             items={[{ id: "configuration", label: "Types" }]}
             activeId={subTab}
@@ -1227,7 +1227,7 @@ export function RecordsEditor() {
 
       {/* ── FIELDS ── */}
       {section === "fields" && (
-        <div role="tabpanel" className="space-y-3">
+        <div role="tabpanel" className="min-h-[640px] space-y-3">
           <SubTabBar
             items={[{ id: "configuration", label: "Fields" }]}
             activeId={subTab}
@@ -1604,7 +1604,7 @@ export function RecordsEditor() {
 
       {/* ── PICKLISTS ── */}
       {section === "picklists" && (
-        <div role="tabpanel" className="space-y-3">
+        <div role="tabpanel" className="min-h-[640px] space-y-3">
           <SubTabBar
             items={[{ id: "configuration", label: "Picklists" }]}
             activeId={subTab}
@@ -1833,7 +1833,7 @@ export function RecordsEditor() {
 
       {/* ── LAYOUTS ── */}
       {section === "layouts" && (
-        <div role="tabpanel" className="space-y-3">
+        <div role="tabpanel" className="min-h-[640px] space-y-3">
           <SubTabBar
             items={[{ id: "configuration", label: "Layouts" }]}
             activeId={subTab}
