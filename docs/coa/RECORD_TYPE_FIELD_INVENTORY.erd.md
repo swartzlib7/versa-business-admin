@@ -1,8 +1,10 @@
-# Mission Control — record-type ERD (inventory review)
+# Versa - Business Admin — record-type ERD
 
-**Date:** 2026-09-05  
-**Source:** inventory as coded + Stephen locks (including 17:36 EDT feedback).  
-**Sign-off:** this file. Seed pack **0.7.133** matches this picture. Org-party `migrate_agi_org` shipped 0.7.145 (productions/treasury still wait).
+**Date:** 2026-09-07  
+**Source:** live catalog seed + migrate_agi_org field set.  
+**Sign-off:** this file. Seed pack **0.7.149**. Package **0.7.149** maps extra own Wave businesses as Orgs (not Branch).
+
+This is the **record-type ERD** (catalog objects/fields). The I5.6 zone/hub ERD (`state_i5_6_zone_erd.md`) is the operating-graph picture (rings, faculties, Collaboration parties). I5.6.34 definition: `state_layout_mission_ui.md` § I5.6.34.
 
 Solid names = in the catalog today. Fields listed here are the seeded set.
 
@@ -74,6 +76,7 @@ erDiagram
     organization ||--o{ location : "organization_id"
     organization ||--o{ contact : "organization_id"
     organization ||--o{ communication_staff : "organization_id"
+    organization ||--o{ treasury_transaction : "issuer_organization_id"
     organization ||--o{ treasury_transaction : "counterparty_organization_id"
     user }o--o| department : "department_id"
     communication_staff ||--o{ executive_policy : "owner_id"
@@ -82,7 +85,7 @@ erDiagram
 
     organization {
         text name
-        picklist org_type "internal vendor customer partner branch"
+        picklist org_type "internal=Org (Primary + additional own businesses) vendor customer partner branch=subsidiary"
         boolean is_person
         text slug
         boolean is_active
@@ -104,6 +107,7 @@ erDiagram
         text country
         boolean is_primary
         picklist status
+        lookup organization_id
         text external_id
     }
 
@@ -111,8 +115,11 @@ erDiagram
         text name
         picklist contact_kind "staff public"
         email email
+        text email_label
+        boolean is_primary
         phone phone
         text organization_name
+        lookup organization_id
         text vv_connection_uid
         text external_id
     }
@@ -121,6 +128,7 @@ erDiagram
         text name
         picklist role "staff_role value set"
         picklist status
+        lookup organization_id
         text vv_connection_uid
         text external_id
     }
@@ -175,10 +183,14 @@ erDiagram
         text name
         text tagline
         picklist category
+        picklist product_kind "product service subscription expense"
+        lookup organization_id
         long_text description
         long_text features
         text status
+        boolean is_active
         text sku
+        text currency
         text external_id
         text variant_name
         currency variant_price
@@ -187,7 +199,9 @@ erDiagram
     production_service {
         text name
         picklist status
+        lookup organization_id
         long_text description
+        text external_id
         text rate_item
         currency rate_amount
     }
@@ -299,10 +313,11 @@ That is enough for “every N minutes/hours/days/weeks/months/years”. Calendar
 
 ## 4. Treasury — this is the transaction table
 
-`treasury_transaction` **is** Mission Control’s transaction table (AGi `transactions` + quote/estimate/invoice as kinds).
+`treasury_transaction` **is** the VBA transaction table (AGi `transactions` + quote/estimate/invoice as kinds). Structure is **header_lines** so invoice/estimate line items migrate.
 
 ```mermaid
 erDiagram
+    organization ||--o{ treasury_transaction : "issuer_organization_id"
     organization ||--o{ treasury_transaction : "counterparty_organization_id"
     treasury_transaction ||--o| treasury_transaction : "converted_from_id"
 
@@ -314,12 +329,23 @@ erDiagram
         text currency
         date transaction_date
         text category
-        picklist status
+        picklist status "document_status"
         long_text notes
         text external_id
         lookup converted_from_id
-        lookup created_by
-        lookup last_modified_by
+        lookup issuer_organization_id
+        lookup counterparty_organization_id
+        text document_number
+        currency subtotal
+        currency tax_total
+        date due_date
+        date paid_date
+        date expiry_date
+        text line_description "line"
+        number line_quantity "line"
+        currency line_unit_price "line"
+        currency line_total "line"
+        lookup line_product_id "production_product"
     }
 
     treasury_records_assets_materiel {
@@ -350,9 +376,10 @@ erDiagram
 
     vendor_credential {
         text name
-        picklist auth_type "api_key oauth2 basic smtp custom"
-        long_text configuration
+        picklist auth_type "api_key oauth2 basic smtp imap mcp api custom"
+        long_text configuration "secret; copied on migrate; not a vault yet"
         long_text notes
+        lookup organization_id
         text external_id
     }
 
@@ -366,8 +393,8 @@ erDiagram
 
     vendor_exchange {
         text name
-        picklist origin "inbound outbound"
-        picklist status "pending ok error"
+        picklist origin "inbound outbound agent user integration"
+        picklist status "pending ok error new sync-done sync-failed"
         text source_table
         text source_id
         long_text payload

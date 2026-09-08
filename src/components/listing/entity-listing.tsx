@@ -9,6 +9,7 @@ import { theme } from "@/lib/theme";
 import Link from "next/link";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { BooleanSwitch } from "@/components/ui/boolean-switch";
+import { SecretValueField, maskSecretDisplay } from "@/components/ui/secret-value-field";
 import {
   ColumnHeaders,
   rowClickIsToggle,
@@ -39,6 +40,8 @@ export type ListingField = {
   column?: boolean;
   /** Runtime saved-layout preference; defaults to one grid column. */
   span?: 1 | 2;
+  /** Mask on screen (Show / Hide). */
+  secret?: boolean;
 };
 
 export type EntityListingProps<T extends Record<string, unknown>> = {
@@ -93,6 +96,15 @@ function FieldInput({
     "w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
   const kind = field.kind ?? "text";
   const isChecked = value === "true" || value === "1";
+  if (field.secret) {
+    return (
+      <SecretValueField
+        label={field.label}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  }
   return (
     <label className="flex flex-col gap-1.5">
       <span className="text-xs font-medium text-muted-foreground">{field.label}</span>
@@ -234,6 +246,8 @@ export function EntityListing<T extends Record<string, unknown>>({
   const displayCell = (row: T, key: string): ReactNode => {
     const raw = getCell(row, key);
     if (renderCell) return renderCell(row, key, raw);
+    const field = fields.find((f) => f.key === key);
+    if (field?.secret) return maskSecretDisplay(raw);
     return formatCell ? formatCell(row, key, raw) : raw;
   };
   const columns = useMemo(

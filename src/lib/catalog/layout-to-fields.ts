@@ -37,6 +37,8 @@ export type UiListingField = {
   span?: 1 | 2;
   /** J4: header_lines placement — "header" | "list" (undefined = default). */
   zoneRole?: "header" | "list" | null;
+  /** Mask on screen; Show / Hide in the form. */
+  secret?: boolean;
 };
 
 export function dataTypeToUiKind(dt: CatalogDataType): UiFieldKind {
@@ -108,6 +110,9 @@ export function fieldDefinitionToUi(fd: FieldDefinition): UiListingField {
     dataType: fd.data_type,
     isSystem: fd.is_system,
     zoneRole: fd.zone_role ?? null,
+    secret:
+      fd.is_secret === true ||
+      (fd.object_api_name === "vendor_credential" && fd.api_name === "configuration"),
   };
 }
 
@@ -117,10 +122,13 @@ export function listingFieldsFromCatalog(objectApiName: string): UiListingField[
   const byApi = new Map(all.map((f) => [f.api_name, f]));
 
   if (!layout) {
-    return all.map((fd) => ({
-      ...fieldDefinitionToUi(fd),
-      column: fd.data_type !== "long_text",
-    }));
+    return all.map((fd) => {
+      const ui = fieldDefinitionToUi(fd);
+      return {
+        ...ui,
+        column: fd.data_type !== "long_text" && !ui.secret,
+      };
+    });
   }
 
   const orderedKeys = layout.body.sections.flatMap((s) => s.fields);
@@ -130,7 +138,8 @@ export function listingFieldsFromCatalog(objectApiName: string): UiListingField[
   for (const key of orderedKeys) {
     const fd = byApi.get(key);
     if (!fd) continue;
-    result.push({ ...fieldDefinitionToUi(fd), column: true });
+    const ui = fieldDefinitionToUi(fd);
+    result.push({ ...ui, column: !ui.secret });
   }
 
   for (const fd of all) {

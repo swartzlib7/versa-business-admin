@@ -1,6 +1,5 @@
 // Drizzle ORM client — connection/pool from DATABASE_URL.
-// Phase 1: scaffold only. When DATA_SOURCE != 'postgres', this module
-// is not imported by the adapter layer (see adapter.ts).
+// Instantiated when DATA_SOURCE is postgres (the shipped default).
 
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -8,7 +7,7 @@ import * as schema from './schema';
 
 /**
  * Lazily create the postgres-js + Drizzle client.
- * Only instantiated when DATA_SOURCE=postgres is set.
+ * Only instantiated when DATA_SOURCE is postgres.
  * Throws if DATABASE_URL is missing — caller must handle gracefully.
  */
 let _client: ReturnType<typeof postgres> | null = null;

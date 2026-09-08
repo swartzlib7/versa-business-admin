@@ -17,6 +17,7 @@ import {
   type CatalogOverlay,
   type InstalledAgentPackage,
 } from "@/lib/catalog/durable";
+import { isPostgresDataSource } from "@/lib/db/data-source";
 import { applyCatalogOverlay } from "@/lib/fixtures/catalog";
 import { applyRecordTypeOverlay } from "@/lib/fixtures/record-types";
 
@@ -82,7 +83,7 @@ async function persistOverlay(overlay: CatalogOverlay): Promise<CatalogOverlay> 
     saved_at: new Date().toISOString(),
   };
   writeOverlayFile(next);
-  if ((process.env.DATA_SOURCE ?? "fixture") === "postgres") {
+  if (isPostgresDataSource()) {
     await writeOverlayPostgres(next);
   }
   applyCatalogOverlay(next);

@@ -128,6 +128,71 @@ const ASTEROID_TINTS: AsteroidTint[] = [
   },
 ];
 
+/** Real-sky comet looks, cycled like asteroid tints.
+ *  dust: sunlight on dust (pale yellow / off-white)
+ *  ion: CO⁺ plasma tail (blue)
+ *  coma: C₂ / CN green head (larger coma, quieter tail)
+ *  sodium: Hale–Bopp / McNaught orange-yellow
+ */
+type CometPalette = {
+  id: "dust" | "ion" | "coma" | "sodium";
+  nucleus: Rgb;
+  comaInner: Rgb;
+  comaOuter: Rgb;
+  path: Rgb;
+  trail: Rgb;
+  comaR: number;
+  pathGain: number;
+  pathWidth: number;
+};
+
+const COMET_PALETTES: CometPalette[] = [
+  {
+    id: "dust",
+    nucleus: [255, 255, 248],
+    comaInner: [255, 248, 220],
+    comaOuter: [255, 226, 168],
+    path: [255, 244, 210],
+    trail: [255, 236, 186],
+    comaR: 10,
+    pathGain: 1,
+    pathWidth: 1.22,
+  },
+  {
+    id: "ion",
+    nucleus: [245, 252, 255],
+    comaInner: [186, 220, 255],
+    comaOuter: [64, 148, 255],
+    path: [118, 188, 255],
+    trail: [86, 168, 255],
+    comaR: 9,
+    pathGain: 1.12,
+    pathWidth: 0.82,
+  },
+  {
+    id: "coma",
+    nucleus: [250, 255, 246],
+    comaInner: [158, 255, 138],
+    comaOuter: [36, 196, 72],
+    path: [210, 255, 220],
+    trail: [168, 240, 176],
+    comaR: 15,
+    pathGain: 0.48,
+    pathWidth: 0.9,
+  },
+  {
+    id: "sodium",
+    nucleus: [255, 250, 230],
+    comaInner: [255, 210, 118],
+    comaOuter: [255, 138, 36],
+    path: [255, 188, 64],
+    trail: [255, 164, 42],
+    comaR: 10,
+    pathGain: 1,
+    pathWidth: 1.05,
+  },
+];
+
 type Asteroid = {
   x: number;
   y: number;
@@ -172,6 +237,7 @@ type CometTrail = {
   life: number;
   maxLife: number;
   r: number;
+  color: Rgb;
 };
 
 type TrueComet = {
@@ -191,6 +257,7 @@ type TrueComet = {
   size: number;
   phase: number;
   path: { x: number; y: number }[];
+  palette: CometPalette;
 };
 
 type Rgb = [number, number, number];
@@ -491,8 +558,8 @@ function drawCometPath(
     const t = i / n;
     const a = appear * t * t * 0.7;
     if (a < 0.02) continue;
-    ctx.strokeStyle = rgba([255, 255, 255], a);
-    ctx.lineWidth = (0.45 + 1.65 * t) * scale * c.size;
+    ctx.strokeStyle = rgba(c.palette.path, a * c.palette.pathGain);
+    ctx.lineWidth = (0.45 + 1.65 * t) * scale * c.size * c.palette.pathWidth;
     ctx.beginPath();
     ctx.moveTo(pts[i - 1].x + driftX * 0.08, pts[i - 1].y + driftY * 0.08);
     ctx.lineTo(pts[i].x + driftX * 0.08, pts[i].y + driftY * 0.08);
@@ -515,7 +582,7 @@ function drawCometTrail(
   const r = Math.max(0.35, p.r * scale * (0.45 + 0.55 * fade));
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = rgba([255, 255, 255], alpha);
+  ctx.fillStyle = rgba(p.color, alpha);
   ctx.fill();
 }
 
@@ -532,20 +599,23 @@ function drawTrueComet(
   if (appear <= 0.02) return;
   const s = scale * c.size;
   const pulse = 0.85 + 0.15 * Math.sin(c.phase);
+  const pal = c.palette;
+  const comaR = pal.comaR * s;
+  const comaInnerA = pal.id === "coma" ? 0.48 : 0.28;
 
   ctx.save();
   ctx.translate(x, y);
 
-  const coma = ctx.createRadialGradient(0, 0, 0, 0, 0, 10 * s);
-  coma.addColorStop(0, rgba([255, 255, 255], 0.9 * appear * pulse));
-  coma.addColorStop(0.35, rgba([230, 245, 255], 0.28 * appear));
-  coma.addColorStop(1, rgba([230, 245, 255], 0));
+  const coma = ctx.createRadialGradient(0, 0, 0, 0, 0, comaR);
+  coma.addColorStop(0, rgba(pal.nucleus, 0.9 * appear * pulse));
+  coma.addColorStop(0.35, rgba(pal.comaInner, comaInnerA * appear));
+  coma.addColorStop(1, rgba(pal.comaOuter, 0));
   ctx.fillStyle = coma;
   ctx.beginPath();
-  ctx.arc(0, 0, 10 * s, 0, Math.PI * 2);
+  ctx.arc(0, 0, comaR, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = rgba([255, 255, 255], 0.95 * appear);
+  ctx.fillStyle = rgba(pal.nucleus, 0.95 * appear);
   ctx.beginPath();
   ctx.ellipse(0, 0, 2.1 * s, 1.55 * s, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -666,6 +736,7 @@ export function VersaConstellation({
     let dustAcc = 0;
     let cometTrailAcc = 0;
     let asteroidTintSeq = 0;
+    let cometTintSeq = 0;
     let dpr = 1;
     const mouse = { tx: 0, ty: 0, x: 0, y: 0 };
     let palette = readTheme();
@@ -895,6 +966,8 @@ export function VersaConstellation({
       if (trueComets.length >= 1) return;
       const path = arcPath(w, h);
       const duration = rand(110, 180);
+      const palette = COMET_PALETTES[cometTintSeq % COMET_PALETTES.length];
+      cometTintSeq += 1;
       trueComets.push({
         x: path.sx,
         y: path.sy,
@@ -907,6 +980,7 @@ export function VersaConstellation({
         size: rand(0.85, 1.25),
         phase: Math.random() * Math.PI * 2,
         path: [{ x: path.sx, y: path.sy }],
+        palette,
       });
     };
 
@@ -927,6 +1001,7 @@ export function VersaConstellation({
           life: 0,
           maxLife: rand(9, 16),
           r: rand(0.55, 1.35),
+          color: c.palette.trail,
         });
       }
     };

@@ -1,6 +1,6 @@
 {
   "name": "versa-admin-system",
-  "version": "0.7.145",
+  "version": "0.7.150",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -8,13 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "bash scripts/vagrant-postgres.sh migrate",
+    "db:migrate": "node scripts/db-migrate.mjs",
     "db:studio": "drizzle-kit studio",
-    "db:start": "bash scripts/vagrant-postgres.sh start",
-    "db:stop": "bash scripts/vagrant-postgres.sh stop",
-    "db:status": "bash scripts/vagrant-postgres.sh status",
-    "db:health": "bash scripts/vagrant-postgres.sh health",
+    "db:status": "pg_isready -h 127.0.0.1 -p 5432",
     "db:seed": "node scripts/seed.mjs",
+    "db:provision": "bash scripts/provision-local-postgres.sh",
     "migrate:agi-org": "node scripts/migrate_agi_org.mjs"
   },
   "dependencies": {

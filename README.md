@@ -59,12 +59,12 @@ Full operator detail: User Manual **§1.5**. API `auth` labels: `session` / `adm
 
 ## Product boundaries (short)
 
-- **Own** database/ERD (fixture default on review; Postgres path available).
+- **Own** database/ERD (Postgres via `.env.local`; fixture is opt-in for tests).
 - Secure **login + RBAC** (same form; role after login).
 - **Public** site when signed out.
 - **Agents = user type only** (`human` | `agent`). No agent-fleet chrome. List agents with `GET /api/users?type=agent`.
 - Data created here is **separate** from host Versa AGi; integrate via **product API** or Script Tasks.
-- **agitop Organization** may be turned off when using this product’s Organization model; migration is future/out of scope.
+- **Host Organization migrate:** `scripts/migrate_agi_org.mjs`. Do not disable agitop Organization unless the Primary User asks after a verified migrate.
 
 **Open first:** `docs/production/state/shape_business_admin.md`  
 **User Manual:** `docs/ops/BUSINESS_ADMIN_OPS_MANUAL.md`  

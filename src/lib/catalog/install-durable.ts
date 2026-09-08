@@ -28,6 +28,7 @@ import {
   CATALOG_SEED_PACK,
   type CatalogOverlay,
 } from "@/lib/catalog/durable";
+import { isPostgresDataSource } from "@/lib/db/data-source";
 
 const FLAG = "__versaCatalogDurableInstalled__";
 
@@ -67,7 +68,7 @@ function persistNow(): void {
   if (hydrating) return;
   const overlay = liveOverlay();
   writeOverlayFile(overlay);
-  if ((process.env.DATA_SOURCE ?? "fixture") === "postgres") {
+  if (isPostgresDataSource()) {
     void stampOverlay(overlay).then((stamped) => {
       writeOverlayFile(stamped);
       void writeOverlayPostgres(stamped);
@@ -86,7 +87,7 @@ export function ensureDurableCatalog(): void {
   const stampIfNeeded = (overlay: CatalogOverlay | null) => {
     if ((overlay?.seed_pack ?? "") !== CATALOG_SEED_PACK) persistNow();
   };
-  if ((process.env.DATA_SOURCE ?? "fixture") === "postgres") {
+  if (isPostgresDataSource()) {
     void readOverlayPostgres().then((fromDb) => {
       const rebaseDb = !!fromDb && (fromDb.seed_pack ?? "") !== CATALOG_SEED_PACK;
       if (fromDb) applyAll(fromDb, { systemSeedWins: rebaseDb });

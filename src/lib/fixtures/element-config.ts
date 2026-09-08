@@ -1,6 +1,6 @@
 /**
  * Fixture-mode element_config (division head + deputy).
- * Beta :3200 runs DATA_SOURCE=fixture; the postgres store must not be called.
+ * Used only when DATA_SOURCE=fixture. Postgres uses the element-config store.
  */
 
 export interface ElementConfigShape {

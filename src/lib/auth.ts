@@ -1,5 +1,4 @@
-// Auth library for I5 / Phase 2.
-// Fixture-backed by default; when DATA_SOURCE=postgres, verify against DB password_hash.
+// Auth library. Postgres is the shipped default; DATA_SOURCE=fixture is opt-in.
 
 import { users as userFixtures } from "@/lib/fixtures/users";
 import type { Session, User } from "@/lib/data";
@@ -7,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db/client";
 import { users as usersTable, departments as departmentsTable } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { isPostgresDataSource } from "@/lib/db/data-source";
 
 // Firebase Hosting only forwards `__session` to Cloud Functions / Cloud Run.
 // Any other cookie name is stripped, so login appears to do nothing after submit.
@@ -73,7 +73,7 @@ async function verifyCredentialsPostgres(
 
 export function verifyCredentials(email: string, password: string): User | null {
   // Sync fixture path (default).
-  if ((process.env.DATA_SOURCE ?? "fixture") === "postgres") {
+  if (isPostgresDataSource()) {
     // Login route is async-capable via Promise — keep sync API for fixture,
     // and expose async helper for postgres callers.
     throw new Error(
@@ -92,7 +92,7 @@ export async function verifyCredentialsAsync(
   email: string,
   password: string,
 ): Promise<User | null> {
-  if ((process.env.DATA_SOURCE ?? "fixture") === "postgres") {
+  if (isPostgresDataSource()) {
     return verifyCredentialsPostgres(email, password);
   }
   return verifyCredentials(email, password);

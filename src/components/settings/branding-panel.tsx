@@ -686,7 +686,7 @@ export function BrandingPanel({
             />
             <SkyEffectRow
               title="Comets"
-              hint="Icy nucleus with a long tail. Much slower than a shooting star. 1× waits 20–80s between appearances."
+              hint="Slow nucleus with a long tail. Colors cycle: dust (pale yellow), ion (blue), green coma, sodium (orange). Much slower than a shooting star. 1× waits 20–80s between appearances."
               style={draft.effects.comets}
               color={draft.color}
               onChange={(partial) => patchEffect("comets", partial)}

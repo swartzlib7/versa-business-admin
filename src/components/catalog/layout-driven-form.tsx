@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import type { UiListingField } from "@/lib/catalog/layout-to-fields";
 import { resolvePicklistLabel } from "@/lib/catalog/layout-to-fields";
 import { BooleanSwitch } from "@/components/ui/boolean-switch";
+import { SecretValueField } from "@/components/ui/secret-value-field";
 
 function FieldInput({
   field,
@@ -20,6 +21,18 @@ function FieldInput({
     "w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
   const kind = field.kind ?? "text";
   const isChecked = value === "true" || value === "1";
+
+  if (field.secret) {
+    return (
+      <SecretValueField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+        required={field.required}
+      />
+    );
+  }
 
   if (readOnly) {
     const display =
@@ -136,7 +149,7 @@ export function LayoutDrivenForm({
               <div
                 key={f.key}
                 className={
-                  (f.span === 2 || f.kind === "textarea") && sec.columns === 2
+                  (f.span === 2 || f.kind === "textarea" || f.secret) && sec.columns === 2
                     ? "sm:col-span-2"
                     : undefined
                 }

@@ -1,5 +1,4 @@
-// Postgres adapter — Phase 2 User pilot + Phase 3 writes + Phase 4 reads.
-// All methods implemented. Behind DATA_SOURCE=postgres. Fixture default stays safe.
+// Postgres adapter — used when DATA_SOURCE is postgres (the shipped default).
 
 import type { DataAdapter, ProjectFilters, TaskFilters, CreateUserInput, UpdateUserInput, CreateProjectInput, UpdateProjectInput, CreateTaskInput, UpdateTaskInput, CreateProductInput, UpdateProductInput } from "../data/adapter";
 import type {
@@ -49,6 +48,7 @@ import {
   assertCanCreateOrg,
   assertCanDeleteOrg,
   assertCanUpdateOrg,
+  isPrimaryOrganization,
 } from "../organizations/primary-org";
 
 function mapUserRow(
@@ -424,7 +424,9 @@ export const postgresAdapter: DataAdapter = {
       if (!parent.length) throw new Error("VALIDATION: parent_organization_id does not reference an existing organization");
     }
     const data = { ...(input.data ?? {}) };
-    if (orgType === "internal") data.is_primary = true;
+    if (orgType === "internal" && !existingOrgs.some(isPrimaryOrganization)) {
+      data.is_primary = true;
+    }
     const inserted = await db
       .insert(organizationsTable)
       .values({

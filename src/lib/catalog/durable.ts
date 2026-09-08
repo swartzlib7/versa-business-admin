@@ -2,7 +2,7 @@
  * Durable catalog overlay — fields, layouts, value sets, custom record types.
  *
  * System seed stays in TypeScript fixtures. Tenant customizations persist
- * to .data/catalog.json (and catalog_overlay in Postgres when DATA_SOURCE=postgres).
+ * to .data/catalog.json (and catalog_overlay in Postgres — the shipped default).
  * Hydrate = seed ∪ overlay (system rows never deleted; custom rows come from overlay).
  */
 import fs from "fs";
@@ -17,7 +17,7 @@ import {
 
 export const CATALOG_OVERLAY_ID = LEGACY_CATALOG_OVERLAY_ID;
 /** D4 v1 — stamp of the product seed pack last merged into this overlay. */
-export const CATALOG_SEED_PACK = "0.7.133";
+export const CATALOG_SEED_PACK = "0.7.150";
 
 export type InstalledAgentPackage = {
   id: string;

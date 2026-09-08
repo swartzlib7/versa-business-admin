@@ -15,6 +15,7 @@ import {
   assertCanCreateOrg,
   assertCanDeleteOrg,
   assertCanUpdateOrg,
+  isPrimaryOrganization,
   markPrimary,
 } from '@/lib/organizations/primary-org';
 
@@ -30,9 +31,7 @@ export interface CreateRecordOptions {
 
 // ---------------------------------------------------------------------------
 // DataAdapter — the modular boundary between route handlers and data sources.
-// All route handlers call through this interface. The fixture implementation
-// below is the default; a real Versa AGi host adapter can be swapped in later
-// without touching route code.
+// Postgres is the shipped default. DATA_SOURCE=fixture is an explicit opt-in.
 // ---------------------------------------------------------------------------
 
 export interface ProjectFilters {
@@ -307,7 +306,9 @@ export const fixtureAdapter: DataAdapter = {
       parent_organization_id: input.parent_organization_id ?? null,
       data: input.data ?? {},
     };
-    if (orgType === "internal") org = markPrimary(org);
+    if (orgType === "internal" && !mutableOrganizations.some(isPrimaryOrganization)) {
+      org = markPrimary(org);
+    }
     mutableOrganizations.push(org);
     return { ...org };
   },
@@ -603,21 +604,6 @@ export const fixtureAdapter: DataAdapter = {
   },
 };
 
-// ---------------------------------------------------------------------------
-// DATA_SOURCE switch — fixture (default) or postgres (Phase 1 skeleton).
-// When DATA_SOURCE=postgres, the postgresAdapter skeleton is used.
-// All postgresAdapter methods throw NOT_IMPLEMENTED except healthCheck.
-// The app must not crash when DB is down — fixture remains the fallback.
-// ---------------------------------------------------------------------------
-
-// When DATA_SOURCE=postgres, the postgresAdapter skeleton is used.
-// All postgresAdapter methods throw NOT_IMPLEMENTED except healthCheck.
-// The app must not crash when DB is down — fixture remains the fallback.
-// ---------------------------------------------------------------------------
-
-// Use a getter so the postgres adapter is only imported when needed.
-// Next.js bundling: dynamic import would be ideal but adapter is used
-// synchronously in route handlers. We use a conditional re-export pattern.
 import { postgresAdapter } from '../db/postgres-adapter';
 import {
   createOrgLineDb,
@@ -630,11 +616,10 @@ import {
   updateOrgLineDb,
   updateRecordDb,
 } from '../db/records-store';
+import { isPostgresDataSource } from '../db/data-source';
 
 function createAdapter(): DataAdapter {
-  const dataSource = process.env.DATA_SOURCE ?? "fixture";
-
-  if (dataSource !== "postgres") {
+  if (!isPostgresDataSource()) {
     return fixtureAdapter;
   }
 

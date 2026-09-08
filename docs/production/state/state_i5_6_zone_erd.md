@@ -1,20 +1,28 @@
 # State: I5.6 Zone ERD + baseline persistence + zone config UI
 
-> **Role:** Sole go-to for Mission Control zone ERD, baseline data model, and tabbed zone config UI.
-> **Product:** Versa-BusinessAdmin (Mission Control) · Project #26 · Game #109
+> **Role:** Sole go-to for the **3D hub / zone IA** (Organization, Collaboration, Environment rings, faculty spheres, Collaboration parties, Gate 3 tabbed config). Not the catalog field ERD.
+> **Product:** Versa-BusinessAdmin (**Versa - Business Admin**) · Project #26 · Game #109
 > **Doc home:** docs/production/state/
 > **Map:** shape_business_admin.md
 
 | Field | Value |
 |-------|-------|
 | **Feature** | I5.6 Zone ERD + backend menu tabbed config + User-pilot baseline ERD |
-| **Status** | ✅ I5.6.33 Gate 3 accepted 2026-09-02. Hub / org / collab / env + Records Editor train closed. No I5.6.34+ until tasked. |
-| **Last verified against code** | 2026-09-02 (Gate 3 accept; Slice G on beta) |
+| **Status** | ✅ I5.6.33 Gate 3 accepted 2026-09-02. Hub / org / collab / env + Records Editor train closed. I5.6.34 (stable chrome) shipped 2026-07-24. No new zone-chrome train until tasked. |
+| **Last verified against code** | 2026-09-08 (product name, migrate, additional Orgs). Hub/tab IA last Gate-3-accepted 2026-09-02. Catalog fields: `docs/coa/RECORD_TYPE_FIELD_INVENTORY.erd.md`. |
 | **Primary code** | `business-admin-scene` hub; zone routes `/organization` `/collaboration` `/environment`; users admin |
 | **Task** | #176 (closed); I5.6.33 umbrella #185 closed |
 
 **Folded sources (2026-07-20):** keystone / zone ERD / baseline / zone-config → `__archive/pre-statefold/`.  
 **Folded 2026-09-03:** I5.6.32 plans + I5.6.33 proposal + ERD alignment → `__archive/plans/`.
+
+### How this document fits
+
+This file is the **operating-graph contract**: three rings, faculty spheres, Collaboration parties (Vendor / Customer / Partner / **Branch = subsidiary**), Environment elements, and the Gate 3 hub/tab UI.
+
+The **record-type / field inventory** is `docs/coa/RECORD_TYPE_FIELD_INVENTORY.erd.md` — that is what `migrate_agi_org` writes to. Do not treat the baseline mermaid in §2.4 as the live catalog.
+
+**I5.6.34** (stable zone chrome) already shipped 2026-07-24 — definition: `state_layout_mission_ui.md` § I5.6.34. **“I5.6.34+” after Gate 3 is a hold**, not a new increment: do not start a new zone-chrome train until the Primary User tasks it.
 
 ---
 
@@ -24,13 +32,13 @@
 
 | Surface | Audience | Scope |
 |---------|----------|--------|
-| **Mission Control (this product)** | Business staff (later customers) | Business operating graph: Organization, Collaboration, Environment |
+| **Versa - Business Admin (this product)** | Business staff (later customers) | Business operating graph: Organization, Collaboration, Environment |
 | **agitop** | Versa AGi operators | Agents, host Projects/Tasks, host Organization, system ops |
 
 1. AI Agents are **only** `type: agent | human` on User — no agent-management chrome.
 2. No Active Agents / Agent Status / fleet UI in this product.
-3. agitop Organization may be turned off when customers use this product's Organization model; migration out of scope for now (document in system information).
-4. Projects/documents inside Mission are **business** data — separate from Versa AGi agent projects unless integrated later via API/script.
+3. agitop Organization may be turned off **after a verified migrate** (`migrate_agi_org`) **when the Primary User asks**. Do not pass `--disable-host-org` unless they have asked. See `state_migrate_agi_org.md`.
+4. Projects/documents inside VBA are **business** data — separate from Versa AGi agent projects unless integrated later via API/script.
 
 ### 1.2 Conceptual zones (3D hub ERD)
 
@@ -90,7 +98,7 @@
 | **Environment** | **Full mesh** among Event, Schedule, Knowledge, Location | All pairs may relate |
 | **Collaboration** | **None** between party types | No Vendor↔Customer etc. in this model; view from Organization |
 | **Organization → Collaboration** | Org **has** each party type | Org-owned links only |
-| **Organization internal** | Detail deferred | Stephen later pass |
+| **Organization internal** | Extra own businesses are Orgs (`internal`), not Branch. Hierarchy UI (I7) still deferred | Stephen 2026-09-08: do not dump other Wave businesses into Collaboration Branch |
 
 **Cross-cutting (intent):**
 
@@ -133,7 +141,7 @@
 - **Project / Task:** org/project FKs, status, owner/assignee, priority, dates, `data`  
 - **Party:** organization_id, party_kind (vendor|customer|partner|branch), name, status, `data` — no party↔party edges  
 
-**Party purpose (locked):** Mission’s record of who the business works *with* (Collaboration zone). Not the host Versa AGi Organization table. One table + `party_kind` avoids four near-identical tables. `organization_id` = owning enterprise has this party. No party↔party edges at baseline.
+**Party purpose (locked):** VBA’s record of who the business works *with* (Collaboration zone). Not the host Versa AGi Organization table. Collaboration parties are vendor | customer | partner | **branch (subsidiary)**. Extra own businesses are additional **Orgs** (`org_type=internal`), not Branch. One table + `org_type` (was `party_kind` at baseline) avoids four near-identical tables. `organization_id` = owning enterprise has this party. No party↔party edges at baseline.
 
 - **Location / Event / KnowledgeAsset / Schedule:** organization_id, core labels/timestamps, `data`; M:N junctions preferred over JSON id arrays  
 - **Product / Service / Integration / Policy:** id + org/parent FKs + name/status + `data`
@@ -161,7 +169,7 @@ Record JSON stores picklist **api codes**; UI resolves labels from catalog.
 | **C** | User pilot: core + data JSON + layout-driven view/edit + 1–2 picklists | After B |
 | **D** | Roll pattern to Project/Task/Product/… | After C |
 
-**Non-goals for B–C (baseline locked):** custom-field admin polish, dynamic DDL, multi-object layout builders. Host AGi Organization table is **not** shared with Mission Party.
+**Non-goals for B–C (baseline locked):** custom-field admin polish, dynamic DDL, multi-object layout builders. Host AGi Organization table is **not** shared with VBA organizations. Live field inventory: `docs/coa/RECORD_TYPE_FIELD_INVENTORY.erd.md`. Host Org → VBA is `migrate_agi_org` (`state_migrate_agi_org.md`).
 
 ### 1.5 Zone config UI pattern
 
@@ -198,7 +206,7 @@ Record JSON stores picklist **api codes**; UI resolves labels from catalog.
 
 ### 2.1 Why
 
-Mission Control needs one conceptual ERD (zones + entities + relationships) and a persistence baseline before Salesforce-like custom fields/layouts. Documentation had sprawled across keystone, zone ERD, baseline draft, and UI pattern files.
+This product needs one conceptual ERD (zones + entities + relationships) and a persistence baseline before Salesforce-like custom fields/layouts. Documentation had sprawled across keystone, zone ERD, baseline draft, and UI pattern files.
 
 ### 2.2 Behavior today vs contract
 
@@ -212,7 +220,7 @@ Mission Control needs one conceptual ERD (zones + entities + relationships) and 
 
 ### 2.3 Code anchors
 
-- Hub / scene: Mission Control 3D components (beta `1f9de1a` v0.7.45 line)
+- Hub / scene: VBA 3D hub (`business-admin-scene`; historical beta `1f9de1a` v0.7.45 line)
 - Zone pages: `/organization`, `/collaboration`, `/environment`
 - Users: admin users path
 - Specs archive: `docs/production/state/__archive/pre-statefold/`
@@ -391,7 +399,7 @@ Locked decisions:
 - **Senior pattern:** elements are record TYPES (many instances, each header + lines); lookups
   between definitions (cascade = master-detail | orphan = plain, default orphan); system types
   locked (\`is_system\`), custom types via the same mechanism, three-zone landing.
-- **Multi-org:** **superseded 0.7.107.** There is one Org-type record — the **Primary Org** (`is_primary`). The flag is one-time and cannot be changed. Only one `org_type=internal`. All `org_id` fields (system and dynamic types) resolve from that Primary Org. This product is **not** multi-tenant org login: customers of the org buy Mission Control; they do not log in as orgs viewing themselves. Collaboration parties are vendor / customer / partner / branch.
+- **Multi-org:** **superseded 0.7.149.** One **Primary Org** (`is_primary`) — flag is one-time and cannot be moved. Additional own businesses are also Org (`org_type=internal`, not Primary). Not multi-tenant org login: customers of the org buy VBA; they do not log in as orgs viewing themselves. Collaboration parties are vendor / customer / partner / branch (subsidiary). See § 0.7.149.
 - **Executive division** = Policy + Projects + Tasks (one-to-many to all 4 parties + 4 env nodes).
 - **C3:** standalone vendor_integration RETIRED → lines group on vendor instances.
 - **C4:** policy version control dropped (no new_version checkbox / supersedes lookup).
@@ -603,7 +611,7 @@ closeout. ERD proposal status flipped to implemented (see section 2.2 + backlog
 DB-CUT row).
 
 **Delivered:**
-- Item 1 (hub height): Mission Control hub scene now fills to the viewport bottom -
+- Item 1 (hub height): VBA hub scene now fills to the viewport bottom -
   scene Card grows (flex min-h-0 flex-1), CardContent flex column, scene
   min-h-[375px] flex-1 (375px floor kept, hardcoded fixed height removed). Matches
   the zone-page fill pattern (min-h-0 flex-1 wrapper + scene fill mode).
@@ -631,13 +639,13 @@ d8c6c51; Slice G is the final train slice.
 
 ## I5.6.33 — Gate 3 accept (2026-09-02)
 
-Stephen accepted the train in IDE: hub-height + records coverage; 2026-08-31 ERD alignment was the design lock the train implemented. Tasks #185 / #244 / #245 / #248 / #249 / #250 / #252 closed. Do not start I5.6.34+ until tasked.
+Stephen accepted the train in IDE: hub-height + records coverage; 2026-08-31 ERD alignment was the design lock the train implemented. Tasks #185 / #244 / #245 / #248 / #249 / #250 / #252 closed. I5.6.34 (stable zone chrome) had already shipped 2026-07-24. Do not start a **new** zone-chrome train until tasked.
 
 ## 0.7.107 — Primary Org, Receipts name, Environment ERD direction (2026-09-03)
 
 Stephen confirmed the three-zone reading (IDE 2026-09-03):
 
-1. **Organization (“us”).** Seven divisions. One Org-type record is **Primary Org** — a one-time fixed flag on a single record; cannot be changed; cannot be deleted. There can be only one `org_type=internal`. All `org_id` fields are set from that org (keep the global `org_id` field). Not a design for orgs logging in to view themselves.
+1. **Organization (“us”).** Seven divisions. One record is **Primary Org** — a one-time fixed flag (`is_primary`); cannot be moved; cannot be deleted. **Superseded 0.7.149:** additional own businesses may also be `org_type=internal` (not Primary). All default `org_id` fields resolve from the Primary Org. Not a design for orgs logging in to view themselves.
 
 2. **Collaboration.** Other organizations, seen as relationships. Customer-side equivalent of vendor **Integrations** is named **Receipts** (docs only — do not build a tab until tasked). Collaboration orgs theoretically have all seven divisions but we do not model them here.
 
@@ -649,3 +657,14 @@ Stephen confirmed the three-zone reading (IDE 2026-09-03):
 
 **Code:** `src/lib/organizations/primary-org.ts`, adapters, `records-store.resolveOrgIdForCreate`, Organization **Configuration** main tab (`PrimaryOrgPanel` + staff appointment).
 
+## 0.7.149 — Additional Orgs, not Branch (2026-09-08)
+
+Stephen: other own Wave businesses **just become Orgs**. They are not Collaboration Branch.
+
+| Rule | Value |
+|------|--------|
+| Primary Org | One `is_primary` record. Selected from the source on migrate (`--primary-source-org-id`). |
+| Additional own businesses | `org_type=internal`, not Primary, no `parent_organization_id`. Listed under Organization. |
+| Branch | Subsidiary only (`parent_organization_id` set). I7 hierarchy UI still deferred. |
+
+Migrate: `state_migrate_agi_org.md`. Record-type ERD: `docs/coa/RECORD_TYPE_FIELD_INVENTORY.erd.md`.

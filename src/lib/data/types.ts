@@ -165,7 +165,7 @@ export interface Organization {
   is_person: boolean;
   org_type: OrgType;
   parent_organization_id?: string | null;
-  /** One-time flag on the single Org-type record. Cannot be moved or cleared. */
+  /** One-time flag on the Primary Org. Additional Orgs may also be org_type=internal. */
   is_primary?: boolean;
   data?: Record<string, unknown>;
 }

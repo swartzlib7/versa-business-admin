@@ -92,6 +92,19 @@ Spatial node positions, orbit rules, and zone tab ownership live in **`state_i5_
 
 Sidebar top-level **Projects / Tasks / Products** removed. Access via Organization zone (Executive / Production). Deep-link routes remain. Favorites/shortcuts deferred.
 
+## I5.6.34 — Stable zone chrome (2026-07-24) — SHIPPED
+
+**This is the definition entry.** I5.6.34 is not an unbuilt increment.
+
+| Field | Value |
+|-------|--------|
+| **What** | Stable zone chrome: one sticky container for zone header + primary tabs. Sub-tab strip + description sit in a stable slot outside the card body so the layout does not jump when the sub-tab changes. No repeated faculty heading inside sub-tab panels. |
+| **When** | 2026-07-24 |
+| **Code** | `src/components/zones/zone-config-view.tsx` (file header comment + TabPanel) |
+| **Status** | Shipped. Follow-ons: I5.6.35 (twin static, description once, restore sub-tabs), I5.6.38 (badge cleanup). |
+
+**“I5.6.34+” after I5.6.33 Gate 3 (2026-09-02)** is a **hold label**, not a second definition. It means: do not start a **new** zone-chrome / IA train until the Primary User tasks it. Search this heading for I5.6.34 itself.
+
 ## I5.6.34+ UI recovery hold (2026-07-24)
 
 **Stephen:** Unhappy with UI after web-dev handoff; Twin inconsistent/animated across pages without request; zone layouts worse than earlier better state.
@@ -225,4 +238,8 @@ Dashboard heading **Versa - Business Admin**; hub **VBA Hub**; public Facets lab
 - Settings → **API** renders GET `/api` (same catalog agents read).
 
 **Code:** `sidebar.tsx`, `app-shell.tsx`, `header.tsx`, `api-docs-panel.tsx`, `lib/api/inventory.ts`, `src/app/api/route.ts`.
+
+## I5.6.34 definition restored (2026-09-08)
+
+Definition entry for **I5.6.34 — Stable zone chrome** added above the 2026-07-24 recovery hold. “I5.6.34+” after Gate 3 is a hold, not a missing increment.
 

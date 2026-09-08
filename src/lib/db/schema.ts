@@ -32,7 +32,8 @@ import { sql } from 'drizzle-orm';
 // Organization — typed core platform table, extended per rev E section 4.3
 // (#248 Slice D, 2026-08-31): is_person (person organization or not, section
 // 2.7), org_type (vendor | customer | partner | branch | internal value set),
-// parent_organization_id (set => branch, section 2.7). Multi-organization
+// parent_organization_id (set => branch/subsidiary, section 2.7). Additional
+// own businesses are org_type=internal without this parent. Multi-organization
 // pattern locked (section 2.5): every content record hangs from an org.
 export const organizations = pgTable(
   'organizations',

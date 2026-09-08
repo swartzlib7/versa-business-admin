@@ -14,12 +14,20 @@
  *  - Pre-launch leftover fixture emails (Jordan, Ops Assistant, …) are removed
  *    so they can return only as tagged sample data.
  *
- * Usage: DATABASE_URL=... node scripts/seed.mjs
+ * Usage: node scripts/seed.mjs   (reads DATABASE_URL from .env.local)
  */
 import postgres from "postgres";
 import bcrypt from "bcryptjs";
+import { loadEnvLocal } from "./load-env-local.mjs";
 
-const url = process.env.DATABASE_URL || "postgresql://mission:mission@localhost:5432/business_admin";
+loadEnvLocal();
+const url = process.env.DATABASE_URL;
+if (!url) {
+  console.error(
+    "DATABASE_URL is not set. Copy .env.example to .env.local or run: sudo bash scripts/provision-local-postgres.sh",
+  );
+  process.exit(1);
+}
 const sql = postgres(url, { max: 1 });
 
 // --- Primary Org (install bootstrap; rename in Settings after first login) ---

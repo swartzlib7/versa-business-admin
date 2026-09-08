@@ -570,6 +570,7 @@ function ListingPanel({
     is_required?: boolean;
     zone_role?: "header" | "list" | null;
     show_in_column?: boolean;
+    is_secret?: boolean;
   };
 
   const isDynamic = !!panel.recordTypeApiName;
@@ -665,10 +666,11 @@ function ListingPanel({
             key: f.api_name,
             label: f.label,
             kind: dataTypeToUiKind(f.data_type as CatalogDataType),
-            column: colSet.has(f.label) || colSet.has(f.api_name),
+            column: (colSet.has(f.label) || colSet.has(f.api_name)) && !f.is_secret && f.api_name !== "configuration",
             span: spanByApi.get(api) ?? 1,
             required: f.is_required,
             zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
+            secret: f.is_secret === true || f.api_name === "configuration",
           };
         })
         // #185 Slice A: instances view keeps header fields (the instance form);
@@ -1179,7 +1181,7 @@ function FormPanel({
    *  (list-to-detail detail view) instead of the parent-shared header. */
   detailRecordId?: string | null;
 }) {
-  type CatalogField = { api_name: string; label: string; data_type: string; value_set_api_name?: string | null; active?: boolean; is_required?: boolean };
+  type CatalogField = { api_name: string; label: string; data_type: string; value_set_api_name?: string | null; active?: boolean; is_required?: boolean; is_secret?: boolean; zone_role?: "header" | "list" | null };
   const isDynamic = !!panel.recordTypeApiName;
   const objectApiName = panel.objectApiName || panel.recordTypeApiName || "";
   const [catalogFields, setCatalogFields] = useState<CatalogField[]>([]);

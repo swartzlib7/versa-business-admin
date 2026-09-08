@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { adapter } from '@/lib/data/adapter';
+import { isPostgresDataSource } from '@/lib/db/data-source';
 import pkg from '../../../../package.json';
 
 export async function GET() {
-  // Check DB connectivity when DATA_SOURCE=postgres; fixtures always report ok.
   let dbStatus: { connected: boolean; latencyMs?: number; error?: string };
   try {
     dbStatus = await adapter.healthCheck();
@@ -11,11 +11,15 @@ export async function GET() {
     dbStatus = { connected: false, error: 'healthCheck not available' };
   }
 
-  return NextResponse.json({
-    status: 'ok',
-    version: pkg.version,
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    database: dbStatus,
-  });
+  const healthy = !isPostgresDataSource() || dbStatus.connected;
+  return NextResponse.json(
+    {
+      status: healthy ? 'ok' : 'degraded',
+      version: pkg.version,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      database: dbStatus,
+    },
+    { status: healthy ? 200 : 503 },
+  );
 }

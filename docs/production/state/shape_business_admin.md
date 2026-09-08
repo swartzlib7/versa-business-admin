@@ -19,8 +19,9 @@
 - Stack: Next.js App Router, R3F, Tailwind/shadcn, TypeScript. HTTP API + Script Tasks only (no shared host DB).
 - Upgrade model **D1–D6 locked** (`state_upgradability.md`): `c_` namespace, hide-not-delete system fields, org-scoped catalog, **seed-only v1**, agent packages after durable catalog, branding parallel.
 - Review host: **:3200**. This host's Versa-BusinessAdmin is the **development** instance (build, test, deploy). Production will be **remote**. Fixture login is host-local. Rebuild + hard-reload after `next start`.
-- Do not start **I5.6.34+** until Stephen tasks it.
-- `migrate_agi_org` (`scripts/migrate_agi_org.mjs`) maps host Org parties into VBA. This host is development — do not disable agitop Organization here.
+- Do not start a **new** I5.6 zone-chrome train until Stephen tasks it. **I5.6.34** (stable zone chrome) already shipped 2026-07-24 — see `state_layout_mission_ui.md` § I5.6.34.
+- `migrate_agi_org` (`scripts/migrate_agi_org.mjs`) maps host Org **and** related records into VBA. Do not disable agitop Organization unless the Primary User asks after a verified migrate.
+- Shipped data source is **Postgres** (`DATA_SOURCE=postgres` + `DATABASE_URL` in `.env.local`). Fixture mode is opt-in only.
 
 ## Official overviews (not units)
 
@@ -65,8 +66,8 @@
 | Records Editor | Train accepted with I5.6.33 | `state_records_editor_ux.md` |
 | Public site | 0.7.109 full-viewport sections, 25% snap, nowrap header | `state_public_site.md` |
 | API | 0.7.142 catalog + Settings → API; no pre-launch aliases | `state_api_contract.md` |
-| AGi Org migrate | 0.7.145 dry-run/apply orgs; productions deferred | `state_migrate_agi_org.md` |
-| DB cutover | Phase 0–4 done; fixtures still default on many boards | `state_db_cutover_checklist.md` |
+| AGi Org migrate | 0.7.149 extra own Wave businesses are Orgs not Branch; primary-source-org required | `state_migrate_agi_org.md` |
+| DB cutover | Shipped default `DATA_SOURCE=postgres` + `.env.local` `DATABASE_URL`. Fixture is opt-in. | `state_db_cutover_checklist.md` |
 | Upgrades | Overlay storage + D1 `c_` + seed-pack stamp in 0.7.106; D3/D5 still open | `state_upgradability.md` |
 
 ## Folded this cycle (2026-09-03)

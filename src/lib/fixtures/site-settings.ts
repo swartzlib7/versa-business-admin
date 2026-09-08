@@ -1,8 +1,7 @@
 /**
  * #252 Settings functionality slice - fixture-mode site settings.
- * Beta :3200 runs DATA_SOURCE=fixture; branding must survive restart (file
- * persist under .data/site-settings.json) and stay shared across Next.js
- * bundle copies via globalThis.
+ * File persist under .data/site-settings.json is the fixture-mode path
+ * (DATA_SOURCE=fixture). Postgres uses the settings store.
  */
 
 import fs from "fs";

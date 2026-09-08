@@ -3,7 +3,7 @@
 **Product:** Versa - Business Admin (VBA)  
 **Repo / project:** `Versa-BusinessAdmin` · Project **#26**  
 **Audience:** Agents and humans implementing, hosting, maintaining, and upgrading VBA  
-**Status:** Living — D3/D5 landed; HTTP API catalog 0.7.145; skill `business_admin` linked (§2.0). Remaining *TBD*: production packaging + post-deploy smoke script. Host snapshot in §4.4 may lag HEAD.  
+**Status:** Living — D3/D5 landed; HTTP API catalog 0.7.145; `migrate_agi_org` 0.7.149; Postgres shipped default 0.7.150; skill `business_admin` linked (§2.0). Remaining *TBD*: production packaging + post-deploy smoke script. Host snapshot in §4.4 may lag HEAD.  
 **Governing design:** `docs/production/state/state_upgradability.md` (D1–D6 **locked**)  
 **Map:** `docs/production/state/shape_business_admin.md`  
 **Roadmap:** `docs/coa/BUSINESS_ADMIN_PRODUCTION_PLAN.md` — Horizon 3  
@@ -112,30 +112,22 @@ Also in root `README.md` (Roles).
 
 COA loads the Versa AGi skill **`business_admin`** (`.agent/skills/business_admin.md`, **COA-only**). This manual is what that skill points at. The skill’s first step is **whether VBA is already installed on this host**; only then clone/install or continue.
 
-**Versa AGi setup (intended):** setup asks whether Versa - Business Admin should be enabled. If yes, it registers a Project whose description carries the public GitHub URL and these four instructions:
+**Versa AGi setup:** when `[features] business_admin` is ON, setup seeds the reserved Project **`Versa-BusinessAdmin`**. That Project’s description carries the public GitHub URL and these four instructions:
 
 1. Clone `https://github.com/swartzlib7/versa-business-admin.git` (branch `beta`).
 2. Read this ops manual.
 3. Run the installation in §2.2–§2.6.
 4. Implement against the HTTP API (`GET /api`, Settings → API).
 
-Example Project registration (COA / setup) — skip if the Project already exists:
-
-```bash
-agictl project add versa-business-admin \
-  --desc "Versa - Business Admin (VBA). Clone https://github.com/swartzlib7/versa-business-admin.git Versa-BusinessAdmin (beta). Read docs/ops/BUSINESS_ADMIN_OPS_MANUAL.md. Run the install in manual §2. Implement against GET /api." \
-  --remote git@github.com:swartzlib7/versa-business-admin.git
-```
-
-This host already has that Project as **#26** (`Versa-BusinessAdmin`). Do not register a duplicate.
+COA does **not** `agictl project add` a second name. If `agictl project list` has no project named `Versa-BusinessAdmin`, stop and tell the Primary User (the feature may be off). Ask the Primary User before install or configure. Do not deploy until they agree.
 
 **What the skill covers** (do not duplicate the full procedure here):
 
 | Topic | In the skill |
 |-------|----------------|
-| Orient | Installed already? Project, workspace, health — then install or continue |
-| Enablement / Project payload | Setup prompt → `agictl project add` with public URL + the four instructions |
-| Clone + boot | Public HTTPS or SSH, `beta`, `npm ci`, `.env.local`, build, start, health |
+| Orient | Installed already? Project **name** `Versa-BusinessAdmin`, workspace directory, health — then install or continue |
+| Enablement | Setup seeds the reserved Project. COA does not register a duplicate |
+| Clone + boot | Public HTTPS or SSH, `beta`, `npm ci`, `.env.local`, build, start, health — after PU agrees |
 | API | `GET /api` catalog, Settings → API, conventions, `c_` / `ba_sample:` |
 | D1–D6 | Seed-only upgrades, overlay, hide-not-delete, agent packages |
 | Day-2 | Exact-PID restart, backups, stale UI; first-host install §2.8 |
@@ -163,25 +155,52 @@ cp .env.example .env.local   # then edit secrets — never commit .env.local
 
 ### 2.3 Environment
 
-Use `.env.example` as the contract. Typical keys (confirm against current example):
+Use `.env.example` as the contract. Copy to **`.env.local`** (gitignored). Typical keys:
 
-- Database URL when Postgres enabled  
+- `DATA_SOURCE=postgres` (shipped default) and `DATABASE_URL`
 - Auth/session secrets  
 - Any public URL / allowed dev origins for LAN testing  
 
-**Rule:** secrets stay host-local; agents must not paste secrets into chat.
+**Rule:** secrets stay host-local; agents must not paste secrets into chat. `.env.local` is the connection config — there is no separate “data connection file.”
 
-### 2.4 Database (when enabled)
+### 2.4 PostgreSQL (required to ship)
 
-```bash
-npm run db:start      # or status/health first
-npm run db:migrate
-npm run db:seed       # seed-only baseline — respects future D4 posture
-npm run db:studio     # optional
+VBA **ships on Postgres**. Fixture mode (`DATA_SOURCE=fixture`) is an explicit opt-in for tests without a database. It is not production and it does not survive process restart.
+
+Connection is **`.env.local`**:
+
+```
+DATA_SOURCE=postgres
+DATABASE_URL=postgresql://USER:PASSWORD@127.0.0.1:5432/business_admin
 ```
 
-Scripts: `scripts/vagrant-postgres.sh`, `scripts/seed.mjs`.  
-Deep checklist: `state_db_cutover_checklist.md`.
+Never commit `.env.local`. The same keys work on this box and on AWS (change host/user/password). The app does **not** embed a Postgres server; it talks to whatever `DATABASE_URL` points at.
+
+**This development host (PostgreSQL 16 already installed):**
+
+```bash
+# once, as a user who can sudo (creates role versa_ba + database business_admin, writes .env.local)
+sudo bash scripts/provision-local-postgres.sh
+
+cd Versa-BusinessAdmin
+npm run db:migrate    # drizzle migrations 0000–0012
+npm run db:seed       # Primary Org + Administrator + COA + catalog (idempotent)
+npm run db:status     # pg_isready
+curl -s localhost:<port>/api/health   # status=ok and database.connected=true
+```
+
+**A new Versa AGi host (AWS or elsewhere):**
+
+1. Install PostgreSQL 16 on the box (`postgresql` + `postgresql-client`), or point `DATABASE_URL` at a managed instance in the **same region** as the app.
+2. Create a role + database (or run `scripts/provision-local-postgres.sh` if this is a local-socket install).
+3. Put `DATA_SOURCE=postgres` and `DATABASE_URL` in `.env.local`.
+4. `npm run db:migrate && npm run db:seed`
+5. Boot VBA (`npm run build && next start`). Health must show `database.connected=true`.
+6. Then `migrate_agi_org --apply` so Org data is durable.
+
+Do **not** use `scripts/vagrant-postgres.sh` for shipping — that was a Phase-1 knowledgebase VM helper.
+
+Seed never truncates tenant data. Re-running `db:seed` does not wipe a migrated org.
 
 ### 2.5 Run modes
 
@@ -196,8 +215,8 @@ Deep checklist: `state_db_cutover_checklist.md`.
 - [ ] `git rev-parse --short HEAD` is the intended SHA  
 - [ ] `npm run build` succeeds (for prod-like) **or** dev server clean start  
 - [ ] `GET /login` → 200  
-- [ ] `GET /api/health` → JSON `status=ok` with `version` and optional DB block  
-- [ ] Sign-in works with known test user (from seed/fixtures)  
+- [ ] `GET /api/health` → JSON `status=ok`, `version` matching `package.json`, `database.connected=true`  
+- [ ] Sign-in works with known test user (from `db:seed`)  
 - [ ] Change Administrator + COA passwords (Demo-mode alert on `/login` and in the backend shell)  
 - [ ] Hard-refresh browser once after first load  
 
@@ -217,11 +236,11 @@ Outline only until packaging exists:
 
 1. Provision host + Node + reverse proxy (HTTPS)  
 2. Deploy immutable artifact (image or SHA-named build dir)  
-3. Configure env + empty durable store  
-4. Run migrations + **system seed** (not tenant data clone)  
+3. Configure `.env.local` (`DATA_SOURCE=postgres`, `DATABASE_URL`) + empty durable store  
+4. `npm run db:migrate` + `npm run db:seed` (**system seed**, not tenant data clone)  
 5. Create the two install administrator accounts (human Administrator + agent COA)  
 6. Health + smoke  
-7. Optional: turn off agitop Organization if using MC Organization model (product boundary)
+7. Do **not** disable agitop Organization unless the Primary User asks after a verified migrate.
 
 ### 2.9 HTTP API (this version)
 
@@ -240,10 +259,12 @@ Agents implementing integrations start at `GET /api`. Public System Landscape: `
 
 Script: `scripts/migrate_agi_org.mjs` (`npm run migrate:agi-org`).
 
-- Default **dry-run** — reads host `agictl organization` and prints the mapping + integrations that would turn off on a production cutover.
-- `--apply --base http://localhost:3200` writes mapped orgs into this VBA instance (idempotent via `data.external_id` / `data.agi_org_id`). Fixture-mode orgs are **in-memory** until restart.
-- Does **not** copy credential secrets. Does **not** write products, invoices, or estimates this pass (Production / Treasury still deferred).
-- `--disable-host-org` is **refused** on this development host — the live Organization module (Wave sync) stays on until a planned remote production cutover.
+- Default **dry-run** — reads host `agictl organization`, lists source orgs, and inspects the VBA target for existing production data.
+- **`--primary-source-org-id`** (id, slug, `external_id`, or name) is **required to apply**. That source org is merged onto VBA’s existing Primary Org (`internal` + `is_primary`). Other own Wave businesses become additional **Orgs** (`org_type=internal`, not Primary, not Collaboration Branch). The script will not guess.
+- `--apply --base http://localhost:3200` writes mapped orgs **and** catalog records (locations, contacts, staff, products, invoices/estimates + line items, **credential configuration**, Wave integration, exchange). Idempotent via `data.external_id` / `data.agi_org_id`. Fixture-mode rows are **in-memory** until restart.
+- Credential `configuration` is copied onto `vendor_credential` (needed after host Organization is turned off). The migrate report never prints it. Storage is catalog long_text until a vault exists — admins can see it in Records Editor.
+- If **both** systems already have production data, apply is not a blank-slate load. The script’s `post_process.check` tells the **agent team** whether a merge pass is required (match `external_id`, then reconcile VBA-only rows).
+- `--disable-host-org` is **refused** unless the Primary User has asked. After a verified migrate, disable agitop Organization so both catalogs do not own the same parties — only when the PU asks.
 
 On cutover (not this host): Wave Accounting becomes a VBA vendor + integration instance; stop the host Wave→org.db sync; then disable agitop Organization so both catalogs do not own the same parties.
 
@@ -468,7 +489,8 @@ The planned big-bang cutover was superseded by incremental delivery:
 | VBA install skill | Authored and linked — skill id `business_admin`, `.agent/skills/business_admin.md`. Agents load it to install/operate/implement API. Product name Versa - Business Admin. | #240 |
 | Production packaging (container/systemd unit) | Customer install thin — real remaining gap | *TBD* |
 | Automated post-deploy smoke script | Manual curls today | *TBD* |
-| `migrate_agi_org` | Dry-run/apply orgs 0.7.145; products/treasury and host-org disable still deferred | #278 / `state_migrate_agi_org.md` |
+| Postgres | Shipped default `DATA_SOURCE=postgres` + `.env.local` `DATABASE_URL`. Local provision: `scripts/provision-local-postgres.sh`. Fixture is opt-in only. | 0.7.150 |
+| `migrate_agi_org` | Dry-run/apply all AGi Org entities 0.7.148 (credentials copied; `--primary-source-org-id` required; host-org disable refused) | #281 / `state_migrate_agi_org.md` |
 | README version pins lag HEAD | Prefer `git` + health version | refresh on release |
 
 ---
@@ -485,7 +507,7 @@ npx tsc --noEmit
 npm run build
 
 # DB
-npm run db:health
+npm run db:status
 npm run db:migrate
 npm run db:seed
 
@@ -511,6 +533,9 @@ npx next dev --port 3200
 | 2026-09-07 | Official public production repo is **`versa-business-admin`**. Skill `business_admin` is COA-only; Orient (already installed?) first. One PU per system. |
 | 2026-09-07 | This host's instance is **development** (build / test / deploy). Production will be remote. Leftover overlay `brand_name` and changelog "Admin System"/"VAS" strings set to **Versa - Business Admin**. |
 | 2026-09-07 | 0.7.145: Demo-mode login alert + install-account hint box (passwords may have been changed). `scripts/migrate_agi_org.mjs` dry-run/apply. |
+| 2026-09-07 | 0.7.147: `migrate_agi_org` writes all AGi Org entities VBA can hold. Catalog seed pack 0.7.147 (treasury header+lines, Wave statuses). Credential secrets still not copied. |
+| 2026-09-08 | 0.7.149: extra own Wave businesses migrate as Orgs (`internal`), not Collaboration Branch. One Primary (`is_primary`); additional Orgs allowed. Skill `business_admin` is host-generic (setup seeds `Versa-BusinessAdmin`; COA does not `project add`). `--disable-host-org` refused unless the PU asks. |
+| 2026-09-08 | 0.7.150: Postgres is the shipped data source (`.env.local` `DATABASE_URL`). Fixture is opt-in. Credential Configuration has Show/Hide. Local provision script for PostgreSQL 16. |
 
 ---
 

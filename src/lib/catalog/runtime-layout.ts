@@ -21,6 +21,7 @@ export type RuntimeFieldSource = {
   value_set_api_name?: string | null;
   /** J4: header_lines placement — "header" | "list" (undefined = default). */
   zone_role?: "header" | "list" | null;
+  is_secret?: boolean;
 };
 
 /** Converts a server-supplied dynamic field into a UI field (no picklist options). */
@@ -32,6 +33,7 @@ function runtimeFieldToUi(field: RuntimeFieldSource): UiListingField {
     required: field.is_required,
     isSystem: field.is_system,
     zoneRole: field.zone_role ?? null,
+    secret: field.is_secret === true || field.api_name === "configuration",
   };
 }
 

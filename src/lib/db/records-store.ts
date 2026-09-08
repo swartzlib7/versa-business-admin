@@ -1,7 +1,7 @@
 import '@/lib/catalog/install-durable';
 /**
  * #245 Slice E1 - Horizon 1 core persistence (rev E section 4.2).
- * record_type / record / record_line persistence behind DATA_SOURCE=postgres.
+ * record_type / record / record_line persistence when DATA_SOURCE is postgres.
  *
  * Contract notes:
  * - The fixture registry (src/lib/fixtures/record-types.ts) stays the type

@@ -78,7 +78,7 @@ Operator documentation surface: Settings → API. Machine index: GET `/api`. Liv
 ## 3. Target State
 - Keep inventory.ts in lockstep with `src/app/api/**`.
 - Compatibility aliases only when Stephen asks, from **v1.0.0** onward.
-- Do not add page-builder or I5.6.34+ routes until tasked.
+- Do not add page-builder routes until tasked. Do not start a new I5.6 zone-chrome train until tasked (I5.6.34 already shipped).
 
 ## 4. Backlog / Plan
 | ID | Item | Priority |

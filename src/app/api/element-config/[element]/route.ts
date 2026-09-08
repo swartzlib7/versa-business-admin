@@ -8,13 +8,13 @@ import {
   getElementConfigFixture,
   upsertElementConfigFixture,
 } from '@/lib/fixtures/element-config';
+import { isPostgresDataSource } from '@/lib/db/data-source';
 
 // #249 Slice E2: division configuration singleton — appointed head + deputy.
-// GET is authenticated; writes are admin-only. Fixture path is required on
-// beta (DATA_SOURCE=fixture); postgres store is only used when requested.
+// GET is authenticated; writes are admin-only. Fixture path is DATA_SOURCE=fixture.
 
 function usePostgres() {
-  return (process.env.DATA_SOURCE ?? 'fixture') === 'postgres';
+  return isPostgresDataSource();
 }
 
 export async function GET(

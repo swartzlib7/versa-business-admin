@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Public site wiring + visitor chrome |
-| **Status** | 🔧 **0.7.142** — Public Menu: Facets + System Landscape; product name VBA |
+| **Status** | 🔧 **0.7.146** — Comet palettes cycle dust / ion / green coma / sodium |
 | **Last verified against code** | 2026-09-07 |
 | **Primary code** | `src/app/page.tsx`, `src/lib/public/site-content.ts`, `src/components/public/*`, `src/app/settings/page.tsx`, `src/components/settings/branding-panel.tsx`, `src/app/contact/page.tsx` |
 
@@ -23,7 +23,7 @@
 | **qa_reviewer** | pu |
 | **QA display name** | Stephen |
 
-Notes: Punch-list on the `beta` working tree (0.7.103). I5.6.33 Gate 3 is **accepted**. **Do not start I5.6.34+ until tasked.** Commit/PR only when Stephen asks.
+Notes: Punch-list on the `beta` working tree (0.7.103). I5.6.33 Gate 3 is **accepted**. **Do not start a new zone-chrome train until tasked** (I5.6.34 already shipped). Commit/PR only when Stephen asks.
 
 ---
 
@@ -48,7 +48,7 @@ This instance currently has **Demo Off** in `.data/site-settings.json`.
 
 ### Visitor chrome
 
-- Constellation: full-viewport star field, flicker, cursor parallax, theme RGB via `rgba()`. No connecting lines. **Two variants** (Settings → **Sky Animation**, persisted `constellation_variant` + `constellation_density` + `constellation_zoom` + `constellation_effects` on site settings, fixture + postgres migrations 0009/0010/0011/0012): **Classic** — milky-way star band only, brand-tinted stars (original look). **Realistic** — natural star distribution with color-temperature tints and tapered diffraction glints on the brightest stars. No faded color-band overlay. **Density** 1×–10× is shared. Classic **5× is the original band** (1× sparse, 10× twice as rich). Realistic 1×–10× still scales the natural field and **compacts into the Classic milky-way band** at the high end. **Stars zoom** 25%–200% in 25% steps (25% is the wide night-sky look of browser zoom-out; 100% is the previous scale). **Shooting stars, satellites, asteroids, and comets** are separate layers: they do **not** inherit Stars zoom, and each has On/Off, its own 25%–200% zoom, and a **Frequency** slider (⅓× / ½× / 1× / 2× / 3×; 1× is the usual rate). Wait between appearances is `base / frequency`. Shooting-star 1× is ⅓ the previous rate (the old cadence is 3×). Defaults: shooting stars On, satellites On, asteroids Off, comets Off; all frequency 1×. **Asteroids** are the former tumbling-rock look (gold, ice blue, emerald, royal red, silver, alternating — dust matches the rock). **Comets** are a slow icy nucleus with a white shine that fades along the path behind it. Variant/density/Stars-zoom switch re-seeds the star field; effect zoom and frequency do not. Sky Animation is a normal scrolling Settings page. Old `?tab=branding&sub=sky` redirects to `?tab=sky`.
+- Constellation: full-viewport star field, flicker, cursor parallax, theme RGB via `rgba()`. No connecting lines. **Two variants** (Settings → **Sky Animation**, persisted `constellation_variant` + `constellation_density` + `constellation_zoom` + `constellation_effects` on site settings, fixture + postgres migrations 0009/0010/0011/0012): **Classic** — milky-way star band only, brand-tinted stars (original look). **Realistic** — natural star distribution with color-temperature tints and tapered diffraction glints on the brightest stars. No faded color-band overlay. **Density** 1×–10× is shared. Classic **5× is the original band** (1× sparse, 10× twice as rich). Realistic 1×–10× still scales the natural field and **compacts into the Classic milky-way band** at the high end. **Stars zoom** 25%–200% in 25% steps (25% is the wide night-sky look of browser zoom-out; 100% is the previous scale). **Shooting stars, satellites, asteroids, and comets** are separate layers: they do **not** inherit Stars zoom, and each has On/Off, its own 25%–200% zoom, and a **Frequency** slider (⅓× / ½× / 1× / 2× / 3×; 1× is the usual rate). Wait between appearances is `base / frequency`. Shooting-star 1× is ⅓ the previous rate (the old cadence is 3×). Defaults: shooting stars On, satellites On, asteroids Off, comets Off; all frequency 1×. **Asteroids** are the former tumbling-rock look (gold, ice blue, emerald, royal red, silver, alternating — dust matches the rock). **Comets** are a slow nucleus with a fading path shine; each pass cycles one of four real-sky palettes: **dust** (pale yellow / off-white), **ion** (blue CO⁺ tail), **green coma** (C₂ / CN, larger head, quieter tail), **sodium** (orange-yellow). Variant/density/Stars-zoom switch re-seeds the star field; effect zoom and frequency do not. Sky Animation is a normal scrolling Settings page. Old `?tab=branding&sub=sky` redirects to `?tab=sky`.
 - Public theme cycle: **Dark (default) → Architect → Slate**. Light/Dusk stay on operator Mission Control. Keys: `versa-public-ui-theme` vs `versa-ui-theme`. Public and operator stores are independent; pathname selects which store to apply.
 - Header links are **nowrap**. Desktop nav starts at `xl`; below that the hamburger menu is used so labels do not wrap. **Settings → Menu → Public** reorders and toggles live visitor links (Mission Control Facets, System Landscape, Integrations, Operations, Metrics, Knowledge, Contact, Glossary, Org Board). Off hides the link **and** disables the page (`/terms`, `/board` 404; homepage sections are not rendered). Demo-only homepage sections (Support, About) follow **Demo mode**, not Public Menu.
 - Footer: **50% opacity** `bg-background/50` bar with backdrop blur; back-to-top chevron sits on the top edge (same control as next-section). Three columns — Mission Control links **split into two sub-columns under a spanning heading**, centered brand + slogan/tagline, Contact — **left and right columns are center-aligned**. Address segments on own lines. Footer hash-links follow the same Public Menu on/off list.
@@ -66,7 +66,7 @@ New public fields live on the fixture JSON sidecar (`.data/site-settings.json`).
 Stephen named live surfaces, then stayed in IDE and shaped the visitor face (constellation, lockup, footer, themes).
 
 ### 2.2 Behavior today vs contract
-Matches §1 on beta `:3200` at **0.7.131**. WU-07 / WU-08 / WU-09 accepted by Stephen 2026-09-05.
+Matches §1 on beta `:3200` at **0.7.146**. WU-07 / WU-08 / WU-09 accepted by Stephen 2026-09-05. Comet palettes (WU-11) accepted 2026-09-07.
 
 ### 2.3 Code anchors
 - Settings store: `src/lib/fixtures/site-settings.ts`
@@ -103,6 +103,7 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | WU-08 | Logo display + constellation variants + mobile scroll | WU-05 | ✅ | ✅ | ✅ | 267 |
 | WU-09 | Branding sub-tabs; persist sliders/sky; glow color/spread; logo scales; sky density; Cycle Strip cells; Information toggle text left | WU-08 | ✅ | ✅ | ✅ | 268 |
 | WU-10 | Public Menu + operator On/Off; hidden item also disables the route | — | ✅ | ⬜ | 🔧 | 275 |
+| WU-11 | Comet colors: dust / ion / green coma / sodium, cycling | WU-05 | ✅ | ✅ | ✅ | 280 |
 
 ---
 
@@ -118,6 +119,7 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | 2026-09-05 | Branding persist + sky | Translucency/glow/sky sliders did not restore after save (layout dropped fields from BrandProvider). Fixed in 0.7.116; Branding hydrates from API. | Confirm sliders + Classic/Realistic radio after reload |
 | 2026-09-05 | Per-logo + sky fill | **0.7.117:** menu/home/footer each have Translucency, Glow, Color, Spread, Size. Preview wells are equal (home-sized) with logos centered. Upload 512–1024 px both sides. Sky preview fills remaining viewport (min 448px, max 4096px). Realistic faded color bands removed. | Visual QA on :3200 |
 | 2026-09-07 | Public + operator menus | **0.7.137 (WU-10):** Settings → Menu has Operator / Public. Off hides the link and 404s the route (Settings locked on). Homepage hash sections are not rendered when off. E2E 16/16 on :3200. | Stephen visual QA |
+| 2026-09-07 | Comet palettes | **0.7.146 (WU-11):** Four cycling comet colors (dust / ion / green coma / sodium). | Stephen accepted 2026-09-07 |
 
 ---
 
@@ -156,3 +158,4 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | 2026-09-07 | Comet trail + asteroid dust | **0.7.139:** Asteroid dust matches the rock tint. Comet brown stick removed; white shine is a fading trail left behind the nucleus. |
 | 2026-09-07 | Facets + System Landscape menu | **0.7.140:** Public Menu includes **Facets** (was labeled Mission Control Facets at the time) and **System Landscape** (renamed from Other Systems). On/Off controls the homepage section and header/footer. Support/About stay Demo-only. |
 | 2026-09-07 | Product identity | **0.7.142:** Public Facets heading/nav and footer use **Facets** / **VBA**. Formal product name **Versa - Business Admin**. |
+| 2026-09-07 | Comet palettes | **0.7.146:** Comets cycle dust (pale yellow), ion (blue), green coma, sodium (orange-yellow). Green coma is a larger head with a quieter tail. |

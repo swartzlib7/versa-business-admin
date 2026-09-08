@@ -11,16 +11,17 @@ import {
   upsertSiteSettingsFixture,
 } from '@/lib/fixtures/site-settings';
 import { parseLogoSurfaces, parseSkyEffects, clampSkyZoom } from '@/lib/brand-display';
+import { isPostgresDataSource } from '@/lib/db/data-source';
 
 // #252 Settings functionality slice (Stephen round-2 item 10): branding
 // persistence singleton. GET is authenticated; writes are admin-only
 // (S3 - matches element-config PUT gating precedent). DATA_SOURCE=fixture
-// (beta :3200) routes to the in-memory fixture singleton (S5).
+// routes to the in-memory fixture singleton (S5).
 
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
 function isPostgres(): boolean {
-  return (process.env.DATA_SOURCE ?? 'fixture') === 'postgres';
+  return isPostgresDataSource();
 }
 
 export async function GET(request: Request) {

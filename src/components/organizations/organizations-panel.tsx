@@ -2,7 +2,8 @@
 
 // #248 Slice D (rev E section 4.3 / section 2.7 / C6, 2026-08-31):
 // - OrganizationsPanel: the Executive organizations list. Full CRUD on the
-//   typed core platform table. There is one Org-type record (the Primary Org).
+//   typed core platform table. One Primary Org (is_primary). Additional Orgs
+//   (org_type=internal) are other businesses you operate, not Collaboration parties.
 // - OrgTypeListingPanel: Collaboration zone rendering (C6) - one organization
 //   type per tab (vendor/customer/partner/branch). Branch filters by the
 //   Primary Org (parent_organization_id).
@@ -72,8 +73,9 @@ export function PrimaryOrgPanel({ accent }: { accent?: string }) {
         <div>
           <p className="text-sm font-medium">Primary Org</p>
           <p className="text-sm text-muted-foreground">
-            The single Org-type record this Versa - Business Admin belongs to. All records
-            carry its org_id. This flag is set once and cannot be changed.
+            The selected enterprise this Versa - Business Admin belongs to. Additional
+            Orgs are other businesses you operate — not Collaboration parties. All records
+            default to the Primary Org. This flag is set once and cannot be moved.
           </p>
         </div>
         <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
@@ -252,7 +254,7 @@ export function OrganizationsPanel({ accent }: { accent?: string }) {
   return (
     <div className='space-y-3'>
       <EntityListing<Organization & Record<string, unknown>>
-        summary='Organization records. There is one Org (the Primary Org). Vendors, customers, partners, and branches are other organizations.'
+        summary='Organization records. The Primary Org is the selected enterprise. Additional Orgs are other businesses you operate. Vendors, customers, partners, and branches are Collaboration parties.'
         accent={panelAccent}
         columnStorageKey="mc.listing.orgs"
         fields={fields}

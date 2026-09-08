@@ -14,6 +14,7 @@ import {
   resolvePublicMenu,
 } from "@/lib/nav";
 import "@/lib/catalog/install-durable";
+import { isPostgresDataSource } from "@/lib/db/data-source";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -66,7 +67,7 @@ type LoadedSite = {
 async function loadBrand(): Promise<LoadedSite> {
   try {
     const settings =
-      (process.env.DATA_SOURCE ?? "fixture") === "postgres"
+      isPostgresDataSource()
         ? await getSiteSettingsDb()
         : getSiteSettingsFixture();
     const fromSettings =

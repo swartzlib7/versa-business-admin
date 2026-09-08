@@ -3,7 +3,7 @@
 **Source excerpt:** `docs/_notes/_exerpt_(state_org_foundation).md` (AGi ERD v13 + SQLite cents rules).  
 **Visual review:** `RECORD_TYPE_FIELD_INVENTORY.erd.md` (mermaid). Org-party migrate is `scripts/migrate_agi_org.mjs`.
 
-**MC honors:** one Primary Org (`org_type=internal`); collaboration parties are vendor | customer | partner | branch. Production owns Product/Service; Executive owns Policy/Projects/Tasks; Treasury owns transactions (including quote / estimate / invoice kinds); Environment Locations hold structured addresses.
+**MC honors:** one Primary Org (`org_type=internal` + `is_primary`); additional own businesses are also Org (`internal`, not Primary). Collaboration parties are vendor | customer | partner | branch (subsidiary). Production owns Product/Service; Executive owns Policy/Projects/Tasks; Treasury owns transactions (including quote / estimate / invoice kinds); Environment Locations hold structured addresses.
 
 Users are human|agent. **`vv_connection_uid` is a VersaVoice pointer** on staff and contacts, not an imported `connections` cache. Org-schema person fields (owner, assignee) look up **staff**. `created_by` / `last_modified_by` look up **user** and are system-set on every record.
 
@@ -51,7 +51,7 @@ Money: AGi stores **integer cents**. MC `currency` fields are decimal display st
 | url | text | Required when storage=url. |
 | blob_ref | text | Opaque store key when storage=blob. Never put raw bytes in instance JSON. |
 
-### Proposed record types (not in code until ERD sign-off)
+### Proposed record types (seeded — 0.7.133+; treasury lines 0.7.147)
 
 #### vendor_credential — Credentials — Collaboration / Vendor / Credentials
 
@@ -123,9 +123,9 @@ Widget: count + unit (`every 2 weeks`). Stored as ISO 8601 duration (`interval_i
 
 ### Migration (script + skill — after ERD sign-off)
 
-Do **not** author further `migrate_agi_org` writers (products, treasury, secret copy, host-org disable) until tasked. Org-party dry-run/apply lives in `scripts/migrate_agi_org.mjs` (0.7.145). See `docs/production/state/state_migrate_agi_org.md`.
+Do **not** disable host Organization on this development instance. Full-entity writers live in `scripts/migrate_agi_org.mjs` (0.7.148): require `--primary-source-org-id`, copy credential configuration (never print it). See `docs/production/state/state_migrate_agi_org.md`.
 
-A user-run script will read AGi Org SQLite and write MC organizations + records using `external_id` for idempotency. Sample rows use prefix `ba_sample:` and are **not** the migrator.
+A user-run script reads AGi Org through `agictl organization` and writes VBA organizations + records using `external_id` for idempotency. Sample rows use prefix `ba_sample:` and are **not** the migrator.
 
 Operator steps after a successful migrate:
 
