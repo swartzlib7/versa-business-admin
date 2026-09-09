@@ -28,7 +28,7 @@ export default function UsersPage() {
           onTabChange={(id) => setTab(id === "agent" ? "agent" : "human")}
           tabsAriaLabel="Users sections"
         />
-        <div role="tabpanel" className="min-h-[640px] space-y-3">
+        <div role="tabpanel" className="space-y-3">
         <SubTabBar
           items={[{ id: "records", label: "Records" }]}
           activeId="records"

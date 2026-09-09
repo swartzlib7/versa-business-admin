@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Application layout / IA chrome |
-| **Status** | 🔧 In progress — 0.7.156 min-height floor on sub-tab content containers (zones + glossary included) |
+| **Status** | 🔧 In progress — 0.7.157 min-height floor on the page Card (listing/settings content panel) |
 | **Last verified against code** | 2026-09-07 |
 | **Primary code** | `src/app/**`, hub scene components, zone pages |
 | **Former doc** | `docs/research/LAYOUT_PROPOSAL.md` (superseded seed) |
@@ -33,7 +33,7 @@
 | Header (2D) | Search, profile, familiar business chrome; username → users |
 | 3D viewport | Keystone ERD hub; Versa AGi brand; lightbox expand; billboard labels; zone-embedded twins on zone routes |
 | Detail (2D) | Zone config tabs; projects/tasks tables; users admin |
-| Content container | Every page content container below the sub-tab strip (role=tabpanel) carries min-h 640px (0.7.156) so short pages keep a consistent working area — includes Settings/Users/Contact/UI Components/Records Editor, Glossary (5 tabs), and all zone pages via ZoneConfigView |
+| Content container | The visible page Card below the sub-tab strip (`data-slot=card`, typically inside `space-y-4`) carries min-h 640px (0.7.157). Shared EntityListing Card covers Organization/Tasks and every other listing. Settings PanelShell, Glossary, Contact, UI Components, Records Editor, and zone form Cards match. Outer role=tabpanel wrappers do **not** hold the floor — they are transparent and do not stretch the Card. |
 
 ### 1.3 Explicit non-goals (from superseded seed)
 - Agent fleet status in sidebar
@@ -201,6 +201,7 @@ Sidebar top-level **Projects / Tasks / Products** removed. Access via Organizati
 | 2026-09-07 | 0.7.137: Settings → Menu Operator / Public; On/Off + route 404 |
 | 2026-09-08 | 0.7.155: min-h-[640px] on all 14 sub-tab content containers (role=tabpanel; contact, settings ×7, ui-components, users, records-editor ×4) — Stephen request; E2E computed-style verified 640px floor, tall pages unaffected |
 | 2026-09-08 | 0.7.156: same floor on the missed surfaces — Glossary (5 tabpanels) and ZoneConfigView content region below the sub-tab strip (Organization / Collaboration / Environment / Stats). 0.7.155 never reached those pages, which is why not every page held the floor. |
+| 2026-09-08 | 0.7.157: retargeted min-h 640px onto the visible Card (Stephen: Organization / Tasks element inside space-y-4, `data-slot=card`). EntityListing + PanelShell + other page Cards. Tabpanel wrappers no longer carry the floor — they never stretched the Card so the 640px was invisible. |
 
 ## 0.7.107 — Chrome contract (2026-09-03)
 

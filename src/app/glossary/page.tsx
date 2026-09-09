@@ -377,7 +377,7 @@ export default function GlossaryPage() {
         />
 
         {activeTab === "configuration" && (
-          <div role="tabpanel" className="min-h-[640px] space-y-3">
+          <div role="tabpanel" className="space-y-3">
             <SubTabBar
               items={[{ id: "configuration", label: "Configuration" }]}
               activeId="configuration"
@@ -385,7 +385,7 @@ export default function GlossaryPage() {
               onSelect={() => undefined}
               ariaLabel="Glossary configuration sub-sections"
             />
-            <Card className="overflow-hidden">
+            <Card className="min-h-[640px] overflow-hidden">
               <CardHeader className="border-b bg-muted/30">
                 <p className="text-sm text-muted-foreground">
                   Control whether Glossary and the Org Board appear on the public site menu.
@@ -430,7 +430,7 @@ export default function GlossaryPage() {
         )}
 
         {activeTab === "org-board" && (
-          <div role="tabpanel" className="min-h-[640px] space-y-3">
+          <div role="tabpanel" className="space-y-3">
             <SubTabBar
               items={[{ id: "org-board", label: "Org Board" }]}
               activeId="org-board"
@@ -443,7 +443,7 @@ export default function GlossaryPage() {
         )}
 
         {activeTab === "view" && (
-          <div role="tabpanel" className="min-h-[640px] space-y-3">
+          <div role="tabpanel" className="space-y-3">
             <SubTabBar
               items={[{ id: "view", label: "View" }]}
               activeId="view"
@@ -462,7 +462,7 @@ export default function GlossaryPage() {
         )}
 
         {activeTab === "sections" && (
-        <div role="tabpanel" className="min-h-[640px] space-y-3">
+        <div role="tabpanel" className="space-y-3">
         <SubTabBar
           items={[{ id: "configuration", label: "Sections" }]}
           activeId={subTab}
@@ -470,7 +470,7 @@ export default function GlossaryPage() {
           onSelect={setSubTab}
           ariaLabel="Sections sub-sections"
         />
-        <Card className="overflow-hidden">
+        <Card className="min-h-[640px] overflow-hidden">
           <CardHeader className="border-b bg-muted/30">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -577,7 +577,7 @@ export default function GlossaryPage() {
         )}
 
         {activeTab === "entries" && (
-        <div role="tabpanel" className="min-h-[640px] space-y-3">
+        <div role="tabpanel" className="space-y-3">
         <SubTabBar
           items={[{ id: "configuration", label: "Entries" }]}
           activeId={subTab}
@@ -585,7 +585,7 @@ export default function GlossaryPage() {
           onSelect={setSubTab}
           ariaLabel="Entries sub-sections"
         />
-        <Card className="overflow-hidden">
+        <Card className="min-h-[640px] overflow-hidden">
           <CardHeader className="border-b bg-muted/30">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">

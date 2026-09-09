@@ -633,7 +633,7 @@ export function EntityListing<T extends Record<string, unknown>>({
 
   return (
     <>
-    <Card className="overflow-hidden">
+    <Card className="min-h-[640px] overflow-hidden">
       <CardHeader className="border-b bg-muted/30">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -659,7 +659,7 @@ export function EntityListing<T extends Record<string, unknown>>({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-0 p-0">
+      <CardContent className="flex-1 space-y-0 p-0">
         <ListingToolbar
           fields={fields}
           criteria={criteria}

@@ -27,7 +27,7 @@ export default function UIComponentsPage() {
           onTabChange={setTab}
           tabsAriaLabel="UI Components sections"
         />
-        <div role="tabpanel" className="min-h-[640px] space-y-3">
+        <div role="tabpanel" className="space-y-3">
           <SubTabBar
             items={[{ id: tab, label: current?.label ?? "Components" }]}
             activeId={tab}
@@ -35,7 +35,7 @@ export default function UIComponentsPage() {
             onSelect={() => undefined}
             ariaLabel="UI Components sub-sections"
           />
-          <Card className="overflow-hidden">
+          <Card className="min-h-[640px] overflow-hidden">
             <CardHeader className="border-b bg-muted/30">
               <div className="flex items-start justify-between gap-3">
                 <div>

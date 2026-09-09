@@ -921,7 +921,7 @@ export function RecordsEditor() {
 
       {/* ── TYPES ── */}
       {section === "types" && (
-        <div role="tabpanel" className="min-h-[640px] space-y-3">
+        <div role="tabpanel" className="space-y-3">
           <SubTabBar
             items={[{ id: "configuration", label: "Types" }]}
             activeId={subTab}
@@ -929,7 +929,7 @@ export function RecordsEditor() {
             onSelect={setSubTab}
             ariaLabel="Types sub-sections"
           />
-          <Card className="overflow-hidden">
+          <Card className="min-h-[640px] overflow-hidden">
             <CardHeader className="border-b bg-muted/30">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1227,7 +1227,7 @@ export function RecordsEditor() {
 
       {/* ── FIELDS ── */}
       {section === "fields" && (
-        <div role="tabpanel" className="min-h-[640px] space-y-3">
+        <div role="tabpanel" className="space-y-3">
           <SubTabBar
             items={[{ id: "configuration", label: "Fields" }]}
             activeId={subTab}
@@ -1235,7 +1235,7 @@ export function RecordsEditor() {
             onSelect={setSubTab}
             ariaLabel="Fields sub-sections"
           />
-          <Card className="overflow-hidden">
+          <Card className="min-h-[640px] overflow-hidden">
             <CardHeader className="border-b bg-muted/30">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1604,7 +1604,7 @@ export function RecordsEditor() {
 
       {/* ── PICKLISTS ── */}
       {section === "picklists" && (
-        <div role="tabpanel" className="min-h-[640px] space-y-3">
+        <div role="tabpanel" className="space-y-3">
           <SubTabBar
             items={[{ id: "configuration", label: "Picklists" }]}
             activeId={subTab}
@@ -1612,7 +1612,7 @@ export function RecordsEditor() {
             onSelect={setSubTab}
             ariaLabel="Picklists sub-sections"
           />
-          <Card className="overflow-hidden">
+          <Card className="min-h-[640px] overflow-hidden">
             <CardHeader className="border-b bg-muted/30">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1833,7 +1833,7 @@ export function RecordsEditor() {
 
       {/* ── LAYOUTS ── */}
       {section === "layouts" && (
-        <div role="tabpanel" className="min-h-[640px] space-y-3">
+        <div role="tabpanel" className="space-y-3">
           <SubTabBar
             items={[{ id: "configuration", label: "Layouts" }]}
             activeId={subTab}
@@ -1841,7 +1841,7 @@ export function RecordsEditor() {
             onSelect={setSubTab}
             ariaLabel="Layouts sub-sections"
           />
-          <Card className="overflow-hidden">
+          <Card className="min-h-[640px] overflow-hidden">
             <CardHeader className="border-b bg-muted/30">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>

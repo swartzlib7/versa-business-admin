@@ -68,7 +68,7 @@ export default function ContactPage() {
           onTabChange={() => undefined}
           tabsAriaLabel="Contact sections"
         />
-        <div role="tabpanel" className="min-h-[640px] space-y-3">
+        <div role="tabpanel" className="space-y-3">
         <SubTabBar
           items={[{ id: "configuration", label: "Configuration" }]}
           activeId="configuration"
@@ -76,7 +76,7 @@ export default function ContactPage() {
           onSelect={() => undefined}
           ariaLabel="Contact sub-sections"
         />
-        <Card className="overflow-hidden">
+        <Card className="min-h-[640px] overflow-hidden">
           <CardHeader className="border-b bg-muted/30">
             <div className="flex items-start justify-between gap-3">
               <div>
