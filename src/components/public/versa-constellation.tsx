@@ -291,35 +291,36 @@ type AuroraRibbon = {
 };
 
 /** Real-sky aurora structure: bright oxygen green body, red/magenta upper fringe,
- *  blue/violet or teal lower edge (nitrogen). Ribbons are listed top to bottom. */
+ *  blue/violet or teal lower edge (nitrogen). Ribbons overlap heavily and share
+ *  almost the same ripple phase so the patch reads as one gradual unit. */
 type AuroraPalette = { id: "classic" | "violet" | "teal"; ribbons: AuroraRibbon[] };
 
 const AURORA_PALETTES: AuroraPalette[] = [
   {
     id: "classic",
     ribbons: [
-      { color: [255, 84, 132], center: 0.24, thickness: 0.34, gain: 0.5, lag: 0.55 },
-      { color: [110, 255, 150], center: 0.5, thickness: 0.5, gain: 1, lag: 0 },
-      { color: [190, 255, 120], center: 0.56, thickness: 0.2, gain: 0.55, lag: 0.2 },
-      { color: [70, 150, 255], center: 0.78, thickness: 0.3, gain: 0.42, lag: -0.5 },
+      { color: [255, 84, 132], center: 0.3, thickness: 0.62, gain: 0.5, lag: 0.12 },
+      { color: [110, 255, 150], center: 0.5, thickness: 0.72, gain: 1, lag: 0 },
+      { color: [190, 255, 120], center: 0.54, thickness: 0.4, gain: 0.5, lag: 0.05 },
+      { color: [70, 150, 255], center: 0.7, thickness: 0.6, gain: 0.45, lag: -0.12 },
     ],
   },
   {
     id: "violet",
     ribbons: [
-      { color: [214, 96, 255], center: 0.26, thickness: 0.36, gain: 0.6, lag: 0.6 },
-      { color: [90, 255, 170], center: 0.52, thickness: 0.48, gain: 1, lag: 0 },
-      { color: [255, 122, 170], center: 0.32, thickness: 0.16, gain: 0.35, lag: 0.9 },
-      { color: [96, 120, 255], center: 0.8, thickness: 0.28, gain: 0.48, lag: -0.45 },
+      { color: [214, 96, 255], center: 0.3, thickness: 0.64, gain: 0.6, lag: 0.14 },
+      { color: [90, 255, 170], center: 0.5, thickness: 0.7, gain: 1, lag: 0 },
+      { color: [255, 122, 170], center: 0.36, thickness: 0.36, gain: 0.32, lag: 0.2 },
+      { color: [96, 120, 255], center: 0.72, thickness: 0.58, gain: 0.5, lag: -0.1 },
     ],
   },
   {
     id: "teal",
     ribbons: [
-      { color: [255, 110, 110], center: 0.22, thickness: 0.3, gain: 0.4, lag: 0.5 },
-      { color: [80, 240, 190], center: 0.48, thickness: 0.5, gain: 1, lag: 0 },
-      { color: [130, 255, 140], center: 0.58, thickness: 0.22, gain: 0.5, lag: 0.25 },
-      { color: [70, 200, 255], center: 0.8, thickness: 0.3, gain: 0.5, lag: -0.55 },
+      { color: [255, 110, 110], center: 0.28, thickness: 0.58, gain: 0.4, lag: 0.12 },
+      { color: [80, 240, 190], center: 0.5, thickness: 0.72, gain: 1, lag: 0 },
+      { color: [130, 255, 140], center: 0.56, thickness: 0.4, gain: 0.45, lag: 0.06 },
+      { color: [70, 200, 255], center: 0.72, thickness: 0.6, gain: 0.5, lag: -0.14 },
     ],
   },
 ];
@@ -742,9 +743,12 @@ function paintAuroraLayer(a: Aurora, pw: number, ph: number, pad: number, dpr: n
     const cy = y0 + rb.center * ph;
     const th = rb.thickness * ph;
     const g = lc.createLinearGradient(0, cy - th * 0.5, 0, cy + th * 0.5);
-    const alpha = 0.46 * rb.gain * breathe;
+    const alpha = 0.4 * rb.gain * breathe;
+    // Bell-shaped falloff so neighbouring ribbons melt into one gradient.
     g.addColorStop(0, rgba(rb.color, 0));
+    g.addColorStop(0.25, rgba(rb.color, alpha * 0.55));
     g.addColorStop(0.5, rgba(rb.color, alpha));
+    g.addColorStop(0.75, rgba(rb.color, alpha * 0.55));
     g.addColorStop(1, rgba(rb.color, 0));
     lc.fillStyle = g;
     lc.beginPath();
@@ -960,9 +964,10 @@ export function VersaConstellation({
     let satelliteSpawnIn = gap(6, 14, fxRef.current.satF);
     let asteroidSpawnIn = gap(4, 10, fxRef.current.asteroidF);
     let trueCometSpawnIn = gap(8, 18, fxRef.current.cometF);
+    // Live sky: first aurora after a fixed 90s (at 1×), then 90–360s gaps.
     let auroraSpawnIn = preview
       ? gap(0.4, 1.2, fxRef.current.auroraF)
-      : gap(90, 360, fxRef.current.auroraF);
+      : gap(90, 90, fxRef.current.auroraF);
     let dustAcc = 0;
     let cometTrailAcc = 0;
     let asteroidTintSeq = 0;
