@@ -262,9 +262,11 @@ type TrueComet = {
 
 type Rgb = [number, number, number];
 
-/** One small aurora patch: a soft landscape gradient (150–450 × 100–250 css px)
- *  faded on every side, built from layered colour ribbons that share one slow
- *  long-wave ripple. Rendered to its own layer and blurred so no band lines show. */
+/** One small aurora patch (150–450 × 120–250 css px), faded on every side.
+ *  Modelled on real northern lights: a bright green fold that ripples with one
+ *  long slow wave, with soft vertical rays fanning up from it and fading into a
+ *  teal haze toward the top. Painted to its own layer and blurred so it reads
+ *  as one gradual body with no hard lines. */
 type Aurora = {
   x: number;
   y: number;
@@ -279,50 +281,35 @@ type Aurora = {
   driftX: number;
   driftY: number;
   palette: AuroraPalette;
+  rays: AuroraRay[];
   layer: HTMLCanvasElement | null;
 };
 
-type AuroraRibbon = {
-  color: Rgb;
-  center: number;
-  thickness: number;
+/** One vertical ray rising from the fold. `u` is its position along the patch. */
+type AuroraRay = {
+  u: number;
+  width: number;
+  height: number;
   gain: number;
-  lag: number;
+  shimmer: number;
+  shimmerPhase: number;
+  lean: number;
 };
 
-/** Real-sky aurora structure: bright oxygen green body, red/magenta upper fringe,
- *  blue/violet or teal lower edge (nitrogen). Ribbons overlap heavily and share
- *  almost the same ripple phase so the patch reads as one gradual unit. */
-type AuroraPalette = { id: "classic" | "violet" | "teal"; ribbons: AuroraRibbon[] };
+/** Oxygen green dominates. `top` tints the upper haze (teal / blue-green); `tip`
+ *  is the faint high-altitude colour at the very top of the tallest rays. */
+type AuroraPalette = {
+  id: "green" | "emerald" | "teal";
+  body: Rgb;
+  top: Rgb;
+  tip: Rgb;
+  tipGain: number;
+};
 
 const AURORA_PALETTES: AuroraPalette[] = [
-  {
-    id: "classic",
-    ribbons: [
-      { color: [255, 84, 132], center: 0.3, thickness: 0.62, gain: 0.5, lag: 0.12 },
-      { color: [110, 255, 150], center: 0.5, thickness: 0.72, gain: 1, lag: 0 },
-      { color: [190, 255, 120], center: 0.54, thickness: 0.4, gain: 0.5, lag: 0.05 },
-      { color: [70, 150, 255], center: 0.7, thickness: 0.6, gain: 0.45, lag: -0.12 },
-    ],
-  },
-  {
-    id: "violet",
-    ribbons: [
-      { color: [214, 96, 255], center: 0.3, thickness: 0.64, gain: 0.6, lag: 0.14 },
-      { color: [90, 255, 170], center: 0.5, thickness: 0.7, gain: 1, lag: 0 },
-      { color: [255, 122, 170], center: 0.36, thickness: 0.36, gain: 0.32, lag: 0.2 },
-      { color: [96, 120, 255], center: 0.72, thickness: 0.58, gain: 0.5, lag: -0.1 },
-    ],
-  },
-  {
-    id: "teal",
-    ribbons: [
-      { color: [255, 110, 110], center: 0.28, thickness: 0.58, gain: 0.4, lag: 0.12 },
-      { color: [80, 240, 190], center: 0.5, thickness: 0.72, gain: 1, lag: 0 },
-      { color: [130, 255, 140], center: 0.56, thickness: 0.4, gain: 0.45, lag: 0.06 },
-      { color: [70, 200, 255], center: 0.72, thickness: 0.6, gain: 0.5, lag: -0.14 },
-    ],
-  },
+  { id: "green", body: [96, 255, 140], top: [80, 230, 190], tip: [120, 170, 255], tipGain: 0.28 },
+  { id: "emerald", body: [70, 240, 120], top: [90, 250, 170], tip: [170, 120, 255], tipGain: 0.22 },
+  { id: "teal", body: [84, 250, 165], top: [60, 215, 215], tip: [200, 110, 240], tipGain: 0.24 },
 ];
 
 function rand(min: number, max: number) {
@@ -694,6 +681,20 @@ function spawnAurora(w: number, h: number): Aurora {
   const marginY = (height * 0.5 + 16) / Math.max(h, 1);
   const xr = left ? rand(0.06, 0.34) : rand(0.66, 0.94);
   const yr = rand(0.05, 0.4);
+  const rayCount = Math.round(Math.min(72, Math.max(28, width / 6)));
+  const rays: AuroraRay[] = [];
+  for (let i = 0; i < rayCount; i++) {
+    const u = (i + rand(0.15, 0.85)) / rayCount;
+    rays.push({
+      u,
+      width: rand(0.012, 0.042),
+      height: rand(0.4, 1) * rand(0.7, 1),
+      gain: Math.random() < 0.3 ? rand(0.75, 1) : rand(0.2, 0.6),
+      shimmer: rand(0.5, 1.5),
+      shimmerPhase: rand(0, Math.PI * 2),
+      lean: (u - 0.5) * rand(0.1, 0.26) + rand(-0.03, 0.03),
+    });
+  }
   return {
     x: Math.min(1 - marginX, Math.max(marginX, xr)),
     y: Math.min(0.6, Math.max(marginY, yr)),
@@ -703,11 +704,12 @@ function spawnAurora(w: number, h: number): Aurora {
     maxLife: rand(5, 9),
     phase: rand(0, Math.PI * 2),
     waves: rand(0.9, 1.45),
-    speed: rand(0.45, 0.9),
-    rippleAmp: rand(0.13, 0.22),
+    speed: rand(0.4, 0.8),
+    rippleAmp: rand(0.07, 0.13),
     driftX: rand(-5, 5),
     driftY: rand(-2.5, 2.5),
     palette: AURORA_PALETTES[Math.floor(Math.random() * AURORA_PALETTES.length)],
+    rays,
     layer: null,
   };
 }
@@ -718,8 +720,9 @@ function auroraEnvelope(t: number): number {
   return 1;
 }
 
-/** Paint the patch onto its own layer: colour ribbons with a shared ripple,
- *  then a horizontal fade and an elliptical fade so every side is soft. */
+/** Paint the patch onto its own layer: upper haze, vertical rays, then the bright
+ *  rippling fold they rise from; finish with a horizontal fade and an elliptical
+ *  fade so every side is soft. */
 function paintAuroraLayer(a: Aurora, pw: number, ph: number, pad: number, dpr: number) {
   const lw = Math.ceil((pw + pad * 2) * dpr);
   const lh = Math.ceil((ph + pad * 2) * dpr);
@@ -737,43 +740,72 @@ function paintAuroraLayer(a: Aurora, pw: number, ph: number, pad: number, dpr: n
 
   const x0 = pad;
   const y0 = pad;
-  const segs = 36;
-  for (const rb of a.palette.ribbons) {
-    const breathe = 0.82 + 0.18 * Math.sin(a.life * 1.3 + a.phase + rb.lag * 2.2);
-    const cy = y0 + rb.center * ph;
-    const th = rb.thickness * ph;
-    const g = lc.createLinearGradient(0, cy - th * 0.5, 0, cy + th * 0.5);
-    const alpha = 0.4 * rb.gain * breathe;
-    // Bell-shaped falloff so neighbouring ribbons melt into one gradient.
-    g.addColorStop(0, rgba(rb.color, 0));
-    g.addColorStop(0.25, rgba(rb.color, alpha * 0.55));
-    g.addColorStop(0.5, rgba(rb.color, alpha));
-    g.addColorStop(0.75, rgba(rb.color, alpha * 0.55));
-    g.addColorStop(1, rgba(rb.color, 0));
+  const pal = a.palette;
+  const foldBase = y0 + ph * 0.68;
+  const foldY = (u: number, lag = 0) =>
+    foldBase +
+    Math.sin(u * Math.PI * 2 * a.waves + a.life * a.speed + a.phase + lag) * a.rippleAmp * ph;
+  const breathe = 0.85 + 0.15 * Math.sin(a.life * 1.1 + a.phase);
+
+  // Upper haze: soft green→teal glow filling the space above the fold.
+  const haze = lc.createLinearGradient(0, foldBase, 0, y0);
+  haze.addColorStop(0, rgba(pal.body, 0.13 * breathe));
+  haze.addColorStop(0.45, rgba(pal.top, 0.07 * breathe));
+  haze.addColorStop(1, rgba(pal.top, 0));
+  lc.fillStyle = haze;
+  lc.fillRect(x0, y0, pw, foldBase - y0 + ph * 0.1);
+
+  // Rays: rise from the fold, lean outward, shimmer independently.
+  for (const r of a.rays) {
+    const shine = 0.6 + 0.4 * Math.sin(a.life * r.shimmer + r.shimmerPhase);
+    const alpha = 0.42 * r.gain * shine * breathe;
+    const bx = x0 + r.u * pw;
+    const by = foldY(r.u) + ph * 0.04;
+    const rh = r.height * (foldBase - y0);
+    const tx = bx + r.lean * pw;
+    const ty = by - rh;
+    const wb = r.width * pw;
+    const wt = wb * 0.55;
+    const g = lc.createLinearGradient(bx, by, tx, ty);
+    g.addColorStop(0, rgba(pal.body, alpha * 0.55));
+    g.addColorStop(0.18, rgba(pal.body, alpha));
+    g.addColorStop(0.55, rgba(pal.top, alpha * 0.62));
+    g.addColorStop(0.85, rgba(pal.tip, alpha * pal.tipGain));
+    g.addColorStop(1, rgba(pal.tip, 0));
     lc.fillStyle = g;
     lc.beginPath();
-    for (let i = 0; i <= segs; i++) {
-      const u = i / segs;
-      const ripple =
-        Math.sin(u * Math.PI * 2 * a.waves + a.life * a.speed + a.phase + rb.lag) *
-        a.rippleAmp *
-        ph;
-      const px = x0 + u * pw;
-      const py = cy - th * 0.5 + ripple;
-      if (i === 0) lc.moveTo(px, py);
-      else lc.lineTo(px, py);
-    }
-    for (let i = segs; i >= 0; i--) {
-      const u = i / segs;
-      const ripple =
-        Math.sin(u * Math.PI * 2 * a.waves + a.life * a.speed + a.phase + rb.lag + 0.35) *
-        a.rippleAmp *
-        ph;
-      lc.lineTo(x0 + u * pw, cy + th * 0.5 + ripple);
-    }
+    lc.moveTo(bx - wb * 0.5, by);
+    lc.lineTo(bx + wb * 0.5, by);
+    lc.lineTo(tx + wt * 0.5, ty);
+    lc.lineTo(tx - wt * 0.5, ty);
     lc.closePath();
     lc.fill();
   }
+
+  // The fold: a bright green band, sharp-ish below, glowing upward.
+  const segs = 36;
+  const foldUp = ph * 0.26;
+  const foldDown = ph * 0.14;
+  const fg = lc.createLinearGradient(0, foldBase - foldUp, 0, foldBase + foldDown);
+  fg.addColorStop(0, rgba(pal.body, 0));
+  fg.addColorStop(0.55, rgba(pal.body, 0.34 * breathe));
+  fg.addColorStop(0.72, rgba(pal.body, 0.5 * breathe));
+  fg.addColorStop(0.84, rgba(pal.body, 0.22 * breathe));
+  fg.addColorStop(1, rgba(pal.body, 0));
+  lc.fillStyle = fg;
+  lc.beginPath();
+  for (let i = 0; i <= segs; i++) {
+    const u = i / segs;
+    const py = foldY(u) - foldUp;
+    if (i === 0) lc.moveTo(x0 + u * pw, py);
+    else lc.lineTo(x0 + u * pw, py);
+  }
+  for (let i = segs; i >= 0; i--) {
+    const u = i / segs;
+    lc.lineTo(x0 + u * pw, foldY(u, 0.3) + foldDown);
+  }
+  lc.closePath();
+  lc.fill();
 
   // Fade the left and right ends.
   lc.globalCompositeOperation = "destination-in";
@@ -828,7 +860,7 @@ function drawAurora(
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   ctx.globalAlpha = fade;
-  if ("filter" in ctx) ctx.filter = `blur(${Math.max(2, ph * 0.03).toFixed(1)}px)`;
+  if ("filter" in ctx) ctx.filter = `blur(${Math.max(1.5, ph * 0.016).toFixed(1)}px)`;
   ctx.drawImage(
     layer,
     cx - pw * 0.5 - pad,
