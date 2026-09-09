@@ -299,18 +299,43 @@ type AuroraRay = {
 /** Oxygen green dominates. `top` tints the upper haze (teal / blue-green); `tip`
  *  is the faint high-altitude colour at the very top of the tallest rays. */
 type AuroraPalette = {
-  id: "green" | "emerald" | "teal";
+  id: "green" | "emerald" | "teal" | "pink-fringe" | "violet-top";
   body: Rgb;
   top: Rgb;
   tip: Rgb;
   tipGain: number;
+  /** Optional nitrogen pink/magenta lower edge under the fold (high-activity look). */
+  fringe?: Rgb;
 };
 
+/** Realistic variants; consecutive auroras never repeat the same one. */
 const AURORA_PALETTES: AuroraPalette[] = [
   { id: "green", body: [96, 255, 140], top: [80, 230, 190], tip: [120, 170, 255], tipGain: 0.28 },
   { id: "emerald", body: [70, 240, 120], top: [90, 250, 170], tip: [170, 120, 255], tipGain: 0.22 },
   { id: "teal", body: [84, 250, 165], top: [60, 215, 215], tip: [200, 110, 240], tipGain: 0.24 },
+  {
+    id: "pink-fringe",
+    body: [110, 255, 150],
+    top: [90, 220, 200],
+    tip: [190, 120, 255],
+    tipGain: 0.26,
+    fringe: [255, 110, 170],
+  },
+  {
+    id: "violet-top",
+    body: [90, 245, 140],
+    top: [130, 160, 255],
+    tip: [200, 110, 255],
+    tipGain: 0.42,
+  },
 ];
+let auroraPaletteCursor = -1;
+function nextAuroraPalette(): AuroraPalette {
+  const n = AURORA_PALETTES.length;
+  const step = 1 + Math.floor(Math.random() * (n - 1));
+  auroraPaletteCursor = auroraPaletteCursor < 0 ? Math.floor(Math.random() * n) : (auroraPaletteCursor + step) % n;
+  return AURORA_PALETTES[auroraPaletteCursor];
+}
 
 function rand(min: number, max: number) {
   return min + Math.random() * (max - min);
@@ -701,23 +726,24 @@ function spawnAurora(w: number, h: number): Aurora {
     width,
     height,
     life: 0,
-    maxLife: rand(5, 9),
+    maxLife: rand(14, 22),
     phase: rand(0, Math.PI * 2),
     waves: rand(0.9, 1.45),
     speed: rand(0.4, 0.8),
     rippleAmp: rand(0.07, 0.13),
     driftX: rand(-5, 5),
     driftY: rand(-2.5, 2.5),
-    palette: AURORA_PALETTES[Math.floor(Math.random() * AURORA_PALETTES.length)],
+    palette: nextAuroraPalette(),
     rays,
     layer: null,
   };
 }
 
+/** Slow bell: the light eases on over ~45% of life, peaks briefly, eases off.
+ *  Squared sine so the start and end are very gradual. */
 function auroraEnvelope(t: number): number {
-  if (t < 0.24) return 0.5 - 0.5 * Math.cos((t / 0.24) * Math.PI);
-  if (t > 0.64) return 0.5 + 0.5 * Math.cos(((t - 0.64) / 0.36) * Math.PI);
-  return 1;
+  const s = Math.sin(Math.min(1, Math.max(0, t)) * Math.PI);
+  return s * s;
 }
 
 /** Paint the patch onto its own layer: upper haze, vertical rays, then the bright
@@ -790,8 +816,9 @@ function paintAuroraLayer(a: Aurora, pw: number, ph: number, pad: number, dpr: n
   fg.addColorStop(0, rgba(pal.body, 0));
   fg.addColorStop(0.55, rgba(pal.body, 0.34 * breathe));
   fg.addColorStop(0.72, rgba(pal.body, 0.5 * breathe));
-  fg.addColorStop(0.84, rgba(pal.body, 0.22 * breathe));
-  fg.addColorStop(1, rgba(pal.body, 0));
+  const fringe = pal.fringe ?? pal.body;
+  fg.addColorStop(0.84, rgba(fringe, (pal.fringe ? 0.3 : 0.22) * breathe));
+  fg.addColorStop(1, rgba(fringe, 0));
   lc.fillStyle = fg;
   lc.beginPath();
   for (let i = 0; i <= segs; i++) {
@@ -849,8 +876,10 @@ function drawAurora(
   const t = a.life / a.maxLife;
   const fade = auroraEnvelope(Math.min(1, t));
   if (fade < 0.01) return;
-  const pw = a.width * scale;
-  const ph = a.height * scale;
+  // Expand in and out with the light: ~60% size when faint, full at peak.
+  const grow = 0.6 + 0.4 * fade;
+  const pw = a.width * scale * grow;
+  const ph = a.height * scale * grow;
   const pad = Math.max(12, ph * 0.18);
   const layer = paintAuroraLayer(a, pw, ph, pad, dpr);
   if (!layer) return;
@@ -860,7 +889,8 @@ function drawAurora(
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   ctx.globalAlpha = fade;
-  if ("filter" in ctx) ctx.filter = `blur(${Math.max(1.5, ph * 0.016).toFixed(1)}px)`;
+  if ("filter" in ctx)
+    ctx.filter = `blur(${(Math.max(1.5, ph * 0.016) * (1 + (1 - fade) * 1.4)).toFixed(1)}px)`;
   ctx.drawImage(
     layer,
     cx - pw * 0.5 - pad,

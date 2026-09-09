@@ -1,6 +1,6 @@
 {
   "name": "versa-admin-system",
-  "version": "0.7.164",
+  "version": "0.7.165",
   "private": true,
   "scripts": {
     "dev": "next dev",
