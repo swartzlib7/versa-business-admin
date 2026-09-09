@@ -17,10 +17,30 @@ export function sortByText<T>(rows: T[], dir: SortDir, get: (row: T) => string):
   return [...rows].sort((a, b) => sign * get(a).localeCompare(get(b), undefined, { sensitivity: "base" }));
 }
 
-export function mergeColumnOrder<K extends string>(saved: string[] | null, defaults: readonly K[]): K[] {
-  const known = new Set(defaults);
-  const next = (saved ?? []).filter((k): k is K => known.has(k as K));
-  for (const k of defaults) if (!next.includes(k)) next.push(k);
+export type ColumnOrderOpts<K extends string> = {
+  /** Keys that may appear (ERD / picker catalog). Defaults to `defaults`. */
+  catalog?: readonly K[];
+  /**
+   * When true, `saved` is the visible set — do not re-append hidden defaults.
+   * Reorder-only tables keep the old behavior (append missing defaults).
+   */
+  visibility?: boolean;
+};
+
+export function mergeColumnOrder<K extends string>(
+  saved: string[] | null,
+  defaults: readonly K[],
+  opts?: ColumnOrderOpts<K>,
+): K[] {
+  const catalogKeys = opts?.catalog;
+  const allowed = new Set(catalogKeys && catalogKeys.length > 0 ? catalogKeys : defaults);
+  const next = (saved ?? []).filter((k): k is K => allowed.has(k as K));
+  if (next.length === 0) return defaults.filter((k) => allowed.has(k));
+  if (!opts?.visibility) {
+    for (const k of defaults) {
+      if (!next.includes(k) && allowed.has(k)) next.push(k);
+    }
+  }
   if (next.includes("actions" as K)) {
     return [...next.filter((k) => k !== "actions"), "actions" as K];
   }
@@ -37,23 +57,34 @@ export function reorderKeys<K extends string>(cols: K[], from: string, to: strin
   return next;
 }
 
-export function usePersistedColumnOrder<K extends string>(storageKey: string, defaults: readonly K[]) {
+export function usePersistedColumnOrder<K extends string>(
+  storageKey: string,
+  defaults: readonly K[],
+  opts?: ColumnOrderOpts<K>,
+) {
   const [cols, setCols] = useState<K[]>(() => [...defaults]);
+  const catalog = opts?.catalog;
+  const visibility = opts?.visibility === true;
   useEffect(() => {
     try {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return;
       const parsed = JSON.parse(raw) as unknown;
-      if (Array.isArray(parsed)) setCols(mergeColumnOrder(parsed, defaults));
+      if (Array.isArray(parsed)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate column order from localStorage
+        setCols(mergeColumnOrder(parsed, defaults, { catalog, visibility }));
+      }
     } catch {
       /* keep defaults */
     }
-  }, [storageKey, defaults]);
+  }, [storageKey, defaults, catalog, visibility]);
 
   const reorder = useCallback((from: string, to: string) => {
     if (from === to || from === "actions") return;
     setCols((prev) => {
-      const next = mergeColumnOrder(reorderKeys(prev, from, to), defaults);
+      const next = visibility
+        ? reorderKeys(prev, from, to)
+        : mergeColumnOrder(reorderKeys(prev, from, to), defaults, { catalog, visibility });
       try {
         localStorage.setItem(storageKey, JSON.stringify(next));
       } catch {
@@ -61,7 +92,7 @@ export function usePersistedColumnOrder<K extends string>(storageKey: string, de
       }
       return next;
     });
-  }, [storageKey, defaults]);
+  }, [storageKey, defaults, catalog, visibility]);
 
   const setColumnOrder = useCallback(
     (next: K[]) => {

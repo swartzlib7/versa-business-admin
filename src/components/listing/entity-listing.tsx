@@ -42,6 +42,8 @@ export type ListingField = {
   span?: 1 | 2;
   /** Mask on screen (Show / Hide). */
   secret?: boolean;
+  /** header_lines placement — listing filters by this; omitted on other tables. */
+  zoneRole?: "header" | "list" | null;
 };
 
 export type EntityListingProps<T extends Record<string, unknown>> = {
@@ -86,9 +88,9 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
 type ListingCriterion = { key: string; value: string };
 
 /**
- * Shared listing toolbar (state_listing_toolbar.md WU-01/WU-02): criteria
- * chips for any rendered, non-secret column — picklist for select / boolean,
- * typed value otherwise. Column picker arrives with WU-03.
+ * Shared listing toolbar (state_listing_toolbar.md): criteria chips for
+ * currently rendered non-secret columns; Columns picker lists every
+ * non-secret ERD field that can be a table column.
  */
 function ListingToolbar({
   fields,
@@ -115,9 +117,15 @@ function ListingToolbar({
   const [columnKey, setColumnKey] = useState("");
   const [value, setValue] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
-  const filterable = useMemo(
-    () => fields.filter((f) => f.column !== false && !f.secret),
+  /** Columns picker: every non-secret field that can be a table column (ERD). */
+  const columnable = useMemo(
+    () => fields.filter((f) => !f.secret),
     [fields],
+  );
+  /** Filter: columns currently rendered (contract §1.1). */
+  const filterable = useMemo(
+    () => columnable.filter((f) => visibleKeys.includes(f.key)),
+    [columnable, visibleKeys],
   );
   const activeField = filterable.find((f) => f.key === columnKey);
   const valueOptions = useMemo(() => {
@@ -151,7 +159,7 @@ function ListingToolbar({
           : c.value;
     return (field?.label ?? c.key) + ": " + shown;
   };
-  if (filterable.length === 0 && criteria.length === 0) return null;
+  if (columnable.length === 0 && criteria.length === 0) return null;
   return (
     <div className="border-b border-border bg-muted/20 px-4 py-2.5 sm:px-6">
       <div className="flex flex-wrap items-center gap-2">
@@ -175,7 +183,7 @@ function ListingToolbar({
           aria-label="Search records by name"
           className="w-44 rounded-md border border-input bg-background px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
         />
-        {filterable.length > 0 && (
+        {columnable.length > 0 && (
           <div className="relative">
             <button
               type="button"
@@ -185,8 +193,8 @@ function ListingToolbar({
               Columns
             </button>
             {pickerOpen && (
-              <div className="absolute left-0 z-30 mt-1 w-64 rounded-md border border-border bg-background p-2 shadow-lg">
-                {filterable.map((f) => (
+              <div className="absolute left-0 z-30 mt-1 max-h-80 w-64 overflow-y-auto rounded-md border border-border bg-background p-2 shadow-lg">
+                {columnable.map((f) => (
                   <label
                     key={f.key}
                     className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs hover:bg-muted/50"
@@ -470,25 +478,40 @@ export function EntityListing<T extends Record<string, unknown>>({
     if (field?.secret) return maskSecretDisplay(raw);
     return formatCell ? formatCell(row, key, raw) : raw;
   };
-  const columns = useMemo(
-    () => fields.filter((f) => f.column !== false),
+  const allColumnFields = useMemo(
+    () => fields.filter((f) => !f.secret),
     [fields],
   );
   const defaultColKeys = useMemo(() => {
-    const keys = columns.map((c) => c.key);
+    const keys = fields.filter((f) => f.column !== false && !f.secret).map((c) => c.key);
     if (!columnOrder?.length) return keys;
-    const known = new Set(keys);
+    const known = new Set(allColumnFields.map((c) => c.key));
     const next = columnOrder.filter((k) => known.has(k));
     for (const k of keys) if (!next.includes(k)) next.push(k);
     return next;
-  }, [columns, columnOrder]);
+  }, [fields, allColumnFields, columnOrder]);
   const persistKey = columnStorageKey ?? `mc.listing.${title || "table"}.${defaultColKeys.join(".")}`;
-  const [colKeys, reorderCols, setColumnOrder] = usePersistedColumnOrder(persistKey, defaultColKeys);
+  const persistCatalog = useMemo(
+    () => allColumnFields.map((c) => c.key),
+    [allColumnFields],
+  );
+  const persistOpts = useMemo(
+    () => ({ catalog: persistCatalog, visibility: true as const }),
+    [persistCatalog],
+  );
+  const [colKeys, reorderCols, setColumnOrder] = usePersistedColumnOrder(
+    persistKey,
+    defaultColKeys,
+    persistOpts,
+  );
   const [sort, setSort] = useState<TableSort>({ key: defaultColKeys[0] ?? "", dir: "asc" });
   const [dragOver, setDragOver] = useState<string | null>(null);
   const orderedColumns = useMemo(
-    () => colKeys.map((k) => columns.find((c) => c.key === k)).filter((c): c is ListingField => Boolean(c)),
-    [colKeys, columns],
+    () =>
+      colKeys
+        .map((k) => allColumnFields.find((c) => c.key === k))
+        .filter((c): c is ListingField => Boolean(c)),
+    [colKeys, allColumnFields],
   );
   const headerCols = useMemo(
     () => (onAdd || onUpdate || onDelete || viewHref ? [...colKeys, "actions"] : colKeys),
@@ -507,9 +530,9 @@ export function EntityListing<T extends Record<string, unknown>>({
     const meta: Record<string, { label: string; sortKey?: string }> = {
       actions: { label: "Actions" },
     };
-    for (const c of columns) meta[c.key] = { label: c.label, sortKey: c.key };
+    for (const c of allColumnFields) meta[c.key] = { label: c.label, sortKey: c.key };
     return meta;
-  }, [columns]);
+  }, [allColumnFields]);
   const activeSort = useMemo<TableSort>(
     () =>
       colKeys.includes(sort.key)

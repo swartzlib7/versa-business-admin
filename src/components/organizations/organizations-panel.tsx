@@ -14,8 +14,8 @@ import { EntityListing, type ListingField } from '@/components/listing/entity-li
 import { theme } from '@/lib/theme';
 import type { Organization, OrgType } from '@/lib/data/types';
 import { primaryOrganization } from '@/lib/organizations/primary-org';
+import { listingFieldsFromCatalog, resolvePicklistLabel } from '@/lib/catalog/layout-to-fields';
 
-const ORG_TYPES: OrgType[] = ['internal', 'vendor', 'customer', 'partner', 'branch'];
 const ORG_TYPE_LABELS: Record<OrgType, string> = {
   internal: 'Org',
   vendor: 'Vendor',
@@ -129,33 +129,44 @@ function ErrorCard({ message }: { message: string }) {
   );
 }
 
+const ORG_CORE_KEYS = new Set(["name", "org_type", "is_person", "parent_organization_id"]);
+const ORG_READONLY_KEYS = new Set(["created_by", "last_modified_by"]);
+
+function extraOrgData(draft: Record<string, string>): Record<string, unknown> {
+  const data: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(draft)) {
+    if (ORG_CORE_KEYS.has(k) || ORG_READONLY_KEYS.has(k)) continue;
+    if (v === "") continue;
+    if (k === "is_active") data[k] = v === "true";
+    else data[k] = v;
+  }
+  return data;
+}
+
 function orgFields(
   orgs: Organization[],
   opts: { includeType?: boolean; includeParent?: boolean },
 ): ListingField[] {
-  const fields: ListingField[] = [
-    { key: 'name', label: 'Name', kind: 'text' },
-  ];
-  if (opts.includeType) {
-    fields.push({
-      key: 'org_type',
-      label: 'Organization type',
-      kind: 'select',
-      options: [...ORG_TYPES],
-      optionLabels: ORG_TYPES.map((t) => ORG_TYPE_LABELS[t]),
-    });
-  }
-  if (opts.includeParent) {
-    fields.push({
-      key: 'parent_organization_id',
-      label: 'Parent Org',
-      kind: 'select',
-      options: orgs.map((o) => o.id),
-      optionLabels: orgs.map((o) => o.name),
-    });
-  }
-  fields.push({ key: 'is_person', label: 'Person organization', kind: 'boolean' });
-  return fields;
+  const visible = new Set(
+    [
+      'name',
+      opts.includeType ? 'org_type' : null,
+      'is_person',
+      opts.includeParent ? 'parent_organization_id' : null,
+    ].filter((k): k is string => Boolean(k)),
+  );
+  return listingFieldsFromCatalog('organization').map((f) => {
+    const parent = f.key === 'parent_organization_id';
+    return {
+      key: f.key,
+      label: f.label,
+      kind: f.kind,
+      options: parent ? orgs.map((o) => o.id) : f.options,
+      optionLabels: parent ? orgs.map((o) => o.name) : f.optionLabels,
+      column: visible.has(f.key),
+      secret: f.secret,
+    };
+  });
 }
 
 function orgCell(row: Organization, key: string, orgs: Organization[]): string {
@@ -171,18 +182,25 @@ function orgCell(row: Organization, key: string, orgs: Organization[]): string {
       const parent = orgs.find((o) => o.id === row.parent_organization_id);
       return parent ? parent.id : row.parent_organization_id;
     }
-    default:
-      return '';
+    default: {
+      const data = (row.data ?? {}) as Record<string, unknown>;
+      const v = (row as unknown as Record<string, unknown>)[key] ?? data[key];
+      if (v == null) return '';
+      if (typeof v === 'boolean') return v ? 'true' : 'false';
+      return String(v);
+    }
   }
 }
 
 function orgFormat(row: Organization, key: string, raw: string, orgs: Organization[]): string {
   if (key === 'org_type' && raw) return ORG_TYPE_LABELS[raw as OrgType] ?? raw;
-  if (key === 'is_person') return raw === 'true' ? 'Yes' : 'No';
+  if (key === 'is_person' || key === 'is_active') return raw === 'true' ? 'Yes' : 'No';
   if (key === 'parent_organization_id' && raw) {
     const parent = orgs.find((o) => o.id === raw);
     return parent ? parent.name : raw;
   }
+  const catalog = listingFieldsFromCatalog('organization').find((f) => f.key === key);
+  if (catalog?.kind === 'select' && raw) return resolvePicklistLabel(catalog, raw);
   return raw;
 }
 
@@ -209,6 +227,7 @@ export function OrganizationsPanel({ accent }: { accent?: string }) {
         org_type: draft.org_type || (hasPrimary ? 'vendor' : 'internal'),
         is_person: draft.is_person === 'true',
         parent_organization_id: draft.parent_organization_id || null,
+        data: extraOrgData(draft),
       }),
     });
     if (!res.ok) {
@@ -231,6 +250,7 @@ export function OrganizationsPanel({ accent }: { accent?: string }) {
         org_type: draft.org_type || undefined,
         is_person: draft.is_person === 'true',
         parent_organization_id: draft.parent_organization_id || null,
+        data: extraOrgData(draft),
       }),
     });
     if (!res.ok) {
@@ -330,6 +350,7 @@ export function OrgTypeListingPanel({
         org_type: orgType,
         is_person: draft.is_person === 'true',
         parent_organization_id: parentId,
+        data: extraOrgData(draft),
       }),
     });
     if (!res.ok) {
@@ -353,6 +374,7 @@ export function OrgTypeListingPanel({
         ...(orgType === 'branch'
           ? { parent_organization_id: draft.parent_organization_id || primaryOrgId || null }
           : {}),
+        data: extraOrgData(draft),
       }),
     });
     if (!res.ok) {

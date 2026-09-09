@@ -41,6 +41,7 @@ export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "a
         options: f.options,
         optionLabels: f.optionLabels,
         column: f.column,
+        secret: f.secret,
       })),
     [catalogFields],
   );
@@ -68,7 +69,12 @@ export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "a
 
   const getCell = (row: LocalUser, key: string) => {
     const vals = toCatalogValues(row);
-    return vals[key] ?? "";
+    if (Object.prototype.hasOwnProperty.call(vals, key)) return vals[key];
+    const data = (row.data ?? {}) as Record<string, unknown>;
+    const v = (row as Record<string, unknown>)[key] ?? data[key];
+    if (v == null) return "";
+    if (typeof v === "boolean") return v ? "true" : "false";
+    return String(v);
   };
 
   const formatCell = (row: LocalUser, key: string, raw: string) => {

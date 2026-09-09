@@ -659,53 +659,37 @@ function ListingPanel({
           if (f.span === 2) spanByApi.set(f.key, 2);
         }
       }
-      return orderedApis
-        .map((api) => {
-          const f = byApi.get(api)!;
-          return {
-            key: f.api_name,
-            label: f.label,
-            kind: dataTypeToUiKind(f.data_type as CatalogDataType),
-            column: (colSet.has(f.label) || colSet.has(f.api_name)) && !f.is_secret && f.api_name !== "configuration",
-            span: spanByApi.get(api) ?? 1,
-            required: f.is_required,
-            zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
-            secret: f.is_secret === true || f.api_name === "configuration",
-          };
-        })
-        // #185 Slice A: instances view keeps header fields (the instance form);
-        // lines view filters to list-zone fields (the line editor).
-        if (viewMode === "instances") {
-          return orderedApis
-            .map((api) => {
-              const f = byApi.get(api)!;
-              return {
-                key: f.api_name,
-                label: f.label,
-                kind: dataTypeToUiKind(f.data_type as CatalogDataType),
-                column: colSet.has(f.label) || colSet.has(f.api_name),
-                span: spanByApi.get(api) ?? 1,
-                required: f.is_required,
-                zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
-              };
-            })
-            .filter((f) => f.zoneRole == null || f.zoneRole === "header");
-        }
-        return orderedApis
-          .map((api) => {
-            const f = byApi.get(api)!;
-            return {
-              key: f.api_name,
-              label: f.label,
-              kind: dataTypeToUiKind(f.data_type as CatalogDataType),
-              column: colSet.has(f.label) || colSet.has(f.api_name),
-              span: spanByApi.get(api) ?? 1,
-              required: f.is_required,
-              zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
-            };
-          })
-          .filter((f) => f.zoneRole == null || f.zoneRole === "list");
+      const mapped: ListingField[] = orderedApis.map((api) => {
+        const f = byApi.get(api)!;
+        const opts = optionsForField(f);
+        return {
+          key: f.api_name,
+          label: f.label,
+          kind: dataTypeToUiKind(f.data_type as CatalogDataType),
+          options: opts.options,
+          optionLabels: opts.optionLabels,
+          column:
+            (colSet.has(f.label) || colSet.has(f.api_name)) &&
+            f.api_name !== "created_by" &&
+            f.api_name !== "last_modified_by" &&
+            !f.is_secret &&
+            f.api_name !== "configuration",
+          span: spanByApi.get(api) ?? 1,
+          secret: f.is_secret === true || f.api_name === "configuration",
+          zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
+        };
+      });
+      // Instances list = header + platform fields. Lines table = list + platform.
+      // Inactive catalog rows are already excluded. column:false fields stay
+      // in the Columns picker so the operator can add every ERD listing field.
+      if (viewMode === "instances") {
+        return mapped.filter((f) => f.zoneRole == null || f.zoneRole === "header");
       }
+      if (panel.structure === "header_lines") {
+        return mapped.filter((f) => f.zoneRole == null || f.zoneRole === "list");
+      }
+      return mapped;
+    }
       const colSet = new Set(columns);
     const fromFields: ListingField[] = panel.fields.map((f) => ({
       key: f.label,
