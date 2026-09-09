@@ -659,7 +659,7 @@ export function BrandingPanel({
             />
             <p className="text-xs text-muted-foreground">
               25% is a wide night sky (browser zoomed out). 100% is the current
-              scale. 200% is close-in. Shooting stars, satellites, asteroids, and comets keep their own size.
+              scale. 200% is close-in. Shooting stars, satellites, asteroids, comets, and aurora keep their own size.
             </p>
           </div>
           <div className="grid shrink-0 gap-3 sm:grid-cols-2">
@@ -690,6 +690,13 @@ export function BrandingPanel({
               style={draft.effects.comets}
               color={draft.color}
               onChange={(partial) => patchEffect("comets", partial)}
+            />
+            <SkyEffectRow
+              title="Aurora"
+              hint="Northern-light curtains from a top corner, drifting up and across for 3–8 seconds. 1× waits 90–360s between appearances."
+              style={draft.effects.aurora}
+              color={draft.color}
+              onChange={(partial) => patchEffect("aurora", partial)}
             />
           </div>
           <div className="shrink-0 space-y-2">

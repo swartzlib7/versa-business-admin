@@ -262,6 +262,27 @@ type TrueComet = {
 
 type Rgb = [number, number, number];
 
+type AuroraBand = {
+  offset: number;
+  phase: number;
+  width: number;
+  height: number;
+  color: Rgb;
+};
+
+type Aurora = {
+  side: 1 | -1;
+  life: number;
+  maxLife: number;
+  bands: AuroraBand[];
+};
+
+const AURORA_COLORS: Rgb[] = [
+  [72, 255, 168],
+  [40, 210, 230],
+  [186, 92, 255],
+];
+
 function rand(min: number, max: number) {
   return min + Math.random() * (max - min);
 }
@@ -622,13 +643,89 @@ function drawTrueComet(
   ctx.restore();
 }
 
+function spawnAurora(): Aurora {
+  const side: 1 | -1 = Math.random() > 0.5 ? 1 : -1;
+  return {
+    side,
+    life: 0,
+    maxLife: rand(3, 8),
+    bands: AURORA_COLORS.map((color, i) => ({
+      offset: (i - 1) * 0.07,
+      phase: rand(0, Math.PI * 2),
+      width: rand(0.22, 0.4),
+      height: rand(0.16, 0.3),
+      color,
+    })),
+  };
+}
+
+function drawAurora(
+  ctx: CanvasRenderingContext2D,
+  a: Aurora,
+  w: number,
+  h: number,
+  driftX: number,
+  driftY: number,
+  scale: number,
+) {
+  const t = a.life / a.maxLife;
+  const fade = t < 0.14 ? t / 0.14 : t > 0.74 ? Math.max(0, (1 - t) / 0.26) : 1;
+  if (fade < 0.01) return;
+  const ease = 0.5 - 0.5 * Math.cos(Math.min(1, t) * Math.PI);
+  const fromLeft = a.side === 1;
+  const startX = fromLeft ? w * 0.04 : w * 0.96;
+  const endX = fromLeft ? w * 0.78 : w * 0.22;
+  const cx = startX + (endX - startX) * ease + driftX * 0.06;
+  const baseY = h * (0.3 - ease * 0.16) + driftY * 0.04;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, w, h * 0.55);
+  ctx.clip();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.translate(cx, baseY);
+  ctx.scale(scale, scale);
+  ctx.translate(-cx, -baseY);
+
+  for (const band of a.bands) {
+    const span = w * band.width;
+    const left = cx + band.offset * w - span * 0.5;
+    const steps = 16;
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      const px = left + u * span;
+      const wave = Math.sin(u * Math.PI * 2.4 + a.life * 1.35 + band.phase) * h * 0.032;
+      const py = baseY + wave;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    for (let i = steps; i >= 0; i--) {
+      const u = i / steps;
+      const px = left + u * span;
+      const wave = Math.sin(u * Math.PI * 2.4 + a.life * 1.35 + band.phase) * h * 0.032;
+      const rise = h * band.height * Math.sin(u * Math.PI) + ease * h * 0.07;
+      ctx.lineTo(px, baseY + wave - rise);
+    }
+    ctx.closePath();
+    const g = ctx.createLinearGradient(cx, baseY, cx, Math.max(0, baseY - h * (0.14 + band.height)));
+    g.addColorStop(0, rgba(band.color, 0));
+    g.addColorStop(0.3, rgba(band.color, 0.06 * fade));
+    g.addColorStop(0.62, rgba(band.color, 0.15 * fade));
+    g.addColorStop(1, rgba(band.color, 0));
+    ctx.fillStyle = g;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 /**
  * Fixed starry field (full viewport). Gentle parallax with the cursor.
  * Two star variants:
  *  - classic: dense diagonal band, brand-tinted stars (original look).
  *  - realistic: natural star distribution with subtle color temperature
  *    variation and diffraction glints on the brightest stars.
- * Shooting stars, satellites, asteroids, and comets are separate layers with their own
+ * Shooting stars, satellites, asteroids, comets, and aurora are separate layers with their own
  * On/Off and zoom — they do not inherit the star-field zoom.
  * Density (0–1) is a shared 1–10 control. Classic level 5 is the original
  * band; Realistic 1×–10× still scales the natural field and packs into the
@@ -655,27 +752,33 @@ export function VersaConstellation({
   const satZ = clampSkyZoom(skyFx.satellites.zoom);
   const asteroidZ = clampSkyZoom(skyFx.asteroids.zoom);
   const cometZ = clampSkyZoom(skyFx.comets.zoom);
+  const auroraZ = clampSkyZoom(skyFx.aurora.zoom);
   const meteorF = clampSkyFrequency(skyFx.meteors.frequency);
   const satF = clampSkyFrequency(skyFx.satellites.frequency);
   const asteroidF = clampSkyFrequency(skyFx.asteroids.frequency);
   const cometF = clampSkyFrequency(skyFx.comets.frequency);
+  const auroraF = clampSkyFrequency(skyFx.aurora.frequency);
   const meteorsOn = skyFx.meteors.enabled;
   const satsOn = skyFx.satellites.enabled;
   const asteroidsOn = skyFx.asteroids.enabled;
   const cometsOn = skyFx.comets.enabled;
+  const auroraOn = skyFx.aurora.enabled;
   const fxRef = useRef({
     meteorZ,
     satZ,
     asteroidZ,
     cometZ,
+    auroraZ,
     meteorF,
     satF,
     asteroidF,
     cometF,
+    auroraF,
     meteorsOn,
     satsOn,
     asteroidsOn,
     cometsOn,
+    auroraOn,
   });
   useEffect(() => {
     fxRef.current = {
@@ -683,34 +786,40 @@ export function VersaConstellation({
       satZ,
       asteroidZ,
       cometZ,
+      auroraZ,
       meteorF,
       satF,
       asteroidF,
       cometF,
+      auroraF,
       meteorsOn,
       satsOn,
       asteroidsOn,
       cometsOn,
+      auroraOn,
     };
   }, [
     meteorZ,
     satZ,
     asteroidZ,
     cometZ,
+    auroraZ,
     meteorF,
     satF,
     asteroidF,
     cometF,
+    auroraF,
     meteorsOn,
     satsOn,
     asteroidsOn,
     cometsOn,
+    auroraOn,
   ]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     const reduceMotion = window.matchMedia(
@@ -725,14 +834,19 @@ export function VersaConstellation({
     const asteroidDust: AsteroidDust[] = [];
     const trueComets: TrueComet[] = [];
     const cometTrail: CometTrail[] = [];
+    const auroras: Aurora[] = [];
     const gap = (lo: number, hi: number, freq: number) =>
       rand(lo, hi) / Math.max(freq, SKY_FREQ_MIN);
     let raf = 0;
+    let paused = document.hidden;
     let last = performance.now();
     let spawnIn = gap(5.4, 12.6, fxRef.current.meteorF);
     let satelliteSpawnIn = gap(6, 14, fxRef.current.satF);
     let asteroidSpawnIn = gap(4, 10, fxRef.current.asteroidF);
     let trueCometSpawnIn = gap(8, 18, fxRef.current.cometF);
+    let auroraSpawnIn = preview
+      ? gap(1.6, 4.2, fxRef.current.auroraF)
+      : gap(90, 360, fxRef.current.auroraF);
     let dustAcc = 0;
     let cometTrailAcc = 0;
     let asteroidTintSeq = 0;
@@ -859,7 +973,6 @@ export function VersaConstellation({
     };
     if (!preview) {
       window.addEventListener("pointermove", onMove, { passive: true });
-      window.addEventListener("mousemove", onMove, { passive: true });
     }
 
     const themeObserver = new MutationObserver(() => {
@@ -1075,6 +1188,7 @@ export function VersaConstellation({
           const y = s.y + driftY * s.depth;
           const color = starColor(s);
           const alpha = s.bright * pulse;
+          if (alpha < 0.02 && !s.glint) continue;
           if (s.glint) {
             drawGlint(ctx, x, y, s.r, color, alpha, s.jitter);
           }
@@ -1317,18 +1431,54 @@ export function VersaConstellation({
               drawTrueComet(ctx, c, driftX, driftY, cz);
             }
           }
+
+          if (!fx.auroraOn) {
+            auroras.length = 0;
+          } else {
+            auroraSpawnIn -= dt;
+            if (auroraSpawnIn <= 0 && auroras.length < 1) {
+              auroras.push(spawnAurora());
+              auroraSpawnIn = 1e9;
+            }
+            const az = fx.auroraZ;
+            for (let i = auroras.length - 1; i >= 0; i--) {
+              const a = auroras[i];
+              a.life += dt;
+              drawAurora(ctx, a, ew, eh, driftX, driftY, az);
+              if (a.life >= a.maxLife) {
+                auroras.splice(i, 1);
+                auroraSpawnIn = gap(90, 360, fx.auroraF);
+              }
+            }
+          }
           ctx.restore();
         }
       } catch {
         /* keep the loop alive if a frame fails */
       }
 
-      if (!reduceMotion && running) {
+      if (!reduceMotion && running && !paused) {
         raf = requestAnimationFrame(draw);
       }
     };
 
-    draw(performance.now());
+    const kick = () => {
+      last = performance.now();
+      raf = requestAnimationFrame(draw);
+    };
+
+    const onVis = () => {
+      if (document.hidden) {
+        paused = true;
+        cancelAnimationFrame(raf);
+      } else {
+        paused = false;
+        if (!reduceMotion && running) kick();
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    if (!paused) draw(performance.now());
 
     return () => {
       running = false;
@@ -1336,7 +1486,7 @@ export function VersaConstellation({
       window.removeEventListener("resize", onResize);
       window.clearTimeout(resizeTimer);
       window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("mousemove", onMove);
+      document.removeEventListener("visibilitychange", onVis);
       ro?.disconnect();
       themeObserver.disconnect();
     };

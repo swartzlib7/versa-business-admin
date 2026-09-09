@@ -133,7 +133,7 @@ export async function PUT(request: Request) {
       {
         error: {
           code: 'INVALID_SKY_EFFECTS',
-          message: 'constellation_effects must be an object with meteors, satellites, asteroids, and comets.',
+          message: 'constellation_effects must be an object with meteors, satellites, asteroids, comets, and aurora.',
         },
       },
       { status: 400 },

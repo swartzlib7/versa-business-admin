@@ -125,7 +125,7 @@ export function formatSkyFrequency(n: unknown): string {
   return `${f}×`;
 }
 
-export type SkyEffectId = "meteors" | "satellites" | "asteroids" | "comets";
+export type SkyEffectId = "meteors" | "satellites" | "asteroids" | "comets" | "aurora";
 
 export type SkyEffectStyle = {
   enabled: boolean;
@@ -140,6 +140,7 @@ export const DEFAULT_SKY_EFFECTS: SkyEffects = {
   satellites: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
   asteroids: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
   comets: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
+  aurora: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
 };
 
 function readSkyEffectStyle(row: unknown, fallbackEnabled: boolean): SkyEffectStyle {
@@ -160,10 +161,11 @@ export function resolveSkyEffects(raw: unknown): SkyEffects {
     // Pre-0.7.138 `comets` was the tumbling rock — that design is now Asteroids.
     asteroids: readSkyEffectStyle(hasAsteroids ? obj.asteroids : obj.comets, false),
     comets: readSkyEffectStyle(hasAsteroids ? obj.comets : undefined, false),
+    aurora: readSkyEffectStyle(obj.aurora, true),
   };
 }
 
-/** Nested `{ meteors, satellites, asteroids, comets }` object from the API body. */
+/** Nested `{ meteors, satellites, asteroids, comets, aurora }` object from the API body. */
 export function parseSkyEffects(raw: unknown): SkyEffects | undefined {
   if (raw == null || typeof raw !== "object") return undefined;
   return resolveSkyEffects(raw);
