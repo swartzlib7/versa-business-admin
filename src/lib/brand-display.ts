@@ -142,6 +142,7 @@ export const DEFAULT_SKY_EFFECTS: SkyEffects = {
   comets: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
   aurora: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
 };
+// Aurora stays Off unless a board saved it On (see resolveSkyEffects fallback).
 
 function readSkyEffectStyle(row: unknown, fallbackEnabled: boolean): SkyEffectStyle {
   const r = row && typeof row === "object" ? (row as Record<string, unknown>) : {};
