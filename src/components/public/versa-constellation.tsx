@@ -262,26 +262,37 @@ type TrueComet = {
 
 type Rgb = [number, number, number];
 
-type AuroraBand = {
-  offset: number;
+type AuroraRay = {
+  u: number;
   phase: number;
+  length: number;
   width: number;
+  bright: number;
+};
+
+type AuroraSheet = {
+  phase: number;
+  foldAmp: number;
+  foldFreq: number;
   height: number;
-  color: Rgb;
+  tilt: number;
 };
 
 type Aurora = {
   side: 1 | -1;
   life: number;
   maxLife: number;
-  bands: AuroraBand[];
+  originX: number;
+  originY: number;
+  sheets: AuroraSheet[];
+  rays: AuroraRay[];
 };
 
-const AURORA_COLORS: Rgb[] = [
-  [72, 255, 168],
-  [40, 210, 230],
-  [186, 92, 255],
-];
+const AURORA_VIOLET: Rgb = [168, 118, 255];
+const AURORA_CYAN: Rgb = [56, 230, 236];
+const AURORA_GREEN: Rgb = [72, 255, 156];
+const AURORA_LIME: Rgb = [186, 255, 140];
+const AURORA_MAGENTA: Rgb = [255, 92, 168];
 
 function rand(min: number, max: number) {
   return min + Math.random() * (max - min);
@@ -645,18 +656,43 @@ function drawTrueComet(
 
 function spawnAurora(): Aurora {
   const side: 1 | -1 = Math.random() > 0.5 ? 1 : -1;
+  const rayCount = 56;
+  const rays: AuroraRay[] = [];
+  for (let i = 0; i < rayCount; i++) {
+    rays.push({
+      u: (i + 0.35 * Math.random()) / (rayCount - 1),
+      phase: rand(0, Math.PI * 2),
+      length: rand(0.72, 1.08),
+      width: rand(1.15, 2.35),
+      bright: rand(0.55, 1),
+    });
+  }
+  const sheets: AuroraSheet[] = [];
+  const nSheets = 3;
+  for (let i = 0; i < nSheets; i++) {
+    sheets.push({
+      phase: rand(0, Math.PI * 2),
+      foldAmp: rand(0.7, 1.15),
+      foldFreq: rand(1.6, 2.6),
+      height: rand(0.78, 1.12),
+      tilt: rand(-0.18, 0.18),
+    });
+  }
   return {
     side,
     life: 0,
     maxLife: rand(3, 8),
-    bands: AURORA_COLORS.map((color, i) => ({
-      offset: (i - 1) * 0.07,
-      phase: rand(0, Math.PI * 2),
-      width: rand(0.22, 0.4),
-      height: rand(0.16, 0.3),
-      color,
-    })),
+    originX: side === 1 ? rand(0.02, 0.16) : rand(0.84, 0.98),
+    originY: rand(0.03, 0.16),
+    sheets,
+    rays,
   };
+}
+
+function auroraEnvelope(t: number): number {
+  if (t < 0.16) return t / 0.16;
+  if (t > 0.72) return Math.max(0, (1 - t) / 0.28);
+  return 1;
 }
 
 function drawAurora(
@@ -669,52 +705,86 @@ function drawAurora(
   scale: number,
 ) {
   const t = a.life / a.maxLife;
-  const fade = t < 0.14 ? t / 0.14 : t > 0.74 ? Math.max(0, (1 - t) / 0.26) : 1;
+  const fade = auroraEnvelope(t);
   if (fade < 0.01) return;
   const ease = 0.5 - 0.5 * Math.cos(Math.min(1, t) * Math.PI);
   const fromLeft = a.side === 1;
-  const startX = fromLeft ? w * 0.04 : w * 0.96;
-  const endX = fromLeft ? w * 0.78 : w * 0.22;
-  const cx = startX + (endX - startX) * ease + driftX * 0.06;
-  const baseY = h * (0.3 - ease * 0.16) + driftY * 0.04;
+  const travel = (fromLeft ? 1 : -1) * w * (0.08 + ease * 0.38);
+  const cx = a.originX * w + travel + driftX * 0.045;
+  const cy = a.originY * h - ease * h * 0.07 + driftY * 0.03;
 
   ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, 0, w, h * 0.55);
-  ctx.clip();
   ctx.globalCompositeOperation = "lighter";
-  ctx.translate(cx, baseY);
+  ctx.translate(cx, cy);
   ctx.scale(scale, scale);
-  ctx.translate(-cx, -baseY);
+  ctx.translate(-cx, -cy);
 
-  for (const band of a.bands) {
-    const span = w * band.width;
-    const left = cx + band.offset * w - span * 0.5;
-    const steps = 16;
+  for (let s = 0; s < a.sheets.length; s++) {
+    const sheet = a.sheets[s];
+    const span = w * (0.34 + sheet.height * 0.1);
+    const left = fromLeft ? cx : cx - span;
+    const sheetShift = (s - 1) * w * 0.035;
+    const veil = ctx.createLinearGradient(left, cy, left, cy + h * 0.42 * sheet.height);
+    const veilA = fade * (0.18 + 0.06 * s);
+    veil.addColorStop(0, rgba(AURORA_CYAN, 0));
+    veil.addColorStop(0.18, rgba(AURORA_GREEN, veilA * 0.55));
+    veil.addColorStop(0.55, rgba(AURORA_GREEN, veilA * 0.22));
+    veil.addColorStop(0.86, rgba(AURORA_MAGENTA, veilA * 0.2));
+    veil.addColorStop(1, rgba(AURORA_MAGENTA, 0));
+    ctx.fillStyle = veil;
     ctx.beginPath();
-    for (let i = 0; i <= steps; i++) {
-      const u = i / steps;
-      const px = left + u * span;
-      const wave = Math.sin(u * Math.PI * 2.4 + a.life * 1.35 + band.phase) * h * 0.032;
-      const py = baseY + wave;
+    const vSteps = 18;
+    for (let i = 0; i <= vSteps; i++) {
+      const u = i / vSteps;
+      const fold = Math.sin(u * sheet.foldFreq * Math.PI * 2 + a.life * 1.05 + sheet.phase) * sheet.foldAmp;
+      const px = left + sheetShift + u * span + fold * w * 0.055;
+      const py = cy + Math.sin(u * Math.PI * 1.4 + sheet.phase) * h * 0.028;
       if (i === 0) ctx.moveTo(px, py);
       else ctx.lineTo(px, py);
     }
-    for (let i = steps; i >= 0; i--) {
-      const u = i / steps;
-      const px = left + u * span;
-      const wave = Math.sin(u * Math.PI * 2.4 + a.life * 1.35 + band.phase) * h * 0.032;
-      const rise = h * band.height * Math.sin(u * Math.PI) + ease * h * 0.07;
-      ctx.lineTo(px, baseY + wave - rise);
+    for (let i = vSteps; i >= 0; i--) {
+      const u = i / vSteps;
+      const fold = Math.sin(u * sheet.foldFreq * Math.PI * 2 + a.life * 1.05 + sheet.phase) * sheet.foldAmp;
+      const px = left + sheetShift + u * span + fold * w * 0.04;
+      const drop = h * (0.28 + 0.16 * Math.sin(u * Math.PI)) * sheet.height;
+      ctx.lineTo(px + sheet.tilt * drop, cy + drop);
     }
     ctx.closePath();
-    const g = ctx.createLinearGradient(cx, baseY, cx, Math.max(0, baseY - h * (0.14 + band.height)));
-    g.addColorStop(0, rgba(band.color, 0));
-    g.addColorStop(0.3, rgba(band.color, 0.06 * fade));
-    g.addColorStop(0.62, rgba(band.color, 0.15 * fade));
-    g.addColorStop(1, rgba(band.color, 0));
-    ctx.fillStyle = g;
     ctx.fill();
+
+    ctx.lineCap = "round";
+    for (const ray of a.rays) {
+      const u = ray.u;
+      const foldPhase = u * sheet.foldFreq * Math.PI * 2 + a.life * 1.15 + sheet.phase;
+      const fold = Math.sin(foldPhase) * sheet.foldAmp;
+      const edge = Math.pow(Math.abs(Math.cos(foldPhase)), 2.4);
+      const shimmer = 0.62 + 0.38 * Math.sin(a.life * 3.6 + ray.phase);
+      const climb = Math.sin(u * Math.PI);
+      const px = left + sheetShift + u * span + fold * w * 0.07;
+      const top = cy + Math.sin(u * Math.PI * 1.6 + sheet.phase + a.life * 0.55) * h * 0.03;
+      const len = h * ray.length * sheet.height * (0.34 + 0.3 * climb) * shimmer;
+      const bot = top + len;
+      const gain = fade * ray.bright * shimmer * (0.72 + 0.55 * edge);
+      const g = ctx.createLinearGradient(px, top, px + sheet.tilt * len, bot);
+      g.addColorStop(0, rgba(AURORA_VIOLET, 0));
+      g.addColorStop(0.08, rgba(AURORA_CYAN, 0.42 * gain));
+      g.addColorStop(0.28, rgba(AURORA_GREEN, 0.82 * gain));
+      g.addColorStop(0.52, rgba(AURORA_LIME, 0.5 * gain));
+      g.addColorStop(0.78, rgba(AURORA_GREEN, 0.22 * gain));
+      g.addColorStop(0.9, rgba(AURORA_MAGENTA, 0.4 * gain));
+      g.addColorStop(1, rgba(AURORA_MAGENTA, 0));
+      ctx.strokeStyle = g;
+      ctx.lineWidth = ray.width * (1 + edge * 0.65);
+      const midX =
+        px +
+        sheet.tilt * len * 0.45 +
+        Math.sin(a.life * 2.1 + ray.phase) * w * 0.01 +
+        fold * w * 0.012;
+      ctx.beginPath();
+      ctx.moveTo(px, top);
+      ctx.quadraticCurveTo(midX, (top + bot) * 0.5, px + sheet.tilt * len, bot);
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
@@ -845,7 +915,7 @@ export function VersaConstellation({
     let asteroidSpawnIn = gap(4, 10, fxRef.current.asteroidF);
     let trueCometSpawnIn = gap(8, 18, fxRef.current.cometF);
     let auroraSpawnIn = preview
-      ? gap(1.6, 4.2, fxRef.current.auroraF)
+      ? gap(0.35, 1.1, fxRef.current.auroraF)
       : gap(90, 360, fxRef.current.auroraF);
     let dustAcc = 0;
     let cometTrailAcc = 0;
@@ -1447,7 +1517,9 @@ export function VersaConstellation({
               drawAurora(ctx, a, ew, eh, driftX, driftY, az);
               if (a.life >= a.maxLife) {
                 auroras.splice(i, 1);
-                auroraSpawnIn = gap(90, 360, fx.auroraF);
+                auroraSpawnIn = preview
+                  ? gap(1.6, 4.2, fx.auroraF)
+                  : gap(90, 360, fx.auroraF);
               }
             }
           }
