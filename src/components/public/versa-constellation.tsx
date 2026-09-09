@@ -263,13 +263,13 @@ type TrueComet = {
 type Rgb = [number, number, number];
 
 /** One small aurora patch: a soft landscape gradient (150–450 × 100–250 css px)
- *  faded on every side, with a slow long-wave ripple running across it. */
+ *  faded on every side, built from layered colour ribbons that share one slow
+ *  long-wave ripple. Rendered to its own layer and blurred so no band lines show. */
 type Aurora = {
   x: number;
   y: number;
   width: number;
   height: number;
-  delay: number;
   life: number;
   maxLife: number;
   phase: number;
@@ -278,14 +278,51 @@ type Aurora = {
   rippleAmp: number;
   driftX: number;
   driftY: number;
-  tint: 0 | 1 | 2;
+  palette: AuroraPalette;
+  layer: HTMLCanvasElement | null;
 };
 
-const AURORA_VIOLET: Rgb = [168, 118, 255];
-const AURORA_CYAN: Rgb = [56, 230, 236];
-const AURORA_TEAL: Rgb = [64, 236, 200];
-const AURORA_GREEN: Rgb = [72, 255, 156];
-const AURORA_MAGENTA: Rgb = [255, 92, 168];
+type AuroraRibbon = {
+  color: Rgb;
+  center: number;
+  thickness: number;
+  gain: number;
+  lag: number;
+};
+
+/** Real-sky aurora structure: bright oxygen green body, red/magenta upper fringe,
+ *  blue/violet or teal lower edge (nitrogen). Ribbons are listed top to bottom. */
+type AuroraPalette = { id: "classic" | "violet" | "teal"; ribbons: AuroraRibbon[] };
+
+const AURORA_PALETTES: AuroraPalette[] = [
+  {
+    id: "classic",
+    ribbons: [
+      { color: [255, 84, 132], center: 0.24, thickness: 0.34, gain: 0.5, lag: 0.55 },
+      { color: [110, 255, 150], center: 0.5, thickness: 0.5, gain: 1, lag: 0 },
+      { color: [190, 255, 120], center: 0.56, thickness: 0.2, gain: 0.55, lag: 0.2 },
+      { color: [70, 150, 255], center: 0.78, thickness: 0.3, gain: 0.42, lag: -0.5 },
+    ],
+  },
+  {
+    id: "violet",
+    ribbons: [
+      { color: [214, 96, 255], center: 0.26, thickness: 0.36, gain: 0.6, lag: 0.6 },
+      { color: [90, 255, 170], center: 0.52, thickness: 0.48, gain: 1, lag: 0 },
+      { color: [255, 122, 170], center: 0.32, thickness: 0.16, gain: 0.35, lag: 0.9 },
+      { color: [96, 120, 255], center: 0.8, thickness: 0.28, gain: 0.48, lag: -0.45 },
+    ],
+  },
+  {
+    id: "teal",
+    ribbons: [
+      { color: [255, 110, 110], center: 0.22, thickness: 0.3, gain: 0.4, lag: 0.5 },
+      { color: [80, 240, 190], center: 0.48, thickness: 0.5, gain: 1, lag: 0 },
+      { color: [130, 255, 140], center: 0.58, thickness: 0.22, gain: 0.5, lag: 0.25 },
+      { color: [70, 200, 255], center: 0.8, thickness: 0.3, gain: 0.5, lag: -0.55 },
+    ],
+  },
+];
 
 function rand(min: number, max: number) {
   return min + Math.random() * (max - min);
@@ -647,66 +684,120 @@ function drawTrueComet(
   ctx.restore();
 }
 
-function mixRgb(a: Rgb, b: Rgb, t: number): Rgb {
-  const k = Math.max(0, Math.min(1, t));
-  return [
-    Math.round(a[0] + (b[0] - a[0]) * k),
-    Math.round(a[1] + (b[1] - a[1]) * k),
-    Math.round(a[2] + (b[2] - a[2]) * k),
-  ];
-}
-
-/** Vertical colour profile of a patch: faint cool top, green body, faint warm foot. */
-function auroraColorAt(v: number, tint: Aurora["tint"]): Rgb {
-  const top = tint === 2 ? AURORA_VIOLET : AURORA_CYAN;
-  const mid = tint === 1 ? AURORA_TEAL : AURORA_GREEN;
-  const foot = tint === 1 ? AURORA_GREEN : AURORA_MAGENTA;
-  if (v < 0.38) return mixRgb(top, mid, v / 0.38);
-  if (v < 0.68) return mid;
-  return mixRgb(mid, foot, (v - 0.68) / 0.32);
-}
-
-/** One interval = 1–3 patches at different spots, staggered by a second or two. */
-function spawnAuroraSet(w: number, h: number): Aurora[] {
-  const count = 1 + Math.floor(Math.random() * 3);
-  const out: Aurora[] = [];
-  for (let i = 0; i < count; i++) {
-    let x = 0.5;
-    let y = 0.3;
-    for (let tries = 0; tries < 10; tries++) {
-      x = rand(0.1, 0.9);
-      y = rand(0.06, 0.62);
-      const clear = out.every(
-        (o) => Math.hypot((o.x - x) * w, (o.y - y) * h) > 340,
-      );
-      if (clear) break;
-    }
-    const width = rand(150, 450);
-    const height = Math.min(rand(100, 250), width * 0.75);
-    out.push({
-      x,
-      y,
-      width,
-      height,
-      delay: i === 0 ? 0 : rand(0.4, 2.6),
-      life: 0,
-      maxLife: rand(4.5, 8),
-      phase: rand(0, Math.PI * 2),
-      waves: rand(1.1, 1.9),
-      speed: rand(0.5, 1.05),
-      rippleAmp: rand(0.05, 0.11),
-      driftX: rand(-6, 6),
-      driftY: rand(-3, 3),
-      tint: Math.floor(Math.random() * 3) as Aurora["tint"],
-    });
-  }
-  return out;
+/** One aurora at a time, toward the upper and outer half of the sky. */
+function spawnAurora(w: number, h: number): Aurora {
+  const width = rand(150, 450);
+  const height = Math.min(rand(120, 250), width * 0.72);
+  const left = Math.random() < 0.5;
+  const marginX = (width * 0.5 + 24) / Math.max(w, 1);
+  const marginY = (height * 0.5 + 16) / Math.max(h, 1);
+  const xr = left ? rand(0.06, 0.34) : rand(0.66, 0.94);
+  const yr = rand(0.05, 0.4);
+  return {
+    x: Math.min(1 - marginX, Math.max(marginX, xr)),
+    y: Math.min(0.6, Math.max(marginY, yr)),
+    width,
+    height,
+    life: 0,
+    maxLife: rand(5, 9),
+    phase: rand(0, Math.PI * 2),
+    waves: rand(0.9, 1.45),
+    speed: rand(0.45, 0.9),
+    rippleAmp: rand(0.13, 0.22),
+    driftX: rand(-5, 5),
+    driftY: rand(-2.5, 2.5),
+    palette: AURORA_PALETTES[Math.floor(Math.random() * AURORA_PALETTES.length)],
+    layer: null,
+  };
 }
 
 function auroraEnvelope(t: number): number {
-  if (t < 0.22) return 0.5 - 0.5 * Math.cos((t / 0.22) * Math.PI);
-  if (t > 0.66) return 0.5 + 0.5 * Math.cos(((t - 0.66) / 0.34) * Math.PI);
+  if (t < 0.24) return 0.5 - 0.5 * Math.cos((t / 0.24) * Math.PI);
+  if (t > 0.64) return 0.5 + 0.5 * Math.cos(((t - 0.64) / 0.36) * Math.PI);
   return 1;
+}
+
+/** Paint the patch onto its own layer: colour ribbons with a shared ripple,
+ *  then a horizontal fade and an elliptical fade so every side is soft. */
+function paintAuroraLayer(a: Aurora, pw: number, ph: number, pad: number, dpr: number) {
+  const lw = Math.ceil((pw + pad * 2) * dpr);
+  const lh = Math.ceil((ph + pad * 2) * dpr);
+  if (!a.layer) a.layer = document.createElement("canvas");
+  const layer = a.layer;
+  if (layer.width !== lw || layer.height !== lh) {
+    layer.width = lw;
+    layer.height = lh;
+  }
+  const lc = layer.getContext("2d");
+  if (!lc) return null;
+  lc.setTransform(dpr, 0, 0, dpr, 0, 0);
+  lc.clearRect(0, 0, pw + pad * 2, ph + pad * 2);
+  lc.globalCompositeOperation = "lighter";
+
+  const x0 = pad;
+  const y0 = pad;
+  const segs = 36;
+  for (const rb of a.palette.ribbons) {
+    const breathe = 0.82 + 0.18 * Math.sin(a.life * 1.3 + a.phase + rb.lag * 2.2);
+    const cy = y0 + rb.center * ph;
+    const th = rb.thickness * ph;
+    const g = lc.createLinearGradient(0, cy - th * 0.5, 0, cy + th * 0.5);
+    const alpha = 0.46 * rb.gain * breathe;
+    g.addColorStop(0, rgba(rb.color, 0));
+    g.addColorStop(0.5, rgba(rb.color, alpha));
+    g.addColorStop(1, rgba(rb.color, 0));
+    lc.fillStyle = g;
+    lc.beginPath();
+    for (let i = 0; i <= segs; i++) {
+      const u = i / segs;
+      const ripple =
+        Math.sin(u * Math.PI * 2 * a.waves + a.life * a.speed + a.phase + rb.lag) *
+        a.rippleAmp *
+        ph;
+      const px = x0 + u * pw;
+      const py = cy - th * 0.5 + ripple;
+      if (i === 0) lc.moveTo(px, py);
+      else lc.lineTo(px, py);
+    }
+    for (let i = segs; i >= 0; i--) {
+      const u = i / segs;
+      const ripple =
+        Math.sin(u * Math.PI * 2 * a.waves + a.life * a.speed + a.phase + rb.lag + 0.35) *
+        a.rippleAmp *
+        ph;
+      lc.lineTo(x0 + u * pw, cy + th * 0.5 + ripple);
+    }
+    lc.closePath();
+    lc.fill();
+  }
+
+  // Fade the left and right ends.
+  lc.globalCompositeOperation = "destination-in";
+  const hx = lc.createLinearGradient(x0, 0, x0 + pw, 0);
+  hx.addColorStop(0, "rgba(0,0,0,0)");
+  hx.addColorStop(0.12, "rgba(0,0,0,0.22)");
+  hx.addColorStop(0.3, "rgba(0,0,0,0.75)");
+  hx.addColorStop(0.5, "rgba(0,0,0,1)");
+  hx.addColorStop(0.7, "rgba(0,0,0,0.75)");
+  hx.addColorStop(0.88, "rgba(0,0,0,0.22)");
+  hx.addColorStop(1, "rgba(0,0,0,0)");
+  lc.fillStyle = hx;
+  lc.fillRect(0, 0, pw + pad * 2, ph + pad * 2);
+
+  // Soften the whole outline into an ellipse.
+  lc.save();
+  lc.translate(x0 + pw * 0.5, y0 + ph * 0.5);
+  lc.scale(pw * 0.5 + pad, ph * 0.5 + pad);
+  const el = lc.createRadialGradient(0, 0, 0, 0, 0, 1);
+  el.addColorStop(0, "rgba(0,0,0,1)");
+  el.addColorStop(0.5, "rgba(0,0,0,1)");
+  el.addColorStop(0.82, "rgba(0,0,0,0.35)");
+  el.addColorStop(1, "rgba(0,0,0,0)");
+  lc.fillStyle = el;
+  lc.fillRect(-1, -1, 2, 2);
+  lc.restore();
+  lc.globalCompositeOperation = "source-over";
+  return layer;
 }
 
 function drawAurora(
@@ -717,56 +808,30 @@ function drawAurora(
   driftX: number,
   driftY: number,
   scale: number,
+  dpr: number,
 ) {
   const t = a.life / a.maxLife;
   const fade = auroraEnvelope(Math.min(1, t));
   if (fade < 0.01) return;
-  const cx = a.x * w + a.driftX * a.life + driftX * 0.05;
-  const cy = a.y * h + a.driftY * a.life + driftY * 0.04;
   const pw = a.width * scale;
   const ph = a.height * scale;
-  const x0 = cx - pw / 2;
-  const top = cy - ph / 2;
-  const bands = 40;
-  const segs = 28;
-  const bandStep = ph / bands;
+  const pad = Math.max(12, ph * 0.18);
+  const layer = paintAuroraLayer(a, pw, ph, pad, dpr);
+  if (!layer) return;
+  const cx = a.x * w + a.driftX * a.life + driftX * 0.05;
+  const cy = a.y * h + a.driftY * a.life + driftY * 0.04;
 
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  ctx.lineWidth = bandStep * 2.8;
-  for (let b = 0; b < bands; b++) {
-    const v = (b + 0.5) / bands;
-    const vc = v - 0.5;
-    const vert = Math.exp(-(vc * vc) / (2 * 0.2 * 0.2));
-    if (vert < 0.03) continue;
-    const breathe = 0.85 + 0.15 * Math.sin(a.life * 1.7 + a.phase + b * 0.3);
-    const alpha = fade * vert * 0.085 * breathe;
-    const color = auroraColorAt(v, a.tint);
-    const g = ctx.createLinearGradient(x0, 0, x0 + pw, 0);
-    g.addColorStop(0, rgba(color, 0));
-    g.addColorStop(0.12, rgba(color, alpha * 0.25));
-    g.addColorStop(0.3, rgba(color, alpha * 0.75));
-    g.addColorStop(0.5, rgba(color, alpha));
-    g.addColorStop(0.7, rgba(color, alpha * 0.75));
-    g.addColorStop(0.88, rgba(color, alpha * 0.25));
-    g.addColorStop(1, rgba(color, 0));
-    ctx.strokeStyle = g;
-    ctx.beginPath();
-    for (let i = 0; i <= segs; i++) {
-      const u = i / segs;
-      const ripple =
-        Math.sin(u * Math.PI * 2 * a.waves + a.life * a.speed + a.phase + v * 1.6) *
-        a.rippleAmp *
-        ph;
-      const px = x0 + u * pw;
-      const py = top + v * ph + ripple;
-      if (i === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    }
-    ctx.stroke();
-  }
+  ctx.globalAlpha = fade;
+  if ("filter" in ctx) ctx.filter = `blur(${Math.max(2, ph * 0.03).toFixed(1)}px)`;
+  ctx.drawImage(
+    layer,
+    cx - pw * 0.5 - pad,
+    cy - ph * 0.5 - pad,
+    pw + pad * 2,
+    ph + pad * 2,
+  );
   ctx.restore();
 }
 
@@ -1488,18 +1553,14 @@ export function VersaConstellation({
           } else {
             auroraSpawnIn -= dt;
             if (auroraSpawnIn <= 0 && auroras.length === 0) {
-              auroras.push(...spawnAuroraSet(ew, eh));
+              auroras.push(spawnAurora(ew, eh));
               auroraSpawnIn = 1e9;
             }
             const az = fx.auroraZ;
             for (let i = auroras.length - 1; i >= 0; i--) {
               const a = auroras[i];
-              if (a.delay > 0) {
-                a.delay -= dt;
-                continue;
-              }
               a.life += dt;
-              drawAurora(ctx, a, ew, eh, driftX, driftY, az);
+              drawAurora(ctx, a, ew, eh, driftX, driftY, az, dpr);
               if (a.life >= a.maxLife) auroras.splice(i, 1);
             }
             if (auroras.length === 0 && auroraSpawnIn > 1000) {

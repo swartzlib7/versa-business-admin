@@ -693,7 +693,7 @@ export function BrandingPanel({
             />
             <SkyEffectRow
               title="Aurora"
-              hint="One to three small soft aurora patches rippling at random spots in the sky for a few seconds. 1× waits 90–360s between appearances."
+              hint="One small soft aurora at a time, toward the upper corners, rippling in colour for a few seconds. 1× waits 90–360s between appearances."
               style={draft.effects.aurora}
               color={draft.color}
               onChange={(partial) => patchEffect("aurora", partial)}
