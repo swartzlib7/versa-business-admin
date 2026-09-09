@@ -704,7 +704,51 @@ function drawTrueComet(
 
 /** One full-screen aurora at a time: the curtain spans the viewport, fold in
  *  the upper third, translucent shine streaming down to the bottom edge. */
-function spawnAurora(w: number, h: number): Aurora {
+function spawnAurora(w: number, h: number, fullScreen: boolean): Aurora {
+  if (!fullScreen) {
+    // Small mode (0.7.165, the approved look): one patch at a time toward the
+    // upper corners, 150-450 x 120-250 css px, ellipse-faded on every side.
+    const width = rand(150, 450);
+    const height = Math.min(rand(120, 250), width * 0.72);
+    const left = Math.random() < 0.5;
+    const marginX = (width * 0.5 + 24) / Math.max(w, 1);
+    const marginY = (height * 0.5 + 16) / Math.max(h, 1);
+    const xr = left ? rand(0.06, 0.34) : rand(0.66, 0.94);
+    const yr = rand(0.05, 0.4);
+    const rayCount = Math.round(Math.min(72, Math.max(28, width / 6)));
+    const rays: AuroraRay[] = [];
+    for (let i = 0; i < rayCount; i++) {
+      const u = (i + rand(0.15, 0.85)) / rayCount;
+      rays.push({
+        u,
+        width: rand(0.012, 0.042),
+        height: rand(0.4, 1) * rand(0.7, 1),
+        gain: Math.random() < 0.3 ? rand(0.75, 1) : rand(0.2, 0.6),
+        shimmer: rand(0.5, 1.5),
+        shimmerPhase: rand(0, Math.PI * 2),
+        lean: (u - 0.5) * rand(0.1, 0.26) + rand(-0.03, 0.03),
+      });
+    }
+    return {
+      x: Math.min(1 - marginX, Math.max(marginX, xr)),
+      y: Math.min(0.6, Math.max(marginY, yr)),
+      width,
+      height,
+      foldFrac: 0.68,
+      shine: 0,
+      life: 0,
+      maxLife: rand(14, 22),
+      phase: rand(0, Math.PI * 2),
+      waves: rand(0.9, 1.45),
+      speed: rand(0.4, 0.8),
+      rippleAmp: rand(0.07, 0.13),
+      driftX: rand(-5, 5),
+      driftY: rand(-2.5, 2.5),
+      palette: nextAuroraPalette(),
+      rays,
+      layer: null,
+    };
+  }
   // Full-screen scale-up (0.7.167): the approved patch design is unchanged
   // and simply spans the whole viewport - light shining from the top of the
   // sky all the way down to the viewport bottom, translucent enough that
@@ -973,6 +1017,7 @@ export function VersaConstellation({
   const asteroidsOn = skyFx.asteroids.enabled;
   const cometsOn = skyFx.comets.enabled;
   const auroraOn = skyFx.aurora.enabled;
+  const auroraFS = skyFx.aurora.fullScreen;
   const fxRef = useRef({
     meteorZ,
     satZ,
@@ -989,6 +1034,7 @@ export function VersaConstellation({
     asteroidsOn,
     cometsOn,
     auroraOn,
+    auroraFS,
   });
   useEffect(() => {
     fxRef.current = {
@@ -1007,6 +1053,7 @@ export function VersaConstellation({
       asteroidsOn,
       cometsOn,
       auroraOn,
+      auroraFS,
     };
   }, [
     meteorZ,
@@ -1024,6 +1071,7 @@ export function VersaConstellation({
     asteroidsOn,
     cometsOn,
     auroraOn,
+    auroraFS,
   ]);
 
   useEffect(() => {
@@ -1648,7 +1696,7 @@ export function VersaConstellation({
           } else {
             auroraSpawnIn -= dt;
             if (auroraSpawnIn <= 0 && auroras.length === 0) {
-              auroras.push(spawnAurora(ew, eh));
+              auroras.push(spawnAurora(ew, eh, fxRef.current.auroraFS));
               auroraSpawnIn = 1e9;
             }
             const az = fx.auroraZ;

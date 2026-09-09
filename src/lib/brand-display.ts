@@ -131,16 +131,18 @@ export type SkyEffectStyle = {
   enabled: boolean;
   zoom: number;
   frequency: number;
+  /** Aurora only: Small patch (0.7.165) vs Full-Screen curtain (0.7.167). */
+  fullScreen: boolean;
 };
 
 export type SkyEffects = Record<SkyEffectId, SkyEffectStyle>;
 
 export const DEFAULT_SKY_EFFECTS: SkyEffects = {
-  meteors: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
-  satellites: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
-  asteroids: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
-  comets: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
-  aurora: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT },
+  meteors: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
+  satellites: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
+  asteroids: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
+  comets: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
+  aurora: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
 };
 // Aurora stays Off unless a board saved it On (see resolveSkyEffects fallback).
 
@@ -150,6 +152,7 @@ function readSkyEffectStyle(row: unknown, fallbackEnabled: boolean): SkyEffectSt
     enabled: typeof r.enabled === "boolean" ? r.enabled : fallbackEnabled,
     zoom: clampSkyZoom(r.zoom),
     frequency: clampSkyFrequency(r.frequency),
+    fullScreen: r.fullScreen === true,
   };
 }
 

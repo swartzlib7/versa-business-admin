@@ -693,11 +693,41 @@ export function BrandingPanel({
             />
             <SkyEffectRow
               title="Aurora"
-              hint="One small aurora at a time, toward the upper corners: a light that slowly swells on, ripples with soft rays, then eases away over 14–22s. Realistic colours alternate. 1× shows the first after 90s, then waits 90–360s between appearances."
+              hint="A light that slowly swells on, ripples with soft rays, then eases away over 14–22s. Realistic colours alternate. 1× shows the first after 90s, then waits 90–360s between appearances. Small hangs one patch toward the upper corners; Full-Screen spans the viewport with light shining down to the bottom."
               style={draft.effects.aurora}
               color={draft.color}
               onChange={(partial) => patchEffect("aurora", partial)}
             />
+            {draft.effects.aurora.enabled && (
+              <div className="space-y-2 rounded-lg border border-border p-3 sm:col-span-1">
+                <label className="text-sm font-medium">Aurora size</label>
+                <div className="flex gap-2">
+                  {(["Small", "Full-Screen"] as const).map((m) => {
+                    const active = m === "Full-Screen" ? draft.effects.aurora.fullScreen : !draft.effects.aurora.fullScreen;
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => patchEffect("aurora", { fullScreen: m === "Full-Screen" })}
+                        className={cn(
+                          "flex-1 rounded-md border px-3 py-1.5 text-sm transition-colors",
+                          active
+                            ? "border-transparent text-white"
+                            : "border-border text-muted-foreground hover:text-foreground",
+                        )}
+                        style={active ? { backgroundColor: draft.color } : undefined}
+                        aria-pressed={active}
+                      >
+                        {m}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Small: one patch toward the upper corners. Full-Screen: the curtain spans the viewport with light shining down to the bottom edge.
+                </p>
+              </div>
+            )}
           </div>
           <div className="shrink-0 space-y-2">
             <label className="text-sm font-medium">
