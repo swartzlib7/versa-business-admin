@@ -262,7 +262,7 @@ type TrueComet = {
 
 type Rgb = [number, number, number];
 
-/** One small aurora patch (150–450 × 120–250 css px), faded on every side.
+/** One full-screen aurora curtain: spans the viewport width, fold in the upper third, faded on every side.
  *  Modelled on real northern lights: a bright green fold that ripples with one
  *  long slow wave, with soft vertical rays fanning up from it and fading into a
  *  teal haze toward the top. Painted to its own layer and blurred so it reads
@@ -272,6 +272,11 @@ type Aurora = {
   y: number;
   width: number;
   height: number;
+  /** Fold position within the patch (0-1). Full-screen auroras hang it in the upper third. */
+  foldFrac: number;
+  /** Downward light-shine strength (0-1): the translucent full-screen glow
+   *  below the fold that lets stars show through to varying degrees. */
+  shine: number;
   life: number;
   maxLife: number;
   phase: number;
@@ -697,16 +702,18 @@ function drawTrueComet(
   ctx.restore();
 }
 
-/** One aurora at a time, toward the upper and outer half of the sky. */
+/** One full-screen aurora at a time: the curtain spans the viewport, fold in
+ *  the upper third, translucent shine streaming down to the bottom edge. */
 function spawnAurora(w: number, h: number): Aurora {
-  const width = rand(150, 450);
-  const height = Math.min(rand(120, 250), width * 0.72);
-  const left = Math.random() < 0.5;
-  const marginX = (width * 0.5 + 24) / Math.max(w, 1);
-  const marginY = (height * 0.5 + 16) / Math.max(h, 1);
-  const xr = left ? rand(0.06, 0.34) : rand(0.66, 0.94);
-  const yr = rand(0.05, 0.4);
-  const rayCount = Math.round(Math.min(72, Math.max(28, width / 6)));
+  // Full-screen scale-up (0.7.167): the approved patch design is unchanged
+  // and simply spans the whole viewport - light shining from the top of the
+  // sky all the way down to the viewport bottom, translucent enough that
+  // stars show through to varying degrees.
+  const width = w * rand(1.06, 1.18);
+  const height = h * rand(1.05, 1.18);
+  const foldFrac = 0.34;
+  const foldV = rand(0.3, 0.4);
+  const rayCount = Math.round(Math.min(96, Math.max(44, width / 24)));
   const rays: AuroraRay[] = [];
   for (let i = 0; i < rayCount; i++) {
     const u = (i + rand(0.15, 0.85)) / rayCount;
@@ -721,18 +728,20 @@ function spawnAurora(w: number, h: number): Aurora {
     });
   }
   return {
-    x: Math.min(1 - marginX, Math.max(marginX, xr)),
-    y: Math.min(0.6, Math.max(marginY, yr)),
+    x: 0.5 + rand(-0.02, 0.02),
+    y: foldV - (foldFrac - 0.5) * (height / h),
     width,
     height,
+    foldFrac,
+    shine: rand(0.5, 0.85),
     life: 0,
     maxLife: rand(14, 22),
     phase: rand(0, Math.PI * 2),
     waves: rand(0.9, 1.45),
     speed: rand(0.4, 0.8),
     rippleAmp: rand(0.07, 0.13),
-    driftX: rand(-5, 5),
-    driftY: rand(-2.5, 2.5),
+    driftX: rand(-2, 2),
+    driftY: rand(-1, 1),
     palette: nextAuroraPalette(),
     rays,
     layer: null,
@@ -767,7 +776,7 @@ function paintAuroraLayer(a: Aurora, pw: number, ph: number, pad: number, dpr: n
   const x0 = pad;
   const y0 = pad;
   const pal = a.palette;
-  const foldBase = y0 + ph * 0.68;
+  const foldBase = y0 + ph * a.foldFrac;
   const foldY = (u: number, lag = 0) =>
     foldBase +
     Math.sin(u * Math.PI * 2 * a.waves + a.life * a.speed + a.phase + lag) * a.rippleAmp * ph;
@@ -834,6 +843,19 @@ function paintAuroraLayer(a: Aurora, pw: number, ph: number, pad: number, dpr: n
   lc.closePath();
   lc.fill();
 
+  // Downward shine: translucent light streaming from the fold toward the patch
+  // bottom (the viewport bottom at full-screen scale). Kept faint so the
+  // stars show through to varying degrees.
+  if (a.shine > 0) {
+    const shineTop = foldBase + foldDown * 0.6;
+    const sg = lc.createLinearGradient(0, shineTop, 0, y0 + ph);
+    sg.addColorStop(0, rgba(pal.body, 0.15 * a.shine * breathe));
+    sg.addColorStop(0.35, rgba(pal.top, 0.09 * a.shine * breathe));
+    sg.addColorStop(1, rgba(pal.top, 0));
+    lc.fillStyle = sg;
+    lc.fillRect(x0, shineTop, pw, y0 + ph - shineTop);
+  }
+
   // Fade the left and right ends.
   lc.globalCompositeOperation = "destination-in";
   const hx = lc.createLinearGradient(x0, 0, x0 + pw, 0);
@@ -847,7 +869,10 @@ function paintAuroraLayer(a: Aurora, pw: number, ph: number, pad: number, dpr: n
   lc.fillStyle = hx;
   lc.fillRect(0, 0, pw + pad * 2, ph + pad * 2);
 
-  // Soften the whole outline into an ellipse.
+  // Soften the whole outline into an ellipse (small-patch path only; the
+  // full-screen curtain keeps the viewport bright and relies on the
+  // gradient fades above).
+  if (a.foldFrac >= 0.5) {
   lc.save();
   lc.translate(x0 + pw * 0.5, y0 + ph * 0.5);
   lc.scale(pw * 0.5 + pad, ph * 0.5 + pad);
@@ -859,6 +884,7 @@ function paintAuroraLayer(a: Aurora, pw: number, ph: number, pad: number, dpr: n
   lc.fillStyle = el;
   lc.fillRect(-1, -1, 2, 2);
   lc.restore();
+  }
   lc.globalCompositeOperation = "source-over";
   return layer;
 }
@@ -889,8 +915,10 @@ function drawAurora(
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   ctx.globalAlpha = fade;
-  if ("filter" in ctx)
-    ctx.filter = `blur(${(Math.max(1.5, ph * 0.016) * (1 + (1 - fade) * 1.4)).toFixed(1)}px)`;
+  if ("filter" in ctx) {
+    const blurPx = Math.min(22, Math.max(1.5, ph * 0.016) * (1 + (1 - fade) * 1.4));
+    ctx.filter = `blur(${blurPx.toFixed(1)}px)`;
+  }
   ctx.drawImage(
     layer,
     cx - pw * 0.5 - pad,
