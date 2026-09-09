@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
   const token = createSessionToken(user);
   const headers = new Headers();
-  headers.append("Set-Cookie", createSessionCookieHeader(token));
+  headers.append("Set-Cookie", createSessionCookieHeader(token, request));
 
   return NextResponse.json(
     {

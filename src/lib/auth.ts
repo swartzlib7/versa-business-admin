@@ -129,13 +129,22 @@ export const AUTH_CONFIG = {
   maxAge: SESSION_MAX_AGE,
 };
 
-function cookieFlags(): string {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+// The Secure cookie flag must match how the board is actually served.
+// Production-mode builds also serve the LAN review board over plain HTTP
+// (e.g. http://192.168.4.107:3200), where browsers reject Secure cookies
+// outright - sign-in then silently bounces back to /login. Detect HTTPS
+// from the request instead of assuming it from NODE_ENV.
+function cookieFlags(request?: Request): string {
+  const proto = request?.headers.get("x-forwarded-proto") ?? (request ? new URL(request.url).protocol.replace(":", "") : "http");
+  const secure = proto === "https" ? "; Secure" : "";
   return `Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE}${secure}`;
 }
 
-export function createSessionCookieHeader(token: string): string {
-  return `${SESSION_COOKIE}=${token}; ${cookieFlags()}`;
+export function createSessionCookieHeader(
+  token: string,
+  request?: Request
+): string {
+  return `${SESSION_COOKIE}=${token}; ${cookieFlags(request)}`;
 }
 
 export function createClearSessionCookieHeader(): string {
