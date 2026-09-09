@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Shared listing toolbar on all backend `EntityListing` tables |
-| **Status** | 🟢 Built (WU-01–WU-05) 2026-09-08 — 0.7.158: Glossary Section/Entry on EntityListing; Columns picker lists every non-secret ERD field |
+| **Status** | 🟢 Built + QA passed (WU-01–WU-05) 2026-09-08 — Stephen: “Looks perfect.” Promoted 0.7.158 via beta → master |
 | **Last verified against code** | 2026-09-08 |
 | **Primary code** | `src/components/listing/entity-listing.tsx` |
 | **Task** | Parent **#282**; WU-01 **#283**; WU-02 **#284**; WU-03 **#285**; WU-04 **#286** |
@@ -100,11 +100,11 @@ Stephen (2026-09-08 IDE): enhance the Organizations-style filter, put it on all 
 
 | ID | Deliverable | Depends | Agent verify | QA | Status | Task ID |
 |----|-------------|---------|--------------|-----|--------|---------|
-| WU-01 | Shared toolbar on all backend `EntityListing` tables; replace one-off `headerFilters` | — | ✅ | ⬜ | ✅ built 2026-09-08 | 283 |
-| WU-02 | Faceted filter: column picklist → value picklist or typed value → Add → chips with × | WU-01 | ✅ | ⬜ | ✅ built 2026-09-08 | 284 |
-| WU-03 | Column visibility multi-select; picker = full ERD, not only default-visible | WU-01 | ✅ | ⬜ | ✅ built 2026-09-08; catalog-complete 0.7.158 | 285 |
-| WU-04 | Record-name search on each table | WU-01 | ✅ | ⬜ | ✅ built 2026-09-08 | 286 |
-| WU-05 | Glossary Section/Entry on shared EntityListing toolbar (filter, columns, search, reorder) | WU-01 | ✅ | ⬜ | ✅ built 2026-09-08 | 282 |
+| WU-01 | Shared toolbar on all backend `EntityListing` tables; replace one-off `headerFilters` | — | ✅ | ✅ | ✅ done 2026-09-08 | 283 |
+| WU-02 | Faceted filter: column picklist → value picklist or typed value → Add → chips with × | WU-01 | ✅ | ✅ | ✅ done 2026-09-08 | 284 |
+| WU-03 | Column visibility multi-select; picker = full ERD, not only default-visible | WU-01 | ✅ | ✅ | ✅ done 2026-09-08; catalog-complete 0.7.158 | 285 |
+| WU-04 | Record-name search on each table | WU-01 | ✅ | ✅ | ✅ done 2026-09-08 | 286 |
+| WU-05 | Glossary Section/Entry on shared EntityListing toolbar (filter, columns, search, reorder) | WU-01 | ✅ | ✅ | ✅ done 2026-09-08 | 282 |
 
 ---
 
@@ -114,7 +114,7 @@ Stephen (2026-09-08 IDE): enhance the Organizations-style filter, put it on all 
 |------|----------|--------|-------
 | 2026-09-08 | WU-02 typed-value criteria + matcher fix on :3200 (0.7.152) | tsc 0; eslint 0 warnings (1 pre-existing set-state-in-effect error untouched); build ok; catalog E2E 34/34; browser E2E 17/17 (boolean chip 36→1 rows, typed chip via Enter narrows to 1, ×-removal, Clear all, rows restored) | QA on :3200 pending (Stephen) |----|
 | 2026-09-08 | WU-01 build gates | tsc 0; scoped eslint clean (1 pre-existing set-state-in-effect error on title-reset effect, untouched); E2E 34/34 on :3200 | QA on :3200 pending (Stephen) |
-| 2026-09-08 | 0.7.158 Glossary + full-ERD Columns picker | tsc 0; pre-existing set-state-in-effect only; build ok; :3200 health 0.7.158. E2E: Glossary Section/Entry have Filter+Columns+Search; org picker = 11 ERD fields (default 4); Tasks picker = header+platform (no subtask line fields); audit columns default-hidden | QA on :3200 pending (Stephen) |
+| 2026-09-08 | 0.7.158 Glossary + full-ERD Columns picker | tsc 0; pre-existing set-state-in-effect only; build ok; :3200 health 0.7.158. E2E: Glossary Section/Entry have Filter+Columns+Search; org picker = 11 ERD fields (default 4); Tasks picker = header+platform (no subtask line fields); audit columns default-hidden | **QA passed** — Stephen “Looks perfect.” 2026-09-08 |
 
 ---
 
@@ -127,3 +127,4 @@ Stephen (2026-09-08 IDE): enhance the Organizations-style filter, put it on all 
 | 2026-09-08 | WU-02 shipped as 0.7.152: second stage is picklist (select-with-options, boolean) or typed input (all other rendered non-secret columns; Enter commits); matcher now matches raw value OR displayed text (fixes is_person true-vs-Yes and parent-id-vs-name never matching); boolean picklist + chips show Yes/No; Add disabled until value; typed values trimmed; lint cleanups (unused Badge import, activeSort memoized). | #284 |
 | 2026-09-08 | Stephen QA on 0.7.151: (1) Filter button made prominent (brand fill, white text); (2) matching switched exact → case-insensitive contains; (3) criteria combine OR by default; (4) WU-03 column picker + WU-04 name search built same cycle (0.7.154). Picker binds to persisted visible set (min 1 column; hiding a column drops its chips — verified); name search = name-column contains, combined with criteria. E2E: OR 36→3 rows, contains rim→1, search Primary→1, hide/restore headers 5/4/5. | #285 #286 |
 | 2026-09-08 | 0.7.158: Columns picker lists every non-secret ERD field (not only `column !== false`); Filter stays on rendered columns. Persist visibility no longer strips extra keys or re-appends hidden defaults. Glossary Section/Entry moved onto EntityListing. Organizations listing fields from catalog (slug, notes, audit, …). | #282 #285 |
+| 2026-09-08 | Stephen QA: “Looks perfect.” WU-01–WU-05 closed. Promoted `beta` → `master` at 0.7.158. | #282 |
