@@ -321,6 +321,9 @@ function SkyEffectRow({
                 </span>
               ))}
             </div>
+            <p className="text-[10px] text-muted-foreground">
+              Each wait is Frequency ±5s.
+            </p>
           </div>
         </div>
       ) : null}

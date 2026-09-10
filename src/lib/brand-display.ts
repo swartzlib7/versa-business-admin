@@ -144,6 +144,16 @@ export function skyWaitIndex(n: unknown, fallback: number = 15): number {
   return SKY_WAIT_STEPS.indexOf(step);
 }
 
+/** Live sky: each Frequency wait is offset by a random ± this many seconds. */
+export const SKY_WAIT_JITTER_S = 5;
+
+/** Inclusive [lo, hi] seconds for one spawn wait. Floor 1s so 5s never goes to 0. */
+export function waitJitterRange(base: unknown, fallback: number = 15): [number, number] {
+  const x = typeof base === "number" ? base : Number(base);
+  const wait = Number.isFinite(x) ? x : fallback;
+  return [Math.max(1, wait - SKY_WAIT_JITTER_S), wait + SKY_WAIT_JITTER_S];
+}
+
 function migrateWaitSeconds(
   row: Record<string, unknown>,
   id: SkyEffectId,
