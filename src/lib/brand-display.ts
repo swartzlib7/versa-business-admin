@@ -131,7 +131,7 @@ export type SkyEffectStyle = {
   enabled: boolean;
   zoom: number;
   frequency: number;
-  /** Aurora only: Small patch (0.7.165) vs Full-Screen curtain (0.7.167). */
+  /** Aurora only: Full-Screen On = viewport curtain; Off = Small patch (0.7.165). */
   fullScreen: boolean;
 };
 

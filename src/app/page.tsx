@@ -2,7 +2,7 @@ import { PublicLayout } from "@/components/public/public-layout";
 import { PublicMaintenance } from "@/components/public/public-maintenance";
 import { PublicSection } from "@/components/public/public-section";
 import { PublicStatsGrid } from "@/components/public/public-stats-grid";
-import { getSiteSettingsFixture } from "@/lib/fixtures/site-settings";
+import { getPublicSiteSettings } from "@/lib/fixtures/site-settings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -95,8 +95,10 @@ function EmptyLive({ message }: { message: string }) {
   );
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
-  const site = getSiteSettingsFixture();
+  const site = await getPublicSiteSettings();
   const pub = normalizePublicContent(site);
   const cycle = enabledCycleSteps(site);
   const demo = site.demo_mode !== false;

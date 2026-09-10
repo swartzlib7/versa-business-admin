@@ -262,7 +262,7 @@ type TrueComet = {
 
 type Rgb = [number, number, number];
 
-/** One full-screen aurora curtain: spans the viewport width, fold in the upper third, faded on every side.
+/** One full-screen aurora curtain: spans the viewport width, fold mid-to-lower sky, faded on every side.
  *  Modelled on real northern lights: a bright green fold that ripples with one
  *  long slow wave, with soft vertical rays fanning up from it and fading into a
  *  teal haze toward the top. Painted to its own layer and blurred so it reads
@@ -272,7 +272,7 @@ type Aurora = {
   y: number;
   width: number;
   height: number;
-  /** Fold position within the patch (0-1). Full-screen auroras hang it in the upper third. */
+  /** Fold position within the patch (0-1). Full-screen auroras hang it mid-to-lower sky. */
   foldFrac: number;
   /** Downward light-shine strength (0-1): the translucent full-screen glow
    *  below the fold that lets stars show through to varying degrees. */
@@ -702,8 +702,56 @@ function drawTrueComet(
   ctx.restore();
 }
 
-/** One full-screen aurora at a time: the curtain spans the viewport, fold in
- *  the upper third, translucent shine streaming down to the bottom edge. */
+/** iPhone Safari reports Canvas2D `filter` and often no-ops canvas-to-canvas
+ *  blur plus `destination-in` fades. Detect Apple touch WebKit and use
+ *  destination-out + a stamped bloom instead. */
+function auroraNeedsSoftFallback(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  if (/iP(ad|hone|od)/.test(ua)) return true;
+  return navigator.platform === "MacIntel" && (navigator.maxTouchPoints || 0) > 1;
+}
+
+let auroraBlurScratch: HTMLCanvasElement | null = null;
+
+/** Cheap 8-tap bloom that does not rely on ctx.filter (iOS-safe). */
+function bakeAuroraSoftness(layer: HTMLCanvasElement, blurPx: number) {
+  const tw = layer.width;
+  const th = layer.height;
+  if (tw < 2 || th < 2 || blurPx < 0.5) return;
+  if (!auroraBlurScratch) auroraBlurScratch = document.createElement("canvas");
+  const scratch = auroraBlurScratch;
+  if (scratch.width !== tw || scratch.height !== th) {
+    scratch.width = tw;
+    scratch.height = th;
+  }
+  const sc = scratch.getContext("2d");
+  if (!sc) return;
+  sc.clearRect(0, 0, tw, th);
+  const o = Math.max(2, Math.round(Math.min(blurPx, 18)));
+  sc.globalAlpha = 1;
+  sc.drawImage(layer, 0, 0);
+  sc.globalAlpha = 0.4;
+  sc.drawImage(layer, -o, 0);
+  sc.drawImage(layer, o, 0);
+  sc.drawImage(layer, 0, -o);
+  sc.drawImage(layer, 0, o);
+  sc.drawImage(layer, -o, -o);
+  sc.drawImage(layer, o, -o);
+  sc.drawImage(layer, -o, o);
+  sc.drawImage(layer, o, o);
+  const lc = layer.getContext("2d");
+  if (!lc) return;
+  lc.save();
+  lc.setTransform(1, 0, 0, 1, 0, 0);
+  lc.globalAlpha = 1;
+  lc.globalCompositeOperation = "copy";
+  lc.drawImage(scratch, 0, 0);
+  lc.restore();
+}
+
+/** One full-screen aurora at a time: the curtain spans the viewport, fold
+ *  around mid-to-lower sky, translucent shine streaming down to the bottom. */
 function spawnAurora(w: number, h: number, fullScreen: boolean): Aurora {
   if (!fullScreen) {
     // Small mode (0.7.165, the approved look): one patch at a time toward the
@@ -754,9 +802,10 @@ function spawnAurora(w: number, h: number, fullScreen: boolean): Aurora {
   // sky all the way down to the viewport bottom, translucent enough that
   // stars show through to varying degrees.
   const width = w * rand(1.06, 1.18);
-  const height = h * rand(1.05, 1.18);
+  // 0.7.170: +20% of current height both up and down, then +15% viewport down.
+  const height = h * rand(1.05, 1.18) * 1.4;
   const foldFrac = 0.34;
-  const foldV = rand(0.3, 0.4);
+  const foldV = Math.min(0.92, rand(0.62, 0.70) + 0.15);
   const rayCount = Math.round(Math.min(96, Math.max(44, width / 24)));
   const rays: AuroraRay[] = [];
   for (let i = 0; i < rayCount; i++) {
@@ -802,7 +851,14 @@ function auroraEnvelope(t: number): number {
 /** Paint the patch onto its own layer: upper haze, vertical rays, then the bright
  *  rippling fold they rise from; finish with a horizontal fade and an elliptical
  *  fade so every side is soft. */
-function paintAuroraLayer(a: Aurora, pw: number, ph: number, pad: number, dpr: number) {
+function paintAuroraLayer(
+  a: Aurora,
+  pw: number,
+  ph: number,
+  pad: number,
+  dpr: number,
+  softFallback: boolean,
+) {
   const lw = Math.ceil((pw + pad * 2) * dpr);
   const lh = Math.ceil((ph + pad * 2) * dpr);
   if (!a.layer) a.layer = document.createElement("canvas");
@@ -900,16 +956,20 @@ function paintAuroraLayer(a: Aurora, pw: number, ph: number, pad: number, dpr: n
     lc.fillRect(x0, shineTop, pw, y0 + ph - shineTop);
   }
 
-  // Fade the left and right ends.
-  lc.globalCompositeOperation = "destination-in";
+  // Side fade. destination-in with an alpha gradient is a known iOS Safari
+  // no-op; destination-out (erase from the edges) is the same look and
+  // actually applies on WebKit.
+  lc.shadowBlur = 0;
+  lc.shadowColor = "rgba(0,0,0,0)";
+  lc.globalCompositeOperation = "destination-out";
   const hx = lc.createLinearGradient(x0, 0, x0 + pw, 0);
-  hx.addColorStop(0, "rgba(0,0,0,0)");
-  hx.addColorStop(0.12, "rgba(0,0,0,0.22)");
-  hx.addColorStop(0.3, "rgba(0,0,0,0.75)");
-  hx.addColorStop(0.5, "rgba(0,0,0,1)");
-  hx.addColorStop(0.7, "rgba(0,0,0,0.75)");
-  hx.addColorStop(0.88, "rgba(0,0,0,0.22)");
-  hx.addColorStop(1, "rgba(0,0,0,0)");
+  hx.addColorStop(0, "rgba(0,0,0,1)");
+  hx.addColorStop(0.12, "rgba(0,0,0,0.78)");
+  hx.addColorStop(0.3, "rgba(0,0,0,0.25)");
+  hx.addColorStop(0.5, "rgba(0,0,0,0)");
+  hx.addColorStop(0.7, "rgba(0,0,0,0.25)");
+  hx.addColorStop(0.88, "rgba(0,0,0,0.78)");
+  hx.addColorStop(1, "rgba(0,0,0,1)");
   lc.fillStyle = hx;
   lc.fillRect(0, 0, pw + pad * 2, ph + pad * 2);
 
@@ -921,10 +981,10 @@ function paintAuroraLayer(a: Aurora, pw: number, ph: number, pad: number, dpr: n
   lc.translate(x0 + pw * 0.5, y0 + ph * 0.5);
   lc.scale(pw * 0.5 + pad, ph * 0.5 + pad);
   const el = lc.createRadialGradient(0, 0, 0, 0, 0, 1);
-  el.addColorStop(0, "rgba(0,0,0,1)");
-  el.addColorStop(0.5, "rgba(0,0,0,1)");
-  el.addColorStop(0.82, "rgba(0,0,0,0.35)");
-  el.addColorStop(1, "rgba(0,0,0,0)");
+  el.addColorStop(0, "rgba(0,0,0,0)");
+  el.addColorStop(0.5, "rgba(0,0,0,0)");
+  el.addColorStop(0.82, "rgba(0,0,0,0.65)");
+  el.addColorStop(1, "rgba(0,0,0,1)");
   lc.fillStyle = el;
   lc.fillRect(-1, -1, 2, 2);
   lc.restore();
@@ -942,6 +1002,7 @@ function drawAurora(
   driftY: number,
   scale: number,
   dpr: number,
+  softFallback: boolean,
 ) {
   const t = a.life / a.maxLife;
   const fade = auroraEnvelope(Math.min(1, t));
@@ -951,16 +1012,17 @@ function drawAurora(
   const pw = a.width * scale * grow;
   const ph = a.height * scale * grow;
   const pad = Math.max(12, ph * 0.18);
-  const layer = paintAuroraLayer(a, pw, ph, pad, dpr);
+  const layer = paintAuroraLayer(a, pw, ph, pad, dpr, softFallback);
   if (!layer) return;
+  const blurPx = Math.min(22, Math.max(1.5, ph * 0.016) * (1 + (1 - fade) * 1.4));
+  if (softFallback) bakeAuroraSoftness(layer, blurPx * dpr);
   const cx = a.x * w + a.driftX * a.life + driftX * 0.05;
   const cy = a.y * h + a.driftY * a.life + driftY * 0.04;
 
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   ctx.globalAlpha = fade;
-  if ("filter" in ctx) {
-    const blurPx = Math.min(22, Math.max(1.5, ph * 0.016) * (1 + (1 - fade) * 1.4));
+  if (!softFallback && "filter" in ctx) {
     ctx.filter = `blur(${blurPx.toFixed(1)}px)`;
   }
   ctx.drawImage(
@@ -1117,10 +1179,18 @@ export function VersaConstellation({
 
     const measure = () => {
       const host = preview ? canvas.parentElement : null;
-      const w = host ? host.clientWidth : window.innerWidth;
-      const h = host ? host.clientHeight : window.innerHeight;
+      if (host) {
+        return {
+          w: Math.max(1, host.clientWidth),
+          h: Math.max(1, host.clientHeight),
+        };
+      }
+      const vv = window.visualViewport;
+      const w = Math.round(vv?.width ?? window.innerWidth);
+      const h = Math.round(vv?.height ?? window.innerHeight);
       return { w: Math.max(1, w), h: Math.max(1, h) };
     };
+    const softFallback = auroraNeedsSoftFallback();
 
     const seedStars = (w: number, h: number) => {
       const next: Star[] = [];
@@ -1219,6 +1289,8 @@ export function VersaConstellation({
     };
     resize();
     window.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener("resize", onResize);
+    window.visualViewport?.addEventListener("scroll", onResize);
     const ro =
       preview && canvas.parentElement
         ? new ResizeObserver(onResize)
@@ -1703,7 +1775,7 @@ export function VersaConstellation({
             for (let i = auroras.length - 1; i >= 0; i--) {
               const a = auroras[i];
               a.life += dt;
-              drawAurora(ctx, a, ew, eh, driftX, driftY, az, dpr);
+              drawAurora(ctx, a, ew, eh, driftX, driftY, az, dpr, softFallback);
               if (a.life >= a.maxLife) auroras.splice(i, 1);
             }
             if (auroras.length === 0 && auroraSpawnIn > 1000) {
@@ -1745,6 +1817,8 @@ export function VersaConstellation({
       running = false;
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("resize", onResize);
+      window.visualViewport?.removeEventListener("scroll", onResize);
       window.clearTimeout(resizeTimer);
       window.removeEventListener("pointermove", onMove);
       document.removeEventListener("visibilitychange", onVis);

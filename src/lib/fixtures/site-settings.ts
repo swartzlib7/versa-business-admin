@@ -330,6 +330,35 @@ export function upsertSiteSettingsFixture(
   return { ...next };
 }
 
+/**
+ * Public pages must read sky/brand from the same store Settings saves to.
+ * On Postgres that is the DB; the JSON sidecar is fixture-mode only.
+ */
+export async function getPublicSiteSettings(): Promise<FixtureSiteSettings> {
+  const fixture = getSiteSettingsFixture();
+  const { isPostgresDataSource } = await import("@/lib/db/data-source");
+  if (!isPostgresDataSource()) return fixture;
+  const { getSiteSettingsDb } = await import("@/lib/db/settings-store");
+  const db = await getSiteSettingsDb();
+  return {
+    ...fixture,
+    brand_name: db.brand_name,
+    brand_color: db.brand_color,
+    brand_logo_opacity: db.brand_logo_opacity,
+    brand_logo_glow: db.brand_logo_glow,
+    brand_logo_glow_color: db.brand_logo_glow_color,
+    brand_logo_glow_spread: db.brand_logo_glow_spread,
+    brand_logo_scale_menu: db.brand_logo_scale_menu,
+    brand_logo_scale_home: db.brand_logo_scale_home,
+    brand_logo_scale_footer: db.brand_logo_scale_footer,
+    brand_logo_surfaces: db.brand_logo_surfaces,
+    constellation_variant: db.constellation_variant,
+    constellation_density: db.constellation_density,
+    constellation_zoom: db.constellation_zoom,
+    constellation_effects: db.constellation_effects,
+  };
+}
+
 /** Logo sidecar for postgres mode (name/color stay in the DB). */
 export function getBrandLogoOverlay(): string | null {
   const fromMemory = readStore()?.brand_logo_url;

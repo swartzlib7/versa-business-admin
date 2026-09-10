@@ -1,6 +1,6 @@
 import { PublicLayout } from "@/components/public/public-layout";
 import { PublicOrgBoard } from "@/components/glossary/public-surfaces";
-import { getSiteSettingsFixture } from "@/lib/fixtures/site-settings";
+import { getPublicSiteSettings } from "@/lib/fixtures/site-settings";
 import { adapter } from "@/lib/data";
 import { normalizePublicContent } from "@/lib/public/site-content";
 import { gatePublicHref } from "@/lib/nav-server";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PublicBoardPage() {
   gatePublicHref("/board");
-  const site = getSiteSettingsFixture();
+  const site = await getPublicSiteSettings();
   const pub = normalizePublicContent(site);
   const businessProfile = await adapter.getBusinessProfile();
   const business = {
