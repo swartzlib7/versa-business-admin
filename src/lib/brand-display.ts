@@ -109,12 +109,12 @@ export type SkyEffectId = "meteors" | "satellites" | "asteroids" | "comets" | "a
 /** Shared Frequency wait, in seconds (Stephen 2026-09-10). */
 export const SKY_WAIT_STEPS = [5, 10, 15, 20, 30, 40, 50, 60, 90, 120, 180] as const;
 export type SkyWaitStep = (typeof SKY_WAIT_STEPS)[number];
-/** Coded 1× gap midpoints, snapped onto SKY_WAIT_STEPS. */
+/** System Frequency defaults (Stephen 2026-09-10). */
 export const SKY_WAIT_DEFAULTS: Record<SkyEffectId, SkyWaitStep> = {
-  meteors: 10,
-  satellites: 15,
-  asteroids: 40,
-  comets: 50,
+  meteors: 30,
+  satellites: 10,
+  asteroids: 50,
+  comets: 120,
   aurora: 90,
 };
 
