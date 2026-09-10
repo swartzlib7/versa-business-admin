@@ -20,18 +20,15 @@ import {
   SKY_STARS_ZOOM_DEFAULT,
   SKY_DENSITY_LEVEL_MAX,
   SKY_DENSITY_LEVEL_MIN,
-  SKY_WAIT_PERCENT_STEPS,
+  SKY_WAIT_STEPS,
   SKY_ZOOM_MAX,
   SKY_ZOOM_MIN,
   SKY_ZOOM_STEP,
   clampLogoScale,
   clampSkyZoom,
-  clampWait100,
   formatWaitSeconds,
-  frequencyFromWaitPercent,
-  skyWaitPercentIndex,
-  snapWaitPercent,
-  waitSeconds,
+  skyWaitIndex,
+  snapWaitSeconds,
   logoPx,
   logoSurfaceFilter,
   resolveLogoSurfaces,
@@ -235,50 +232,6 @@ function LogoSurfaceColumn({
   );
 }
 
-function SkyTimeSlider({
-  label,
-  value,
-  color,
-  markText,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  color: string;
-  markText: (step: number) => string;
-  onChange: (step: number) => void;
-}) {
-  return (
-    <div className="space-y-1">
-      <label className="text-xs font-medium">{label}</label>
-      <input
-        type="range"
-        min={0}
-        max={SKY_WAIT_PERCENT_STEPS.length - 1}
-        step={1}
-        value={skyWaitPercentIndex(value)}
-        onChange={(e) =>
-          onChange(SKY_WAIT_PERCENT_STEPS[Number(e.target.value)] ?? 90)
-        }
-        className="w-full"
-        style={{ accentColor: color }}
-      />
-      <div className="flex justify-between gap-px text-[9px] leading-tight text-muted-foreground">
-        {SKY_WAIT_PERCENT_STEPS.map((step) => (
-          <span
-            key={step}
-            className={`min-w-0 flex-1 text-center ${
-              step === value ? "font-semibold text-foreground" : ""
-            }`}
-          >
-            {markText(step)}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function SkyEffectRow({
   title,
   hint,
@@ -298,7 +251,7 @@ function SkyEffectRow({
     onChange: (checked: boolean) => void;
   };
 }) {
-  const selectedWait = waitSeconds(style.wait100, style.waitPercent);
+  const wait = snapWaitSeconds(style.wait);
   return (
     <div className="space-y-2 rounded-lg border border-border p-3">
       <div className="flex items-center justify-between gap-3">
@@ -338,31 +291,37 @@ function SkyEffectRow({
               style={{ accentColor: color }}
             />
           </div>
-          <SkyTimeSlider
-            label={`100% (${formatWaitSeconds(style.wait100)})`}
-            value={style.wait100}
-            color={color}
-            markText={(step) => formatWaitSeconds(step)}
-            onChange={(wait100) =>
-              onChange({
-                wait100: clampWait100(wait100),
-                frequency: frequencyFromWaitPercent(style.waitPercent),
-              })
-            }
-          />
-          <SkyTimeSlider
-            label={`Wait (${formatWaitSeconds(selectedWait)} · ${style.waitPercent}%)`}
-            value={style.waitPercent}
-            color={color}
-            markText={(step) => formatWaitSeconds(waitSeconds(style.wait100, step))}
-            onChange={(waitPercent) => {
-              const p = snapWaitPercent(waitPercent);
-              onChange({
-                waitPercent: p,
-                frequency: frequencyFromWaitPercent(p),
-              });
-            }}
-          />
+          <div className="space-y-1">
+            <label className="text-xs font-medium">
+              Frequency ({formatWaitSeconds(wait)})
+            </label>
+            <input
+              type="range"
+              min={0}
+              max={SKY_WAIT_STEPS.length - 1}
+              step={1}
+              value={skyWaitIndex(wait)}
+              onChange={(e) =>
+                onChange({
+                  wait: SKY_WAIT_STEPS[Number(e.target.value)] ?? 15,
+                })
+              }
+              className="w-full"
+              style={{ accentColor: color }}
+            />
+            <div className="flex justify-between gap-px text-[9px] leading-tight text-muted-foreground">
+              {SKY_WAIT_STEPS.map((step) => (
+                <span
+                  key={step}
+                  className={`min-w-0 flex-1 text-center ${
+                    step === wait ? "font-semibold text-foreground" : ""
+                  }`}
+                >
+                  {step}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
@@ -730,35 +689,35 @@ export function BrandingPanel({
           <div className="grid shrink-0 gap-3 sm:grid-cols-2">
             <SkyEffectRow
               title="Shooting stars"
-              hint="Brief meteors. Independent of Stars zoom. 100% is the usual wait; the Wait slider is a % of that time."
+              hint="Brief meteors. Independent of Stars zoom. Frequency is seconds between appearances (same scale on every effect)."
               style={draft.effects.meteors}
               color={draft.color}
               onChange={(partial) => patchEffect("meteors", partial)}
             />
             <SkyEffectRow
               title="Satellites"
-              hint="Slow crossings with quiet gaps. Independent of Stars zoom. 100% is the usual wait."
+              hint="Slow crossings with quiet gaps. Independent of Stars zoom. Frequency is seconds between appearances."
               style={draft.effects.satellites}
               color={draft.color}
               onChange={(partial) => patchEffect("satellites", partial)}
             />
             <SkyEffectRow
               title="Asteroids"
-              hint="Tumbling rocks in gold, ice blue, emerald, royal red, or silver. 100% is the usual wait between appearances."
+              hint="Tumbling rocks in gold, ice blue, emerald, royal red, or silver. Frequency is seconds between appearances."
               style={draft.effects.asteroids}
               color={draft.color}
               onChange={(partial) => patchEffect("asteroids", partial)}
             />
             <SkyEffectRow
               title="Comets"
-              hint="Slow nucleus with a long tail. Colors cycle: dust (pale yellow), ion (blue), green coma, sodium (orange). 100% is the usual wait between appearances."
+              hint="Slow nucleus with a long tail. Colors cycle: dust (pale yellow), ion (blue), green coma, sodium (orange). Frequency is seconds between appearances."
               style={draft.effects.comets}
               color={draft.color}
               onChange={(partial) => patchEffect("comets", partial)}
             />
             <SkyEffectRow
               title="Aurora"
-              hint="A light that slowly swells on, ripples with soft rays, then eases away over 14–22s. Realistic colours alternate. 100% is the first-wait and typical gap. Full-Screen Off hangs one patch toward the upper corners. Full-Screen On spans the viewport with light shining down to the bottom."
+              hint="A light that slowly swells on, ripples with soft rays, then eases away over 14–22s. Realistic colours alternate. Frequency is seconds to the first appearance and between later ones. Full-Screen Off hangs one patch toward the upper corners. Full-Screen On spans the viewport with light shining down to the bottom."
               style={draft.effects.aurora}
               color={draft.color}
               onChange={(partial) => patchEffect("aurora", partial)}

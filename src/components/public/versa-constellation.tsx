@@ -9,7 +9,7 @@ import {
   clampSkyZoom,
   resolveSkyEffects,
   skyDensityLevel,
-  waitSeconds,
+  snapWaitSeconds,
   type ConstellationVariant,
   type SkyEffects,
 } from "@/lib/brand-display";
@@ -1071,11 +1071,11 @@ export function VersaConstellation({
   const asteroidZ = clampSkyZoom(skyFx.asteroids.zoom);
   const cometZ = clampSkyZoom(skyFx.comets.zoom);
   const auroraZ = clampSkyZoom(skyFx.aurora.zoom);
-  const meteorWait = waitSeconds(skyFx.meteors.wait100, skyFx.meteors.waitPercent);
-  const satWait = waitSeconds(skyFx.satellites.wait100, skyFx.satellites.waitPercent);
-  const asteroidWait = waitSeconds(skyFx.asteroids.wait100, skyFx.asteroids.waitPercent);
-  const cometWait = waitSeconds(skyFx.comets.wait100, skyFx.comets.waitPercent);
-  const auroraWait = waitSeconds(skyFx.aurora.wait100, skyFx.aurora.waitPercent);
+  const meteorWait = snapWaitSeconds(skyFx.meteors.wait);
+  const satWait = snapWaitSeconds(skyFx.satellites.wait);
+  const asteroidWait = snapWaitSeconds(skyFx.asteroids.wait);
+  const cometWait = snapWaitSeconds(skyFx.comets.wait);
+  const auroraWait = snapWaitSeconds(skyFx.aurora.wait);
   const meteorsOn = skyFx.meteors.enabled;
   const satsOn = skyFx.satellites.enabled;
   const asteroidsOn = skyFx.asteroids.enabled;
