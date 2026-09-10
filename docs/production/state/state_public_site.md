@@ -8,7 +8,7 @@
 | Field | Value |
 |-------|-------|
 | **Feature** | Public site wiring + visitor chrome |
-| **Status** | 🔧 **0.7.170** aurora: +20% height both ways, +15% viewport down; public pages read saved DB sky. Awaiting Stephen QA |
+| **Status** | ✅ **0.7.170** on origin/master (`ea135a9`). Stephen accepted the aurora look 2026-09-10. |
 | **Last verified against code** | 2026-09-10 |
 | **Primary code** | `src/app/page.tsx`, `src/lib/public/site-content.ts`, `src/components/public/*`, `src/app/settings/page.tsx`, `src/components/settings/branding-panel.tsx`, `src/app/contact/page.tsx` |
 
@@ -66,7 +66,7 @@ New public fields live on the fixture JSON sidecar (`.data/site-settings.json`).
 Stephen named live surfaces, then stayed in IDE and shaped the visitor face (constellation, lockup, footer, themes).
 
 ### 2.2 Behavior today vs contract
-Matches §1 on beta `:3200` through **0.7.170** local (Full-Screen +20% height both ways / +15% down; public sky from DB). **0.7.158** remains on origin/master. 0.7.159–0.7.168 aurora passes were each revised on Stephen feedback. WU-12 is task **#289** / follow-on **#291** — agent-verified, awaiting Stephen phone QA. WU-07 / WU-08 / WU-09 accepted 2026-09-05. Comet palettes (WU-11) accepted 2026-09-07.
+Matches §1 on **origin/master** at **0.7.170** (`ea135a9`, Stephen accepted 2026-09-10). Full-Screen +20% height both ways / +15% down; public sky from DB; iPhone fade/blur fallback. 0.7.159–0.7.168 aurora passes were each revised on Stephen feedback. WU-12 follow-on **#290/#291** closed with the 0.7.170 promote. WU-07 / WU-08 / WU-09 accepted 2026-09-05. Comet palettes (WU-11) accepted 2026-09-07.
 
 ### 2.3 Code anchors
 - Settings store: `src/lib/fixtures/site-settings.ts`
@@ -182,4 +182,4 @@ Matches §1. Later (not this session): Stats automation seed; visitor intake out
 | 2026-09-09 | Aurora full-screen scale-up | **0.7.167:** per Stephen — approved 0.7.165 painting untouched and scaled to the full viewport: curtain spans the width, fold in the upper third, translucent shine streams down to the viewport bottom so stars show through to varying degrees; blur capped at 22px for the larger patch. E2E screenshots at ~100s/106s live sky confirm full-width curtain with star passthrough and clean ease-off. Local `beta` `4019d74`, not pushed. |
 | 2026-09-09 | Aurora size toggle | **0.7.168:** Sky Animation gains an **Aurora size** choice — **Small** (0.7.165 patch look: one patch toward the upper corners, ellipse fade, no shine) vs **Full-Screen** (0.7.167 viewport curtain with downward shine). Persisted per board as `fullScreen` on the aurora effect (default Small, so existing boards keep their look); Preview honors the choice. E2E: toggle defaults Small, flips, persists across reload both directions, preview canvas 1280×800 in Full-Screen; screenshots verified both modes. Local `beta` `ed8e6fe`, not pushed. |
 | 2026-09-10 | Aurora iPhone + toggle | **0.7.169:** Stephen: Full-Screen looks right on desktop; iPhone web missing blur/fade and sitting too high (bright bottom at mid-screen). iPhone Safari no-ops canvas `filter` and `destination-in` — fade is now `destination-out`, blur is a stamped bloom + `shadowBlur` on Apple touch WebKit; canvas size follows `visualViewport`. Full-screen fold shifted about halfway further down (`foldV` 0.62–0.70). Settings: the Small / Full-Screen segmented control is gone; a **Full-Screen On/Off** switch sits to the left of Aurora On/Off. Local `beta`, not pushed. |
-| 2026-09-10 | Aurora scale + public sky | **0.7.170:** Full-Screen curtain grows ~20% of its height both up and down (`height × 1.4`) and shifts down ~15% of the viewport (`foldV + 0.15`). Public `/`, `/board`, `/terms` now read sky/brand from the Postgres settings row (same store Settings saves), so the live sky matches what is On — they had been reading the fixture JSON sidecar. Local `beta`, not pushed. |
+| 2026-09-10 | Aurora scale + public sky | **0.7.170:** Full-Screen curtain grows ~20% of its height both up and down (`height × 1.4`) and shifts down ~15% of the viewport (`foldV + 0.15`). Public `/`, `/board`, `/terms` now read sky/brand from the Postgres settings row (same store Settings saves), so the live sky matches what is On — they had been reading the fixture JSON sidecar. Stephen accepted and asked to push; `origin/master` and `origin/beta` at `ea135a9`. |
