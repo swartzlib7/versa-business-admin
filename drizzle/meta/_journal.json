@@ -99,6 +99,13 @@
       "when": 1789041600000,
       "tag": "0013_sky_realistic_defaults",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789042800000,
+      "tag": "0014_sky_stars_zoom_default",
+      "breakpoints": true
     }
   ]
 }

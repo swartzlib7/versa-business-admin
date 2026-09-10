@@ -9,7 +9,7 @@ import { eq } from 'drizzle-orm';
 import { getDb } from './client';
 import { siteSettings as siteSettingsTable } from './schema';
 import { theme } from '@/lib/theme';
-import { resolveLogoSurfaces, clampSkyZoom, resolveConstellationVariant, resolveSkyEffects, SKY_DENSITY_DEFAULT, SKY_VARIANT_DEFAULT, type LogoSurfaces, type SkyEffects } from '@/lib/brand-display';
+import { resolveLogoSurfaces, clampSkyZoom, resolveConstellationVariant, resolveSkyEffects, SKY_DENSITY_DEFAULT, SKY_STARS_ZOOM_DEFAULT, SKY_VARIANT_DEFAULT, type LogoSurfaces, type SkyEffects } from '@/lib/brand-display';
 
 export const SITE_SETTINGS_ID = 'site';
 
@@ -51,7 +51,7 @@ export async function getSiteSettingsDb(): Promise<SiteSettingsShape> {
       brand_logo_scale_footer: 1,
       constellation_variant: SKY_VARIANT_DEFAULT,
       constellation_density: SKY_DENSITY_DEFAULT,
-      constellation_zoom: 1,
+      constellation_zoom: SKY_STARS_ZOOM_DEFAULT,
       constellation_effects: resolveSkyEffects({}),
       brand_logo_surfaces: resolveLogoSurfaces({}),
     };
@@ -79,7 +79,7 @@ export async function getSiteSettingsDb(): Promise<SiteSettingsShape> {
     brand_logo_scale_footer: surfaces.footer.scale,
     constellation_variant: resolveConstellationVariant(row.constellationVariant),
     constellation_density: Number(row.constellationDensity ?? SKY_DENSITY_DEFAULT),
-    constellation_zoom: clampSkyZoom(Number(row.constellationZoom ?? 1)),
+    constellation_zoom: clampSkyZoom(Number(row.constellationZoom ?? SKY_STARS_ZOOM_DEFAULT)),
     constellation_effects: resolveSkyEffects(row.constellationEffects),
     brand_logo_surfaces: surfaces,
   };

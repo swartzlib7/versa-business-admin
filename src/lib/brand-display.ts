@@ -57,6 +57,8 @@ export const SKY_ZOOM_MIN = 0.25;
 export const SKY_ZOOM_MAX = 2;
 export const SKY_ZOOM_STEP = 0.25;
 export const SKY_ZOOM_DEFAULT = 1;
+/** Shipped Stars slider (Stephen 2026-09-10 correction). Effect zooms stay 100%. */
+export const SKY_STARS_ZOOM_DEFAULT = 0.75;
 export const SKY_DENSITY_LEVEL_MIN = 1;
 export const SKY_DENSITY_LEVEL_MAX = 10;
 /** Classic original band / Realistic render 1.0 (do not use as the shipped slider). */
@@ -150,11 +152,11 @@ export type SkyEffectStyle = {
 export type SkyEffects = Record<SkyEffectId, SkyEffectStyle>;
 
 export const DEFAULT_SKY_EFFECTS: SkyEffects = {
-  meteors: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
-  satellites: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
-  asteroids: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
-  comets: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_SLOW_DEFAULT, fullScreen: false },
-  aurora: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_SLOW_DEFAULT, fullScreen: false },
+  meteors: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
+  satellites: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
+  asteroids: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
+  comets: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_SLOW_DEFAULT, fullScreen: false },
+  aurora: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_SLOW_DEFAULT, fullScreen: false },
 };
 
 function readSkyEffectStyle(
@@ -175,12 +177,12 @@ export function resolveSkyEffects(raw: unknown): SkyEffects {
   const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const hasAsteroids = obj.asteroids != null && typeof obj.asteroids === "object";
   return {
-    meteors: readSkyEffectStyle(obj.meteors, false),
-    satellites: readSkyEffectStyle(obj.satellites, false),
+    meteors: readSkyEffectStyle(obj.meteors, true),
+    satellites: readSkyEffectStyle(obj.satellites, true),
     // Pre-0.7.138 `comets` was the tumbling rock — that design is now Asteroids.
-    asteroids: readSkyEffectStyle(hasAsteroids ? obj.asteroids : obj.comets, false),
-    comets: readSkyEffectStyle(hasAsteroids ? obj.comets : undefined, false, SKY_FREQ_SLOW_DEFAULT),
-    aurora: readSkyEffectStyle(obj.aurora, false, SKY_FREQ_SLOW_DEFAULT),
+    asteroids: readSkyEffectStyle(hasAsteroids ? obj.asteroids : obj.comets, true),
+    comets: readSkyEffectStyle(hasAsteroids ? obj.comets : undefined, true, SKY_FREQ_SLOW_DEFAULT),
+    aurora: readSkyEffectStyle(obj.aurora, true, SKY_FREQ_SLOW_DEFAULT),
   };
 }
 

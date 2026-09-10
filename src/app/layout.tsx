@@ -6,7 +6,7 @@ import { BrandProvider } from "@/components/shell/brand-provider";
 import { SiteModeProvider } from "@/components/shell/site-mode-provider";
 import { getSiteSettingsDb } from "@/lib/db/settings-store";
 import { getBrandLogoOverlay, getSiteSettingsFixture } from "@/lib/fixtures/site-settings";
-import { resolveLogoSurfaces, clampSkyZoom, resolveConstellationVariant, resolveSkyEffects, SKY_DENSITY_DEFAULT, SKY_VARIANT_DEFAULT, type LogoSurfaces, type SkyEffects } from "@/lib/brand-display";
+import { resolveLogoSurfaces, clampSkyZoom, resolveConstellationVariant, resolveSkyEffects, SKY_DENSITY_DEFAULT, SKY_STARS_ZOOM_DEFAULT, SKY_VARIANT_DEFAULT, type LogoSurfaces, type SkyEffects } from "@/lib/brand-display";
 import { theme } from "@/lib/theme";
 import {
   defaultPublicNavHrefs,
@@ -98,7 +98,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_logo_scale_footer: surfaces.footer.scale,
       constellation_variant: resolveConstellationVariant(settingsRec.constellation_variant),
       constellation_density: num(settingsRec.constellation_density, SKY_DENSITY_DEFAULT),
-      constellation_zoom: clampSkyZoom(settingsRec.constellation_zoom ?? 1),
+      constellation_zoom: clampSkyZoom(settingsRec.constellation_zoom ?? SKY_STARS_ZOOM_DEFAULT),
       constellation_effects: resolveSkyEffects(settingsRec.constellation_effects),
       brand_logo_surfaces: surfaces,
       demo_mode: fixture.demo_mode !== false,
@@ -124,7 +124,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_logo_scale_footer: 1,
       constellation_variant: SKY_VARIANT_DEFAULT,
       constellation_density: SKY_DENSITY_DEFAULT,
-      constellation_zoom: 1,
+      constellation_zoom: SKY_STARS_ZOOM_DEFAULT,
       constellation_effects: resolveSkyEffects({}),
       brand_logo_surfaces: resolveLogoSurfaces({}),
       demo_mode: true,

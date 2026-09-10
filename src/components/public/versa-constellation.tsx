@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import {
   SKY_DENSITY_DEFAULT,
   SKY_DENSITY_LEVEL_DEFAULT,
+  SKY_STARS_ZOOM_DEFAULT,
   SKY_FREQ_MIN,
   SKY_VARIANT_DEFAULT,
   clampSkyFrequency,
@@ -1052,7 +1053,7 @@ function drawAurora(
 export function VersaConstellation({
   variant = SKY_VARIANT_DEFAULT,
   density = SKY_DENSITY_DEFAULT,
-  zoom = 1,
+  zoom = SKY_STARS_ZOOM_DEFAULT,
   effects,
   preview = false,
 }: {

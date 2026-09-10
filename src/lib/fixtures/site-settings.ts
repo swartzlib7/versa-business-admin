@@ -9,7 +9,7 @@ import path from "path";
 import { theme } from "@/lib/theme";
 import type { CycleStep } from "@/lib/public/site-types";
 import type { LogoSurfaces, SkyEffects } from "@/lib/brand-display";
-import { clampSkyZoom, resolveLogoSurfaces, resolveSkyEffects, SKY_DENSITY_DEFAULT, SKY_VARIANT_DEFAULT } from "@/lib/brand-display";
+import { clampSkyZoom, resolveLogoSurfaces, resolveSkyEffects, SKY_DENSITY_DEFAULT, SKY_STARS_ZOOM_DEFAULT, SKY_VARIANT_DEFAULT } from "@/lib/brand-display";
 
 export type { CycleStep };
 
@@ -174,7 +174,7 @@ function defaults(): FixtureSiteSettings {
     brand_logo_surfaces: resolveLogoSurfaces({}),
     constellation_variant: SKY_VARIANT_DEFAULT,
     constellation_density: SKY_DENSITY_DEFAULT,
-    constellation_zoom: 1,
+    constellation_zoom: SKY_STARS_ZOOM_DEFAULT,
     constellation_effects: resolveSkyEffects({}),
     demo_mode: true,
     maintenance_mode: false,
@@ -261,7 +261,7 @@ export function upsertSiteSettingsFixture(
     constellation_zoom:
       input.constellation_zoom !== undefined
         ? clampSkyZoom(input.constellation_zoom)
-        : clampSkyZoom(current.constellation_zoom ?? 1),
+        : clampSkyZoom(current.constellation_zoom ?? SKY_STARS_ZOOM_DEFAULT),
     constellation_effects: resolveSkyEffects(
       input.constellation_effects !== undefined
         ? input.constellation_effects

@@ -17,6 +17,7 @@ import {
   resolveConstellationVariant,
   resolveSkyEffects,
   SKY_DENSITY_DEFAULT,
+  SKY_STARS_ZOOM_DEFAULT,
 } from "@/lib/brand-display";
 import {
   enabledCycleSteps,
@@ -153,7 +154,7 @@ export default async function HomePage() {
       demo={demo}
       constellationVariant={resolveConstellationVariant(site.constellation_variant)}
       constellationDensity={site.constellation_density ?? SKY_DENSITY_DEFAULT}
-      constellationZoom={site.constellation_zoom ?? 1}
+      constellationZoom={site.constellation_zoom ?? SKY_STARS_ZOOM_DEFAULT}
       constellationEffects={resolveSkyEffects(site.constellation_effects)}
     >
       <PublicSection

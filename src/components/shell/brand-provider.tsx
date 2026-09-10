@@ -19,6 +19,7 @@ import {
   resolveLogoSurfaces,
   resolveSkyEffects,
   SKY_DENSITY_DEFAULT,
+  SKY_STARS_ZOOM_DEFAULT,
   SKY_VARIANT_DEFAULT,
   type LogoSurfaceId,
   type LogoSurfaceStyle,
@@ -58,7 +59,7 @@ const DEFAULT_BRAND: BrandConfig = {
   brand_logo_surfaces: resolveLogoSurfaces({}),
   constellation_variant: SKY_VARIANT_DEFAULT,
   constellation_density: SKY_DENSITY_DEFAULT,
-  constellation_zoom: 1,
+  constellation_zoom: SKY_STARS_ZOOM_DEFAULT,
   constellation_effects: resolveSkyEffects({}),
 };
 

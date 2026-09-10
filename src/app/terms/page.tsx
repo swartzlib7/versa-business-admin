@@ -4,7 +4,7 @@ import { getPublicSiteSettings } from "@/lib/fixtures/site-settings";
 import { adapter } from "@/lib/data";
 import { normalizePublicContent } from "@/lib/public/site-content";
 import { gatePublicHref } from "@/lib/nav-server";
-import { resolveConstellationVariant, resolveSkyEffects, SKY_DENSITY_DEFAULT } from "@/lib/brand-display";
+import { resolveConstellationVariant, resolveSkyEffects, SKY_DENSITY_DEFAULT, SKY_STARS_ZOOM_DEFAULT } from "@/lib/brand-display";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export default async function PublicTermsPage() {
       demo={site.demo_mode !== false}
       constellationVariant={resolveConstellationVariant(site.constellation_variant)}
       constellationDensity={site.constellation_density ?? SKY_DENSITY_DEFAULT}
-      constellationZoom={site.constellation_zoom ?? 1}
+      constellationZoom={site.constellation_zoom ?? SKY_STARS_ZOOM_DEFAULT}
       constellationEffects={resolveSkyEffects(site.constellation_effects)}
     >
       <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
