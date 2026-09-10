@@ -20,6 +20,7 @@ import {
   SKY_STARS_ZOOM_DEFAULT,
   SKY_DENSITY_LEVEL_MAX,
   SKY_DENSITY_LEVEL_MIN,
+  SKY_WAIT_JITTER_S,
   SKY_WAIT_STEPS,
   SKY_ZOOM_MAX,
   SKY_ZOOM_MIN,
@@ -321,9 +322,16 @@ function SkyEffectRow({
                 </span>
               ))}
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              Each wait is Frequency ±5s.
-            </p>
+            <BooleanSwitch
+              checked={style.randomizeSequence}
+              onChange={(randomizeSequence) => onChange({ randomizeSequence })}
+              label={
+                style.randomizeSequence
+                  ? "Random sequence On"
+                  : "Random sequence Off"
+              }
+              labelSide="start"
+            />
           </div>
         </div>
       ) : null}
@@ -689,6 +697,26 @@ export function BrandingPanel({
               scale. 200% is close-in. Shooting stars, satellites, asteroids, comets, and aurora keep their own size.
             </p>
           </div>
+          <div className="shrink-0 space-y-2">
+            <label className="text-sm font-medium">
+              Density ({skyDensityLevel(draft.density)}×)
+            </label>
+            <input
+              type="range"
+              min={SKY_DENSITY_LEVEL_MIN}
+              max={SKY_DENSITY_LEVEL_MAX}
+              step={1}
+              value={skyDensityLevel(draft.density)}
+              onChange={(e) => patch({ density: skyDensityFromLevel(Number(e.target.value)) })}
+              className="w-full"
+              style={{ accentColor: draft.color }}
+            />
+            <p className="text-xs text-muted-foreground">
+              {draft.variant === "classic"
+                ? "5× is the original Classic band. 1× is sparse, 10× is twice as rich."
+                : "1× is the original Realistic field. At 10× the stars compact into the Classic milky-way band."}
+            </p>
+          </div>
           <div className="grid shrink-0 gap-3 sm:grid-cols-2">
             <SkyEffectRow
               title="Shooting stars"
@@ -730,26 +758,22 @@ export function BrandingPanel({
                 onChange: (fullScreen) => patchEffect("aurora", { fullScreen }),
               }}
             />
-          </div>
-          <div className="shrink-0 space-y-2">
-            <label className="text-sm font-medium">
-              Density ({skyDensityLevel(draft.density)}×)
-            </label>
-            <input
-              type="range"
-              min={SKY_DENSITY_LEVEL_MIN}
-              max={SKY_DENSITY_LEVEL_MAX}
-              step={1}
-              value={skyDensityLevel(draft.density)}
-              onChange={(e) => patch({ density: skyDensityFromLevel(Number(e.target.value)) })}
-              className="w-full"
-              style={{ accentColor: draft.color }}
-            />
-            <p className="text-xs text-muted-foreground">
-              {draft.variant === "classic"
-                ? "5× is the original Classic band. 1× is sparse, 10× is twice as rich."
-                : "1× is the original Realistic field. At 10× the stars compact into the Classic milky-way band."}
-            </p>
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <p className="text-sm font-medium">Frequency variation</p>
+              <p className="text-xs text-muted-foreground">
+                Every wait is Frequency ±{SKY_WAIT_JITTER_S} seconds (floor 1s at
+                the 5s mark).
+              </p>
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Random sequence On:</span>{" "}
+                the slider is the first wait only. Later waits pick another mark
+                on 5–180, still ±{SKY_WAIT_JITTER_S}s.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Random sequence Off:</span>{" "}
+                every wait stays on the slider value ±{SKY_WAIT_JITTER_S}s.
+              </p>
+            </div>
           </div>
         </div>
       ) : null}

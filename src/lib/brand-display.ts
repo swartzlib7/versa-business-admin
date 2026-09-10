@@ -154,6 +154,14 @@ export function waitJitterRange(base: unknown, fallback: number = 15): [number, 
   return [Math.max(1, wait - SKY_WAIT_JITTER_S), wait + SKY_WAIT_JITTER_S];
 }
 
+/** Next Frequency mark when Random sequence is On — not the same as the last one. */
+export function pickNextWaitStep(current: unknown): SkyWaitStep {
+  const cur = snapWaitSeconds(current);
+  const others = SKY_WAIT_STEPS.filter((step) => step !== cur);
+  if (others.length === 0) return cur;
+  return others[Math.floor(Math.random() * others.length)]!;
+}
+
 function migrateWaitSeconds(
   row: Record<string, unknown>,
   id: SkyEffectId,
@@ -176,6 +184,8 @@ export type SkyEffectStyle = {
   zoom: number;
   /** Wait between appearances, seconds — one of SKY_WAIT_STEPS. */
   wait: number;
+  /** On: slider is the first wait only; later waits pick another 5–180 mark. */
+  randomizeSequence: boolean;
   /** Aurora only: Full-Screen On = viewport curtain; Off = Small patch (0.7.165). */
   fullScreen: boolean;
 };
@@ -187,6 +197,7 @@ function effectDefaults(id: SkyEffectId, enabled: boolean): SkyEffectStyle {
     enabled,
     zoom: SKY_ZOOM_DEFAULT,
     wait: SKY_WAIT_DEFAULTS[id],
+    randomizeSequence: true,
     fullScreen: false,
   };
 }
@@ -209,6 +220,8 @@ function readSkyEffectStyle(
     enabled: typeof r.enabled === "boolean" ? r.enabled : fallbackEnabled,
     zoom: clampSkyZoom(r.zoom),
     wait: migrateWaitSeconds(r, id),
+    randomizeSequence:
+      typeof r.randomizeSequence === "boolean" ? r.randomizeSequence : true,
     fullScreen: r.fullScreen === true,
   };
 }
