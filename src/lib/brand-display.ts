@@ -59,9 +59,19 @@ export const SKY_ZOOM_STEP = 0.25;
 export const SKY_ZOOM_DEFAULT = 1;
 export const SKY_DENSITY_LEVEL_MIN = 1;
 export const SKY_DENSITY_LEVEL_MAX = 10;
+/** Classic original band / Realistic render 1.0 (do not use as the shipped slider). */
 export const SKY_DENSITY_LEVEL_DEFAULT = 5;
-/** Stored 0–1 value for density level 5 (Classic's original field). */
-export const SKY_DENSITY_DEFAULT = (SKY_DENSITY_LEVEL_DEFAULT - 1) / 9;
+/** Shipped Sky Animation density slider (Stephen 2026-09-10 preset). */
+export const SKY_DENSITY_LEVEL_PRESET = 7;
+/** Stored 0–1 value for the shipped density slider (7×). */
+export const SKY_DENSITY_DEFAULT = (SKY_DENSITY_LEVEL_PRESET - 1) / 9;
+
+export type ConstellationVariant = "classic" | "realistic";
+export const SKY_VARIANT_DEFAULT: ConstellationVariant = "realistic";
+
+export function resolveConstellationVariant(raw: unknown): ConstellationVariant {
+  return raw === "classic" ? "classic" : SKY_VARIANT_DEFAULT;
+}
 
 export function clampSkyZoom(n: unknown): number {
   const x = typeof n === "number" ? n : Number(n);
@@ -88,7 +98,7 @@ export function skyDensityFromLevel(level: unknown): number {
   const n = typeof level === "number" ? level : Number(level);
   const L = Number.isFinite(n)
     ? Math.max(SKY_DENSITY_LEVEL_MIN, Math.min(SKY_DENSITY_LEVEL_MAX, Math.round(n)))
-    : SKY_DENSITY_LEVEL_DEFAULT;
+    : SKY_DENSITY_LEVEL_PRESET;
   return (L - 1) / 9;
 }
 
@@ -96,6 +106,8 @@ export const SKY_FREQ_STEPS = [1 / 3, 0.5, 1, 2, 3] as const;
 export const SKY_FREQ_MIN = SKY_FREQ_STEPS[0];
 export const SKY_FREQ_MAX = SKY_FREQ_STEPS[SKY_FREQ_STEPS.length - 1];
 export const SKY_FREQ_DEFAULT = 1;
+/** Comet + aurora shipped frequency (Stephen 2026-09-10 preset). */
+export const SKY_FREQ_SLOW_DEFAULT = 0.5;
 
 export function clampSkyFrequency(n: unknown, fallback = SKY_FREQ_DEFAULT): number {
   const x = typeof n === "number" ? n : Number(n);
@@ -138,20 +150,23 @@ export type SkyEffectStyle = {
 export type SkyEffects = Record<SkyEffectId, SkyEffectStyle>;
 
 export const DEFAULT_SKY_EFFECTS: SkyEffects = {
-  meteors: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
-  satellites: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
+  meteors: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
+  satellites: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
   asteroids: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
-  comets: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
-  aurora: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
+  comets: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_SLOW_DEFAULT, fullScreen: false },
+  aurora: { enabled: false, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_SLOW_DEFAULT, fullScreen: false },
 };
-// Aurora stays Off unless a board saved it On (see resolveSkyEffects fallback).
 
-function readSkyEffectStyle(row: unknown, fallbackEnabled: boolean): SkyEffectStyle {
+function readSkyEffectStyle(
+  row: unknown,
+  fallbackEnabled: boolean,
+  fallbackFrequency = SKY_FREQ_DEFAULT,
+): SkyEffectStyle {
   const r = row && typeof row === "object" ? (row as Record<string, unknown>) : {};
   return {
     enabled: typeof r.enabled === "boolean" ? r.enabled : fallbackEnabled,
     zoom: clampSkyZoom(r.zoom),
-    frequency: clampSkyFrequency(r.frequency),
+    frequency: clampSkyFrequency(r.frequency, fallbackFrequency),
     fullScreen: r.fullScreen === true,
   };
 }
@@ -160,12 +175,12 @@ export function resolveSkyEffects(raw: unknown): SkyEffects {
   const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const hasAsteroids = obj.asteroids != null && typeof obj.asteroids === "object";
   return {
-    meteors: readSkyEffectStyle(obj.meteors, true),
-    satellites: readSkyEffectStyle(obj.satellites, true),
+    meteors: readSkyEffectStyle(obj.meteors, false),
+    satellites: readSkyEffectStyle(obj.satellites, false),
     // Pre-0.7.138 `comets` was the tumbling rock — that design is now Asteroids.
     asteroids: readSkyEffectStyle(hasAsteroids ? obj.asteroids : obj.comets, false),
-    comets: readSkyEffectStyle(hasAsteroids ? obj.comets : undefined, false),
-    aurora: readSkyEffectStyle(obj.aurora, false),
+    comets: readSkyEffectStyle(hasAsteroids ? obj.comets : undefined, false, SKY_FREQ_SLOW_DEFAULT),
+    aurora: readSkyEffectStyle(obj.aurora, false, SKY_FREQ_SLOW_DEFAULT),
   };
 }
 

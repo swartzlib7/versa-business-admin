@@ -14,6 +14,7 @@ import {
   logoPx,
   logoSurfaceFilter,
   resolveLogoSurfaces,
+  resolveConstellationVariant,
   resolveSkyEffects,
   SKY_DENSITY_DEFAULT,
 } from "@/lib/brand-display";
@@ -150,7 +151,7 @@ export default async function HomePage() {
     <PublicLayout
       business={business}
       demo={demo}
-      constellationVariant={site.constellation_variant === "realistic" ? "realistic" : "classic"}
+      constellationVariant={resolveConstellationVariant(site.constellation_variant)}
       constellationDensity={site.constellation_density ?? SKY_DENSITY_DEFAULT}
       constellationZoom={site.constellation_zoom ?? 1}
       constellationEffects={resolveSkyEffects(site.constellation_effects)}

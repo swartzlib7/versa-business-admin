@@ -5,14 +5,16 @@ import {
   SKY_DENSITY_DEFAULT,
   SKY_DENSITY_LEVEL_DEFAULT,
   SKY_FREQ_MIN,
+  SKY_VARIANT_DEFAULT,
   clampSkyFrequency,
   clampSkyZoom,
   resolveSkyEffects,
   skyDensityLevel,
+  type ConstellationVariant,
   type SkyEffects,
 } from "@/lib/brand-display";
 
-export type ConstellationVariant = "classic" | "realistic";
+export type { ConstellationVariant };
 
 type Star = {
   x: number;
@@ -1048,7 +1050,7 @@ function drawAurora(
  * band at the high end. Colors resolve from the active theme as rgba().
  */
 export function VersaConstellation({
-  variant = "classic",
+  variant = SKY_VARIANT_DEFAULT,
   density = SKY_DENSITY_DEFAULT,
   zoom = 1,
   effects,

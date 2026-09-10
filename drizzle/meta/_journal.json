@@ -92,6 +92,13 @@
       "when": 1788637200000,
       "tag": "0012_constellation_effects",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789041600000,
+      "tag": "0013_sky_realistic_defaults",
+      "breakpoints": true
     }
   ]
 }
