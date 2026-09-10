@@ -5,12 +5,11 @@ import {
   SKY_DENSITY_DEFAULT,
   SKY_DENSITY_LEVEL_DEFAULT,
   SKY_STARS_ZOOM_DEFAULT,
-  SKY_FREQ_MIN,
   SKY_VARIANT_DEFAULT,
-  clampSkyFrequency,
   clampSkyZoom,
   resolveSkyEffects,
   skyDensityLevel,
+  waitSeconds,
   type ConstellationVariant,
   type SkyEffects,
 } from "@/lib/brand-display";
@@ -1072,11 +1071,11 @@ export function VersaConstellation({
   const asteroidZ = clampSkyZoom(skyFx.asteroids.zoom);
   const cometZ = clampSkyZoom(skyFx.comets.zoom);
   const auroraZ = clampSkyZoom(skyFx.aurora.zoom);
-  const meteorF = clampSkyFrequency(skyFx.meteors.frequency);
-  const satF = clampSkyFrequency(skyFx.satellites.frequency);
-  const asteroidF = clampSkyFrequency(skyFx.asteroids.frequency);
-  const cometF = clampSkyFrequency(skyFx.comets.frequency);
-  const auroraF = clampSkyFrequency(skyFx.aurora.frequency);
+  const meteorWait = waitSeconds(skyFx.meteors.wait100, skyFx.meteors.waitPercent);
+  const satWait = waitSeconds(skyFx.satellites.wait100, skyFx.satellites.waitPercent);
+  const asteroidWait = waitSeconds(skyFx.asteroids.wait100, skyFx.asteroids.waitPercent);
+  const cometWait = waitSeconds(skyFx.comets.wait100, skyFx.comets.waitPercent);
+  const auroraWait = waitSeconds(skyFx.aurora.wait100, skyFx.aurora.waitPercent);
   const meteorsOn = skyFx.meteors.enabled;
   const satsOn = skyFx.satellites.enabled;
   const asteroidsOn = skyFx.asteroids.enabled;
@@ -1089,11 +1088,11 @@ export function VersaConstellation({
     asteroidZ,
     cometZ,
     auroraZ,
-    meteorF,
-    satF,
-    asteroidF,
-    cometF,
-    auroraF,
+    meteorWait,
+    satWait,
+    asteroidWait,
+    cometWait,
+    auroraWait,
     meteorsOn,
     satsOn,
     asteroidsOn,
@@ -1108,11 +1107,11 @@ export function VersaConstellation({
       asteroidZ,
       cometZ,
       auroraZ,
-      meteorF,
-      satF,
-      asteroidF,
-      cometF,
-      auroraF,
+      meteorWait,
+      satWait,
+      asteroidWait,
+      cometWait,
+      auroraWait,
       meteorsOn,
       satsOn,
       asteroidsOn,
@@ -1126,11 +1125,11 @@ export function VersaConstellation({
     asteroidZ,
     cometZ,
     auroraZ,
-    meteorF,
-    satF,
-    asteroidF,
-    cometF,
-    auroraF,
+    meteorWait,
+    satWait,
+    asteroidWait,
+    cometWait,
+    auroraWait,
     meteorsOn,
     satsOn,
     asteroidsOn,
@@ -1158,19 +1157,21 @@ export function VersaConstellation({
     const trueComets: TrueComet[] = [];
     const cometTrail: CometTrail[] = [];
     const auroras: Aurora[] = [];
-    const gap = (lo: number, hi: number, freq: number) =>
-      rand(lo, hi) / Math.max(freq, SKY_FREQ_MIN);
+    const waitJitter = (base: number, loMul = 0.75, hiMul = 1.4) =>
+      rand(Math.max(0.2, base * loMul), Math.max(0.25, base * hiMul));
+    const previewWait = (base: number, scale: number, floor: number) =>
+      Math.max(floor, base * scale);
     let raf = 0;
     let paused = document.hidden;
     let last = performance.now();
-    let spawnIn = gap(5.4, 12.6, fxRef.current.meteorF);
-    let satelliteSpawnIn = gap(6, 14, fxRef.current.satF);
-    let asteroidSpawnIn = gap(4, 10, fxRef.current.asteroidF);
-    let trueCometSpawnIn = gap(8, 18, fxRef.current.cometF);
-    // Live sky: first aurora after a fixed 90s (at 1×), then 90–360s gaps.
+    let spawnIn = waitJitter(fxRef.current.meteorWait);
+    let satelliteSpawnIn = waitJitter(fxRef.current.satWait);
+    let asteroidSpawnIn = waitJitter(fxRef.current.asteroidWait, 0.2, 0.4);
+    let trueCometSpawnIn = waitJitter(fxRef.current.cometWait, 0.2, 0.45);
+    // Live sky: first aurora after the selected wait, then a spread around it.
     let auroraSpawnIn = preview
-      ? gap(0.4, 1.2, fxRef.current.auroraF)
-      : gap(90, 90, fxRef.current.auroraF);
+      ? previewWait(fxRef.current.auroraWait, 0.015, 0.4)
+      : fxRef.current.auroraWait;
     let dustAcc = 0;
     let cometTrailAcc = 0;
     let asteroidTintSeq = 0;
@@ -1545,7 +1546,7 @@ export function VersaConstellation({
             spawnIn -= dt;
             if (spawnIn <= 0 && meteors.length < 2) {
               spawnMeteor(ew, eh);
-              spawnIn = gap(7.2, 16.5, fx.meteorF);
+              spawnIn = waitJitter(fx.meteorWait);
             }
             const mz = fx.meteorZ;
             for (let i = meteors.length - 1; i >= 0; i--) {
@@ -1594,7 +1595,7 @@ export function VersaConstellation({
             satelliteSpawnIn -= dt;
             if (satelliteSpawnIn <= 0 && satellites.length < 3) {
               spawnSatellite(ew, eh);
-              satelliteSpawnIn = gap(9, 22, fx.satF);
+              satelliteSpawnIn = waitJitter(fx.satWait);
             }
             const sz = fx.satZ;
             for (let i = satellites.length - 1; i >= 0; i--) {
@@ -1667,7 +1668,7 @@ export function VersaConstellation({
             asteroids.length = 0;
             asteroidDust.length = 0;
             dustAcc = 0;
-            if (waiting) asteroidSpawnIn = gap(4, 10, fx.asteroidF);
+            if (waiting) asteroidSpawnIn = waitJitter(fx.asteroidWait, 0.2, 0.4);
           } else {
             const az = fx.asteroidZ;
             asteroidSpawnIn -= dt;
@@ -1694,7 +1695,7 @@ export function VersaConstellation({
               }
               if (c.t >= 1) {
                 asteroids.splice(i, 1);
-                asteroidSpawnIn = gap(15, 60, fx.asteroidF);
+                asteroidSpawnIn = waitJitter(fx.asteroidWait);
               }
             }
 
@@ -1722,7 +1723,7 @@ export function VersaConstellation({
             trueComets.length = 0;
             cometTrail.length = 0;
             cometTrailAcc = 0;
-            if (waiting) trueCometSpawnIn = gap(8, 18, fx.cometF);
+            if (waiting) trueCometSpawnIn = waitJitter(fx.cometWait, 0.2, 0.45);
           } else {
             const cz = fx.cometZ;
             trueCometSpawnIn -= dt;
@@ -1749,7 +1750,7 @@ export function VersaConstellation({
               }
               if (c.t >= 1) {
                 trueComets.splice(i, 1);
-                trueCometSpawnIn = gap(20, 80, fx.cometF);
+                trueCometSpawnIn = waitJitter(fx.cometWait);
               }
             }
             for (let i = cometTrail.length - 1; i >= 0; i--) {
@@ -1783,8 +1784,8 @@ export function VersaConstellation({
             }
             if (auroras.length === 0 && auroraSpawnIn > 1000) {
               auroraSpawnIn = preview
-                ? gap(1.2, 3.5, fx.auroraF)
-                : gap(90, 360, fx.auroraF);
+                ? previewWait(fx.auroraWait, 0.02, 1.2)
+                : waitJitter(fx.auroraWait, 1, 4);
             }
           }
           ctx.restore();

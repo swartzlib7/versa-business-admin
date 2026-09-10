@@ -104,19 +104,36 @@ export function skyDensityFromLevel(level: unknown): number {
   return (L - 1) / 9;
 }
 
-export const SKY_FREQ_STEPS = [1 / 3, 0.5, 1, 2, 3] as const;
-export const SKY_FREQ_MIN = SKY_FREQ_STEPS[0];
-export const SKY_FREQ_MAX = SKY_FREQ_STEPS[SKY_FREQ_STEPS.length - 1];
+export type SkyEffectId = "meteors" | "satellites" | "asteroids" | "comets" | "aurora";
+
+/** Percent-of-100% wait marks for every sky time slider (Stephen 2026-09-10). */
+export const SKY_WAIT_PERCENT_STEPS = [5, 10, 15, 20, 30, 40, 50, 60, 90, 120, 180] as const;
+/** Closest picklist mark to the old 1× (100%) rate. */
+export const SKY_WAIT_PERCENT_DEFAULT = 90;
+/** 1× (100%) wait in seconds — snapped from the former hardcoded gap midpoints. */
+export const SKY_WAIT100_DEFAULTS: Record<SkyEffectId, number> = {
+  meteors: 10,
+  satellites: 15,
+  asteroids: 40,
+  comets: 50,
+  aurora: 90,
+};
+
 export const SKY_FREQ_DEFAULT = 1;
-/** Comet + aurora shipped frequency (Stephen 2026-09-10 preset). */
+/** Kept so older frequency-only rows still snap (0.5× → 180%). */
 export const SKY_FREQ_SLOW_DEFAULT = 0.5;
 
-export function clampSkyFrequency(n: unknown, fallback = SKY_FREQ_DEFAULT): number {
+export function clampWait100(n: unknown, fallback = 10): number {
+  if (n == null || n === "") return snapWaitPercent(fallback);
+  return snapWaitPercent(n);
+}
+
+export function snapWaitPercent(n: unknown): number {
   const x = typeof n === "number" ? n : Number(n);
-  if (!Number.isFinite(x)) return fallback;
-  let best: number = SKY_FREQ_STEPS[0];
+  if (!Number.isFinite(x)) return SKY_WAIT_PERCENT_DEFAULT;
+  let best: (typeof SKY_WAIT_PERCENT_STEPS)[number] = SKY_WAIT_PERCENT_STEPS[0];
   let bestD = Infinity;
-  for (const step of SKY_FREQ_STEPS) {
+  for (const step of SKY_WAIT_PERCENT_STEPS) {
     const d = Math.abs(step - x);
     if (d < bestD) {
       bestD = d;
@@ -126,49 +143,96 @@ export function clampSkyFrequency(n: unknown, fallback = SKY_FREQ_DEFAULT): numb
   return best;
 }
 
-export function skyFreqIndex(n: unknown): number {
-  const f = clampSkyFrequency(n);
-  const i = SKY_FREQ_STEPS.findIndex((step) => step === f);
-  return i < 0 ? 2 : i;
+export function waitPercentFromFrequency(frequency: unknown): number {
+  const f = typeof frequency === "number" ? frequency : Number(frequency);
+  if (!Number.isFinite(f) || f <= 0) return SKY_WAIT_PERCENT_DEFAULT;
+  return snapWaitPercent(100 / f);
 }
 
-export function formatSkyFrequency(n: unknown): string {
-  const f = clampSkyFrequency(n);
-  if (f === 1 / 3) return "⅓×";
-  if (f === 0.5) return "½×";
-  return `${f}×`;
+export function frequencyFromWaitPercent(percent: unknown): number {
+  const p = snapWaitPercent(percent);
+  return Number((100 / p).toFixed(4));
 }
 
-export type SkyEffectId = "meteors" | "satellites" | "asteroids" | "comets" | "aurora";
+export function waitSeconds(wait100: unknown, waitPercent: unknown): number {
+  return (clampWait100(wait100) * snapWaitPercent(waitPercent)) / 100;
+}
+
+export function formatWaitSeconds(n: unknown): string {
+  const x = typeof n === "number" ? n : Number(n);
+  if (!Number.isFinite(x)) return "—";
+  if (x < 10) {
+    const rounded = Math.round(x * 10) / 10;
+    return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)}s`;
+  }
+  return `${Math.round(x)}s`;
+}
+
+export function skyWaitPercentIndex(n: unknown): number {
+  const p = snapWaitPercent(n);
+  const i = SKY_WAIT_PERCENT_STEPS.indexOf(p as (typeof SKY_WAIT_PERCENT_STEPS)[number]);
+  return i < 0 ? SKY_WAIT_PERCENT_STEPS.indexOf(SKY_WAIT_PERCENT_DEFAULT) : i;
+}
 
 export type SkyEffectStyle = {
   enabled: boolean;
   zoom: number;
+  /** Derived 100 / waitPercent — kept for older readers. */
   frequency: number;
+  /** Seconds at the 100% mark (adjustable). */
+  wait100: number;
+  /** One of SKY_WAIT_PERCENT_STEPS. */
+  waitPercent: number;
   /** Aurora only: Full-Screen On = viewport curtain; Off = Small patch (0.7.165). */
   fullScreen: boolean;
 };
 
 export type SkyEffects = Record<SkyEffectId, SkyEffectStyle>;
 
+function effectDefaults(id: SkyEffectId, enabled: boolean, frequency: number): SkyEffectStyle {
+  const wait100 = SKY_WAIT100_DEFAULTS[id];
+  const waitPercent = waitPercentFromFrequency(frequency);
+  return {
+    enabled,
+    zoom: SKY_ZOOM_DEFAULT,
+    wait100,
+    waitPercent,
+    frequency: frequencyFromWaitPercent(waitPercent),
+    fullScreen: false,
+  };
+}
+
 export const DEFAULT_SKY_EFFECTS: SkyEffects = {
-  meteors: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
-  satellites: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
-  asteroids: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_DEFAULT, fullScreen: false },
-  comets: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_SLOW_DEFAULT, fullScreen: false },
-  aurora: { enabled: true, zoom: SKY_ZOOM_DEFAULT, frequency: SKY_FREQ_SLOW_DEFAULT, fullScreen: false },
+  meteors: effectDefaults("meteors", true, SKY_FREQ_DEFAULT),
+  satellites: effectDefaults("satellites", true, SKY_FREQ_DEFAULT),
+  asteroids: effectDefaults("asteroids", true, SKY_FREQ_DEFAULT),
+  comets: effectDefaults("comets", true, SKY_FREQ_SLOW_DEFAULT),
+  aurora: effectDefaults("aurora", true, SKY_FREQ_SLOW_DEFAULT),
 };
 
 function readSkyEffectStyle(
   row: unknown,
+  id: SkyEffectId,
   fallbackEnabled: boolean,
   fallbackFrequency = SKY_FREQ_DEFAULT,
 ): SkyEffectStyle {
   const r = row && typeof row === "object" ? (row as Record<string, unknown>) : {};
+  const wait100 = clampWait100(
+    r.wait100,
+    SKY_WAIT100_DEFAULTS[id],
+  );
+  const waitPercent =
+    r.waitPercent != null
+      ? snapWaitPercent(r.waitPercent)
+      : waitPercentFromFrequency(
+          typeof r.frequency === "number" ? r.frequency : fallbackFrequency,
+        );
   return {
     enabled: typeof r.enabled === "boolean" ? r.enabled : fallbackEnabled,
     zoom: clampSkyZoom(r.zoom),
-    frequency: clampSkyFrequency(r.frequency, fallbackFrequency),
+    wait100,
+    waitPercent,
+    frequency: frequencyFromWaitPercent(waitPercent),
     fullScreen: r.fullScreen === true,
   };
 }
@@ -177,12 +241,17 @@ export function resolveSkyEffects(raw: unknown): SkyEffects {
   const obj = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const hasAsteroids = obj.asteroids != null && typeof obj.asteroids === "object";
   return {
-    meteors: readSkyEffectStyle(obj.meteors, true),
-    satellites: readSkyEffectStyle(obj.satellites, true),
+    meteors: readSkyEffectStyle(obj.meteors, "meteors", true),
+    satellites: readSkyEffectStyle(obj.satellites, "satellites", true),
     // Pre-0.7.138 `comets` was the tumbling rock — that design is now Asteroids.
-    asteroids: readSkyEffectStyle(hasAsteroids ? obj.asteroids : obj.comets, true),
-    comets: readSkyEffectStyle(hasAsteroids ? obj.comets : undefined, true, SKY_FREQ_SLOW_DEFAULT),
-    aurora: readSkyEffectStyle(obj.aurora, true, SKY_FREQ_SLOW_DEFAULT),
+    asteroids: readSkyEffectStyle(hasAsteroids ? obj.asteroids : obj.comets, "asteroids", true),
+    comets: readSkyEffectStyle(
+      hasAsteroids ? obj.comets : undefined,
+      "comets",
+      true,
+      SKY_FREQ_SLOW_DEFAULT,
+    ),
+    aurora: readSkyEffectStyle(obj.aurora, "aurora", true, SKY_FREQ_SLOW_DEFAULT),
   };
 }
 
