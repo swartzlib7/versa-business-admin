@@ -327,8 +327,8 @@ function SkyEffectRow({
               onChange={(randomizeSequence) => onChange({ randomizeSequence })}
               label={
                 style.randomizeSequence
-                  ? "Random sequence On"
-                  : "Random sequence Off"
+                  ? "Randomize Frequency On"
+                  : "Randomize Frequency Off"
               }
               labelSide="start"
             />
@@ -765,12 +765,12 @@ export function BrandingPanel({
                 the 5s mark).
               </p>
               <p className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">Random sequence On:</span>{" "}
+                <span className="font-medium text-foreground">Randomize Frequency On:</span>{" "}
                 the slider is the first wait only. Later waits pick another mark
                 on 5–180, still ±{SKY_WAIT_JITTER_S}s.
               </p>
               <p className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">Random sequence Off:</span>{" "}
+                <span className="font-medium text-foreground">Randomize Frequency Off:</span>{" "}
                 every wait stays on the slider value ±{SKY_WAIT_JITTER_S}s.
               </p>
             </div>

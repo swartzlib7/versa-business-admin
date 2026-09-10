@@ -154,7 +154,7 @@ export function waitJitterRange(base: unknown, fallback: number = 15): [number, 
   return [Math.max(1, wait - SKY_WAIT_JITTER_S), wait + SKY_WAIT_JITTER_S];
 }
 
-/** Next Frequency mark when Random sequence is On — not the same as the last one. */
+/** Next Frequency mark when Randomize Frequency is On — not the same as the last one. */
 export function pickNextWaitStep(current: unknown): SkyWaitStep {
   const cur = snapWaitSeconds(current);
   const others = SKY_WAIT_STEPS.filter((step) => step !== cur);
