@@ -1,0 +1,113 @@
+// White-label theme tokens — override these to rebrand the admin system.
+// Customers set their own logo, colors, and brand name here.
+
+export const theme = {
+  brand: {
+    name: 'Versa - Business Admin',
+    shortName: 'VBA',
+    logoUrl: '/logo.svg',
+    faviconUrl: '/favicon.ico',
+  },
+  colors: {
+    // Primary brand color — used for sidebar accent, buttons, links
+    brand: '#6366f1', // indigo-500
+    brandForeground: '#ffffff',
+    // Sidebar
+    sidebarBackground: 'oklch(0.205 0 0)',
+    sidebarForeground: 'oklch(0.985 0 0)',
+    sidebarAccent: 'oklch(0.269 0 0)',
+    // Status colors
+    statusActive: '#22c55e',   // green-500
+    statusIdle: '#eab308',     // yellow-500
+    statusError: '#ef4444',    // red-500
+    statusOffline: '#6b7280',  // gray-500
+  },
+  // 3D VBA hub scene — Versa-branded default.
+  // Override these to rebrand the hub visualization for a customer.
+  scene: {
+    hubName: 'Executive',
+    hubSubtitle: 'Organization center',
+    // Hub color — Royal red to match Organization section accent
+    hubColor: '#ef4444',
+    hubGlow: '#f87171',
+    executiveColor: '#ef4444',
+    executiveGlow: '#f87171',
+    // Zone colors — must be obvious at a glance
+    organizationColor: '#3b82f6',   // blue-500 — departments
+    collaborationColor: '#22c55e',  // green-500 — parties
+    environmentalColor: '#f59e0b',  // amber-500 — context
+    // Connection colors (shared defaults; mode palettes can override)
+    primaryLinkColor: '#6366f1',
+    secondaryLinkColor: '#94a3b8', // slate-400 — cross-zone links
+    // Dark mode scene palette
+    dark: {
+      background: '#0a0a0f',
+      gridMain: '#3f3f55',       // brighter orbital guides (was #1e1e2e — nearly invisible)
+      gridSub: '#252533',
+      ringGuideColor: '#94a3b8', // slate-400 — lighter gray I5.5.4
+      ringGuideOpacity: 0.5, // I5.5.4 ~50%
+      secondaryLinkColor: '#93c5fd', // blue-300 — cross-zone links readable in dark
+      secondaryLinkOpacity: 0.65,
+      primaryLinkOpacity: 0.55,
+      labelColor: '#a1a1aa',
+      ambientIntensity: 0.3,
+      pointLightIntensity: 0.8,
+    },
+    // Light mode scene palette
+    light: {
+      background: '#f8f8fb',
+      gridMain: '#a1a1aa',
+      gridSub: '#d4d4d8',
+      ringGuideColor: '#a1a1aa', // zinc-400 lighter I5.5.4
+      ringGuideOpacity: 0.5, // I5.5.4 ~50%
+      secondaryLinkColor: '#3b82f6', // blue-500 cross-zone
+      secondaryLinkOpacity: 0.5,
+      primaryLinkOpacity: 0.5,
+      labelColor: '#3f3f46',
+      ambientIntensity: 0.7,
+      pointLightIntensity: 1.0,
+    },
+    // Architect — navy / gold / crimson scene
+    architect: {
+      background: '#0b1730',
+      gridMain: '#3d5a8a',
+      gridSub: '#1e3358',
+      ringGuideColor: '#e8c547',
+      ringGuideOpacity: 0.5,
+      secondaryLinkColor: '#e11d2e',
+      secondaryLinkOpacity: 0.55,
+      primaryLinkOpacity: 0.6,
+      labelColor: '#dce6f5',
+      ambientIntensity: 0.35,
+      pointLightIntensity: 0.95,
+    },
+    // Slate mode scene palette
+    slate: {
+      background: '#1e293b',
+      gridMain: '#475569',
+      gridSub: '#334155',
+      ringGuideColor: '#94a3b8',
+      ringGuideOpacity: 0.5,
+      secondaryLinkColor: '#60a5fa',
+      secondaryLinkOpacity: 0.6,
+      primaryLinkOpacity: 0.55,
+      labelColor: '#cbd5e1',
+      ambientIntensity: 0.35,
+      pointLightIntensity: 0.85,
+    },
+    // Dusk — Light dimmed ~20%
+    dusk: {
+      background: '#c6c6c9',
+      gridMain: '#81818a',
+      gridSub: '#a9a9b0',
+      ringGuideColor: '#81818a',
+      ringGuideOpacity: 0.45,
+      secondaryLinkColor: '#3b82f6',
+      secondaryLinkOpacity: 0.5,
+      primaryLinkOpacity: 0.5,
+      labelColor: '#3f3f46',
+      ambientIntensity: 0.62,
+      pointLightIntensity: 0.9,
+    },
+  },
+} as const;

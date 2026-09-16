@@ -1,0 +1,329 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { Menu, X, Moon, Compass, Cloud, ChevronDown, ChevronRight } from "lucide-react";
+import { PublicBrandMusic } from "@/components/public/public-brand-music";
+import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { BrandMark, useBrand } from "@/components/shell/brand-provider";
+import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
+import { useSiteMode } from "@/components/shell/site-mode-provider";
+import { visiblePublicNavItems } from "@/lib/nav";
+import {
+  customCanvasHref,
+  defaultPageBuilder,
+  enabledCanvases,
+  isCustomCanvasPath,
+  type CustomCanvas,
+} from "@/lib/public/page-builder";
+
+function ThemeIcon({ theme }: { theme: UiTheme }) {
+  if (theme === "architect") return <Compass className="h-4 w-4" />;
+  if (theme === "slate") return <Cloud className="h-4 w-4" />;
+  return <Moon className="h-4 w-4" />;
+}
+
+function themeLabel(theme: UiTheme): string {
+  if (theme === "architect") return "Architect";
+  if (theme === "slate") return "Slate";
+  return "Dark";
+}
+
+const SEEN_KEY = "vba-custom-canvas-seen";
+
+export function PublicHeader() {
+  const [open, setOpen] = useState(false);
+  const [homeOpen, setHomeOpen] = useState(false);
+  const [sawCustom, setSawCustom] = useState(false);
+  const pathname = usePathname();
+  const brand = useBrand();
+  const { theme, cyclePublicTheme, ensurePublicTheme } = useUiTheme();
+  const {
+    demo_mode,
+    public_login_enabled,
+    public_menu_enabled,
+    public_menu_order,
+    page_builder,
+  } = useSiteMode();
+  // PB-06: every enabled custom canvas joins the sub-menu; canvases[0] keeps the v1 role.
+  const canvases: CustomCanvas[] = enabledCanvases(page_builder ?? defaultPageBuilder());
+  const customOn = canvases.length > 0;
+  const onCustom = customOn && canvases.some((c) => isCustomCanvasPath(pathname, c));
+  const showSubMenu = customOn && (onCustom || sawCustom);
+  const navLinks = visiblePublicNavItems({
+    demo: demo_mode,
+    enabled: public_menu_enabled,
+    order: public_menu_order,
+  });
+
+  useEffect(() => {
+    ensurePublicTheme();
+  }, [ensurePublicTheme]);
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(SEEN_KEY) === "1") setSawCustom(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!onCustom) return;
+    setSawCustom(true);
+    try {
+      sessionStorage.setItem(SEEN_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  }, [onCustom]);
+
+  const selectCustom = () => {
+    setHomeOpen(false);
+    setOpen(false);
+    setSawCustom(true);
+    try {
+      sessionStorage.setItem(SEEN_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const renderHomePrefix = () => (
+    <span className="inline-flex items-center gap-0.5">
+      <span className="font-bold" style={{ color: brand.brand_color }}>
+        Home
+      </span>
+      <ChevronRight
+        className="h-3.5 w-3.5 shrink-0"
+        strokeWidth={2.5}
+        style={{ color: brand.brand_color }}
+        aria-hidden
+      />
+    </span>
+  );
+
+  const renderCanvasLinks = () => (
+    <>
+      {canvases.map((canvas) => (
+        <Link
+          key={canvas.slug}
+          href={customCanvasHref(canvas)}
+          className={cn(
+            "font-semibold",
+            isCustomCanvasPath(pathname, canvas)
+              ? "text-foreground"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+          onClick={selectCustom}
+        >
+          {canvas.label}
+        </Link>
+      ))}
+      {canvases.map((canvas) =>
+        canvas.sections.map((section) => (
+          <span key={`${canvas.slug}-${section.id}`} className="inline-flex items-center gap-x-2">
+            <span className="text-muted-foreground" aria-hidden>
+              |
+            </span>
+            <Link
+              href={`${customCanvasHref(canvas)}#${section.id}`}
+              className="text-muted-foreground hover:text-foreground"
+              onClick={selectCustom}
+            >
+              {section.label}
+            </Link>
+          </span>
+        )),
+      )}
+    </>
+  );
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] gap-x-12 px-4 sm:px-6 lg:px-8 lg:gap-x-16">
+        <Link href="/" className="col-start-1 row-start-1 flex h-16 min-w-0 items-center gap-2">
+          <BrandMark />
+          {brand.brand_name_in_menu !== false ? (
+            <span className="truncate whitespace-nowrap text-lg font-semibold tracking-tight">
+              {brand.brand_name}
+            </span>
+          ) : (
+            <span className="sr-only">{brand.brand_name}</span>
+          )}
+        </Link>
+
+        <nav className="col-start-2 row-start-1 hidden h-16 min-w-0 items-center gap-3 xl:flex">
+          <div
+            className="relative"
+            onMouseEnter={() => customOn && setHomeOpen(true)}
+            onMouseLeave={() => setHomeOpen(false)}
+          >
+            <div className="inline-flex shrink-0 items-center gap-0.5">
+              <Link
+                href="/"
+                className={cn(
+                  "whitespace-nowrap text-sm font-medium transition-colors",
+                  onCustom ? "text-muted-foreground hover:text-foreground" : "text-foreground",
+                )}
+              >
+                Home
+              </Link>
+              {customOn ? (
+                <button
+                  type="button"
+                  className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+                  aria-expanded={homeOpen}
+                  aria-haspopup="menu"
+                  aria-label="Custom canvases"
+                  onClick={() => setHomeOpen((v) => !v)}
+                >
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
+            </div>
+            {customOn && homeOpen ? (
+              <div
+                role="menu"
+                className="absolute left-0 top-full z-30 min-w-44 rounded-md border border-border bg-background py-1 shadow-md"
+              >
+                {canvases.map((canvas) => (
+                  <Link
+                    key={canvas.slug}
+                    href={customCanvasHref(canvas)}
+                    role="menuitem"
+                    className="block px-3 py-2 text-sm hover:bg-muted"
+                    onClick={selectCustom}
+                  >
+                    {canvas.label}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          {navLinks.map((link) => {
+            const Icon = link.icon;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {link.label}
+              </Link>
+            );
+          })}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={cyclePublicTheme}
+            className="shrink-0 gap-1.5"
+            title={`Theme: ${themeLabel(theme)} (click to cycle)`}
+          >
+            <ThemeIcon theme={theme} />
+            <span className="hidden 2xl:inline">{themeLabel(theme)}</span>
+          </Button>
+          {public_login_enabled ? (
+            <Link href="/login" className={cn(buttonVariants({ size: "sm" }), "shrink-0 whitespace-nowrap")}>
+              Sign In
+            </Link>
+          ) : null}
+        </nav>
+
+        <div className="col-start-3 row-start-1 flex h-16 items-center gap-2">
+          <PublicBrandMusic />
+          <Button
+            variant="outline"
+            size="icon"
+            className="xl:hidden"
+            onClick={() => setOpen(!open)}
+          >
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <span className="sr-only">Toggle menu</span>
+        </Button>
+        </div>
+
+        {showSubMenu ? (
+          <div
+            className={cn(
+              "col-span-3 row-start-2 grid grid-cols-subgrid border-t border-border py-2",
+              onCustom ? "bg-background" : "bg-background/50 opacity-50",
+            )}
+          >
+            <div className="hidden items-center justify-end xl:flex">{renderHomePrefix()}</div>
+            <div className="hidden flex-wrap items-center gap-x-2 gap-y-1 text-sm xl:flex">
+              {renderCanvasLinks()}
+            </div>
+            <div className="hidden xl:block" />
+            <div className="col-span-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm xl:hidden">
+              {renderHomePrefix()}
+              {renderCanvasLinks()}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {open && (
+        <nav className="border-t border-border bg-background xl:hidden">
+          <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 sm:px-6">
+            <Link
+              href="/"
+              className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium hover:bg-muted"
+              onClick={() => setOpen(false)}
+            >
+              Home
+            </Link>
+            {canvases.map((canvas) => (
+              <Link
+                key={canvas.slug}
+                href={customCanvasHref(canvas)}
+                className="whitespace-nowrap rounded-md px-3 py-2 pl-6 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={selectCustom}
+              >
+                {canvas.label}
+              </Link>
+            ))}
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  onClick={() => setOpen(false)}
+                >
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                  {link.label}
+                </Link>
+              );
+            })}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={cyclePublicTheme}
+              className="mt-2 justify-start gap-1.5"
+            >
+              <ThemeIcon theme={theme} />
+              {themeLabel(theme)}
+            </Button>
+            {public_login_enabled ? (
+              <Link
+                href="/login"
+                className={cn(buttonVariants({ size: "sm" }), "mt-1")}
+                onClick={() => setOpen(false)}
+              >
+                Sign In
+              </Link>
+            ) : null}
+          </div>
+        </nav>
+      )}
+    </header>
+  );
+}

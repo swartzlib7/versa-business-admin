@@ -1,0 +1,725 @@
+import type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember, User, OtherSystem, SupportTicket, Metric, KnowledgeArticle, Organization, CreateOrganizationInput, UpdateOrganizationInput } from './types';
+import type { OrgLineRow } from '@/lib/fixtures/record-instances';
+import { listOrgLines, createOrgLine, updateOrgLine, deleteOrgLine, deleteOrgLinesForOrganization } from '@/lib/fixtures/record-instances';
+import type { OrgLineRow as OrgLineRowDb } from '@/lib/db/records-store';
+// #245 Slice E1 (rev E section 4.2): Horizon 1 record persistence contract.
+// Type-only import - the instance shape stays the canonical API contract.
+import type {
+  CreateInstanceInput,
+  CreateInstanceResult,
+  RecordInstance,
+  UpdateInstanceInput,
+  UpdateInstanceResult,
+} from '@/lib/fixtures/record-instances';
+import {
+  assertCanCreateOrg,
+  assertCanDeleteOrg,
+  assertCanUpdateOrg,
+  isPrimaryOrganization,
+  markPrimary,
+} from '@/lib/organizations/primary-org';
+import { assertOrganizationFields, mergeOrganizationData } from '@/lib/organizations/field-validate';
+
+export interface RecordFilters {
+  type_api_name?: string;
+  parent_kind?: string;
+  parent_api_name?: string;
+}
+
+export interface CreateRecordOptions {
+  createdBy?: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// DataAdapter — the modular boundary between route handlers and data sources.
+// Postgres is the shipped default. DATA_SOURCE=fixture is an explicit opt-in.
+// ---------------------------------------------------------------------------
+
+export interface ProjectFilters {
+  status?: string;
+  q?: string;
+}
+
+export interface TaskFilters {
+  status?: string;
+  projectId?: string;
+  priority?: string;
+  assignee?: string;
+  q?: string;
+}
+
+/** Phase 3 — create user (password optional; hashed only on postgres path). */
+export interface CreateUserInput {
+  email: string;
+  name: string;
+  role?: User["role"];
+  type?: User["type"];
+  status?: User["status"];
+  department?: string;
+  department_id?: string;
+  bio?: string;
+  password?: string;
+  // #248 Slice D (rev E section 2.5): user-level default organization setting.
+  default_organization_id?: string | null;
+  data?: Record<string, unknown>;
+}
+
+/** Phase 3 — partial update; data JSONB is merged, not replaced. */
+export interface UpdateUserInput {
+  email?: string;
+  name?: string;
+  role?: User["role"];
+  type?: User["type"];
+  status?: User["status"];
+  department?: string;
+  department_id?: string | null;
+  bio?: string;
+  password?: string;
+  // #248 Slice D (rev E section 2.5): user-level default organization setting.
+  default_organization_id?: string | null;
+  data?: Record<string, unknown>;
+}
+
+
+/** Phase 3 — create project (admin only). */
+export interface CreateProjectInput {
+  name: string;
+  description?: string;
+  status?: Project['status'];
+  ownerUserId?: string;
+  ownerName?: string;
+  priority?: Project['priority'];
+  startDate?: string | null;
+  targetDate?: string | null;
+  data?: Record<string, unknown>;
+}
+
+/** Phase 3 — partial update; data JSONB is merged, not replaced. */
+export interface UpdateProjectInput {
+  name?: string;
+  description?: string;
+  status?: Project['status'];
+  ownerUserId?: string;
+  ownerName?: string;
+  priority?: Project['priority'];
+  startDate?: string | null;
+  targetDate?: string | null;
+  data?: Record<string, unknown>;
+}
+
+/** Phase 3 — create task (admin only). */
+export interface CreateTaskInput {
+  title: string;
+  description?: string;
+  status?: Task['status'];
+  priority?: Task['priority'];
+  projectId: string;
+  assigneeUserId?: string;
+  assigneeName?: string;
+  dueDate?: string | null;
+  data?: Record<string, unknown>;
+}
+
+/** Phase 3 — partial update; data JSONB is merged, not replaced. */
+export interface UpdateTaskInput {
+  title?: string;
+  description?: string;
+  status?: Task['status'];
+  priority?: Task['priority'];
+  projectId?: string;
+  assigneeUserId?: string;
+  assigneeName?: string;
+  dueDate?: string | null;
+  data?: Record<string, unknown>;
+}
+
+export interface CreateProductInput {
+  name: string;
+  tagline?: string;
+  description?: string;
+  category?: string;
+  status?: Product['status'];
+  features?: string[];
+}
+
+export interface UpdateProductInput {
+  name?: string;
+  tagline?: string;
+  description?: string;
+  category?: string;
+  status?: Product['status'];
+  features?: string[];
+}
+
+export interface DataAdapter {
+  listAgents(status?: string): Promise<Agent[]>;
+  getAgent(id: string): Promise<Agent | null>;
+  updateAgentStatus?(id: string, status: Agent['status']): Promise<Agent | null>;
+  listProjects(filters?: ProjectFilters): Promise<Project[]>;
+  getProject(id: string): Promise<Project | null>;
+  listTasks(filters?: TaskFilters): Promise<Task[]>;
+  getTask(id: string): Promise<Task | null>;
+  listIntegrations(status?: string): Promise<Integration[]>;
+  // Public site content (I4)
+  getBusinessProfile(): Promise<BusinessProfile>;
+  listServices(): Promise<Service[]>;
+  listProducts(): Promise<Product[]>;
+  getProduct?(id: string): Promise<Product | null>;
+  createProduct?(input: CreateProductInput): Promise<Product>;
+  updateProduct?(id: string, input: UpdateProductInput): Promise<Product | null>;
+  listStaff(): Promise<StaffMember[]>;
+  // Users (I5 + Phase 3 writes)
+  listUsers(type?: string): Promise<User[]>;
+  getUser(id: string): Promise<User | null>;
+  createUser?(input: CreateUserInput): Promise<User>;
+  updateUser?(id: string, input: UpdateUserInput): Promise<User | null>;
+  deleteUser?(id: string): Promise<boolean>;
+  // #248 Slice D (rev E section 4.3): organizations CRUD for the Executive
+  // organizations list + Collaboration zone rendering (C6).
+  listOrganizations?(orgType?: string): Promise<Organization[]>;
+  getOrganization?(id: string): Promise<Organization | null>;
+  createOrganization?(input: CreateOrganizationInput): Promise<Organization>;
+  updateOrganization?(id: string, input: UpdateOrganizationInput): Promise<Organization | null>;
+  deleteOrganization?(id: string): Promise<boolean>;
+  // #244 Slice F (D1 cutover): org-attached lines (vendor integrations).
+  listOrgLines?(organizationId: string, lineGroup: string): Promise<OrgLineRow[]>;
+  createOrgLine?(organizationId: string, lineGroup: string, data: Record<string, string>): Promise<OrgLineRow>;
+  updateOrgLine?(organizationId: string, lineId: string, lineGroup: string, data: Record<string, string>): Promise<OrgLineRow | null>;
+  deleteOrgLine?(organizationId: string, lineId: string, lineGroup: string): Promise<boolean>;
+  // Phase 3 — project + task writes
+  createProject?(input: CreateProjectInput): Promise<Project>;
+  updateProject?(id: string, input: UpdateProjectInput): Promise<Project | null>;
+  createTask?(input: CreateTaskInput): Promise<Task>;
+  updateTask?(id: string, input: UpdateTaskInput): Promise<Task | null>;
+  // VBA facets (I5.3)
+  listOtherSystems(): Promise<OtherSystem[]>;
+  listSupportTickets(): Promise<SupportTicket[]>;
+  listMetrics(): Promise<Metric[]>;
+  listKnowledgeArticles(): Promise<KnowledgeArticle[]>;
+  // #245 Slice E1 (rev E section 4.2): Horizon 1 record persistence. Optional
+  // until the postgres path implements it; fixture routes fall back to the
+  // in-process record-instances fixture when absent.
+  listRecords?(filters?: RecordFilters): Promise<RecordInstance[]>;
+  getRecord?(id: string): Promise<RecordInstance | null>;
+  createRecord?(
+    input: CreateInstanceInput,
+    opts?: CreateRecordOptions,
+  ): Promise<CreateInstanceResult>;
+  updateRecord?(id: string, input: UpdateInstanceInput): Promise<UpdateInstanceResult>;
+  deleteRecord?(id: string): Promise<boolean>;
+  // Phase 1: DB health check
+  healthCheck(): Promise<{ connected: boolean; latencyMs?: number; error?: string }>;
+}
+
+// ---------------------------------------------------------------------------
+// Fixture-backed implementation
+// ---------------------------------------------------------------------------
+
+import { agents as agentFixtures } from '@/lib/fixtures/agents';
+import { integrations as integrationFixtures } from '@/lib/fixtures/integrations';
+import { business as businessFixture } from '@/lib/fixtures/business';
+import { services as serviceFixtures } from '@/lib/fixtures/services';
+import { staff as staffFixtures } from '@/lib/fixtures/staff';
+import { users as userFixtures } from '@/lib/fixtures/users';
+import { otherSystems as otherSystemFixtures } from '@/lib/fixtures/other-systems';
+import { supportTickets as supportTicketFixtures } from '@/lib/fixtures/support-tickets';
+import { metrics as metricFixtures } from '@/lib/fixtures/metrics';
+import { knowledgeArticles as knowledgeArticleFixtures } from '@/lib/fixtures/knowledge-articles';
+import {
+  createBridgedProduct,
+  createBridgedProject,
+  createBridgedTask,
+  getBridgedProduct,
+  getBridgedProject,
+  getBridgedTask,
+  listBridgedProducts,
+  listBridgedProjects,
+  listBridgedTasks,
+  updateBridgedProduct,
+  updateBridgedProject,
+  updateBridgedTask,
+} from '@/lib/records/zone-core-bridge';
+
+// Mutable copies so the optional PATCH can mutate in-process state.
+let mutableAgents: Agent[] = [...agentFixtures];
+const mutableUsers = userFixtures.map((u) => ({ ...u, data: u.data ? { ...u.data } : {} }));
+
+// Slice F latent-bug repair: fixtureAdapter had NO organizations methods, so
+// /api/organizations returned 501 in fixture mode (what beta :3200 runs) and
+// the collab org-type tabs + Executive organizations list were dead. In-memory
+// store mirrors the postgres-adapter shape (Slice D rev E section 4.3).
+let orgSeq = 0;
+// #274 packaged-DB contract: live org tables start EMPTY except the Primary Org
+// (here the fixture-mode stand-in). Demo orgs (vendor/customer/partner/branch)
+// are not preloaded — they come from the ba_sample: pack via
+// Settings -> Modes -> Insert Sample Data, tagged so Delete removes exactly them.
+const mutableOrganizations: Organization[] = [
+  { id: "org-fixture-1", name: "Primary Org", is_person: false, org_type: "internal", parent_organization_id: null, is_primary: true, data: { is_primary: true } },
+];
+const ORG_TYPES = ["vendor", "customer", "partner", "branch", "internal"];
+
+
+export function resetAgents(): void {
+  mutableAgents = [...agentFixtures];
+}
+
+export function resetProjects(): void {
+  /* executive_project record instances are the store */
+}
+
+export function resetTasks(): void {
+  /* executive_task record instances are the store */
+}
+
+export const fixtureAdapter: DataAdapter = {
+  // --- Organizations (Slice F latent-bug repair, rev E section 4.3) ---
+  async listOrganizations(orgType?: string): Promise<Organization[]> {
+    let result = [...mutableOrganizations];
+    if (orgType) result = result.filter((o) => o.org_type === orgType);
+    return result;
+  },
+
+  async getOrganization(id: string): Promise<Organization | null> {
+    return mutableOrganizations.find((o) => o.id === id) ?? null;
+  },
+
+  async createOrganization(input: CreateOrganizationInput): Promise<Organization> {
+    const name = (input.name ?? "").trim();
+    if (!name) throw new Error("VALIDATION: name cannot be empty");
+    const orgType = input.org_type ?? "internal";
+    if (!ORG_TYPES.includes(orgType)) throw new Error("VALIDATION: invalid org_type");
+    assertCanCreateOrg(mutableOrganizations, orgType);
+    if (input.parent_organization_id) {
+      const parent = mutableOrganizations.find((o) => o.id === input.parent_organization_id);
+      if (!parent) throw new Error("VALIDATION: parent_organization_id does not reference an existing organization");
+    }
+    assertOrganizationFields({ name, data: input.data });
+    orgSeq += 1;
+    let id = "org-fixture-" + String(orgSeq);
+    while (mutableOrganizations.some((o) => o.id === id)) {
+      orgSeq += 1;
+      id = "org-fixture-" + String(orgSeq);
+    }
+    let org: Organization = {
+      id,
+      name,
+      is_person: input.is_person ?? false,
+      org_type: orgType,
+      parent_organization_id: input.parent_organization_id ?? null,
+      data: input.data ?? {},
+    };
+    if (orgType === "internal" && !mutableOrganizations.some(isPrimaryOrganization)) {
+      org = markPrimary(org);
+    }
+    mutableOrganizations.push(org);
+    return { ...org };
+  },
+
+  async updateOrganization(id: string, input: UpdateOrganizationInput): Promise<Organization | null> {
+    const org = mutableOrganizations.find((o) => o.id === id);
+    if (!org) return null;
+    assertCanUpdateOrg(org, input.org_type);
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      if (!name) throw new Error("VALIDATION: name cannot be empty");
+      org.name = name;
+    }
+    if (input.is_person !== undefined) org.is_person = input.is_person;
+    if (input.org_type !== undefined) {
+      if (!ORG_TYPES.includes(input.org_type)) throw new Error("VALIDATION: invalid org_type");
+      org.org_type = input.org_type;
+    }
+    if (input.parent_organization_id !== undefined) {
+      if (input.parent_organization_id !== null) {
+        if (input.parent_organization_id === id) throw new Error("VALIDATION: organization cannot be its own parent");
+        const parent = mutableOrganizations.find((o) => o.id === input.parent_organization_id);
+        if (!parent) throw new Error("VALIDATION: parent_organization_id does not reference an existing organization");
+      }
+      org.parent_organization_id = input.parent_organization_id;
+    }
+    if (input.data) {
+      assertOrganizationFields({ name: input.name ?? org.name, data: input.data });
+      const data = mergeOrganizationData(org.data, input.data);
+      if (org.is_primary || org.data?.is_primary === true) data.is_primary = true;
+      org.data = data;
+    }
+    return { ...org };
+  },
+
+  async deleteOrganization(id: string): Promise<boolean> {
+    const org = mutableOrganizations.find((o) => o.id === id);
+    if (!org) return false;
+    assertCanDeleteOrg(org);
+    const childIds = mutableOrganizations
+      .filter((o) => o.parent_organization_id === id)
+      .map((o) => o.id);
+    for (const childId of childIds) {
+      await fixtureAdapter.deleteOrganization!(childId);
+    }
+    deleteOrgLinesForOrganization(id);
+    for (const user of mutableUsers) {
+      const data = { ...(user.data ?? {}) };
+      if (data.default_organization_id === id) {
+        data.default_organization_id = null;
+        user.data = data;
+      }
+    }
+    const idx = mutableOrganizations.findIndex((o) => o.id === id);
+    if (idx >= 0) mutableOrganizations.splice(idx, 1);
+    return true;
+  },
+
+  // --- Org-attached lines (Slice F D1 cutover, fixture path) ---
+  async listOrgLines(organizationId: string, lineGroup: string): Promise<OrgLineRow[]> {
+    return listOrgLines(organizationId, lineGroup);
+  },
+
+  async createOrgLine(organizationId: string, lineGroup: string, data: Record<string, string>): Promise<OrgLineRow> {
+    const org = mutableOrganizations.find((o) => o.id === organizationId);
+    if (!org) throw new Error('VALIDATION: organization not found');
+    return createOrgLine(organizationId, lineGroup, data);
+  },
+
+  async updateOrgLine(organizationId: string, lineId: string, lineGroup: string, data: Record<string, string>): Promise<OrgLineRow | null> {
+    return updateOrgLine(organizationId, lineId, lineGroup, data);
+  },
+
+  async deleteOrgLine(organizationId: string, lineId: string, lineGroup: string): Promise<boolean> {
+    return deleteOrgLine(organizationId, lineId, lineGroup);
+  },
+  async listAgents(status?: string) {
+    let result = mutableAgents;
+    if (status) {
+      result = result.filter((a) => a.status === status);
+    }
+    return result;
+  },
+
+  async getAgent(id: string) {
+    return mutableAgents.find((a) => a.id === id) ?? null;
+  },
+
+  async updateAgentStatus(id: string, status: Agent['status']) {
+    const agent = mutableAgents.find((a) => a.id === id);
+    if (!agent) return null;
+    agent.status = status;
+    return { ...agent };
+  },
+
+  async listProjects(filters?: ProjectFilters) {
+    return listBridgedProjects(filters);
+  },
+
+  async getProject(id: string) {
+    return getBridgedProject(id);
+  },
+
+  async listTasks(filters?: TaskFilters) {
+    return listBridgedTasks(filters);
+  },
+
+  async getTask(id: string) {
+    return getBridgedTask(id);
+  },
+
+  async listIntegrations(status?: string) {
+    let result = integrationFixtures;
+    if (status) {
+      result = result.filter((i) => i.status === status);
+    }
+    return result;
+  },
+
+  async getBusinessProfile() {
+    return businessFixture;
+  },
+
+  async listServices() {
+    return serviceFixtures;
+  },
+
+  async listProducts() {
+    return listBridgedProducts();
+  },
+
+  async getProduct(id: string) {
+    return getBridgedProduct(id);
+  },
+
+  async createProduct(input: CreateProductInput) {
+    return createBridgedProduct(input);
+  },
+
+  async updateProduct(id: string, input: UpdateProductInput) {
+    return updateBridgedProduct(id, input);
+  },
+
+  async listStaff() {
+    return staffFixtures;
+  },
+
+  async listUsers(type?: string) {
+    let result = mutableUsers.map(({ password, ...u }) => u);
+    if (type) {
+      result = result.filter((u) => u.type === type);
+    }
+    return result;
+  },
+
+  async getUser(id: string) {
+    const found = mutableUsers.find((u) => u.id === id);
+    if (!found) return null;
+    const { password, ...user } = found;
+    return user;
+  },
+
+  async createUser(input: CreateUserInput) {
+    const email = (input.email || "").trim().toLowerCase();
+    const name = (input.name || "").trim();
+    if (!email || !name) {
+      throw new Error("VALIDATION: email and name are required");
+    }
+    if (mutableUsers.some((u) => u.email.toLowerCase() === email)) {
+      throw new Error("CONFLICT: email already exists");
+    }
+    const role = input.role ?? "member";
+    const type = input.type ?? "human";
+    const status = input.status ?? "active";
+    if (!["admin", "member"].includes(role)) throw new Error("VALIDATION: invalid role");
+    if (!["human", "agent"].includes(type)) throw new Error("VALIDATION: invalid type");
+    if (!["active", "inactive"].includes(status)) throw new Error("VALIDATION: invalid status");
+    const id = `user-${Date.now().toString(36)}`;
+    const data = { ...(input.data ?? {}) };
+    if (input.bio !== undefined) data.bio = input.bio;
+    if (input.department) data.department = input.department;
+    const row = {
+      id,
+      email,
+      name,
+      role,
+      type,
+      status,
+      department: input.department ?? (typeof data.department === "string" ? data.department : ""),
+      department_id: input.department_id,
+      bio: input.bio ?? (typeof data.bio === "string" ? String(data.bio) : ""),
+      password: input.password ?? "changeme",
+      data,
+    };
+    mutableUsers.push(row);
+    const { password: _p, ...user } = row;
+    return user;
+  },
+
+  async updateUser(id: string, input: UpdateUserInput) {
+    const idx = mutableUsers.findIndex((u) => u.id === id);
+    if (idx < 0) return null;
+    const cur = mutableUsers[idx];
+    if (input.email !== undefined) {
+      const email = input.email.trim().toLowerCase();
+      if (!email) throw new Error("VALIDATION: email cannot be empty");
+      if (mutableUsers.some((u) => u.id !== id && u.email.toLowerCase() === email)) {
+        throw new Error("CONFLICT: email already exists");
+      }
+      cur.email = email;
+    }
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      if (!name) throw new Error("VALIDATION: name cannot be empty");
+      cur.name = name;
+    }
+    if (input.role !== undefined) {
+      if (!["admin", "member"].includes(input.role)) throw new Error("VALIDATION: invalid role");
+      cur.role = input.role;
+    }
+    if (input.type !== undefined) {
+      if (!["human", "agent"].includes(input.type)) throw new Error("VALIDATION: invalid type");
+      cur.type = input.type;
+    }
+    if (input.status !== undefined) {
+      if (!["active", "inactive"].includes(input.status)) throw new Error("VALIDATION: invalid status");
+      cur.status = input.status;
+    }
+    if (input.department !== undefined) cur.department = input.department;
+    if (input.department_id !== undefined) cur.department_id = input.department_id ?? undefined;
+    if (input.password !== undefined) cur.password = input.password;
+    const data = { ...(cur.data ?? {}) };
+    if (input.data) Object.assign(data, input.data);
+    if (input.bio !== undefined) {
+      cur.bio = input.bio;
+      data.bio = input.bio;
+    }
+    if (input.department !== undefined) data.department = input.department;
+    if (input.default_organization_id !== undefined) {
+      data.default_organization_id = input.default_organization_id;
+    }
+    cur.data = data;
+    mutableUsers[idx] = cur;
+    const { password: _p, ...user } = cur;
+    return user;
+  },
+
+  async deleteUser(id: string) {
+    const idx = mutableUsers.findIndex((u) => u.id === id);
+    if (idx < 0) return false;
+    mutableUsers.splice(idx, 1);
+    return true;
+  },
+
+
+  async createProject(input: CreateProjectInput) {
+    return createBridgedProject(input);
+  },
+
+  async updateProject(id: string, input: UpdateProjectInput) {
+    return updateBridgedProject(id, input);
+  },
+
+  async createTask(input: CreateTaskInput) {
+    return createBridgedTask(input);
+  },
+
+  async updateTask(id: string, input: UpdateTaskInput) {
+    return updateBridgedTask(id, input);
+  },
+
+  // --- VBA facets (I5.3) ---
+
+  async listOtherSystems() {
+    return otherSystemFixtures;
+  },
+
+  async listSupportTickets() {
+    return supportTicketFixtures;
+  },
+
+  async listMetrics() {
+    return metricFixtures;
+  },
+
+  async listKnowledgeArticles() {
+    return knowledgeArticleFixtures;
+  },
+
+  async healthCheck() {
+    // Fixtures are always "connected" — no DB dependency.
+    return { connected: true, latencyMs: 0 };
+  },
+};
+
+import { postgresAdapter } from '../db/postgres-adapter';
+import {
+  createOrgLineDb,
+  createRecordDb,
+  deleteRecordDb,
+  getRecordDb,
+  deleteOrgLineDb,
+  listOrgLinesDb,
+  listRecordsDb,
+  updateOrgLineDb,
+  updateRecordDb,
+} from '../db/records-store';
+import { isPostgresDataSource } from '../db/data-source';
+
+function createAdapter(): DataAdapter {
+  if (!isPostgresDataSource()) {
+    return fixtureAdapter;
+  }
+
+  // Phase 2+: User/org/integration reads from Postgres; projects/tasks/products
+  // fold onto the record table (same zone types as the fixture path).
+  return {
+    ...fixtureAdapter,
+    listUsers: (type?: string) => postgresAdapter.listUsers(type),
+    getUser: (id: string) => postgresAdapter.getUser(id),
+    createUser: (input) => {
+      if (!postgresAdapter.createUser) throw new Error("createUser not available");
+      return postgresAdapter.createUser(input);
+    },
+    updateUser: (id, input) => {
+      if (!postgresAdapter.updateUser) throw new Error("updateUser not available");
+      return postgresAdapter.updateUser(id, input);
+    },
+    deleteUser: (id) => {
+      if (!postgresAdapter.deleteUser) throw new Error("deleteUser not available");
+      return postgresAdapter.deleteUser(id);
+    },
+    listProjects: (filters?: ProjectFilters) => postgresAdapter.listProjects(filters),
+    getProject: (id: string) => postgresAdapter.getProject(id),
+    listTasks: (filters?: TaskFilters) => postgresAdapter.listTasks(filters),
+    getTask: (id: string) => postgresAdapter.getTask(id),
+    listProducts: () => postgresAdapter.listProducts(),
+    getProduct: (id: string) => {
+      if (!postgresAdapter.getProduct) throw new Error('getProduct not available');
+      return postgresAdapter.getProduct(id);
+    },
+    createProduct: (input) => {
+      if (!postgresAdapter.createProduct) throw new Error('createProduct not available');
+      return postgresAdapter.createProduct(input);
+    },
+    updateProduct: (id, input) => {
+      if (!postgresAdapter.updateProduct) throw new Error('updateProduct not available');
+      return postgresAdapter.updateProduct(id, input);
+    },
+    listOrganizations: (orgType?: string) => {
+      if (!postgresAdapter.listOrganizations) throw new Error("listOrganizations not available");
+      return postgresAdapter.listOrganizations(orgType);
+    },
+    getOrganization: (id: string) => {
+      if (!postgresAdapter.getOrganization) throw new Error("getOrganization not available");
+      return postgresAdapter.getOrganization(id);
+    },
+    createOrganization: (input) => {
+      if (!postgresAdapter.createOrganization) throw new Error("createOrganization not available");
+      return postgresAdapter.createOrganization(input);
+    },
+    updateOrganization: (id, input) => {
+      if (!postgresAdapter.updateOrganization) throw new Error("updateOrganization not available");
+      return postgresAdapter.updateOrganization(id, input);
+    },
+    deleteOrganization: (id: string) => {
+      if (!postgresAdapter.deleteOrganization) throw new Error("deleteOrganization not available");
+      return postgresAdapter.deleteOrganization(id);
+    },
+    listIntegrations: (status?: string) => postgresAdapter.listIntegrations(status),
+    listStaff: () => postgresAdapter.listStaff(),
+    getBusinessProfile: () => postgresAdapter.getBusinessProfile(),
+    listAgents: (status?: string) => postgresAdapter.listAgents(status),
+    getAgent: (id: string) => postgresAdapter.getAgent(id),
+  createProject: (input) => {
+      if (!postgresAdapter.createProject) throw new Error('createProject not available');
+      return postgresAdapter.createProject(input);
+    },
+    updateProject: (id, input) => {
+      if (!postgresAdapter.updateProject) throw new Error('updateProject not available');
+      return postgresAdapter.updateProject(id, input);
+    },
+    createTask: (input) => {
+      if (!postgresAdapter.createTask) throw new Error('createTask not available');
+      return postgresAdapter.createTask(input);
+    },
+    updateTask: (id, input) => {
+      if (!postgresAdapter.updateTask) throw new Error('updateTask not available');
+      return postgresAdapter.updateTask(id, input);
+    },
+    healthCheck: () => postgresAdapter.healthCheck(),
+    // #245 Slice E1: Horizon 1 record persistence (record_type/record/record_line).
+    listOrgLines: (organizationId: string, lineGroup: string) => listOrgLinesDb(organizationId, lineGroup),
+    createOrgLine: async (organizationId: string, lineGroup: string, data: Record<string, string>) => {
+      const res = await createOrgLineDb(organizationId, lineGroup, data);
+      if (!res.ok) throw new Error(res.message);
+      return res.line;
+    },
+    updateOrgLine: async (organizationId: string, lineId: string, lineGroup: string, data: Record<string, string>) => {
+      const res = await updateOrgLineDb(organizationId, lineId, lineGroup, data);
+      return res.ok ? res.line : null;
+    },
+    deleteOrgLine: (organizationId: string, lineId: string, lineGroup: string) => deleteOrgLineDb(organizationId, lineId, lineGroup),
+    listRecords: (filters?: RecordFilters) => listRecordsDb(filters ?? {}),
+    getRecord: (id: string) => getRecordDb(id),
+    createRecord: (input, opts) => createRecordDb(input, opts),
+    updateRecord: (id, input) => updateRecordDb(id, input),
+    deleteRecord: (id: string) => deleteRecordDb(id),
+  };
+}
+
+export const adapter: DataAdapter = createAdapter();

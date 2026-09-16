@@ -1,0 +1,430 @@
+/**
+ * #252 Settings functionality slice - fixture-mode site settings.
+ * File persist under .data/site-settings.json is the fixture-mode path
+ * (DATA_SOURCE=fixture). Postgres uses the settings store.
+ */
+
+import fs from "fs";
+import path from "path";
+import { theme } from "@/lib/theme";
+import type { CycleStep } from "@/lib/public/site-types";
+import type { LogoSurfaces, SkyEffects } from "@/lib/brand-display";
+import { clampSkyZoom, resolveLogoSurfaces, resolveSkyEffects, SKY_DENSITY_DEFAULT, SKY_STARS_ZOOM_DEFAULT, SKY_VARIANT_DEFAULT } from "@/lib/brand-display";
+import { normalizePageBuilder, type PageBuilderState } from "@/lib/public/page-builder";
+import { sanitizeMenuOrder } from "@/lib/nav";
+import { foldPublicHrefs } from "@/lib/catalog/name-aliases";
+
+export type { CycleStep };
+
+export interface FixtureSiteSettings {
+  brand_name: string;
+  brand_color: string;
+  brand_logo_url?: string | null;
+  brand_logo_opacity?: number;
+  brand_logo_glow?: number;
+  brand_logo_glow_color?: string;
+  brand_logo_glow_spread?: number;
+  brand_logo_scale_menu?: number;
+  brand_logo_scale_home?: number;
+  brand_logo_scale_footer?: number;
+  brand_logo_surfaces?: LogoSurfaces;
+  constellation_variant?: "classic" | "realistic";
+  constellation_density?: number;
+  constellation_zoom?: number;
+  constellation_effects?: SkyEffects;
+  demo_mode?: boolean;
+  maintenance_mode?: boolean;
+  hero_headline?: string;
+  hero_subhead?: string;
+  cycle_enabled?: boolean;
+  cycle_steps?: CycleStep[];
+  contact_email?: string;
+  contact_phone?: string;
+  contact_address?: string;
+  menu_order?: string[];
+  menu_enabled?: string[];
+  public_menu_order?: string[];
+  public_menu_enabled?: string[];
+  public_login_enabled?: boolean;
+  glossary_in_menu?: boolean;
+  org_board_enabled?: boolean;
+  page_builder?: PageBuilderState;
+  brand_music_url?: string | null;
+  brand_music_loop?: boolean;
+  brand_music_autoplay?: boolean;
+  brand_music_name?: string | null;
+  brand_name_in_menu?: boolean;
+}
+
+const GLOBAL_KEY = "__versaSiteSettingsFixture__";
+const FILE_PATH = path.join(process.cwd(), ".data", "site-settings.json");
+
+function readStore(): FixtureSiteSettings | null {
+  return (
+    ((globalThis as Record<string, unknown>)[GLOBAL_KEY] as
+      | FixtureSiteSettings
+      | null) ?? null
+  );
+}
+
+function writeStore(value: FixtureSiteSettings): void {
+  (globalThis as Record<string, unknown>)[GLOBAL_KEY] = value;
+}
+
+function readFile(): FixtureSiteSettings | null {
+  try {
+    const raw = fs.readFileSync(FILE_PATH, "utf8");
+    const parsed = JSON.parse(raw) as Partial<FixtureSiteSettings>;
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      brand_name:
+        typeof parsed.brand_name === "string" && parsed.brand_name.trim()
+          ? parsed.brand_name
+          : theme.brand.name,
+      brand_color:
+        typeof parsed.brand_color === "string" && parsed.brand_color.trim()
+          ? parsed.brand_color
+          : theme.colors.brand,
+      brand_logo_url:
+        typeof parsed.brand_logo_url === "string" && parsed.brand_logo_url
+          ? parsed.brand_logo_url
+          : null,
+      brand_logo_opacity:
+        typeof parsed.brand_logo_opacity === "number"
+          ? parsed.brand_logo_opacity
+          : undefined,
+      brand_logo_glow:
+        typeof parsed.brand_logo_glow === "number"
+          ? parsed.brand_logo_glow
+          : undefined,
+      brand_logo_glow_color:
+        typeof parsed.brand_logo_glow_color === "string" && parsed.brand_logo_glow_color.trim()
+          ? parsed.brand_logo_glow_color
+          : undefined,
+      brand_logo_glow_spread:
+        typeof parsed.brand_logo_glow_spread === "number"
+          ? parsed.brand_logo_glow_spread
+          : undefined,
+      brand_logo_scale_menu:
+        typeof parsed.brand_logo_scale_menu === "number"
+          ? parsed.brand_logo_scale_menu
+          : undefined,
+      brand_logo_scale_home:
+        typeof parsed.brand_logo_scale_home === "number"
+          ? parsed.brand_logo_scale_home
+          : undefined,
+      brand_logo_scale_footer:
+        typeof parsed.brand_logo_scale_footer === "number"
+          ? parsed.brand_logo_scale_footer
+          : undefined,
+      brand_logo_surfaces: resolveLogoSurfaces(parsed as Record<string, unknown>),
+      constellation_variant:
+        parsed.constellation_variant === "realistic" || parsed.constellation_variant === "classic"
+          ? parsed.constellation_variant
+          : undefined,
+      constellation_density:
+        typeof parsed.constellation_density === "number"
+          ? parsed.constellation_density
+          : undefined,
+      constellation_zoom:
+        parsed.constellation_zoom != null ? clampSkyZoom(parsed.constellation_zoom) : undefined,
+      constellation_effects: resolveSkyEffects(parsed.constellation_effects),
+      demo_mode: parsed.demo_mode !== false,
+      maintenance_mode: parsed.maintenance_mode === true,
+      hero_headline: typeof parsed.hero_headline === "string" ? parsed.hero_headline : undefined,
+      hero_subhead: typeof parsed.hero_subhead === "string" ? parsed.hero_subhead : undefined,
+      cycle_enabled: parsed.cycle_enabled,
+      cycle_steps: Array.isArray(parsed.cycle_steps) ? parsed.cycle_steps : undefined,
+      contact_email: typeof parsed.contact_email === "string" ? parsed.contact_email : undefined,
+      contact_phone: typeof parsed.contact_phone === "string" ? parsed.contact_phone : undefined,
+      contact_address: typeof parsed.contact_address === "string" ? parsed.contact_address : undefined,
+      menu_order: Array.isArray(parsed.menu_order)
+        ? sanitizeMenuOrder(parsed.menu_order) ?? undefined
+        : undefined,
+      menu_enabled: Array.isArray(parsed.menu_enabled)
+        ? sanitizeMenuOrder(parsed.menu_enabled) ?? undefined
+        : undefined,
+      public_menu_order: Array.isArray(parsed.public_menu_order)
+        ? foldPublicHrefs(parsed.public_menu_order.filter((href): href is string => typeof href === "string"))
+        : undefined,
+      public_menu_enabled: Array.isArray(parsed.public_menu_enabled)
+        ? foldPublicHrefs(parsed.public_menu_enabled.filter((href): href is string => typeof href === "string"))
+        : undefined,
+      public_login_enabled: parsed.public_login_enabled !== false,
+      glossary_in_menu: parsed.glossary_in_menu !== false,
+      org_board_enabled: parsed.org_board_enabled !== false,
+      page_builder: normalizePageBuilder(parsed.page_builder),
+      brand_music_url:
+        typeof parsed.brand_music_url === "string" && parsed.brand_music_url
+          ? parsed.brand_music_url
+          : null,
+      brand_music_loop: parsed.brand_music_loop !== false,
+      brand_music_autoplay: parsed.brand_music_autoplay !== false,
+      brand_music_name:
+        typeof parsed.brand_music_name === "string" && parsed.brand_music_name
+          ? parsed.brand_music_name
+          : null,
+      brand_name_in_menu: parsed.brand_name_in_menu !== false,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeFile(value: FixtureSiteSettings): void {
+  try {
+    fs.mkdirSync(path.dirname(FILE_PATH), { recursive: true });
+    fs.writeFileSync(FILE_PATH, JSON.stringify(value, null, 2));
+  } catch (err) {
+    console.error("Failed to persist site settings:", err);
+  }
+}
+
+function defaults(): FixtureSiteSettings {
+  return {
+    brand_name: theme.brand.name,
+    brand_color: theme.colors.brand,
+    brand_logo_url: null,
+    brand_logo_opacity: 1,
+    brand_logo_glow: 0,
+    brand_logo_glow_color: "#ffffff",
+    brand_logo_glow_spread: 0.5,
+    brand_logo_scale_menu: 1,
+    brand_logo_scale_home: 1,
+    brand_logo_scale_footer: 1,
+    brand_logo_surfaces: resolveLogoSurfaces({}),
+    constellation_variant: SKY_VARIANT_DEFAULT,
+    constellation_density: SKY_DENSITY_DEFAULT,
+    constellation_zoom: SKY_STARS_ZOOM_DEFAULT,
+    constellation_effects: resolveSkyEffects({}),
+    demo_mode: true,
+    maintenance_mode: false,
+    public_login_enabled: true,
+    glossary_in_menu: true,
+    org_board_enabled: true,
+    page_builder: normalizePageBuilder(undefined),
+    brand_music_url: null,
+    brand_music_loop: true,
+    brand_music_autoplay: true,
+    brand_music_name: null,
+    brand_name_in_menu: true,
+  };
+}
+
+export function getSiteSettingsFixture(): FixtureSiteSettings {
+  const memory = readStore();
+  if (memory) return { ...memory };
+  const fromFile = readFile();
+  if (fromFile) {
+    writeStore(fromFile);
+    return { ...fromFile };
+  }
+  const seeded = defaults();
+  writeStore(seeded);
+  return { ...seeded };
+}
+
+export function upsertSiteSettingsFixture(
+  input: Partial<FixtureSiteSettings>,
+): FixtureSiteSettings {
+  const current = getSiteSettingsFixture();
+  const next: FixtureSiteSettings = {
+    brand_name: input.brand_name ?? current.brand_name,
+    brand_color: input.brand_color ?? current.brand_color,
+    brand_logo_url:
+      input.brand_logo_url !== undefined
+        ? input.brand_logo_url
+        : current.brand_logo_url ?? null,
+    brand_logo_opacity:
+      input.brand_logo_opacity !== undefined
+        ? input.brand_logo_opacity
+        : current.brand_logo_opacity ?? 1,
+    brand_logo_glow:
+      input.brand_logo_glow !== undefined
+        ? input.brand_logo_glow
+        : current.brand_logo_glow ?? 0,
+    brand_logo_glow_color:
+      input.brand_logo_glow_color !== undefined
+        ? input.brand_logo_glow_color
+        : current.brand_logo_glow_color ?? "#ffffff",
+    brand_logo_glow_spread:
+      input.brand_logo_glow_spread !== undefined
+        ? input.brand_logo_glow_spread
+        : current.brand_logo_glow_spread ?? 0.5,
+    brand_logo_scale_menu:
+      input.brand_logo_scale_menu !== undefined
+        ? input.brand_logo_scale_menu
+        : current.brand_logo_scale_menu ?? 1,
+    brand_logo_scale_home:
+      input.brand_logo_scale_home !== undefined
+        ? input.brand_logo_scale_home
+        : current.brand_logo_scale_home ?? 1,
+    brand_logo_scale_footer:
+      input.brand_logo_scale_footer !== undefined
+        ? input.brand_logo_scale_footer
+        : current.brand_logo_scale_footer ?? 1,
+    brand_logo_surfaces:
+      input.brand_logo_surfaces !== undefined
+        ? resolveLogoSurfaces({
+            brand_logo_surfaces: input.brand_logo_surfaces,
+            brand_logo_opacity: input.brand_logo_opacity ?? current.brand_logo_opacity,
+            brand_logo_glow: input.brand_logo_glow ?? current.brand_logo_glow,
+            brand_logo_glow_color: input.brand_logo_glow_color ?? current.brand_logo_glow_color,
+            brand_logo_glow_spread: input.brand_logo_glow_spread ?? current.brand_logo_glow_spread,
+            brand_logo_scale_menu: input.brand_logo_scale_menu ?? current.brand_logo_scale_menu,
+            brand_logo_scale_home: input.brand_logo_scale_home ?? current.brand_logo_scale_home,
+            brand_logo_scale_footer: input.brand_logo_scale_footer ?? current.brand_logo_scale_footer,
+          })
+        : current.brand_logo_surfaces ??
+          resolveLogoSurfaces(current as unknown as Record<string, unknown>),
+    constellation_variant:
+      input.constellation_variant !== undefined
+        ? input.constellation_variant
+        : current.constellation_variant ?? SKY_VARIANT_DEFAULT,
+    constellation_density:
+      input.constellation_density !== undefined
+        ? input.constellation_density
+        : current.constellation_density ?? SKY_DENSITY_DEFAULT,
+    constellation_zoom:
+      input.constellation_zoom !== undefined
+        ? clampSkyZoom(input.constellation_zoom)
+        : clampSkyZoom(current.constellation_zoom ?? SKY_STARS_ZOOM_DEFAULT),
+    constellation_effects: resolveSkyEffects(
+      input.constellation_effects !== undefined
+        ? input.constellation_effects
+        : current.constellation_effects,
+    ),
+    demo_mode:
+      input.demo_mode !== undefined
+        ? input.demo_mode
+        : current.demo_mode !== false,
+    maintenance_mode:
+      input.maintenance_mode !== undefined
+        ? input.maintenance_mode
+        : current.maintenance_mode === true,
+    hero_headline:
+      input.hero_headline !== undefined ? input.hero_headline : current.hero_headline,
+    hero_subhead:
+      input.hero_subhead !== undefined ? input.hero_subhead : current.hero_subhead,
+    cycle_enabled:
+      input.cycle_enabled !== undefined ? input.cycle_enabled : current.cycle_enabled,
+    cycle_steps:
+      input.cycle_steps !== undefined ? input.cycle_steps : current.cycle_steps,
+    contact_email:
+      input.contact_email !== undefined ? input.contact_email : current.contact_email,
+    contact_phone:
+      input.contact_phone !== undefined ? input.contact_phone : current.contact_phone,
+    contact_address:
+      input.contact_address !== undefined ? input.contact_address : current.contact_address,
+    menu_order:
+      input.menu_order !== undefined ? input.menu_order : current.menu_order,
+    menu_enabled:
+      input.menu_enabled !== undefined ? input.menu_enabled : current.menu_enabled,
+    public_menu_order:
+      input.public_menu_order !== undefined
+        ? input.public_menu_order
+        : current.public_menu_order,
+    public_menu_enabled:
+      input.public_menu_enabled !== undefined
+        ? input.public_menu_enabled
+        : current.public_menu_enabled,
+    public_login_enabled:
+      input.public_login_enabled !== undefined
+        ? input.public_login_enabled
+        : current.public_login_enabled !== false,
+    glossary_in_menu:
+      input.glossary_in_menu !== undefined
+        ? input.glossary_in_menu
+        : current.glossary_in_menu !== false,
+    org_board_enabled:
+      input.org_board_enabled !== undefined
+        ? input.org_board_enabled
+        : current.org_board_enabled !== false,
+    page_builder:
+      input.page_builder !== undefined
+        ? normalizePageBuilder(input.page_builder)
+        : normalizePageBuilder(current.page_builder),
+    brand_music_url:
+      input.brand_music_url !== undefined
+        ? input.brand_music_url
+        : current.brand_music_url ?? null,
+    brand_music_loop:
+      input.brand_music_loop !== undefined
+        ? input.brand_music_loop
+        : current.brand_music_loop !== false,
+    brand_music_autoplay:
+      input.brand_music_autoplay !== undefined
+        ? input.brand_music_autoplay
+        : current.brand_music_autoplay !== false,
+    brand_music_name:
+      input.brand_music_name !== undefined
+        ? input.brand_music_name
+        : current.brand_music_name ?? null,
+    brand_name_in_menu:
+      input.brand_name_in_menu !== undefined
+        ? input.brand_name_in_menu
+        : current.brand_name_in_menu !== false,
+  };
+  const surfaces =
+    next.brand_logo_surfaces ??
+    resolveLogoSurfaces(next as unknown as Record<string, unknown>);
+  next.brand_logo_surfaces = surfaces;
+  next.brand_logo_opacity = surfaces.home.opacity;
+  next.brand_logo_glow = surfaces.home.glow;
+  next.brand_logo_glow_color = surfaces.home.glowColor;
+  next.brand_logo_glow_spread = surfaces.home.glowSpread;
+  next.brand_logo_scale_menu = surfaces.menu.scale;
+  next.brand_logo_scale_home = surfaces.home.scale;
+  next.brand_logo_scale_footer = surfaces.footer.scale;
+  writeStore(next);
+  writeFile(next);
+  return { ...next };
+}
+
+/**
+ * Public pages must read sky/brand from the same store Settings saves to.
+ * On Postgres that is the DB; the JSON sidecar is fixture-mode only.
+ */
+export async function getPublicSiteSettings(): Promise<FixtureSiteSettings> {
+  const fixture = getSiteSettingsFixture();
+  const { isPostgresDataSource } = await import("@/lib/db/data-source");
+  if (!isPostgresDataSource()) return fixture;
+  try {
+    const { getSiteSettingsDb } = await import("@/lib/db/settings-store");
+    const db = await getSiteSettingsDb();
+    return {
+      ...fixture,
+      brand_name: db.brand_name,
+      brand_color: db.brand_color,
+      brand_logo_opacity: db.brand_logo_opacity,
+      brand_logo_glow: db.brand_logo_glow,
+      brand_logo_glow_color: db.brand_logo_glow_color,
+      brand_logo_glow_spread: db.brand_logo_glow_spread,
+      brand_logo_scale_menu: db.brand_logo_scale_menu,
+      brand_logo_scale_home: db.brand_logo_scale_home,
+      brand_logo_scale_footer: db.brand_logo_scale_footer,
+      brand_logo_surfaces: db.brand_logo_surfaces,
+      constellation_variant: db.constellation_variant,
+      constellation_density: db.constellation_density,
+      constellation_zoom: db.constellation_zoom,
+      constellation_effects: db.constellation_effects,
+      page_builder: normalizePageBuilder(fixture.page_builder),
+    };
+  } catch {
+    return fixture;
+  }
+}
+
+/** Logo sidecar for postgres mode (name/color stay in the DB). */
+export function getBrandLogoOverlay(): string | null {
+  const fromMemory = readStore()?.brand_logo_url;
+  if (fromMemory) return fromMemory;
+  return readFile()?.brand_logo_url ?? null;
+}
+
+export function upsertBrandLogoFile(url: string | null): void {
+  const current = readFile() ?? defaults();
+  const next = { ...current, brand_logo_url: url };
+  writeStore(next);
+  writeFile(next);
+}

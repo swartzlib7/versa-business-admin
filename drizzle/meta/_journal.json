@@ -1,0 +1,132 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1784656814090,
+      "tag": "0000_fuzzy_nehzno",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788217561968,
+      "tag": "0001_i5_6_33_slice_d_organizations_extension",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788224317924,
+      "tag": "0002_i5_6_33_slice_e1_horizon1_record_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788225240564,
+      "tag": "0003_i5_6_33_slice_e2_element_config_relations",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788225300564,
+      "tag": "0004_i5_6_33_slice_f_vendor_integration_cutover",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788251802958,
+      "tag": "0005_i5_6_33_slice_settings_site_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788450000000,
+      "tag": "0006_durable_catalog_overlay",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788453600000,
+      "tag": "0007_brand_logo_display_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788457200000,
+      "tag": "0008_constellation_variant",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788543600000,
+      "tag": "0009_branding_display_sky_density",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788629999000,
+      "tag": "0010_brand_logo_surfaces",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788633600000,
+      "tag": "0011_constellation_zoom",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788637200000,
+      "tag": "0012_constellation_effects",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789041600000,
+      "tag": "0013_sky_realistic_defaults",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789042800000,
+      "tag": "0014_sky_stars_zoom_default",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789200062700,
+      "tag": "0015_i5_6_35_statistics_environment_stat_lines",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789212000000,
+      "tag": "0016_i5_6_35_stat_line_seed_nullable_value",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789220000000,
+      "tag": "0017_i5_6_35_stat_line_stamp",
+      "breakpoints": true
+    }
+  ]
+}

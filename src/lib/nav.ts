@@ -1,0 +1,318 @@
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
+  Building2,
+  Handshake,
+  Globe2,
+  BookOpen,
+  Database,
+  Palette,
+  Mail,
+  PanelsTopLeft,
+  Layers,
+  Plug,
+  ClipboardCheck,
+  BarChart3,
+  Library,
+  LayoutGrid,
+  type LucideIcon,
+} from "lucide-react";
+
+export type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+/** Dispatched after Settings → Menu saves order or enabled items. */
+export const MENU_ORDER_EVENT = "mc-menu-order";
+
+/** Operator href that cannot be turned off (otherwise the controls are unreachable). */
+export const LOCKED_OPERATOR_HREFS = ["/settings"];
+
+export type PublicNavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+/** Default visitor header/footer links. Page Builder → Menu → Public can reorder and toggle. */
+export const DEFAULT_PUBLIC_NAV_ITEMS: PublicNavItem[] = [
+  { href: "/#facets", label: "Facets", icon: Layers },
+  { href: "/#integrations", label: "Integrations", icon: Plug },
+  { href: "/#inspections-reports", label: "Inspections & Reports", icon: ClipboardCheck },
+  { href: "/#statistics", label: "Statistics", icon: BarChart3 },
+  { href: "/#knowledge", label: "Knowledge", icon: Library },
+  { href: "/#contacts", label: "Contacts", icon: Mail },
+  { href: "/terms", label: "Glossary", icon: BookOpen },
+  { href: "/board", label: "Org Board", icon: LayoutGrid },
+];
+
+/** Demo-mode homepage sections that are not Public Menu items. */
+export const DEMO_HOMEPAGE_SECTIONS = ["inspections-reports"] as const;
+
+/** Added 0.7.140. Default On until they appear in a saved order (then Off is sticky). */
+const PUBLIC_MENU_INTRODUCED_HREFS = ["/#facets", "/#inspections-reports", "/#about"] as const;
+
+/** Page Builder left Settings (2026-09-14). Default On until a saved order has seen it. */
+const OPERATOR_MENU_INTRODUCED_HREFS = ["/page-builder"] as const;
+
+const HOMEPAGE_SECTION_ORDER = [
+  "facets",
+  "integrations",
+  "inspections-reports",
+  "statistics",
+  "knowledge",
+  "contacts",
+] as const;
+
+export function defaultPublicNavHrefs(): string[] {
+  return DEFAULT_PUBLIC_NAV_ITEMS.map((item) => item.href);
+}
+
+/**
+ * Deep operator routes owned by a sidebar item. Turning the item off also
+ * blocks these URLs (Stephen 2026-09-07: hidden menu ⇒ route disabled).
+ */
+const OPERATOR_PATH_OWNERS: { prefix: string; href: string }[] = [
+  { prefix: "/records-editor", href: "/records-editor" },
+  { prefix: "/ui-components", href: "/ui-components" },
+  { prefix: "/organization", href: "/organization" },
+  { prefix: "/collaboration", href: "/collaboration" },
+  { prefix: "/environment", href: "/environment" },
+  { prefix: "/integrations", href: "/collaboration" },
+  { prefix: "/dashboard", href: "/dashboard" },
+  { prefix: "/glossary", href: "/glossary" },
+  { prefix: "/page-builder", href: "/page-builder" },
+  { prefix: "/settings", href: "/settings" },
+  { prefix: "/projects", href: "/organization" },
+  { prefix: "/products", href: "/organization" },
+  { prefix: "/agents", href: "/organization" },
+  { prefix: "/users", href: "/users" },
+  { prefix: "/tasks", href: "/organization" },
+];
+
+export function operatorHrefForPath(pathname: string): string | null {
+  const path = (pathname.split("?")[0] || "/").replace(/\/+$/, "") || "/";
+  const match = OPERATOR_PATH_OWNERS.filter(
+    (row) => path === row.prefix || path.startsWith(`${row.prefix}/`),
+  ).sort((a, b) => b.prefix.length - a.prefix.length)[0];
+  return match?.href ?? null;
+}
+
+export function isOperatorPathEnabled(pathname: string, enabled: string[]): boolean {
+  const href = operatorHrefForPath(pathname);
+  if (!href) return true;
+  return enabled.includes(href);
+}
+
+export function publicSectionId(href: string): string | null {
+  return href.startsWith("/#") ? href.slice(2) : null;
+}
+
+export function isPublicHrefEnabled(href: string, enabled: string[]): boolean {
+  return enabled.includes(href);
+}
+
+export function visiblePublicNavItems(opts: {
+  demo: boolean;
+  enabled: string[];
+  order?: string[] | null;
+}): PublicNavItem[] {
+  const ordered = orderNavItems(DEFAULT_PUBLIC_NAV_ITEMS, opts.order);
+  return ordered.filter((item) => isPublicHrefEnabled(item.href, opts.enabled));
+}
+
+export function visiblePublicSectionIds(opts: {
+  demo: boolean;
+  enabled: string[];
+  order?: string[] | null;
+}): string[] {
+  const ids: string[] = [];
+  for (const item of visiblePublicNavItems(opts)) {
+    const id = publicSectionId(item.href);
+    if (id) ids.push(id);
+  }
+  return ids;
+}
+
+/** Homepage section ids in render order. Support/About follow Demo mode; Facets and System Landscape follow Public Menu. */
+export function homepageVisibleSectionIds(opts: {
+  demo: boolean;
+  enabled: string[];
+  order?: string[] | null;
+}): string[] {
+  const fromMenu = new Set(visiblePublicSectionIds(opts));
+  if (opts.demo) {
+    for (const id of DEMO_HOMEPAGE_SECTIONS) fromMenu.add(id);
+  }
+  return HOMEPAGE_SECTION_ORDER.filter((id) => fromMenu.has(id));
+}
+
+/**
+ * Resolve saved Public Menu lists against the current catalog.
+ * New catalog items default On until a saved order has seen them.
+ */
+/** Resolve saved Operator Menu lists against the current catalog. */
+export function resolveOperatorMenu(opts: {
+  enabled: unknown;
+  order?: unknown;
+}): { enabled: string[]; order: string[] } {
+  const allowed = defaultNavHrefs();
+  const rawOrder = Array.isArray(opts.order)
+    ? opts.order.filter((href): href is string => typeof href === "string")
+    : [];
+  let enabled = sanitizeMenuEnabled(opts.enabled, allowed, LOCKED_OPERATOR_HREFS);
+  for (const href of OPERATOR_MENU_INTRODUCED_HREFS) {
+    if (!rawOrder.includes(href) && allowed.includes(href) && !enabled.includes(href)) {
+      enabled = [href, ...enabled];
+    }
+  }
+  const order = orderNavItems(
+    DEFAULT_NAV_ITEMS,
+    sanitizeMenuOrder(opts.order, allowed) ?? allowed,
+  ).map((item) => item.href);
+  enabled = order.filter((href) => enabled.includes(href) || LOCKED_OPERATOR_HREFS.includes(href));
+  return { enabled, order };
+}
+
+export function resolvePublicMenu(opts: {
+  enabled: unknown;
+  order?: unknown;
+}): { enabled: string[]; order: string[] } {
+  const allowed = defaultPublicNavHrefs();
+  const rawOrder = Array.isArray(opts.order)
+    ? opts.order.filter((href): href is string => typeof href === "string")
+    : [];
+  let enabled = sanitizeMenuEnabled(opts.enabled, allowed);
+  for (const href of PUBLIC_MENU_INTRODUCED_HREFS) {
+    if (!rawOrder.includes(href) && allowed.includes(href) && !enabled.includes(href)) {
+      enabled = [href, ...enabled];
+    }
+  }
+  const order = orderNavItems(
+    DEFAULT_PUBLIC_NAV_ITEMS,
+    sanitizeMenuOrder(opts.order, allowed) ?? allowed,
+  ).map((item) => item.href);
+  enabled = order.filter((href) => enabled.includes(href));
+  return { enabled, order };
+}
+
+export function nextPublicSectionId(currentId: string, visibleIds: string[]): string | undefined {
+  const i = visibleIds.indexOf(currentId);
+  if (i < 0 || i >= visibleIds.length - 1) return undefined;
+  return visibleIds[i + 1];
+}
+
+/**
+ * Enabled href list. `undefined` / missing → all allowed items on.
+ * Explicit array (including empty) → only those hrefs, plus locked-on items.
+ */
+export function sanitizeMenuEnabled(
+  enabled: unknown,
+  allowed: string[],
+  lockedOn: string[] = [],
+): string[] {
+  const allowedSet = new Set(allowed);
+  const locked = lockedOn.filter((href) => allowedSet.has(href));
+  if (!Array.isArray(enabled)) return [...allowed];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const href of enabled) {
+    if (typeof href !== "string" || !allowedSet.has(href) || seen.has(href)) continue;
+    out.push(href);
+    seen.add(href);
+  }
+  for (const href of locked) {
+    if (!seen.has(href)) {
+      out.push(href);
+      seen.add(href);
+    }
+  }
+  return out;
+}
+
+export function publicFlagsFromEnabled(enabled: string[]): {
+  glossary_in_menu: boolean;
+  org_board_enabled: boolean;
+} {
+  return {
+    glossary_in_menu: enabled.includes("/terms"),
+    org_board_enabled: enabled.includes("/board"),
+  };
+}
+
+export function withToggledHref(enabled: string[], href: string, on: boolean, lockedOn: string[] = []): string[] {
+  const locked = new Set(lockedOn);
+  if (locked.has(href) && !on) return enabled;
+  const set = new Set(enabled);
+  if (on) set.add(href);
+  else set.delete(href);
+  for (const keep of locked) set.add(keep);
+  return [...set];
+}
+
+/** Default sidebar order. Settings → System → Menu can reorder by href. */
+export const DEFAULT_NAV_ITEMS: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/organization", label: "Organization", icon: Building2 },
+  { href: "/collaboration", label: "Collaboration", icon: Handshake },
+  { href: "/environment", label: "Environment", icon: Globe2 },
+  { href: "/glossary", label: "Glossary", icon: BookOpen },
+  { href: "/page-builder", label: "Page Builder", icon: PanelsTopLeft },
+  { href: "/users", label: "Users", icon: Users },
+  { href: "/records-editor", label: "Records Editor", icon: Database },
+  { href: "/ui-components", label: "UI Components", icon: Palette },
+  { href: "/settings", label: "Settings", icon: Settings },
+];
+
+export function defaultNavHrefs(): string[] {
+  return DEFAULT_NAV_ITEMS.map((item) => item.href);
+}
+
+/** Apply a stored href order. Unknown hrefs are ignored; missing catalog items insert at their default position. */
+export function orderNavItems<T extends { href: string }>(
+  items: T[],
+  order?: string[] | null,
+): T[] {
+  if (!order?.length) return items;
+  const byHref = new Map(items.map((item) => [item.href, item]));
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const href of order) {
+    const item = byHref.get(href);
+    if (item && !seen.has(href)) {
+      out.push(item);
+      seen.add(href);
+    }
+  }
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (seen.has(item.href)) continue;
+    let insertAt = 0;
+    for (let j = i - 1; j >= 0; j--) {
+      const idx = out.findIndex((row) => row.href === items[j].href);
+      if (idx >= 0) {
+        insertAt = idx + 1;
+        break;
+      }
+    }
+    out.splice(insertAt, 0, item);
+    seen.add(item.href);
+  }
+  return out;
+}
+
+export function sanitizeMenuOrder(order: unknown, allowedHrefs?: string[]): string[] | null {
+  if (!Array.isArray(order)) return null;
+  const allowed = new Set(allowedHrefs ?? defaultNavHrefs());
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const href of order) {
+    if (typeof href !== "string" || !allowed.has(href) || seen.has(href)) continue;
+    out.push(href);
+    seen.add(href);
+  }
+  return out.length ? out : null;
+}
