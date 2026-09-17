@@ -1,6 +1,6 @@
 /**
  * Sample organizing board — functions and departments transcribed from
- * docs/design/org_board/transcription.md. Used by Glossary Org Board,
+ * the sample organizing board (now in this file). Used by Glossary Org Board,
  * Glossary of Terms, and 3D hub sphere descriptions.
  */
 

@@ -12,8 +12,8 @@ import {
 } from '@/lib/fixtures/site-settings';
 import { parseLogoSurfaces, parseSkyEffects, clampSkyZoom } from '@/lib/brand-display';
 import { isPostgresDataSource } from '@/lib/db/data-source';
-import { BRAND_MUSIC_HREF } from '@/lib/public/brand-music';
-import { clearBrandMusic, readBrandMusic } from '@/lib/public/brand-music-store';
+import { clearBrandMusic, presentBrandMusic } from '@/lib/public/brand-music-store';
+import { isSeedBrandLogoUrl, SEED_BRAND_LOGO_HREF } from '@/lib/public/brand-seed';
 
 // #252 Settings functionality slice (Stephen round-2 item 10): branding
 // persistence singleton. GET is authenticated; writes are admin-only
@@ -43,15 +43,17 @@ export async function GET(request: Request) {
       : undefined;
   const brand_logo_url = fromSettings || getBrandLogoOverlay();
   const fixture = getSiteSettingsFixture();
-  const music = readBrandMusic();
+  const music = presentBrandMusic(fixture);
   return NextResponse.json({
     data: {
       ...settings,
-      brand_logo_url: brand_logo_url ?? null,
-      brand_music_url: music ? (fixture.brand_music_url || BRAND_MUSIC_HREF) : null,
+      brand_logo_url: brand_logo_url ?? SEED_BRAND_LOGO_HREF,
+      brand_logo_is_seed: isSeedBrandLogoUrl(brand_logo_url),
+      brand_music_url: music.brand_music_url,
       brand_music_loop: fixture.brand_music_loop !== false,
       brand_music_autoplay: fixture.brand_music_autoplay !== false,
-      brand_music_name: music?.meta.name ?? fixture.brand_music_name ?? null,
+      brand_music_name: music.brand_music_name,
+      brand_music_is_seed: music.brand_music_is_seed,
       brand_name_in_menu: fixture.brand_name_in_menu !== false,
     },
   });
@@ -85,7 +87,7 @@ export async function PUT(request: Request) {
   const brandColor =
     body.brand_color != null ? String(body.brand_color).trim() : undefined;
   let brandLogoUrl: string | null | undefined;
-  if (body.brand_logo_url === null || body.brand_logo_url === "") {
+  if (body.brand_logo_url === null || body.brand_logo_url === "" || body.brand_logo_url === SEED_BRAND_LOGO_HREF) {
     brandLogoUrl = null;
   } else if (body.brand_logo_url != null) {
     const raw = String(body.brand_logo_url);
@@ -272,17 +274,20 @@ export async function PUT(request: Request) {
         : undefined;
     const brand_logo_url =
       fromSettings ||
-      (brandLogoUrl !== undefined ? brandLogoUrl : getBrandLogoOverlay());
+      (brandLogoUrl !== undefined ? brandLogoUrl : getBrandLogoOverlay()) ||
+      SEED_BRAND_LOGO_HREF;
     const fixture = getSiteSettingsFixture();
-    const music = readBrandMusic();
+    const music = presentBrandMusic(fixture);
     return NextResponse.json({
       data: {
         ...settings,
-        brand_logo_url: brand_logo_url ?? null,
-        brand_music_url: music ? (fixture.brand_music_url || BRAND_MUSIC_HREF) : null,
+        brand_logo_url: brand_logo_url ?? SEED_BRAND_LOGO_HREF,
+        brand_logo_is_seed: isSeedBrandLogoUrl(brand_logo_url),
+        brand_music_url: music.brand_music_url,
         brand_music_loop: fixture.brand_music_loop !== false,
         brand_music_autoplay: fixture.brand_music_autoplay !== false,
-        brand_music_name: music?.meta.name ?? fixture.brand_music_name ?? null,
+        brand_music_name: music.brand_music_name,
+        brand_music_is_seed: music.brand_music_is_seed,
         brand_name_in_menu: fixture.brand_name_in_menu !== false,
       },
     });

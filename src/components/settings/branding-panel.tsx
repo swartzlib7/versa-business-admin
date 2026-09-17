@@ -13,6 +13,7 @@ import {
   MUSIC_MAX_BYTES,
   MUSIC_UPLOAD_HINT,
 } from "@/lib/public/brand-music";
+import { SEED_BRAND_LOGO_HREF, SEED_BRAND_LOGO_NAME, SEED_BRAND_MUSIC_NAME } from "@/lib/public/brand-seed";
 import {
   LOGO_BASE_PX,
   LOGO_MAX_BYTES,
@@ -71,14 +72,16 @@ type BrandDraft = {
   musicAutoplay: boolean;
   musicFile: File | null;
   musicRemoved: boolean;
+  musicIsSeed: boolean;
+  logoIsSeed: boolean;
   nameInMenu: boolean;
 };
 
 const emptyDraft = (brand: ReturnType<typeof useBrand>): BrandDraft => ({
   name: brand.brand_name,
   color: brand.brand_color,
-  logo: brand.brand_logo_url ?? "",
-  logoName: brand.brand_logo_url ? "Current logo" : "",
+  logo: brand.brand_logo_url ?? SEED_BRAND_LOGO_HREF,
+  logoName: brand.brand_logo_url ? (brand.brand_logo_url === SEED_BRAND_LOGO_HREF ? SEED_BRAND_LOGO_NAME : "Current logo") : SEED_BRAND_LOGO_NAME,
   surfaces: resolveLogoSurfaces(brand as unknown as Record<string, unknown>),
   variant: resolveConstellationVariant(brand.constellation_variant),
   density: brand.constellation_density ?? SKY_DENSITY_DEFAULT,
@@ -86,12 +89,14 @@ const emptyDraft = (brand: ReturnType<typeof useBrand>): BrandDraft => ({
   effects: resolveSkyEffects(brand.constellation_effects),
   headline: "",
   subhead: "",
-  musicName: "",
-  musicUrl: "",
+  musicName: SEED_BRAND_MUSIC_NAME,
+  musicUrl: BRAND_MUSIC_HREF,
   musicLoop: brand.brand_music_loop !== false,
   musicAutoplay: brand.brand_music_autoplay !== false,
   musicFile: null,
   musicRemoved: false,
+  musicIsSeed: true,
+  logoIsSeed: !brand.brand_logo_url || brand.brand_logo_url === SEED_BRAND_LOGO_HREF,
   nameInMenu: brand.brand_name_in_menu !== false,
 });
 
@@ -412,9 +417,13 @@ export function BrandingPanel({
         setDraft({
           name: typeof b.brand_name === "string" ? b.brand_name : brand.brand_name,
           color: typeof b.brand_color === "string" ? b.brand_color : brand.brand_color,
-          logo: typeof b.brand_logo_url === "string" && b.brand_logo_url ? b.brand_logo_url : "",
+          logo: typeof b.brand_logo_url === "string" && b.brand_logo_url ? b.brand_logo_url : SEED_BRAND_LOGO_HREF,
           logoName:
-            typeof b.brand_logo_url === "string" && b.brand_logo_url ? "Current logo" : "",
+            b.brand_logo_is_seed !== false
+              ? SEED_BRAND_LOGO_NAME
+              : typeof b.brand_logo_url === "string" && b.brand_logo_url
+                ? "Current logo"
+                : SEED_BRAND_LOGO_NAME,
           surfaces: resolveLogoSurfaces(b as Record<string, unknown>),
           variant: resolveConstellationVariant(b.constellation_variant),
           density: typeof b.constellation_density === "number" ? b.constellation_density : SKY_DENSITY_DEFAULT,
@@ -422,12 +431,17 @@ export function BrandingPanel({
           effects: resolveSkyEffects(b.constellation_effects),
           headline: typeof p.hero_headline === "string" ? p.hero_headline : "",
           subhead: typeof p.hero_subhead === "string" ? p.hero_subhead : "",
-          musicName: typeof b.brand_music_name === "string" ? b.brand_music_name : "",
-          musicUrl: typeof b.brand_music_url === "string" && b.brand_music_url ? b.brand_music_url : "",
+          musicName:
+            typeof b.brand_music_name === "string" && b.brand_music_name
+              ? b.brand_music_name
+              : SEED_BRAND_MUSIC_NAME,
+          musicUrl: typeof b.brand_music_url === "string" && b.brand_music_url ? b.brand_music_url : BRAND_MUSIC_HREF,
           musicLoop: b.brand_music_loop !== false,
           musicAutoplay: b.brand_music_autoplay !== false,
           musicFile: null,
           musicRemoved: false,
+          musicIsSeed: b.brand_music_is_seed !== false,
+          logoIsSeed: b.brand_logo_is_seed !== false,
           nameInMenu: b.brand_name_in_menu !== false,
         });
       })
@@ -567,7 +581,7 @@ export function BrandingPanel({
         );
         return;
       }
-      patch({ logo: data, logoName: file.name });
+      patch({ logo: data, logoName: file.name, logoIsSeed: false });
       setSaveError(null);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Could not read the logo file.");
@@ -641,7 +655,7 @@ export function BrandingPanel({
               filename={
                 draft.musicRemoved && !draft.musicFile
                   ? null
-                  : draft.musicFile?.name || draft.musicName || (draft.musicUrl ? "Current music" : null)
+                  : draft.musicFile?.name || draft.musicName || SEED_BRAND_MUSIC_NAME
               }
               chooseLabel="Choose file"
               emptyLabel="No file chosen"
@@ -652,16 +666,20 @@ export function BrandingPanel({
                   setSaveError("Music must be 8 MB or smaller.");
                   return;
                 }
-                patch({ musicFile: file, musicName: file.name, musicRemoved: false });
+                patch({ musicFile: file, musicName: file.name, musicRemoved: false, musicIsSeed: false });
                 setSaveError(null);
               }}
-              onRemove={() =>
-                patch({
-                  musicFile: null,
-                  musicName: "",
-                  musicUrl: "",
-                  musicRemoved: true,
-                })
+              onRemove={
+                draft.musicIsSeed && !draft.musicFile
+                  ? undefined
+                  : () =>
+                      patch({
+                        musicFile: null,
+                        musicName: SEED_BRAND_MUSIC_NAME,
+                        musicUrl: BRAND_MUSIC_HREF,
+                        musicRemoved: true,
+                        musicIsSeed: true,
+                      })
               }
             />
             <div className="flex flex-wrap gap-4">
@@ -700,7 +718,7 @@ export function BrandingPanel({
             <label className="text-sm font-medium">Logo</label>
             <FileField
               accept="image/png,image/jpeg,image/svg+xml,image/webp"
-              filename={draft.logoName || (draft.logo ? "Current logo" : null)}
+              filename={draft.logoName || (draft.logo ? "Current logo" : SEED_BRAND_LOGO_NAME)}
               chooseLabel="Choose file"
               emptyLabel="No file chosen"
               removeLabel="Remove logo"
@@ -708,7 +726,16 @@ export function BrandingPanel({
               onFile={(file) => {
                 void handleLogoFile(file);
               }}
-              onRemove={() => patch({ logo: "", logoName: "" })}
+              onRemove={
+                draft.logoIsSeed
+                  ? undefined
+                  : () =>
+                      patch({
+                        logo: SEED_BRAND_LOGO_HREF,
+                        logoName: SEED_BRAND_LOGO_NAME,
+                        logoIsSeed: true,
+                      })
+              }
             />
           </div>
           <div className="space-y-3 rounded-lg border p-4" style={{ borderColor: draft.color }}>

@@ -4,7 +4,7 @@
  * Spatial Twin, Page Builder Cells, and the visitor canvas all read this list.
  *
  * Code is the behavior source. `render_driver` records mirror this registry.
- * Touchpoints: docs/coa/DRIVER_TOUCHPOINTS.md
+ * Touchpoints: docs/production/state/state_page_builder.md (Driver / Element touchpoints)
  */
 
 export type DriverRenderOutput = {

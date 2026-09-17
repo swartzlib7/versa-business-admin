@@ -97,7 +97,7 @@ function selfTabLabel(tab: ZoneTab): string {
  * - Entity surfaces use presentation "listing": polished table + New/Edit,
  *   collapsible form INLINE on the row (Edit) or under header (New) - not modal.
  * - Nested lists (Policy/Projects/Tasks, Product/Service, Records) use listing; parent Configuration is form.
- * Spec: docs/production/state/state_i5_6_zone_erd.md
+ * Spec: docs/production/state/state_zone_erd.md
  *
  * I5.6.34 (2026-07-24): Stable zone chrome — single sticky container for zone header + primary tabs.
  * Sub-tab strip + description live in a stable position outside the card body (no jump on sub-tab change).

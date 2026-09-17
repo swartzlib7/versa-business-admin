@@ -10,6 +10,8 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 import { theme } from "@/lib/theme";
+import { BRAND_MUSIC_HREF } from "@/lib/public/brand-music";
+import { SEED_BRAND_LOGO_HREF } from "@/lib/public/brand-seed";
 import {
   DEFAULT_GLOW_COLOR,
   DEFAULT_GLOW_SPREAD,
@@ -52,7 +54,7 @@ export interface BrandConfig {
 const DEFAULT_BRAND: BrandConfig = {
   brand_name: theme.brand.name,
   brand_color: theme.colors.brand,
-  brand_logo_url: null,
+  brand_logo_url: SEED_BRAND_LOGO_HREF,
   brand_logo_opacity: 1,
   brand_logo_glow: 0,
   brand_logo_glow_color: DEFAULT_GLOW_COLOR,
@@ -65,7 +67,7 @@ const DEFAULT_BRAND: BrandConfig = {
   constellation_density: SKY_DENSITY_DEFAULT,
   constellation_zoom: SKY_STARS_ZOOM_DEFAULT,
   constellation_effects: resolveSkyEffects({}),
-  brand_music_url: null,
+  brand_music_url: BRAND_MUSIC_HREF,
   brand_music_loop: true,
   brand_music_autoplay: true,
   brand_name_in_menu: true,

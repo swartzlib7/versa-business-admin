@@ -6,6 +6,9 @@ import { BrandProvider } from "@/components/shell/brand-provider";
 import { SiteModeProvider } from "@/components/shell/site-mode-provider";
 import { getSiteSettingsDb } from "@/lib/db/settings-store";
 import { getBrandLogoOverlay, getSiteSettingsFixture } from "@/lib/fixtures/site-settings";
+import { presentBrandMusic } from "@/lib/public/brand-music-store";
+import { SEED_BRAND_LOGO_HREF } from "@/lib/public/brand-seed";
+import { BRAND_MUSIC_HREF } from "@/lib/public/brand-music";
 import { resolveLogoSurfaces, clampSkyZoom, resolveConstellationVariant, resolveSkyEffects, SKY_DENSITY_DEFAULT, SKY_STARS_ZOOM_DEFAULT, SKY_VARIANT_DEFAULT, type LogoSurfaces, type SkyEffects } from "@/lib/brand-display";
 import { theme } from "@/lib/theme";
 import {
@@ -98,6 +101,7 @@ async function loadBrand(): Promise<LoadedSite> {
         : undefined;
     const logo = fromSettings || getBrandLogoOverlay();
     const fixture = getSiteSettingsFixture();
+    const music = presentBrandMusic(fixture);
     const num = (v: unknown, fallback: number) =>
       typeof v === "number" && Number.isFinite(v) ? v : fallback;
     const settingsRec = settings as unknown as Record<string, unknown>;
@@ -110,7 +114,7 @@ async function loadBrand(): Promise<LoadedSite> {
     return {
       brand_name: settings.brand_name,
       brand_color: settings.brand_color,
-      brand_logo_url: typeof logo === "string" && logo ? logo : null,
+      brand_logo_url: typeof logo === "string" && logo ? logo : SEED_BRAND_LOGO_HREF,
       brand_logo_opacity: surfaces.home.opacity,
       brand_logo_glow: surfaces.home.glow,
       brand_logo_glow_color: surfaces.home.glowColor,
@@ -131,10 +135,7 @@ async function loadBrand(): Promise<LoadedSite> {
       public_menu_order,
       public_menu_enabled,
       page_builder: normalizePageBuilder(fixture.page_builder),
-      brand_music_url:
-        typeof fixture.brand_music_url === "string" && fixture.brand_music_url
-          ? fixture.brand_music_url
-          : null,
+      brand_music_url: music.brand_music_url,
       brand_music_loop: fixture.brand_music_loop !== false,
       brand_music_autoplay: fixture.brand_music_autoplay !== false,
       brand_name_in_menu: fixture.brand_name_in_menu !== false,
@@ -144,7 +145,7 @@ async function loadBrand(): Promise<LoadedSite> {
     return {
       brand_name: theme.brand.name,
       brand_color: theme.colors.brand,
-      brand_logo_url: null,
+      brand_logo_url: SEED_BRAND_LOGO_HREF,
       brand_logo_opacity: 1,
       brand_logo_glow: 0,
       brand_logo_glow_color: "#ffffff",
@@ -165,7 +166,7 @@ async function loadBrand(): Promise<LoadedSite> {
       public_menu_order: defaultPublicNavHrefs(),
       public_menu_enabled: defaultPublicNavHrefs(),
       page_builder: normalizePageBuilder(undefined),
-      brand_music_url: null,
+      brand_music_url: BRAND_MUSIC_HREF,
       brand_music_loop: true,
       brand_music_autoplay: true,
       brand_name_in_menu: true,

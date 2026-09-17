@@ -6,8 +6,8 @@
 //   Zone 2 = Collaboration (parties) — greens unchanged
 //   Zone 3 = Environmental (context) — Events top / Locations bottom
 // Placement: spheres on axis planes; distance = ZONE_RADII[ring].
-// Source of truth: docs/production/state/state_i5_6_zone_erd.md
-// Sphere click copy: docs/design/org_board/transcription.md via org-board.ts
+// Source of truth: docs/production/state/state_zone_erd.md
+// Sphere click copy: src/lib/fixtures/org-board.ts (harvested from the sample board)
 
 import { hubDescriptionFor } from "@/lib/fixtures/org-board";
 

@@ -13,6 +13,7 @@ import { clampSkyZoom, resolveLogoSurfaces, resolveSkyEffects, SKY_DENSITY_DEFAU
 import { normalizePageBuilder, type PageBuilderState } from "@/lib/public/page-builder";
 import { sanitizeMenuOrder } from "@/lib/nav";
 import { foldPublicHrefs } from "@/lib/catalog/name-aliases";
+import { resolveBrandLogoUrl } from "@/lib/public/brand-seed";
 
 export type { CycleStep };
 
@@ -388,7 +389,12 @@ export function upsertSiteSettingsFixture(
 export async function getPublicSiteSettings(): Promise<FixtureSiteSettings> {
   const fixture = getSiteSettingsFixture();
   const { isPostgresDataSource } = await import("@/lib/db/data-source");
-  if (!isPostgresDataSource()) return fixture;
+  if (!isPostgresDataSource()) {
+    return {
+      ...fixture,
+      brand_logo_url: resolveBrandLogoUrl(fixture.brand_logo_url),
+    };
+  }
   try {
     const { getSiteSettingsDb } = await import("@/lib/db/settings-store");
     const db = await getSiteSettingsDb();
@@ -396,6 +402,7 @@ export async function getPublicSiteSettings(): Promise<FixtureSiteSettings> {
       ...fixture,
       brand_name: db.brand_name,
       brand_color: db.brand_color,
+      brand_logo_url: resolveBrandLogoUrl(fixture.brand_logo_url),
       brand_logo_opacity: db.brand_logo_opacity,
       brand_logo_glow: db.brand_logo_glow,
       brand_logo_glow_color: db.brand_logo_glow_color,
@@ -411,15 +418,18 @@ export async function getPublicSiteSettings(): Promise<FixtureSiteSettings> {
       page_builder: normalizePageBuilder(fixture.page_builder),
     };
   } catch {
-    return fixture;
+    return {
+      ...fixture,
+      brand_logo_url: resolveBrandLogoUrl(fixture.brand_logo_url),
+    };
   }
 }
 
-/** Logo sidecar for postgres mode (name/color stay in the DB). */
-export function getBrandLogoOverlay(): string | null {
+/** Logo sidecar for postgres mode (name/color stay in the DB). Empty falls back to the shipped shield. */
+export function getBrandLogoOverlay(): string {
   const fromMemory = readStore()?.brand_logo_url;
-  if (fromMemory) return fromMemory;
-  return readFile()?.brand_logo_url ?? null;
+  if (fromMemory) return resolveBrandLogoUrl(fromMemory);
+  return resolveBrandLogoUrl(readFile()?.brand_logo_url);
 }
 
 export function upsertBrandLogoFile(url: string | null): void {

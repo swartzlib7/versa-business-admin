@@ -1,9 +1,11 @@
 import fs from "fs";
 import path from "path";
-import { MUSIC_MAX_BYTES } from "@/lib/public/brand-music";
+import { BRAND_MUSIC_HREF, MUSIC_MAX_BYTES } from "@/lib/public/brand-music";
+import { SEED_BRAND_MUSIC_FILE, SEED_BRAND_MUSIC_NAME } from "@/lib/public/brand-seed";
 
 const FILE_PATH = path.join(process.cwd(), ".data", "brand-music");
 const META_PATH = path.join(process.cwd(), ".data", "brand-music.meta.json");
+const SEED_PATH = path.join(process.cwd(), "public", "seed", SEED_BRAND_MUSIC_FILE);
 
 const ALLOWED_MIME = new Set([
   "audio/mpeg",
@@ -49,7 +51,7 @@ export function assertMusicSize(bytes: number): boolean {
   return bytes > 0 && bytes <= MUSIC_MAX_BYTES;
 }
 
-export function readBrandMusic(): { bytes: Buffer; meta: BrandMusicMeta } | null {
+function readOperatorBrandMusic(): { bytes: Buffer; meta: BrandMusicMeta } | null {
   try {
     if (!fs.existsSync(FILE_PATH)) return null;
     const bytes = fs.readFileSync(FILE_PATH);
@@ -64,6 +66,47 @@ export function readBrandMusic(): { bytes: Buffer; meta: BrandMusicMeta } | null
   } catch {
     return null;
   }
+}
+
+function readSeedBrandMusic(): { bytes: Buffer; meta: BrandMusicMeta } | null {
+  try {
+    if (!fs.existsSync(SEED_PATH)) return null;
+    const bytes = fs.readFileSync(SEED_PATH);
+    if (!bytes.length) return null;
+    return { bytes, meta: { mime: "audio/mpeg", name: SEED_BRAND_MUSIC_NAME } };
+  } catch {
+    return null;
+  }
+}
+
+export function hasOperatorBrandMusic(): boolean {
+  return readOperatorBrandMusic() != null;
+}
+
+export function readBrandMusic(): { bytes: Buffer; meta: BrandMusicMeta } | null {
+  return readOperatorBrandMusic() ?? readSeedBrandMusic();
+}
+
+export function presentBrandMusic(fixture: {
+  brand_music_url?: string | null;
+  brand_music_name?: string | null;
+}): {
+  brand_music_url: string | null;
+  brand_music_name: string | null;
+  brand_music_is_seed: boolean;
+} {
+  const music = readBrandMusic();
+  if (!music) {
+    return { brand_music_url: null, brand_music_name: null, brand_music_is_seed: false };
+  }
+  return {
+    brand_music_url:
+      typeof fixture.brand_music_url === "string" && fixture.brand_music_url
+        ? fixture.brand_music_url
+        : BRAND_MUSIC_HREF,
+    brand_music_name: music.meta.name,
+    brand_music_is_seed: !hasOperatorBrandMusic(),
+  };
 }
 
 export function writeBrandMusic(bytes: Buffer, meta: BrandMusicMeta): void {

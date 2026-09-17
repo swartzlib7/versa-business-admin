@@ -245,7 +245,7 @@ export function parseSkyEffects(raw: unknown): SkyEffects | undefined {
   return resolveSkyEffects(raw);
 }
 export const LOGO_MAX_BYTES = 500 * 1024;
-export const LOGO_UPLOAD_HINT = `PNG, JPG, SVG, or WebP. Both width and height must be ${LOGO_PX_MIN}–${LOGO_PX_MAX} px. Max 500 KB. Initials are used when empty.`;
+export const LOGO_UPLOAD_HINT = `PNG, JPG, SVG, or WebP. Both width and height must be ${LOGO_PX_MIN}–${LOGO_PX_MAX} px. Max 500 KB. Empty uses the shipped Versa AGi shield.`;
 
 export type LogoSurfaceId = "menu" | "home" | "footer";
 

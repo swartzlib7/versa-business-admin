@@ -104,7 +104,7 @@ export const PAGE_BUILDER_GLOSSARY_ENTRIES: PageBuilderGlossaryRow[] = [
     id: "e-pb-rendering-driver",
     name: "Rendering Driver",
     definition:
-      "A record that describes a code renderer (code_key, bind shape, inputs, Render outputs, filter/pagination). Seeded from the code registry. Staff rename and describe; they do not invent a code_key. Changing a driver means walking docs/coa/DRIVER_TOUCHPOINTS.md.",
+      "A record that describes a code renderer (code_key, bind shape, inputs, Render outputs, filter/pagination). Seeded from the code registry. Staff rename and describe; they do not invent a code_key. Changing a driver means walking the touchpoint table in state_page_builder.md.",
   },
   {
     id: "e-pb-driver-pairing",

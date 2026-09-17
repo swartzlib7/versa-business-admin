@@ -5,7 +5,7 @@ export const theme = {
   brand: {
     name: 'Versa - Business Admin',
     shortName: 'VBA',
-    logoUrl: '/logo.svg',
+    logoUrl: '/seed/versa-agi-shield-helix_v1-512.png',
     faviconUrl: '/favicon.ico',
   },
   colors: {
