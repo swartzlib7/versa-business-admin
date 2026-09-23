@@ -7,7 +7,7 @@ import { listFieldDefinitions } from "@/lib/fixtures/catalog";
 import { listInstances } from "@/lib/fixtures/record-instances";
 import { isLiveStatField } from "@/lib/statistics/fields";
 
-/** Page Builder infrastructure — listed on Page Builder → Elements, not Custom. */
+/** Page Builder infrastructure — listed on Page Builder → Canvas, not Custom. */
 const CUSTOM_INFRA_TYPES = new Set(["driver_pairing", "render_driver", "page_element"]);
 
 const BAKED_IN_CHILD_IDS = new Set([

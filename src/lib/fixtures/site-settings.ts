@@ -14,6 +14,11 @@ import { normalizePageBuilder, type PageBuilderState } from "@/lib/public/page-b
 import { sanitizeMenuOrder } from "@/lib/nav";
 import { foldPublicHrefs } from "@/lib/catalog/name-aliases";
 import { resolveBrandLogoUrl } from "@/lib/public/brand-seed";
+import {
+  EMPTY_EMAIL_DELIVERY,
+  normalizeEmailDelivery,
+  type EmailDeliverySettings,
+} from "@/lib/settings/email-delivery";
 
 export type { CycleStep };
 
@@ -55,6 +60,7 @@ export interface FixtureSiteSettings {
   brand_music_autoplay?: boolean;
   brand_music_name?: string | null;
   brand_name_in_menu?: boolean;
+  email_delivery?: EmailDeliverySettings;
 }
 
 const GLOBAL_KEY = "__versaSiteSettingsFixture__";
@@ -139,6 +145,7 @@ function readFile(): FixtureSiteSettings | null {
       contact_email: typeof parsed.contact_email === "string" ? parsed.contact_email : undefined,
       contact_phone: typeof parsed.contact_phone === "string" ? parsed.contact_phone : undefined,
       contact_address: typeof parsed.contact_address === "string" ? parsed.contact_address : undefined,
+      email_delivery: parsed.email_delivery ? normalizeEmailDelivery(parsed.email_delivery) : undefined,
       menu_order: Array.isArray(parsed.menu_order)
         ? sanitizeMenuOrder(parsed.menu_order) ?? undefined
         : undefined,
@@ -209,6 +216,7 @@ function defaults(): FixtureSiteSettings {
     brand_music_autoplay: true,
     brand_music_name: null,
     brand_name_in_menu: true,
+    email_delivery: { ...EMPTY_EMAIL_DELIVERY },
   };
 }
 
@@ -365,6 +373,17 @@ export function upsertSiteSettingsFixture(
       input.brand_name_in_menu !== undefined
         ? input.brand_name_in_menu
         : current.brand_name_in_menu !== false,
+    email_delivery:
+      input.email_delivery !== undefined
+        ? normalizeEmailDelivery({
+            ...normalizeEmailDelivery(current.email_delivery),
+            ...input.email_delivery,
+            password:
+              input.email_delivery.password !== undefined && input.email_delivery.password !== ""
+                ? input.email_delivery.password
+                : normalizeEmailDelivery(current.email_delivery).password,
+          })
+        : normalizeEmailDelivery(current.email_delivery),
   };
   const surfaces =
     next.brand_logo_surfaces ??

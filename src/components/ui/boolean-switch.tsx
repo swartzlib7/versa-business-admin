@@ -7,12 +7,14 @@ export function BooleanSwitch({
   onChange,
   label,
   labelSide = "end",
+  disabled,
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
   label?: string;
   /** "start" puts the Yes/No (or custom) text to the left of the knob. */
   labelSide?: "start" | "end";
+  disabled?: boolean;
 }) {
   const text = (
     label ? (
@@ -28,9 +30,15 @@ export function BooleanSwitch({
         type="button"
         role="switch"
         aria-checked={checked}
-        onClick={() => onChange(!checked)}
+        aria-disabled={disabled || undefined}
+        disabled={disabled}
+        onClick={() => {
+          if (disabled) return;
+          onChange(!checked);
+        }}
         className={cn(
           "relative h-6 w-11 shrink-0 rounded-full border transition-colors",
+          disabled && "cursor-not-allowed opacity-50",
           checked
             ? "border-transparent bg-primary"
             : "border-border bg-muted",

@@ -7,14 +7,16 @@ import { useBrand } from "@/components/shell/brand-provider";
 import { PageHeader } from "@/components/ui/page-header";
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { BooleanSwitch } from "@/components/ui/boolean-switch";
-import { SampleDataPanel } from "@/components/settings/sample-data-panel";
+import { DemoSampleSwitch } from "@/components/settings/sample-data-panel";
 import { ApiDocsPanel } from "@/components/settings/api-docs-panel";
 import { PanelShell } from "@/components/settings/settings-chrome";
+import { EmailDeliveryPanel } from "@/components/settings/email-delivery-panel";
 
-type SettingsTab = "modes" | "api";
+type SettingsTab = "modes" | "email" | "api";
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: "modes", label: "Modes" },
+  { id: "email", label: "E-Mail Delivery" },
   { id: "api", label: "API" },
 ];
 
@@ -22,8 +24,8 @@ const MOVED_TO_PAGE_BUILDER: Record<string, string> = {
   branding: "/page-builder?tab=branding",
   menu: "/page-builder?tab=menu",
   "page-builder": "/page-builder?tab=canvas",
-  public: "/page-builder?tab=elements&sub=cycle-strip",
-  cycle: "/page-builder?tab=elements&sub=cycle-strip",
+  public: "/page-builder?tab=canvas",
+  cycle: "/page-builder?tab=canvas",
   appearance: "/page-builder?tab=appearance",
   sky: "/page-builder?tab=sky",
 };
@@ -33,7 +35,6 @@ function SystemPanel() {
   const [demoMode, setDemoMode] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [publicLogin, setPublicLogin] = useState(true);
-  const [sampleInserted, setSampleInserted] = useState<boolean | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -50,10 +51,6 @@ function SystemPanel() {
       })
       .catch(() => setError("Could not load system modes."))
       .finally(() => setLoaded(true));
-    fetch("/api/settings/sample-data")
-      .then((r) => r.json())
-      .then((json) => setSampleInserted(json?.data?.inserted === true))
-      .catch(() => undefined);
   }, []);
 
   const persist = async (next: {
@@ -88,36 +85,12 @@ function SystemPanel() {
   return (
     <PanelShell summary="Control what visitors see on the public site." badge="Site">
       <div className="space-y-6">
-        <SampleDataPanel />
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-lg space-y-1">
-            <p className="text-sm font-medium">Demo mode</p>
-            <p className="text-sm text-muted-foreground">
-              Composes the visitor homepage from live records first — including
-              sample-data rows tagged <code className="text-xs">ba_sample:</code> —
-              and falls back to fixtures only where a record type does not exist
-              yet (Facets HTML, Inspections & Reports). Turn off to hide fixture
-              gaps and show only wired live sections. While Demo mode is on, the
-              login page shows install-account hints.
-            </p>
-          </div>
-          <BooleanSwitch
-            checked={demoMode}
-            onChange={(next) => {
-              setDemoMode(next);
-              void persist({ demo_mode: next });
-            }}
-            label={demoMode ? "On" : "Off"}
-            labelSide="start"
-          />
-        </div>
-        {demoMode && sampleInserted === false ? (
-          <p className="text-sm text-muted-foreground">
-            Demo is on but no sample rows are in the store. Insert sample data
-            above so Integrations, Operations, Metrics, Knowledge, and About
-            compose from live records instead of leftover fixtures.
-          </p>
-        ) : null}
+        <DemoSampleSwitch
+          demoOn={demoMode}
+          persistDemo={async (on) => {
+            await persist({ demo_mode: on });
+          }}
+        />
         <Separator />
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-lg space-y-1">
@@ -219,7 +192,7 @@ export default function SettingsPage() {
       <div className="space-y-3">
         <PageHeader
           title="Settings"
-          subtitle="System modes and API. Site chrome lives under Page Builder."
+          subtitle="System modes, e-mail delivery, and API. Site chrome lives under Page Builder."
           accent={brand.brand_color}
           tabs={TABS}
           tabsValue={tab}
@@ -237,6 +210,19 @@ export default function SettingsPage() {
               ariaLabel="Modes sub-sections"
             />
             <SystemPanel />
+          </div>
+        )}
+
+        {tab === "email" && (
+          <div role="tabpanel" className="space-y-3">
+            <SubTabBar
+              items={[{ id: "configuration", label: "Configuration" }]}
+              activeId="configuration"
+              accent={brand.brand_color}
+              onSelect={() => undefined}
+              ariaLabel="E-Mail Delivery sub-sections"
+            />
+            <EmailDeliveryPanel />
           </div>
         )}
 

@@ -341,6 +341,17 @@ export function advanceFrequency(d: Date, type: FrequencyType, steps: number): D
   return next;
 }
 
+/** Header window shifted so this period graph starts on its own first slot. */
+export function configForSeries(config: StatHeaderConfig, series: number): StatHeaderConfig {
+  const s = Number.isInteger(series) && series > 0 ? series : 1;
+  if (s <= 1) return config;
+  const start = parseStartDatetime(config.startDatetime);
+  if (!start) return config;
+  const shifted = stampForSlot(start, config.frequencyType, s, 0, config.frequencyQty);
+  const frequencyStart = deriveFrequencyStart(config.frequencyType, shifted) ?? config.frequencyStart;
+  return { ...config, startDatetime: toDatetimeLocalValue(shifted), frequencyStart };
+}
+
 /** Absolute stamp for series/slot: start + ((series-1)*qty + slot) steps. */
 export function stampForSlot(
   start: Date,

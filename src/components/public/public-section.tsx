@@ -6,12 +6,17 @@ export function PublicSection({
   nextId,
   className,
   hidden,
+  fillViewport = true,
+  style,
   children,
 }: {
   id?: string;
   nextId?: string;
   className?: string;
   hidden?: boolean;
+  /** One viewport, so the next control sits at the bottom of the screen. */
+  fillViewport?: boolean;
+  style?: React.CSSProperties;
   children: React.ReactNode;
 }) {
   if (hidden) return null;
@@ -19,8 +24,11 @@ export function PublicSection({
     <section
       id={id}
       data-public-section=""
+      style={style}
       className={cn(
-        "relative flex min-h-[max(100dvh,768px)] flex-col justify-center overflow-hidden border-b border-border pb-16",
+        "relative flex flex-col overflow-hidden border-border",
+        nextId ? "border-b" : "border-b-0",
+        fillViewport ? "h-dvh max-h-dvh min-h-dvh justify-center pb-16" : "min-h-0",
         className,
       )}
     >

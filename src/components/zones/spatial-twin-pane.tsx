@@ -35,10 +35,10 @@ const TWIN_FOOTER_BUTTON =
   "items-center gap-1.5 rounded border border-border bg-background/35 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted/50";
 
 /**
- * System standard: the Spatial Twin slot is wired to the selected record
- * type (element tab + sub-tab). Hub spheres show the 3D twin. Types not on
- * the default element list (and custom records) use the same slot for a
- * feature preview.
+ * System standard: one Spatial Twin slot per zone listing. The listing
+ * publishes TwinPreview (Statistics is the template). Hub spheres show the
+ * 3D twin. Types not on the graph use this same slot for a feature preview.
+ * Do not mount a second pane inside an expanded row.
  */
 export function SpatialTwinPane({
   zoneId,
@@ -294,9 +294,10 @@ function TwinBody({
             driver={preview.driver}
             cycleSteps={preview.cycleSteps ?? []}
             stat={null}
-            homeContent={preview.homeContent}
+            html={preview.html}
+            pageCard={preview.pageCard}
+            contact={preview.contact}
             renderOutput={preview.renderOutput}
-            itemIndex={preview.itemIndex}
           />
         </div>
         {preview.note ? (

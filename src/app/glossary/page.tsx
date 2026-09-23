@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { theme } from "@/lib/theme";
 import { useBrand } from "@/components/shell/brand-provider";
@@ -19,6 +19,8 @@ import {
   formatGlossaryUser,
 } from "@/lib/public/page-builder-glossary";
 import { useSession } from "@/lib/auth/use-session";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ComponentGallery, GALLERY_SECTIONS } from "@/components/ui/component-gallery";
 
 /** I5.6.18 — glossary as data: sections + entries (listing + inline editor). */
 
@@ -26,7 +28,16 @@ function uid(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-type GlossaryTab = "view" | "org-board" | "sections" | "entries";
+type GlossaryTab = "view" | "org-board" | "ui-components" | "sections" | "entries";
+
+const GLOSSARY_TABS: GlossaryTab[] = ["sections", "entries", "view", "org-board", "ui-components"];
+
+function glossaryTabFromSearch(): GlossaryTab {
+  if (typeof window === "undefined") return "sections";
+  const q = new URLSearchParams(window.location.search).get("tab");
+  if (q && GLOSSARY_TABS.includes(q as GlossaryTab)) return q as GlossaryTab;
+  return "sections";
+}
 
 function stampAudit(
   draft: Record<string, string>,
@@ -48,9 +59,21 @@ export default function GlossaryPage() {
   const session = useSession();
   const [sections, setSections] = useState(INITIAL_SECTIONS);
   const [entries, setEntries] = useState(INITIAL_ENTRIES);
-  const [activeTab, setActiveTab] = useState<GlossaryTab>("sections");
+  const [activeTab, setActiveTab] = useState<GlossaryTab>(() => glossaryTabFromSearch());
   const [subTab, setSubTab] = useState<string>("configuration");
   const [activeSectionId, setActiveSectionId] = useState("");
+  const [galleryTab, setGalleryTab] = useState(GALLERY_SECTIONS[0]?.id ?? "buttons");
+  const gallery = GALLERY_SECTIONS.find((section) => section.id === galleryTab) ?? GALLERY_SECTIONS[0];
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (activeTab === "sections") url.searchParams.delete("tab");
+    else url.searchParams.set("tab", activeTab);
+    const next = `${url.pathname}${url.search}`;
+    if (next !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [activeTab]);
 
   const auditFields = useMemo(
     () => [
@@ -104,13 +127,14 @@ export default function GlossaryPage() {
       <div className="space-y-3">
         <PageHeader
           title="Glossary"
-          subtitle="Shared language, organizing board, and glossary of terms."
+          subtitle="Shared language, organizing board, glossary of terms, and component gallery."
           accent={accent}
           tabs={[
             { id: "sections", label: "Section" },
             { id: "entries", label: "Entry" },
             { id: "view", label: "Glossary of terms" },
             { id: "org-board", label: "Org Board" },
+            { id: "ui-components", label: "UI Components" },
           ]}
           tabsValue={activeTab}
           onTabChange={(id) => {
@@ -119,6 +143,28 @@ export default function GlossaryPage() {
           }}
           tabsAriaLabel="Glossary sections"
         />
+
+        {activeTab === "ui-components" && gallery ? (
+          <div role="tabpanel" className="space-y-3">
+            <SubTabBar
+              items={GALLERY_SECTIONS.map((section) => ({ id: section.id, label: section.label }))}
+              activeId={gallery.id}
+              accent={accent}
+              onSelect={setGalleryTab}
+              ariaLabel="UI Components sections"
+            />
+            <Card className="min-h-[640px] overflow-hidden">
+              <CardHeader className="border-b bg-muted/30">
+                <p className="text-sm text-muted-foreground">
+                  {gallery.description ?? "Components from the shared library."}
+                </p>
+              </CardHeader>
+              <CardContent className="p-6">
+                <ComponentGallery sectionId={gallery.id} hideSectionHeading />
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
 
         {activeTab === "org-board" && (
           <div role="tabpanel" className="space-y-3">

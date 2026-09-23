@@ -4,8 +4,9 @@ import { businessGraphNodes, HUB_CENTER_ID } from "@/lib/fixtures/business-graph
  * Spatial Twin is wired to every record type the zone presents — element
  * tabs and the sub-tab strip (child record types). Default hub spheres are
  * the built-in element list. Environment → Custom has no sphere yet, so the
- * twin pane is hidden there (no Locations fallback). Other types not on the
- * graph still get a feature preview until a sphere exists for that id.
+ * 3D hub is hidden there (no Locations fallback). Statistics and Page Builder
+ * → Elements still use this same slot for a feature preview (setPreview).
+ * Other types not on the graph wait for a sphere.
  */
 export function hasSpatialTwin(nodeId: string | null | undefined): boolean {
   if (!nodeId) return false;

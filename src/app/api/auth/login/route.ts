@@ -5,6 +5,7 @@ import {
   createSessionCookieHeader,
 } from "@/lib/auth";
 import { verifyLoginChallenge } from "@/lib/auth-challenge";
+import { isInstallDefaultPassword } from "@/lib/install-password";
 
 export async function POST(request: Request) {
   let body: {
@@ -54,7 +55,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const token = createSessionToken(user);
+  const mustChangePassword = isInstallDefaultPassword(body.password);
+  const token = createSessionToken(user, { mustChangePassword });
   const headers = new Headers();
   headers.append("Set-Cookie", createSessionCookieHeader(token, request));
 
@@ -66,6 +68,7 @@ export async function POST(request: Request) {
         email: user.email,
         role: user.role,
         type: user.type,
+        must_change_password: mustChangePassword,
       },
     },
     { headers },

@@ -18,6 +18,11 @@ import {
   orderNavItems,
 } from "@/lib/nav";
 import { normalizePageBuilder } from "@/lib/public/page-builder";
+import {
+  normalizeEmailDelivery,
+  publicEmailDelivery,
+  type EmailDeliverySettings,
+} from "@/lib/settings/email-delivery";
 
 function modesFromStore() {
   const settings = getSiteSettingsFixture();
@@ -42,6 +47,7 @@ function modesFromStore() {
     glossary_in_menu: flags.glossary_in_menu,
     org_board_enabled: flags.org_board_enabled,
     page_builder: normalizePageBuilder(settings.page_builder),
+    email_delivery: publicEmailDelivery(normalizeEmailDelivery(settings.email_delivery)),
   };
 }
 
@@ -91,6 +97,7 @@ export async function PUT(request: Request) {
     glossary_in_menu?: boolean;
     org_board_enabled?: boolean;
     page_builder?: ReturnType<typeof normalizePageBuilder>;
+    email_delivery?: EmailDeliverySettings;
   } = {};
   if (typeof body.demo_mode === "boolean") patch.demo_mode = body.demo_mode;
   if (typeof body.maintenance_mode === "boolean") {
@@ -217,6 +224,18 @@ export async function PUT(request: Request) {
   }
   if (body.page_builder !== undefined) {
     patch.page_builder = normalizePageBuilder(body.page_builder);
+  }
+  if (body.email_delivery && typeof body.email_delivery === "object") {
+    const incoming = body.email_delivery as Record<string, unknown>;
+    const currentMail = normalizeEmailDelivery(getSiteSettingsFixture().email_delivery);
+    patch.email_delivery = normalizeEmailDelivery({
+      ...currentMail,
+      ...incoming,
+      password:
+        typeof incoming.password === "string" && incoming.password
+          ? incoming.password
+          : currentMail.password,
+    });
   }
   upsertSiteSettingsFixture(patch);
   return NextResponse.json({ data: modesFromStore() });

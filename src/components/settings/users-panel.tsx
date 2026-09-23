@@ -6,6 +6,7 @@ import { EntityListing, type ListingField } from "@/components/listing/entity-li
 import { theme } from "@/lib/theme";
 import { listingFieldsFromCatalog, resolvePicklistLabel } from "@/lib/catalog/layout-to-fields";
 import type { User } from "@/lib/data";
+import { passwordProblem } from "@/lib/password-policy";
 
 type LocalUser = User & { _local?: boolean; data?: Record<string, unknown> } & Record<string, unknown>;
 
@@ -17,13 +18,14 @@ function toCatalogValues(u: LocalUser): Record<string, string> {
     type: String(u.type ?? "human"),
     role: String(u.role ?? "member"),
     status: String(u.status ?? "active"),
-    department_id: String(u.department_id ?? u.department ?? data.department_id ?? ""),
-    bio: String(u.bio ?? data.bio ?? ""),
     job_title: String(data.job_title ?? u.job_title ?? ""),
+    avatar: typeof data.avatar === "string" ? data.avatar : "",
+    password: "",
   };
 }
 
-const USER_COLUMN_ORDER = ["status", "role", "type", "department_id", "name", "email"];
+const HIDDEN_USER_FIELDS = new Set(["bio", "department", "department_id"]);
+const USER_COLUMN_ORDER = ["status", "role", "type", "name", "email"];
 
 export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "agent" }) {
   const [users, setUsers] = useState<LocalUser[]>([]);
@@ -33,16 +35,21 @@ export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "a
 
   const catalogFields = useMemo(() => listingFieldsFromCatalog("user"), []);
   const fields: ListingField[] = useMemo(
-    () =>
-      catalogFields.map((f) => ({
-        key: f.key,
-        label: f.label,
-        kind: f.kind,
-        options: f.options,
-        optionLabels: f.optionLabels,
-        column: f.column,
-        secret: f.secret,
-      })),
+    () => [
+      ...catalogFields
+        .filter((f) => !HIDDEN_USER_FIELDS.has(f.key))
+        .map((f) => ({
+          key: f.key,
+          label: f.label,
+          kind: f.kind,
+          options: f.options,
+          optionLabels: f.optionLabels,
+          column: f.column,
+          secret: f.secret,
+        })),
+      { key: "password", label: "Password", kind: "text" as const, column: false },
+      { key: "avatar", label: "Profile picture", kind: "text" as const, column: false, span: 2 },
+    ],
     [catalogFields],
   );
 
@@ -83,49 +90,69 @@ export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "a
     return raw;
   };
 
-  const onAdd = (draft: Record<string, string>) => {
-    const id = "local-" + Date.now();
-    const next: LocalUser = {
-      id,
-      name: draft.name || "New user",
-      email: draft.email || "",
-      type: (draft.type as User["type"]) || typeFilter,
-      role: (draft.role as User["role"]) || "member",
-      department: draft.department_id || "",
-      department_id: draft.department_id || "",
-      bio: draft.bio || "",
-      status: (draft.status as User["status"]) || "active",
-      data: { job_title: draft.job_title || "", bio: draft.bio || "" },
-      _local: true,
-    };
-    setUsers((prev) => [...prev, next]);
-    setNote("Added locally (mock) — API persistence not wired on this form yet.");
+  const onAdd = async (draft: Record<string, string>) => {
+    const created = draft.password?.trim() ?? "";
+    const createdProblem = passwordProblem(created);
+    if (createdProblem) {
+      setNote(createdProblem);
+      return false;
+    }
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        name: draft.name,
+        email: draft.email,
+        type: draft.type || typeFilter,
+        role: draft.role || "member",
+        status: draft.status || "active",
+        password: draft.password,
+        data: { job_title: draft.job_title || "", avatar: draft.avatar || "" },
+      }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setNote(json?.error?.message || "Could not create the user.");
+      return false;
+    }
+    setUsers((prev) => [...prev, json.data]);
+    setNote("User created.");
+    return true;
   };
 
-  const onUpdate = (id: string, draft: Record<string, string>) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === id
-          ? {
-              ...u,
-              name: draft.name || u.name,
-              email: draft.email || u.email,
-              type: (draft.type as User["type"]) || u.type,
-              role: (draft.role as User["role"]) || u.role,
-              department: draft.department_id || u.department,
-              department_id: draft.department_id || u.department_id,
-              bio: draft.bio || u.bio,
-              status: (draft.status as User["status"]) || u.status,
-              data: {
-                ...(typeof u.data === "object" && u.data ? u.data : {}),
-                job_title: draft.job_title ?? "",
-                bio: draft.bio || u.bio,
-              },
-            }
-          : u,
-      ),
-    );
-    setNote("Updated in this session (mock) — refresh reloads from API.");
+  const onUpdate = async (id: string, draft: Record<string, string>) => {
+    const body: Record<string, unknown> = {
+      name: draft.name,
+      email: draft.email,
+      type: draft.type,
+      role: draft.role,
+      status: draft.status,
+      data: { job_title: draft.job_title || "", avatar: draft.avatar || "" },
+    };
+    const nextPassword = draft.password?.trim() ?? "";
+    if (nextPassword) {
+      const problem = passwordProblem(nextPassword);
+      if (problem) {
+        setNote(problem + " The current password was kept.");
+        return false;
+      }
+      body.password = nextPassword;
+    }
+    const res = await fetch(`/api/users/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setNote(json?.error?.message || "Could not save the user.");
+      return false;
+    }
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...json.data } : u)));
+    setNote("Saved.");
+    return true;
   };
 
   if (loading)

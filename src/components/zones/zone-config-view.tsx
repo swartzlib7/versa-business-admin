@@ -18,12 +18,27 @@ import { isAuditField } from "@/lib/catalog/audit-fields";
 import { useSession } from "@/lib/auth/use-session";
 import { EntityListing, type ListingField } from "@/components/listing/entity-listing";
 import { PageHeader } from "@/components/ui/page-header";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { OrganizationsPanel, OrgTypeListingPanel, PrimaryOrgPanel } from "@/components/organizations/organizations-panel";
 import { DivisionConfigPanel, RecordRelationsPanel } from "@/components/zones/element-config-panel";
 import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
 import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
-import { dataTypeToUiKind, optionsForField } from "@/lib/catalog/layout-to-fields";
+import { dataTypeToUiKind, helpForField, optionsForField } from "@/lib/catalog/layout-to-fields";
+import { type ListedRecord } from "@/lib/public/driver-pairings";
+import {
+  driverBreakConfirmBody,
+  driverBreakNeeded,
+  isDriverCodeOwnedField,
+  pairingsForDriver,
+} from "@/lib/public/render-driver-locks";
+
+async function countDriverPairings(driverId: string): Promise<number> {
+  const res = await fetch("/api/records?type=driver_pairing", { credentials: "include" });
+  if (!res.ok) return 0;
+  const json = (await res.json()) as { data?: ListedRecord[] };
+  return pairingsForDriver(json.data ?? [], driverId).length;
+}
 import type { CatalogDataType } from "@/lib/fixtures/catalog";
 // I5.6.35 S-4: statistics capture interception - lines on environment_stat
 // headers go through the capture API (ONE validation layer with the REST
@@ -45,7 +60,9 @@ import {
 } from "@/lib/statistics/frequency";
 import { formatStatLineValue, isLiveStatField } from "@/lib/statistics/fields";
 import { StatGraphPanel } from "@/components/statistics/stat-graph-panel";
-import { DriverRecordConnectPanel } from "@/components/settings/driver-record-connect";
+import { recordTypeLabel } from "@/lib/public/element-types";
+import { loadPairingTwinPreview } from "@/lib/public/pairing-twin-preview";
+import { pairingFieldRequired } from "@/components/catalog/pairing-fields";
 
 function filterLiveCatalogFields<T extends { api_name: string }>(
   objectApiName: string,
@@ -605,6 +622,7 @@ function ListingPanel({
   selectedRowId = null,
   onRowSelect,
   suppressTwinPreview = false,
+  allowCreate = true,
 }: {
   panel: ZoneTab;
   accent: string;
@@ -626,15 +644,20 @@ function ListingPanel({
   onRowSelect?: (recordId: string) => void;
   /** When a header form is also publishing the twin preview, skip this listing. */
   suppressTwinPreview?: boolean;
+  allowCreate?: boolean;
 }) {
   const { setPreview, bumpLines, linesEpoch } = useTwinSlot();
+  const publishesTwin =
+    panel.recordTypeApiName === "statistics" ||
+    panel.recordTypeApiName === "driver_pairing";
+
   useEffect(() => {
     return () => {
-      if (!suppressTwinPreview && panel.recordTypeApiName === "statistics") {
+      if (!suppressTwinPreview && publishesTwin) {
         setPreview(null);
       }
     };
-  }, [panel.recordTypeApiName, setPreview, suppressTwinPreview]);
+  }, [publishesTwin, setPreview, suppressTwinPreview]);
   type CatalogField = {
     api_name: string;
     label: string;
@@ -658,6 +681,13 @@ function ListingPanel({
     isDynamic ? catalogFields : undefined,
   );
   const [fieldsLoading, setFieldsLoading] = useState(false);
+  const [driverBreakPending, setDriverBreakPending] = useState<{
+    id: string;
+    draft: Record<string, string>;
+    count: number;
+    leavingActive: boolean;
+    recordTypeChanged: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (panel.recordTypeApiName !== "statistics" || !headerRecordIdProp) {
@@ -740,6 +770,11 @@ function ListingPanel({
           .filter((f) => f.zone_role === "list" && f.show_in_column === true)
           .map((f) => f.label);
       }
+      if (objectApiName === "driver_pairing") {
+        const byApi = new Map(catalogFields.map((f) => [f.api_name, f.label]));
+        const preferred = ["name", "target_record_type", "driver_id", "target_record_id"];
+        return preferred.map((key) => byApi.get(key)).filter((label): label is string => Boolean(label));
+      }
       return catalogFields.slice(0, 4).map((f) => f.label);
     }
     if (panel.listColumns && panel.listColumns.length > 0) {
@@ -780,7 +815,7 @@ function ListingPanel({
           required: f.is_required,
           lookupObjectApiName: (f as { lookup_object_api_name?: string | null }).lookup_object_api_name ?? null,
           defaultValue: (f as { default_value?: string | null }).default_value ?? undefined,
-          readOnly: isAuditField(f.api_name),
+          readOnly: isAuditField(f.api_name) || isDriverCodeOwnedField(objectApiName, f.api_name),
           column:
             (colSet.has(f.label) || colSet.has(f.api_name)) &&
             !isAuditField(f.api_name) &&
@@ -1045,6 +1080,25 @@ function ListingPanel({
   }, [viewMode, panel.recordTypeApiName, selectedRowId, toCells, setPreview]);
 
   useEffect(() => {
+    if (
+      viewMode !== "instances" ||
+      panel.recordTypeApiName !== "driver_pairing" ||
+      !selectedRowId ||
+      suppressTwinPreview
+    ) {
+      return;
+    }
+    const controller = new AbortController();
+    void loadPairingTwinPreview({
+      pairingId: selectedRowId,
+      signal: controller.signal,
+    })
+      .then(setPreview)
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [viewMode, panel.recordTypeApiName, selectedRowId, suppressTwinPreview, setPreview]);
+
+  useEffect(() => {
     if (!isDynamic) {
       return;
     }
@@ -1117,6 +1171,12 @@ function ListingPanel({
     for (const f of catalogFields) {
       if (!f.is_required) continue;
       if (f.api_name === "frequency_start") continue;
+      if (
+        panel.recordTypeApiName === "driver_pairing" &&
+        !pairingFieldRequired(f.api_name, draft)
+      ) {
+        continue;
+      }
       const role = (f as { zone_role?: "header" | "list" | null }).zone_role;
       // Header create (instances): list-zone fields are not on this form.
       if (isHeaderLines && viewMode === "instances" && role === "list") continue;
@@ -1239,8 +1299,12 @@ function ListingPanel({
             data,
           }),
         });
-        if (!res.ok) throw new Error("Failed to create record");
-        const json = await res.json();
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(
+            (json as { error?: { message?: string } })?.error?.message ?? "Failed to create record",
+          );
+        }
         const inst = json.data;
         setRows((prev) => [...prev, { id: inst.id, cells: toCells(inst) }]);
       } catch (e: unknown) {
@@ -1392,7 +1456,11 @@ function ListingPanel({
     return true;
   };
 
-  const onUpdate = async (id: string, draft: Record<string, string>): Promise<boolean> => {
+  const onUpdate = async (
+    id: string,
+    draft: Record<string, string>,
+    confirmDriverBreak = false,
+  ): Promise<boolean> => {
     if (!isDynamic || id.startsWith(panel.id)) {
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, cells: draft } : r)));
       return true;
@@ -1410,13 +1478,45 @@ function ListingPanel({
         const data: Record<string, string> = { ...draft };
         delete data.Name;
         delete data.Status;
+        if (panel.recordTypeApiName === "render_driver" && !confirmDriverBreak) {
+          const row = rows.find((r) => r.id === id);
+          const breakNeed = driverBreakNeeded(
+            row?.cells.status || row?.cells.Status || "active",
+            status || "active",
+            row?.cells.compatible_record_type ?? "",
+            data.compatible_record_type ?? "",
+          );
+          if (breakNeed.leavingActive || breakNeed.recordTypeChanged) {
+            const count = await countDriverPairings(id);
+            if (count > 0) {
+              setDriverBreakPending({
+                id,
+                draft,
+                count,
+                leavingActive: breakNeed.leavingActive,
+                recordTypeChanged: breakNeed.recordTypeChanged,
+              });
+              return false;
+            }
+          }
+        }
         const res = await fetch("/api/records/" + id, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ name, status, data }),
+          body: JSON.stringify({
+            name,
+            status,
+            data,
+            confirm_driver_break: confirmDriverBreak === true,
+          }),
         });
-        if (!res.ok) throw new Error("Failed to update record");
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          throw new Error(
+            (json as { error?: { message?: string } })?.error?.message ?? "Failed to update record",
+          );
+        }
         const json = await res.json();
         const inst = json.data;
         setRows((prev) => prev.map((r) => (r.id === id ? { id: inst.id, cells: toCells(inst) } : r)));
@@ -1553,7 +1653,9 @@ function ListingPanel({
           getRowId={(r) => r.id}
           getCell={(r, k) => r.cells[k] ?? ""}
           formatCell={
-            panel.recordTypeApiName === "statistics" &&
+            panel.recordTypeApiName === "driver_pairing"
+              ? (_row, key, raw) => (key === "target_record_type" ? recordTypeLabel(raw) : raw)
+              : panel.recordTypeApiName === "statistics" &&
             viewMode !== "instances" &&
             statHeader
               ? (_row, key, raw) => {
@@ -1589,10 +1691,13 @@ function ListingPanel({
               : undefined
           }
           defaultSort={
-            panel.recordTypeApiName === "statistics" && viewMode !== "instances"
-              ? { key: "line_stamp", dir: "asc" }
-              : undefined
+            panel.recordTypeApiName === "driver_pairing"
+              ? { key: "target_record_type", dir: "asc" }
+              : panel.recordTypeApiName === "statistics" && viewMode !== "instances"
+                ? { key: "line_stamp", dir: "asc" }
+                : undefined
           }
+          tieBreakKey={panel.recordTypeApiName === "driver_pairing" ? "name" : undefined}
           sortCell={
             panel.recordTypeApiName === "statistics" &&
             viewMode !== "instances" &&
@@ -1621,13 +1726,19 @@ function ListingPanel({
           onAdd={onAdd}
           onUpdate={onUpdate}
           onDelete={onDelete}
-          canAdd={statCanAdd}
+          canAdd={allowCreate && statCanAdd}
           addBlockedHint={
-            !statCanAdd
-              ? "Single Series is full — one series of points only."
-              : undefined
+            !allowCreate
+              ? "Rendering Drivers come from the released catalog. One driver per Shape and Record type."
+              : !statCanAdd
+                ? "Single Series is full — one series of points only."
+                : undefined
           }
-          columnStorageKey={`mc.listing.zone.${panel.id}`}
+          columnStorageKey={
+            panel.recordTypeApiName === "driver_pairing"
+              ? `mc.listing.zone.${panel.id}.rt2`
+              : `mc.listing.zone.${panel.id}`
+          }
           onRowOpen={
             viewMode === "instances" && onRowOpen
               ? (row) => onRowOpen(row.id)
@@ -1650,18 +1761,18 @@ function ListingPanel({
           }
           onRowCancelEdit={viewMode === "instances" ? onRowCancelEdit : undefined}
           showRowSelect={
-            viewMode === "instances" && panel.recordTypeApiName === "statistics"
+            viewMode === "instances" && publishesTwin
           }
           selectedRowId={
-            viewMode === "instances" && panel.recordTypeApiName === "statistics"
+            viewMode === "instances" && publishesTwin
               ? selectedRowId
               : undefined
           }
           onRowSelect={
-            viewMode === "instances" && panel.recordTypeApiName === "statistics"
+            viewMode === "instances" && publishesTwin
               ? (id) => {
-                  const row = rows.find((r) => r.id === id);
-                  if (!suppressTwinPreview) {
+                  if (panel.recordTypeApiName === "statistics" && !suppressTwinPreview) {
+                    const row = rows.find((r) => r.id === id);
                     setPreview({
                       kind: "stat-graph",
                       values: row ? { ...row.cells } : {},
@@ -1672,10 +1783,39 @@ function ListingPanel({
                 }
               : undefined
           }
-          rowSelectLabel="Graph"
+          rowSelectLabel={panel.recordTypeApiName === "driver_pairing" ? "Twin" : "Graph"}
           badgeLabel={isDynamic ? "Dynamic Record" : "Listing"}
         />
       )}
+      <ConfirmDialog
+        open={driverBreakPending != null}
+        title={
+          driverBreakPending
+            ? driverBreakConfirmBody({
+                leavingActive: driverBreakPending.leavingActive,
+                recordTypeChanged: driverBreakPending.recordTypeChanged,
+                pairingCount: driverBreakPending.count,
+              }).title
+            : ""
+        }
+        description={
+          driverBreakPending
+            ? driverBreakConfirmBody({
+                leavingActive: driverBreakPending.leavingActive,
+                recordTypeChanged: driverBreakPending.recordTypeChanged,
+                pairingCount: driverBreakPending.count,
+              }).description
+            : ""
+        }
+        confirmLabel="Change anyway"
+        tone="warning"
+        onCancel={() => setDriverBreakPending(null)}
+        onConfirm={() => {
+          const pending = driverBreakPending;
+          setDriverBreakPending(null);
+          if (pending) void onUpdate(pending.id, pending.draft, true);
+        }}
+      />
     </div>
   );
 }
@@ -1722,6 +1862,13 @@ function FormPanel({
     setEditing(!!startEditing);
   }, [detailRecordId, startEditing]);
   const [savedValues, setSavedValues] = useState<Record<string, string>>({});
+  const [driverBreakOpen, setDriverBreakOpen] = useState(false);
+  const [driverBreakCopy, setDriverBreakCopy] = useState({
+    leavingActive: false,
+    recordTypeChanged: false,
+    pairingCount: 0,
+  });
+  const confirmDriverBreakRef = useRef(false);
   // #249 Slice E2 (rev E section 2.5): owning organization per record -
   // auto-preset at creation from the Primary Org; shown read-only here.
   const [orgOptions, setOrgOptions] = useState<Array<{ id: string; name: string }>>([]);
@@ -1747,6 +1894,23 @@ function FormPanel({
       values,
       headerId: instanceId ?? detailRecordId ?? null,
     });
+  }, [panel.recordTypeApiName, values, instanceId, detailRecordId, setPreview, publishTwin]);
+
+  useEffect(() => {
+    if (panel.recordTypeApiName !== "driver_pairing") return;
+    if (!publishTwin) return;
+    const pairingId = instanceId ?? detailRecordId;
+    if (!pairingId) return;
+    const controller = new AbortController();
+    void loadPairingTwinPreview({
+      pairingId,
+      pairingName: values.name,
+      pairingData: values,
+      signal: controller.signal,
+    })
+      .then(setPreview)
+      .catch(() => undefined);
+    return () => controller.abort();
   }, [panel.recordTypeApiName, values, instanceId, detailRecordId, setPreview, publishTwin]);
 
   useEffect(() => {
@@ -1900,6 +2064,8 @@ function FormPanel({
             required: f.is_required,
             zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
             lookupObjectApiName: f.lookup_object_api_name ?? null,
+            readOnly: isDriverCodeOwnedField(objectApiName, f.api_name),
+            help: helpForField(f.api_name),
           };
         })
       : panel.fields.map((f) => ({
@@ -1911,6 +2077,8 @@ function FormPanel({
           required: undefined,
           zoneRole: null,
           lookupObjectApiName: null,
+          readOnly: false,
+          help: undefined,
         })));
     return [
       {
@@ -1920,7 +2088,7 @@ function FormPanel({
         fields: filterByZoneRole(fields, "header"),
       },
     ];
-  }, [isDynamic, catalogFields, panel.fields, panel.label]);
+  }, [isDynamic, catalogFields, panel.fields, panel.label, objectApiName]);
 
   const layoutForMode = editing ? runtime.edit : runtime.detail;
   const sections =
@@ -1948,6 +2116,12 @@ function FormPanel({
     for (const f of catalogFields) {
       if (!f.is_required) continue;
       if (f.api_name === "frequency_start") continue;
+      if (
+        panel.recordTypeApiName === "driver_pairing" &&
+        !pairingFieldRequired(f.api_name, values)
+      ) {
+        continue;
+      }
       // J4 hygiene: on header_lines, list-only fields are not part of the header form.
       if (isHeaderLines && (f as { zone_role?: "header" | "list" | null }).zone_role === "list") continue;
       const v = (values[f.api_name] ?? "").trim();
@@ -1987,6 +2161,7 @@ function FormPanel({
         return;
       }
     }
+    const persist = async (confirmDriverBreak = false) => {
     setSaving(true);
     setSaveError("");
     setSaveStatus("");
@@ -2007,6 +2182,7 @@ function FormPanel({
             name,
             status,
             data,
+            confirm_driver_break: confirmDriverBreak === true,
             // #249 Slice E2 (rev E section 2.5): org move per record.
             org_id: orgId || undefined,
           }),
@@ -2026,7 +2202,12 @@ function FormPanel({
           }),
         });
       }
-      if (!res.ok) throw new Error("Failed to save record");
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(
+          (json as { error?: { message?: string } })?.error?.message ?? "Failed to save record",
+        );
+      }
       const json = await res.json();
       const inst = json.data;
       setInstanceId(inst.id);
@@ -2041,9 +2222,39 @@ function FormPanel({
     } finally {
       setSaving(false);
     }
+    };
+    const confirmed = confirmDriverBreakRef.current;
+    confirmDriverBreakRef.current = false;
+    if (
+      !confirmed &&
+      panel.recordTypeApiName === "render_driver" &&
+      (instanceId || detailRecordId)
+    ) {
+      const targetId = instanceId ?? detailRecordId;
+      const breakNeed = driverBreakNeeded(
+        savedValues.status || "active",
+        values.status || values.Status || "active",
+        savedValues.compatible_record_type ?? "",
+        values.compatible_record_type ?? "",
+      );
+      if (breakNeed.leavingActive || breakNeed.recordTypeChanged) {
+        const count = await countDriverPairings(String(targetId));
+        if (count > 0) {
+          setDriverBreakCopy({
+            leavingActive: breakNeed.leavingActive,
+            recordTypeChanged: breakNeed.recordTypeChanged,
+            pairingCount: count,
+          });
+          setDriverBreakOpen(true);
+          return;
+        }
+      }
+    }
+    await persist(confirmed);
   };
 
   return (
+    <>
     <Card className="min-h-[640px] overflow-hidden">
       <CardHeader className="border-b bg-muted/30">
         <div className="flex items-start justify-between gap-3">
@@ -2072,7 +2283,11 @@ function FormPanel({
               readOnly={!editing}
               accent={accent}
             />
-            {isDynamic && (orgOptions.find((o) => o.id === orgId)?.name || orgOptions[0]?.name) ? (
+            {isDynamic &&
+            panel.recordTypeApiName !== "render_driver" &&
+            panel.recordTypeApiName !== "driver_pairing" &&
+            panel.recordTypeApiName !== "statistics" &&
+            (orgOptions.find((o) => o.id === orgId)?.name || orgOptions[0]?.name) ? (
               <div className="mt-4">
                 <label className="space-y-1.5">
                   <span className="text-xs font-medium text-muted-foreground">
@@ -2138,6 +2353,20 @@ function FormPanel({
         )}
       </CardContent>
     </Card>
+    <ConfirmDialog
+      open={driverBreakOpen}
+      title={driverBreakConfirmBody(driverBreakCopy).title}
+      description={driverBreakConfirmBody(driverBreakCopy).description}
+      confirmLabel="Change anyway"
+      tone="warning"
+      onCancel={() => setDriverBreakOpen(false)}
+      onConfirm={() => {
+        setDriverBreakOpen(false);
+        confirmDriverBreakRef.current = true;
+        void onSave();
+      }}
+    />
+    </>
   );
 }
 
@@ -2178,7 +2407,8 @@ function TabPanel({
   // no header/config forms anywhere; policy renders list-to-detail exactly
   // like projects/tasks (COA ruling D3 superseded). null = list view
   // (instance list); set = detail view.
-  const isListToDetail = isHeaderLines && panel.recordTypeApiName != null;
+  // Rendering Drivers stay on the list path (row expands with the editor).
+  const isListToDetail = panel.recordTypeApiName != null && isHeaderLines;
   const [detailRecordId, setDetailRecordId] = useState<string | null>(null);
   const [detailEditing, setDetailEditing] = useState(false);
   const [graphRecordId, setGraphRecordId] = useState<string | null>(null);
@@ -2288,9 +2518,6 @@ function TabPanel({
               accent={accent}
               headerRecordId={detailRecordId}
             />
-            {panel.recordTypeApiName === "render_driver" ? (
-              <DriverRecordConnectPanel driverRecordId={detailRecordId} />
-            ) : null}
           </div>
         ) : (
           <ListingPanel
@@ -2317,8 +2544,50 @@ function TabPanel({
             onHeaderRecord={setHeaderRecordId}
           />
         </div>
+      ) : panel.recordTypeApiName === "driver_pairing" ? (
+        <ListingPanel
+          panel={panel}
+          accent={accent}
+          viewMode="instances"
+          expandedRowId={detailRecordId}
+          onExpandedRowChange={(id) => {
+            setDetailRecordId(id);
+            setDetailEditing(false);
+            if (id) setGraphRecordId(id);
+          }}
+          expandedEditing={detailEditing}
+          onRowEdit={(id) => {
+            setDetailRecordId(id);
+            setDetailEditing(true);
+            setGraphRecordId(id);
+          }}
+          onRowCancelEdit={() => setDetailEditing(false)}
+          selectedRowId={graphRecordId}
+          onRowSelect={setGraphRecordId}
+          suppressTwinPreview={false}
+          renderExpandedRow={(recordId) => (
+            <div
+              className="space-y-4 border-t border-border bg-muted/20 px-4 py-4 sm:px-6"
+              style={{ boxShadow: `inset 3px 0 0 ${accent}` }}
+            >
+              <FormPanel
+                key={recordId}
+                panel={{ ...panel, id: panel.id + "-detail" }}
+                accent={accent}
+                detailRecordId={recordId}
+                startEditing={detailEditing}
+                onEditingChange={setDetailEditing}
+                publishTwin={graphRecordId === recordId}
+              />
+            </div>
+          )}
+        />
       ) : presentation === "listing" ? (
-        <ListingPanel panel={panel} accent={accent} />
+        <ListingPanel
+          panel={panel}
+          accent={accent}
+          allowCreate={panel.recordTypeApiName !== "render_driver"}
+        />
       ) : (
         <FormPanel panel={panel} accent={accent} />
       )}
@@ -2353,7 +2622,7 @@ export function ZoneConfigView({
 }: {
   config: ZoneConfig;
   chrome?: "full" | "embed";
-  /** Override hub-twin visibility. Page Builder Elements listings have no twin. */
+  /** Override hub-twin visibility. Elements listings use the zone rail (Statistics pattern). */
   showTwin?: boolean;
 }) {
   return (

@@ -2,7 +2,7 @@
 
 **Product:** Versa - Business Admin (VBA)  
 **Directory:** `Versa-BusinessAdmin`  
-**Audience:** Agents and humans **implementing, hosting, maintaining, customizing, and enhancing** VBA on a customer install. Staff who use the product read [`BUSINESS_ADMIN_USER_MANUAL.md`](BUSINESS_ADMIN_USER_MANUAL.md) (planned).  
+**Audience:** Agents and humans **implementing, hosting, maintaining, customizing, and enhancing** VBA on a customer install. Staff who use the product read [`BUSINESS_ADMIN_USER_MANUAL.md`](BUSINESS_ADMIN_USER_MANUAL.md) (§7 Page Builder; rest planned).  
 **Agent skill:** `business_admin` — host file `.agent/skills/business_admin.md` (Versa AGi, COA-only). What it covers is summarized in §2.0.
 
 > **Do not invent upgrade runbooks that contradict seed-only v1 (D4) or other locked D1–D6 decisions.**
@@ -30,7 +30,7 @@ Related product docs:
 | Doc | Role |
 |-----|------|
 | `README.md` | Product name, roles, Ops Manual + skill usage |
-| `docs/ops/BUSINESS_ADMIN_USER_MANUAL.md` | Staff User Manual (planned stub) |
+| `docs/ops/BUSINESS_ADMIN_USER_MANUAL.md` | Staff User Manual — Page Builder §7 written; rest planned |
 | `docs/ops/WORKING_WITH_VBA.md` | Forms, listings, Spatial Twin, stale UI / deploy |
 | `GET /api` and Settings → API | HTTP API catalog for this version |
 | Versa AGi skill `business_admin` | Agent install / orient (host file, not this repo) |

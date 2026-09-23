@@ -3,7 +3,7 @@
 **Product:** Versa - Business Admin (VBA)  
 **Audience:** Agents and humans **implementing or enhancing** VBA on a local or customer install.  
 **Install, host, upgrade:** [`BUSINESS_ADMIN_OPS_MANUAL.md`](BUSINESS_ADMIN_OPS_MANUAL.md)  
-**Staff how-to:** [`BUSINESS_ADMIN_USER_MANUAL.md`](BUSINESS_ADMIN_USER_MANUAL.md) (planned)
+**Staff how-to:** [`BUSINESS_ADMIN_USER_MANUAL.md`](BUSINESS_ADMIN_USER_MANUAL.md) (§7 Page Builder; rest planned)
 
 Use this file when you change operator forms, listings, Spatial Twin, or a running `next start` process. Form/listing rules are standing product rules — not optional polish.
 
@@ -13,7 +13,7 @@ Use this file when you change operator forms, listings, Spatial Twin, or a runni
 
 | You need to… | Go to |
 |--------------|--------|
-| Required fields, lookups, header vs lines, layouts | §1 |
+| Required fields, lookups, header vs lines, layouts, confirm | §1 |
 | Spatial Twin / lightbox / graph pager | §2 |
 | Where a capability lives in the chrome | §3 |
 | Why the UI did not change after git pull | §4 |
@@ -40,7 +40,7 @@ Host skills (Versa AGi, not this repo): `business_admin` (install) and `business
 - `data_type=lookup` renders as a **lookup control**, never a free-text box.
 - `lookup_object_api_name=user` → user picker (name + email), value stored as the user id.
 - Created By / Last Modified By are **session-stamped audit fields**, not pickers. The logged-in user (UI or API) is the value: create stamps both; every save restamps Last Modified By. The operator cannot assign another user. Show them read-only with the person’s name.
-- Created Date / Last Modified Date / ID are the same class: stamped, read-only. External ID is operator-editable.
+- Created Date / Last Modified Date / ID are the same class: stamped, read-only. ID is auto-assigned and sits at the **bottom** of every form. External ID is operator-editable.
 - Do not show raw ids in the listing when a display name is available.
 
 ### 1.3 Dependent fields
@@ -84,6 +84,21 @@ Every presented record has two layouts, edited in Records Editor → **Layout**:
 
 Do not render the edit layout while the operator is only viewing. If no saved Detail layout exists, use the catalog default (same field set, view mode). Operators change arrangement in Layout (**Edit layout** vs **Detail layout**), not by inventing a third surface. The Type row (Layout) and expanded Type view (Open layout) link to that type’s Layout. Empty cells are allowed — including an empty top row. Moving or removing a field leaves a hole; neighbors do not pack into the vacated cell. The runtime Edit/Detail form uses the same column count and holes as the Layout Editor (4-col stays 4-col). The canvas has a drop row above and below the fields. Drag a field from one section onto another. Statistics scale fields: **Scale Name** (rotated on the graph), **Scale Low**, **Scale High**, **Scale Division**. Frequency start is derived and read-only. Under the frequency ticks: `quantity - Type - start` (e.g. `7 - Day - 2026-09-10T00:00`).
 
+### 1.6 Confirm
+
+Destructive or irreversible operator actions use **`ConfirmDialog`** (`src/components/ui/confirm-dialog.tsx`) — the same chrome as listing **Delete**. Do not use `window.confirm` or a one-off modal.
+
+| Prop | Role |
+|------|------|
+| `open` | Whether the dialog is shown |
+| `title` / `description` | What will happen |
+| `confirmLabel` | Default `Confirm`. Use the verb (Delete, Remove, Turn off) |
+| `cancelLabel` | Default `Cancel` |
+| `tone` | `danger` (default) or `warning` |
+| `onConfirm` / `onCancel` | Confirm runs the action. Escape and backdrop click cancel |
+
+Listings already do this. Page Builder row remove and **Demo with Sample data** Off use the same component.
+
 ---
 
 ## 2. Spatial Twin
@@ -103,6 +118,9 @@ The right-hand Spatial Twin pane is a **system slot**, not only a 3D view. It is
 
 - A capability lives in **one** operator place. If it is a zone sub-tab, it is not also a sidebar Menu item.
 - Hidden menu item ⇒ route disabled (redirect or 404). Do not leave a second entry that shows the old mock fields.
+- **Page Builder** (`/page-builder`) owns visitor chrome. Tab order: Appearance, Branding, Menu, Canvas, Sky Animation. Canvas sub-tabs: **Configuration** (compose), **Elements** (pairings listing), **Rendering Drivers**. The component gallery is Glossary → UI Components, after Org Board. Do not put pairings or drivers back under Environment → Custom. Staff map: User Manual §7.
+- Rendering Driver **Record type** is a lookup to Records Editor types (one value; Contacts is `location`). **Code key** and **Shape** are owned by product code and are not editable. Recipes stay in product code — the driver record has no recipe lines. **Status** Active is required for the type picker and for the visitor Cell to paint. Leaving Active or changing Record type while pairings exist needs confirm. Rendering Drivers do not show Primary Org.
+- Settings is **Modes + API** only. Old Settings tabs for branding / menu / appearance / sky / page-builder redirect here.
 
 ---
 
@@ -195,6 +213,7 @@ Optional later: expose a build id / git SHA in health or a footer so humans can 
 - A listing Edit form plus a different Edit inside the expanded view
 - Showing the Edit layout while the operator is only viewing the record
 - Expecting `git pull` alone to change a `next start` UI
+- `window.confirm` (or a custom confirm box) instead of `ConfirmDialog`
 
 ---
 

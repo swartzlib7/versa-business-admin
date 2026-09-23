@@ -10,6 +10,8 @@ import {
   type FieldDefinition,
   type LayoutDefinition,
 } from "@/lib/fixtures/catalog";
+import { isPairingStampField } from "@/lib/public/driver-pairings";
+import { isDriverCodeOwnedField } from "@/lib/public/render-driver-locks";
 
 export type UiFieldKind =
   | "text"
@@ -44,6 +46,8 @@ export type UiListingField = {
   /** Empty grid cell from the Layout Editor (`__blank__*`). */
   blank?: boolean;
   help?: string;
+  /** Staff cannot change this value (code-owned or stamp). */
+  readOnly?: boolean;
 };
 
 export function dataTypeToUiKind(dt: CatalogDataType): UiFieldKind {
@@ -110,7 +114,35 @@ const FIELD_HELP: Record<string, string> = {
   scale_start: "Lowest expected for period",
   scale_end: "Highest expected for period",
   frequency_start: "From Start datetime and Frequency type",
+  code_key:
+    "Identity of the code renderer (html-block, stat-graph, contacts-cards). Owned by product code — not editable. Staff rename the driver; they do not invent a new key.",
+  bind_shape:
+    "Paint binding from the code catalog (header, header + lines, or lines). Not the record type Structure. One record type can have more than one driver shape.",
+  compatible_record_type:
+    "Records Editor type this driver paints. Editable. Existing Elements keep the type they were saved with.",
+  status:
+    "Active is required for the Canvas type picker and visitor paint. Leaving Active while pairings exist needs confirm.",
+  driver_id:
+    "The Rendering Driver this Element configures. Display style and record type live on the driver.",
+  render_option:
+    "How this Element paints. The choices come from that driver’s render outputs.",
+  target_record_type:
+    "Which Records Editor type to select from. Must stay compatible with the driver.",
+  target_record_id:
+    "Which record (or all records) this Element paints. This is record selection, not a driver attribute.",
+  filter_json:
+    "Which records to include when Selection Type is Filter. Conditions are combined with AND.",
 };
+
+export function helpForField(apiName: string): string | undefined {
+  return FIELD_HELP[apiName];
+}
+
+export function placeIdLast<T extends { key?: string; api_name?: string }>(fields: T[]): T[] {
+  const id = fields.filter((f) => (f.key ?? f.api_name) === "id");
+  if (!id.length) return fields;
+  return [...fields.filter((f) => (f.key ?? f.api_name) !== "id"), ...id];
+}
 
 export function fieldDefinitionToUi(fd: FieldDefinition): UiListingField {
   const { options, optionLabels } = optionsForField(fd);
@@ -126,6 +158,9 @@ export function fieldDefinitionToUi(fd: FieldDefinition): UiListingField {
     isSystem: fd.is_system,
     zoneRole: fd.zone_role ?? null,
     lookupObjectApiName: fd.lookup_object_api_name ?? null,
+    readOnly:
+      isDriverCodeOwnedField(fd.object_api_name, fd.api_name) ||
+      isPairingStampField(fd.object_api_name, fd.api_name),
     secret:
       fd.is_secret === true ||
       (fd.object_api_name === "vendor_credential" && fd.api_name === "configuration"),
@@ -184,7 +219,7 @@ export function editFieldsFromCatalog(objectApiName: string): {
   const byApi = new Map(all.map((f) => [f.api_name, f]));
 
   if (!layout) {
-    const fields = all.map(fieldDefinitionToUi);
+    const fields = placeIdLast(all.map(fieldDefinitionToUi));
     return {
       layout: undefined,
       fields,
@@ -196,10 +231,12 @@ export function editFieldsFromCatalog(objectApiName: string): {
     id: sec.id,
     label: sec.label,
     columns: sec.columns,
-    fields: sec.fields
-      .map((k) => byApi.get(k))
-      .filter((fd): fd is FieldDefinition => Boolean(fd))
-      .map(fieldDefinitionToUi),
+    fields: placeIdLast(
+      sec.fields
+        .map((k) => byApi.get(k))
+        .filter((fd): fd is FieldDefinition => Boolean(fd))
+        .map(fieldDefinitionToUi),
+    ),
   }));
 
   const fields = sections.flatMap((s) => s.fields);
@@ -218,7 +255,7 @@ export function detailSectionsFromCatalog(objectApiName: string) {
           id: "all",
           label: "Details",
           columns: 2 as const,
-          fields: all.map(fieldDefinitionToUi),
+          fields: placeIdLast(all.map(fieldDefinitionToUi)),
         },
       ],
     };
@@ -229,10 +266,12 @@ export function detailSectionsFromCatalog(objectApiName: string) {
       id: sec.id,
       label: sec.label,
       columns: sec.columns,
-      fields: sec.fields
-        .map((k) => byApi.get(k))
-        .filter((fd): fd is FieldDefinition => Boolean(fd))
-        .map(fieldDefinitionToUi),
+      fields: placeIdLast(
+        sec.fields
+          .map((k) => byApi.get(k))
+          .filter((fd): fd is FieldDefinition => Boolean(fd))
+          .map(fieldDefinitionToUi),
+      ),
     })),
   };
 }

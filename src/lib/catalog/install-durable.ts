@@ -99,14 +99,13 @@ export function ensureDurableCatalog(): void {
   void import("@/lib/sample-data/apply").then((mod) => {
     void mod.hydrateSampleData();
   });
-  void import("@/lib/public/ensure-page-elements").then((mod) => {
-    void mod.ensurePageElementRecords();
-  });
   void import("@/lib/public/ensure-cycle-strip").then((mod) => {
     void mod.ensureCycleStripRecords();
   });
   void import("@/lib/public/ensure-render-drivers").then((mod) => {
-    void mod.ensureRenderDriverRecords();
+    void mod.ensureRenderDriverRecords().then(() =>
+      import("@/lib/public/ensure-pairings").then((pair) => pair.ensureUniquePairings()),
+    );
   });
 }
 

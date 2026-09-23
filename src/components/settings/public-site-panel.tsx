@@ -5,22 +5,12 @@ import { BooleanSwitch } from "@/components/ui/boolean-switch";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_CYCLE_STEPS, type CycleStep } from "@/lib/public/site-types";
 
-function emptyStep(index: number): CycleStep {
-  return {
-    number: String(index + 1).padStart(2, "0"),
-    numberEnabled: false,
-    title: "",
-    titleEnabled: false,
-    desc: "",
-    descEnabled: false,
-    enabled: false,
-  };
-}
-
 function padSteps(rows: CycleStep[]): CycleStep[] {
-  const next = [...rows];
-  while (next.length < 10) next.push(emptyStep(next.length));
-  return next.slice(0, 10);
+  const next = rows.slice(0, DEFAULT_CYCLE_STEPS.length);
+  while (next.length < DEFAULT_CYCLE_STEPS.length) {
+    next.push({ ...DEFAULT_CYCLE_STEPS[next.length] });
+  }
+  return next;
 }
 
 export function PublicSitePanel() {
@@ -91,8 +81,7 @@ export function PublicSitePanel() {
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          Up to ten steps. Each cell has its own Yes / No. Turn a cell off to hide
-          it on the public page.
+          The six homepage steps beside the logo. Each number, label, and description has its own toggle.
         </p>
         <div className="space-y-3">
           {steps.map((step, index) => (

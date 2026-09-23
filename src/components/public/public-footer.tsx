@@ -8,6 +8,7 @@ import { useSiteMode } from "@/components/shell/site-mode-provider";
 import { LOGO_BASE_PX, logoPx, logoSurfaceFilter } from "@/lib/brand-display";
 import { scrollPublicToTop } from "./public-snap-scroll";
 import { visiblePublicNavItems } from "@/lib/nav";
+import { homeRowLabelMap } from "@/lib/public/page-builder";
 
 function addressLines(address: string): string[] {
   const parts = address
@@ -31,15 +32,17 @@ export function PublicFooter({
   const year = new Date().getFullYear();
   const brand = useBrand();
   const footerLogo = brandSurface(brand, "footer");
-  const { demo_mode, public_menu_enabled, public_menu_order } = useSiteMode();
+  const { demo_mode, public_menu_enabled, public_menu_order, page_builder } = useSiteMode();
   const showDemo = demo && demo_mode;
   const links = visiblePublicNavItems({
     demo: showDemo,
     enabled: public_menu_enabled,
     order: public_menu_order,
+    sectionLabels: homeRowLabelMap(page_builder?.home_sections),
   }).filter((link) => link.href.startsWith("/#"));
   const splitAt = Math.ceil(links.length / 2);
   const linkCols = [links.slice(0, splitAt), links.slice(splitAt)];
+  const heading = brand.hero_headline?.trim() || business.slogan;
 
   return (
     <div className="relative">
@@ -54,29 +57,29 @@ export function PublicFooter({
       <footer className="border-t border-border bg-background/50 backdrop-blur-md">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-3 md:items-start">
-          <div className="flex flex-col items-center text-center">
-            <div className="inline-flex flex-col items-center">
-              <h4 className="w-full text-sm font-semibold">VBA</h4>
-              <div className="mt-3 grid w-full grid-cols-2 gap-x-6">
-                {linkCols.map((col, colIndex) => (
-                  <ul key={colIndex} className="space-y-2 text-sm text-muted-foreground">
-                    {col.map((link) => {
-                      const Icon = link.icon;
-                      return (
-                        <li key={link.href}>
-                          <Link
-                            href={link.href}
-                            className="inline-flex items-center gap-1.5 hover:text-foreground"
-                          >
-                            <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                            {link.label}
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ))}
-              </div>
+          <div className="flex flex-col items-start text-left">
+            <h4 className="text-sm font-semibold">{heading}</h4>
+            <div className="mt-3 grid w-full grid-cols-2 gap-x-6">
+              {linkCols.map((col, colIndex) => (
+                <ul key={colIndex} className="space-y-2 text-left text-sm text-muted-foreground">
+                  {col.map((link) => {
+                    const Icon = link.icon;
+                    const [first, ...rest] = link.label.split(" ");
+                    return (
+                      <li key={link.href}>
+                        <Link href={link.href} className="block text-left hover:text-foreground">
+                          <span className="whitespace-nowrap">
+                            <Icon className="inline-block h-3.5 w-3.5 align-text-top" aria-hidden />
+                            {" "}
+                            {first}
+                          </span>
+                          {rest.length ? ` ${rest.join(" ")}` : null}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ))}
             </div>
           </div>
 

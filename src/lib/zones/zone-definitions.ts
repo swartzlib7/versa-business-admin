@@ -784,7 +784,7 @@ export const environmentZone: ZoneConfig = {
     {
       id: "custom",
       label: "Custom",
-      summary: "Statistics, Cycle Strip, and Pages. Configuration and Rendering Drivers stay on Page Builder → Elements.",
+      summary: "Statistics and Pages. Cycle Strip is Page Builder → Branding. Elements and Rendering Drivers stay on Page Builder → Canvas.",
       presentation: "listing",
       listColumns: ["Name"],
       sampleRows: [],

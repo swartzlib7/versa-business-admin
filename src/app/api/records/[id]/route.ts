@@ -4,11 +4,25 @@ import {
   getInstance,
   updateInstance,
   deleteInstance,
+  listInstances,
   type UpdateInstanceInput,
 } from '@/lib/fixtures/record-instances';
 import { adapter } from '@/lib/data/adapter';
 import { getSiteSettingsFixture } from '@/lib/fixtures/site-settings';
 import { normalizePageBuilder, pairingCellUsages } from '@/lib/public/page-builder';
+import { DRIVER_PAIRING_TYPE, inferSelectionMode } from '@/lib/public/driver-pairings';
+import {
+  conflictingPairing,
+  listPairingRecords,
+  pairingConflictMessage,
+} from '@/lib/public/pairing-unique';
+import { stampPairingFromDriver } from '@/lib/public/stamp-pairing-record';
+import {
+  RENDER_DRIVER_TYPE,
+  driverBreakNeeded,
+  pairingsForDriver,
+  preserveDriverHeaderData,
+} from '@/lib/public/render-driver-locks';
 
 // #245 Slice E1 (rev E section 4.2): Horizon 1 persistence. When the adapter
 // implements the record methods (DATA_SOURCE=postgres), reads/writes go through
@@ -73,7 +87,7 @@ export async function PATCH(
       { status: 400 },
     );
   }
-  const incoming =
+  let incoming =
     typeof body.data === 'object' && body.data && !Array.isArray(body.data)
       ? { ...(body.data as Record<string, string>) }
       : undefined;
@@ -84,6 +98,67 @@ export async function PATCH(
   }
   const current = adapter.getRecord ? await adapter.getRecord(id) : getInstance(id);
   const currentData = (current?.data ?? {}) as Record<string, string>;
+  let lines = body.lines as Array<{ line_group?: string; data: Record<string, string> }> | undefined;
+  if (current?.type_api_name === RENDER_DRIVER_TYPE) {
+    if (incoming) incoming = preserveDriverHeaderData(currentData, incoming);
+    lines = undefined;
+    const nextStatus = body.status != null ? String(body.status) : current.status;
+    const nextType = incoming?.compatible_record_type ?? currentData.compatible_record_type ?? '';
+    const breakNeed = driverBreakNeeded(
+      current.status,
+      nextStatus,
+      currentData.compatible_record_type ?? '',
+      nextType,
+    );
+    if (breakNeed.leavingActive || breakNeed.recordTypeChanged) {
+      const pairingRows = adapter.listRecords
+        ? await adapter.listRecords({ type_api_name: DRIVER_PAIRING_TYPE })
+        : listInstances({ type_api_name: DRIVER_PAIRING_TYPE });
+      const used = pairingsForDriver(pairingRows, id);
+      if (used.length && body.confirm_driver_break !== true) {
+        return NextResponse.json(
+          {
+            error: {
+              code: 'DRIVER_IN_USE',
+              message: `This driver is used by ${used.length} pairing${used.length === 1 ? '' : 's'}. Confirm before changing Record type or leaving Active.`,
+              pairing_count: used.length,
+            },
+          },
+          { status: 409 },
+        );
+      }
+    }
+  }
+  if (current?.type_api_name === DRIVER_PAIRING_TYPE) {
+    const merged = { ...currentData, ...(incoming ?? {}) };
+    const stamped = await stampPairingFromDriver(merged);
+    if (!stamped.ok) {
+      return NextResponse.json(
+        { error: { code: 'INVALID_PAIRING', message: stamped.message } },
+        { status: 400 },
+      );
+    }
+    incoming = stamped.data;
+    const existing = conflictingPairing(
+      await listPairingRecords(),
+      String(incoming.target_record_type ?? ''),
+      String(incoming.target_record_id ?? ''),
+      String(incoming.driver_id ?? ''),
+      id,
+      inferSelectionMode(
+        String(incoming.selection_mode ?? ''),
+        String(incoming.target_record_id ?? ''),
+        incoming.filter_json,
+      ),
+      incoming.filter_json,
+    );
+    if (existing) {
+      return NextResponse.json(
+        { error: { code: 'PAIRING_EXISTS', message: pairingConflictMessage(existing) } },
+        { status: 409 },
+      );
+    }
+  }
   const data =
     incoming !== undefined || session?.userId
       ? {
@@ -100,7 +175,7 @@ export async function PATCH(
     name: body.name != null ? String(body.name) : undefined,
     status: body.status != null ? String(body.status) : undefined,
     data,
-    lines: body.lines as Array<{ line_group?: string; data: Record<string, string> }> | undefined,
+    lines,
     // #249 Slice E2 (rev E section 2.5/3.2): org move + relations replace-in-full
     // (fixture path ignores both).
     org_id: body.org_id != null ? String(body.org_id) : undefined,
@@ -151,6 +226,24 @@ export async function DELETE(
   }
   const { id } = await context.params;
   const existing = adapter.getRecord ? await adapter.getRecord(id) : getInstance(id);
+  if (existing?.type_api_name === RENDER_DRIVER_TYPE) {
+    const pairingRows = adapter.listRecords
+      ? await adapter.listRecords({ type_api_name: DRIVER_PAIRING_TYPE })
+      : listInstances({ type_api_name: DRIVER_PAIRING_TYPE });
+    const used = pairingsForDriver(pairingRows, id);
+    if (used.length) {
+      return NextResponse.json(
+        {
+          error: {
+            code: 'DRIVER_IN_USE',
+            message: `Unbind this driver from ${used.length} pairing${used.length === 1 ? '' : 's'} first.`,
+            pairing_count: used.length,
+          },
+        },
+        { status: 409 },
+      );
+    }
+  }
   if (existing?.type_api_name === 'driver_pairing') {
     const pb = normalizePageBuilder(getSiteSettingsFixture().page_builder);
     const usages = pairingCellUsages(pb, id);

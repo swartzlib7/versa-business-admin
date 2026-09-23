@@ -11,13 +11,8 @@ import {
   logoPx,
   logoSurfaceFilter,
   resolveLogoSurfaces,
-  resolveConstellationVariant,
-  resolveSkyEffects,
-  SKY_DENSITY_DEFAULT,
-  SKY_STARS_ZOOM_DEFAULT,
 } from "@/lib/brand-display";
 import { loadCycleSteps, normalizePublicContent } from "@/lib/public/site-content";
-import { composeHomeContent, sectionById } from "@/lib/public/demo-content";
 import {
   nextPublicSectionId,
   resolvePublicMenu,
@@ -26,13 +21,18 @@ import {
 import {
   canvasFrameStyle,
   canvasIsDisabled,
+  ensureRowCells,
   homepageBuilderSectionOrder,
+  isCellOn,
+  isRowOn,
   normalizePageBuilder,
+  rowHeightCss,
+  sectionColumnsClass,
   sectionWidthClass,
+  visibleCells,
 } from "@/lib/public/page-builder";
-import { CycleStrip } from "@/components/public/canvas-slot-drivers";
-import { HomeSectionBody } from "@/components/public/home-section-drivers";
-import { ArrowRight } from "lucide-react";
+import { resolveCellPaints } from "@/lib/public/resolve-cell-paint";
+import { CanvasSlotDriver, CycleStrip } from "@/components/public/canvas-slot-drivers";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +41,6 @@ export default async function HomePage() {
   const pub = normalizePublicContent(site);
   const cycle = await loadCycleSteps(site);
   const demo = site.demo_mode !== false;
-  const showLogin = site.public_login_enabled !== false;
   const publicMenu = resolvePublicMenu({
     enabled: site.public_menu_enabled,
     order: site.public_menu_order,
@@ -54,7 +53,10 @@ export default async function HomePage() {
   const builder = normalizePageBuilder(site.page_builder);
   const homeById = new Map((builder.home_sections ?? []).map((s) => [s.id, s]));
   const sectionIds = homepageBuilderSectionOrder(builder.home_section_order, visibleIds).filter(
-    (id) => homeById.get(id)?.enabled !== false,
+    (id) => {
+      const row = homeById.get(id);
+      return row ? isRowOn(row) : false;
+    },
   );
   const nextOf = (id: string) => nextPublicSectionId(id, sectionIds);
   const firstSection = sectionIds[0];
@@ -65,7 +67,12 @@ export default async function HomePage() {
     builder.home_margin,
     builder.home_margin_unit,
   );
-  const bundle = await composeHomeContent(site);
+  const homeCells = sectionIds.flatMap((id) => {
+    const slot = homeById.get(id);
+    if (!slot) return [];
+    return visibleCells(ensureRowCells(slot)).filter(isCellOn);
+  });
+  const paints = await resolveCellPaints(homeCells);
 
   const emptyProfile = {
     name: site.brand_name,
@@ -99,20 +106,15 @@ export default async function HomePage() {
   }
 
   return (
-    <PublicLayout
-      business={business}
-      demo={demo}
-      constellationVariant={resolveConstellationVariant(site.constellation_variant)}
-      constellationDensity={site.constellation_density ?? SKY_DENSITY_DEFAULT}
-      constellationZoom={site.constellation_zoom ?? SKY_STARS_ZOOM_DEFAULT}
-      constellationEffects={resolveSkyEffects(site.constellation_effects)}
-    >
+    <PublicLayout business={business} demo={demo}>
       {homeDisabled ? null : (
-      <div style={homeFrame.pad}>
       <div style={homeFrame.inner}>
       {heroOn ? (
       <PublicSection id="top" nextId={firstSection} className="bg-transparent">
-        <div className="mx-auto flex w-full max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-8">
+        <div
+          className="mx-auto flex h-full w-full max-w-7xl items-center px-4 sm:px-6 lg:px-8"
+          style={{ padding: homeFrame.pad.padding, paddingTop: `max(${homeFrame.pad.padding}, 4rem)` }}
+        >
           <div className="mx-auto flex w-full max-w-5xl flex-col items-center text-center">
             {site.brand_logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element -- uploaded/data URL logos
@@ -139,19 +141,13 @@ export default async function HomePage() {
               {pub.hero_headline}
             </h1>
             <p className="mt-3 text-sm text-muted-foreground sm:text-base">{pub.hero_subhead}</p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              {firstSection ? (
-                <a href={`#${firstSection}`} className={cn(buttonVariants({ size: "lg" }))}>
-                  {demo ? "Explore Versa - Business Admin" : "See operations"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
-              ) : null}
-              {sectionIds.includes("contacts") ? (
+            {sectionIds.includes("contacts") ? (
+              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <a href="#contacts" className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
                   Contacts
                 </a>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
             {cycle.length > 0 ? (
               <div className="mt-12 w-full">
                 <CycleStrip steps={cycle} />
@@ -163,30 +159,57 @@ export default async function HomePage() {
       ) : null}
 
       {sectionIds.map((id) => {
-        const content = sectionById(bundle, id);
-        if (!content) return null;
         const slot = homeById.get(id);
+        if (!slot) return null;
+        const row = ensureRowCells(slot);
+        const cells = visibleCells(row);
         return (
           <Fragment key={id}>
             <PublicSection
               id={id}
               nextId={nextOf(id)}
-              className={id === "contact" ? "border-b-0 bg-transparent" : "bg-transparent"}
+              className="bg-transparent"
             >
-              <div className="mx-auto px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-                <div className={sectionWidthClass(slot?.width_pct)}>
-                  <HomeSectionBody
-                    content={content}
-                    columns={slot?.columns}
-                    showLogin={showLogin}
-                  />
+              <div
+                className="mx-auto flex h-full w-full items-center px-4 sm:px-6 lg:px-8"
+                style={{ padding: homeFrame.pad.padding, paddingTop: `max(${homeFrame.pad.padding}, 4rem)` }}
+              >
+                <div className={cn(sectionWidthClass(slot.width_pct), "min-w-0")}>
+                  <div
+                    className={cn("min-h-0", sectionColumnsClass(slot.columns))}
+                    style={{ height: rowHeightCss(row) }}
+                  >
+                    {cells.map((cell) => {
+                      if (!isCellOn(cell)) {
+                        return <div key={cell.id} className="h-full min-h-0" aria-hidden="true" />;
+                      }
+                      const paint = paints.get(cell.id);
+                      if (!paint?.driver) {
+                        return <div key={cell.id} className="h-full min-h-0" aria-hidden="true" />;
+                      }
+                      return (
+                        <div key={cell.id} className="h-full min-h-0 min-w-0 max-w-full overflow-auto">
+                          <CanvasSlotDriver
+                            driver={paint.driver}
+                            cycleSteps={cycle}
+                            stat={paint.stat ?? null}
+                            html={paint.html}
+                            pageCard={paint.pageCard}
+                            contact={paint.contact}
+                            renderOutput={paint.renderOutput}
+                            pager={cell.showPager !== false}
+                            pageNumber={cell.pageNumber ?? 1}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </PublicSection>
           </Fragment>
         );
       })}
-      </div>
       </div>
       )}
     </PublicLayout>

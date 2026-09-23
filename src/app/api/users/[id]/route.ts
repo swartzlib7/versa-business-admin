@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { adapter } from "@/lib/data";
 import { getSessionFromRequest, isAuthenticated, isAdmin } from "@/lib/auth";
 import type { UpdateUserInput } from "@/lib/data/adapter";
+import { passwordProblem } from "@/lib/password-policy";
 
 function notFound(id: string) {
   return NextResponse.json(
@@ -75,6 +76,16 @@ export async function PATCH(
       return NextResponse.json(
         { error: { code: "FORBIDDEN", message: "Members cannot change role, type, or status." } },
         { status: 403 },
+      );
+    }
+  }
+
+  if (typeof body.password === "string" && body.password.length > 0) {
+    const problem = passwordProblem(body.password);
+    if (problem) {
+      return NextResponse.json(
+        { error: { code: "VALIDATION_ERROR", message: problem } },
+        { status: 400 },
       );
     }
   }

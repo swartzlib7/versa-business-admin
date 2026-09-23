@@ -151,6 +151,8 @@ export interface Session {
   email: string;
   role: "admin" | "member";
   type: "human" | "agent";
+  /** Set when this login still used the install default password. */
+  mustChangePassword?: boolean;
 }
 
 // #248 Slice D (rev E section 4.3, 2026-08-31): organizations is the typed

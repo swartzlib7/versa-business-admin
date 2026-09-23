@@ -1,6 +1,7 @@
 /** Runtime adapter for the saved Layout Editor pilot. */
 import { listFieldDefinitions, type CatalogDataType, type FieldDefinition } from "@/lib/fixtures/catalog";
-import { dataTypeToUiKind, fieldDefinitionToUi, optionsForField, type UiListingField } from "@/lib/catalog/layout-to-fields";
+import { dataTypeToUiKind, fieldDefinitionToUi, helpForField, optionsForField, type UiListingField } from "@/lib/catalog/layout-to-fields";
+import { isDriverCodeOwnedField } from "@/lib/public/render-driver-locks";
 import type { LayoutSection } from "@/components/catalog/layout-driven-form";
 import { isBlankLayoutApiName, normalizeLayoutColumns, normalizeLayoutSpan } from "@/lib/catalog/layout-grid";
 
@@ -27,21 +28,12 @@ export type RuntimeFieldSource = {
 };
 
 /** Converts a server-supplied dynamic field into a UI field. */
-function runtimeFieldToUi(field: RuntimeFieldSource): UiListingField {
+function runtimeFieldToUi(field: RuntimeFieldSource, objectApiName: string): UiListingField {
   const { options, optionLabels } = optionsForField(field);
   return {
     key: field.api_name,
     label: field.label,
-    help:
-      field.api_name === "scale_name"
-        ? "Shown rotated on the graph next to the scale numbers"
-        : field.api_name === "scale_start"
-        ? "Lowest expected for period"
-        : field.api_name === "scale_end"
-          ? "Highest expected for period"
-          : field.api_name === "frequency_start"
-            ? "From Start datetime and Frequency type"
-            : undefined,
+    help: helpForField(field.api_name),
     kind: dataTypeToUiKind(field.data_type as CatalogDataType),
     options,
     optionLabels,
@@ -50,6 +42,7 @@ function runtimeFieldToUi(field: RuntimeFieldSource): UiListingField {
     zoneRole: field.zone_role ?? null,
     secret: field.is_secret === true || field.api_name === "configuration",
     lookupObjectApiName: field.lookup_object_api_name ?? null,
+    readOnly: isDriverCodeOwnedField(objectApiName, field.api_name),
   };
 }
 
@@ -95,7 +88,7 @@ export function savedLayoutToRuntimeSections(
       if (!definition) continue;
       const ui = useFullDefinitions
         ? fieldDefinitionToUi(definition as FieldDefinition)
-        : runtimeFieldToUi(definition);
+        : runtimeFieldToUi(definition, objectApiName);
       fields.push({ ...ui, span: normalizeLayoutSpan(field.span, columns) });
     }
     if (!fields.length) continue;

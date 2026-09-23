@@ -25,8 +25,8 @@ const TABS: Record<
 > = {
   pairings: {
     api: "driver_pairing",
-    label: "Configuration",
-    summary: "Instance on a Cell: this record × this driver recipe. Cannot delete while a Cell still points at it.",
+    label: "Elements",
+    summary: "Record selection for a driver (one record, a filter, or all). Select or expand a row — the Spatial Twin is the zone rail, same as Statistics. One Element per driver and selection. Cannot delete while a Cell still points at it.",
     parentKind: "environment",
     parentApiName: "custom",
     structure: "list",
@@ -34,15 +34,15 @@ const TABS: Record<
   "render-drivers": {
     api: "render_driver",
     label: "Rendering Drivers",
-    summary: "Header is record type + shape. Lines are recipes. Connect records on this screen.",
+    summary: "One driver per Shape and Record type. Click a row to edit name and status. Shape, Record type, and Code key are owned by the released catalog.",
     parentKind: "environment",
     parentApiName: "custom",
-    structure: "header_lines",
+    structure: "list",
   },
 };
 
 export const ELEMENTS_SUB_TABS: { id: ElementsSubKind; label: string }[] = [
-  { id: "pairings", label: "Configuration" },
+  { id: "pairings", label: "Elements" },
   { id: "render-drivers", label: "Rendering Drivers" },
 ];
 
@@ -79,6 +79,10 @@ export function PageBuilderRecordTab({
     tabs: [tab],
   };
   return (
-    <ZoneConfigView config={config} chrome="embed" showTwin={false} />
+    <ZoneConfigView
+      config={config}
+      chrome="embed"
+      showTwin={kind === "pairings"}
+    />
   );
 }

@@ -1,20 +1,20 @@
 /**
- * Driver catalog — each driver owns one or more **render outputs**.
- * Statistics grid layouts (1 / 2 / 4 / 8 / 12) are outputs of `stat-graph`.
- * Spatial Twin, Page Builder Cells, and the visitor canvas all read this list.
+ * Driver catalog — one released driver per Shape + Record type.
+ * Extra paint styles are Render outputs on that driver, not extra drivers.
+ * Spatial Twin, Cells, and the visitor canvas all read this list.
  *
- * Code is the behavior source. `render_driver` records mirror this registry.
- * Touchpoints: docs/production/state/state_page_builder.md (Driver / Element touchpoints)
+ * Touchpoints: docs/production/state/state_page_builder.md (PB-53)
  */
 
 export type DriverRenderOutput = {
   id: string;
   label: string;
-  /** Tile count for grid-style outputs (Statistics). */
   tiles?: number;
 };
 
 export type DriverBindShape = "header" | "lines_list" | "line_single" | "lines_only";
+
+export type ElementSelectionMode = "one" | "filter" | "all";
 
 export type DriverInputKind = "text" | "html" | "number" | "image" | "record" | "record_list";
 
@@ -29,39 +29,24 @@ export type DriverCatalogEntry = {
   label: string;
   outputs: DriverRenderOutput[];
   bindShape: DriverBindShape;
+  /** Single Records Editor type, or `*` for type-level embeds. */
+  recordType: string;
   compatibleTypes: string[];
+  elementModes: ElementSelectionMode[];
   inputs: DriverInputDecl[];
   supportsFilter?: boolean;
   supportsPagination?: boolean;
   description?: string;
 };
 
-const SINGLE = (
-  id: string,
-  label: string,
-  bindShape: DriverBindShape,
-  compatibleTypes: string[],
-  inputs: DriverInputDecl[],
-  extra?: Partial<DriverCatalogEntry>,
-): DriverCatalogEntry => ({
-  id,
-  label,
-  outputs: [{ id: "default", label }],
-  bindShape,
-  compatibleTypes,
-  inputs,
-  ...extra,
-});
-
 export const STAT_GRAPH_OUTPUTS: DriverRenderOutput[] = [
-  { id: "grid-1", label: "1 up", tiles: 1 },
-  { id: "grid-2", label: "2 up", tiles: 2 },
-  { id: "grid-4", label: "4 up", tiles: 4 },
-  { id: "grid-8", label: "8 up", tiles: 8 },
-  { id: "grid-12", label: "12 up", tiles: 12 },
+  { id: "grid-1", label: "1", tiles: 1 },
+  { id: "grid-2", label: "2", tiles: 2 },
+  { id: "grid-4", label: "4", tiles: 4 },
+  { id: "grid-8", label: "8", tiles: 8 },
+  { id: "grid-12", label: "12", tiles: 12 },
 ];
 
-/** Same numbers the Statistics Spatial Twin pager uses — sourced here, not hardcoded in the twin. */
 export const GRAPH_LAYOUTS = [1, 2, 4, 8, 12] as const;
 export type GraphLayout = (typeof GRAPH_LAYOUTS)[number];
 
@@ -71,78 +56,176 @@ const CARD_INPUTS: DriverInputDecl[] = [
   { name: "body", kind: "html" },
 ];
 
+function entry(
+  id: string,
+  label: string,
+  bindShape: DriverBindShape,
+  recordType: string,
+  outputs: DriverRenderOutput[],
+  extra: Partial<DriverCatalogEntry> & { elementModes: ElementSelectionMode[] },
+): DriverCatalogEntry {
+  const compatible =
+    extra.compatibleTypes ?? (recordType === "*" ? ["*"] : [recordType]);
+  return {
+    id,
+    label,
+    outputs,
+    bindShape,
+    recordType,
+    compatibleTypes: compatible,
+    inputs: extra.inputs ?? [],
+    supportsFilter: extra.elementModes.includes("filter") || extra.supportsFilter,
+    supportsPagination: extra.supportsPagination,
+    description: extra.description,
+    elementModes: extra.elementModes,
+  };
+}
+
 export const DRIVER_RENDER_CATALOG: Record<string, DriverCatalogEntry> = {
-  "html-block": SINGLE("html-block", "HTML block", "header", ["page"], [
-    { name: "body", kind: "html", required: true },
-  ], { description: "Renders the HTML page body." }),
-  "record-card": SINGLE("record-card", "Record card", "header", [
-    "page",
-    "statistics",
-    "inspection_report",
-    "cycle_strip",
-  ], CARD_INPUTS, { description: "Simple card from mapped fields." }),
-  "stat-graph": {
-    id: "stat-graph",
-    label: "Statistics graph",
-    outputs: STAT_GRAPH_OUTPUTS,
-    bindShape: "header",
-    compatibleTypes: ["statistics"],
-    inputs: [{ name: "header", kind: "record", required: true }],
-    description: "Statistics Spatial Twin grids (1 / 2 / 4 / 8 / 12).",
-  },
-  "header-card": SINGLE("header-card", "Header card", "header", [
-    "statistics",
-    "inspection_report",
-  ], CARD_INPUTS, { description: "Header as a designed card." }),
-  "header-line-stats": SINGLE("header-line-stats", "Header line stats", "header", [
-    "statistics",
-    "inspection_report",
-  ], [
-    { name: "header", kind: "record", required: true },
-    { name: "line_count", kind: "number" },
-  ], { supportsFilter: true, description: "Rollup: line counts and attribute counts." }),
-  "lines-list": SINGLE("lines-list", "Lines list", "lines_list", [
-    "statistics",
-    "inspection_report",
-  ], [{ name: "lines", kind: "record_list", required: true }], {
-    supportsFilter: true,
-    supportsPagination: true,
-    description: "Iterate lines; optional filter and page.",
+  "page-header": entry("page-header", "Page header", "header", "page", [
+    { id: "html-block", label: "HTML block" },
+    { id: "record-card", label: "Record card" },
+  ], {
+    elementModes: ["one"],
+    inputs: [{ name: "body", kind: "html", required: true }, ...CARD_INPUTS],
+    description: "Header paint for a Pages record.",
   }),
-  "line-card": SINGLE("line-card", "Line card", "line_single", [
-    "statistics",
-    "inspection_report",
-  ], CARD_INPUTS, { description: "One line as a designed card." }),
-  "cycle-strip": SINGLE("cycle-strip", "Cycle Strip", "lines_only", ["cycle_strip"], [
-    { name: "steps", kind: "record_list", required: true },
-  ], { description: "All Cycle Strip steps as a horizontal strip." }),
-  // Legacy homepage aliases — still paint until the pairing cutover. Not Palette chips.
-  "glossary-book": SINGLE("glossary-book", "Glossary book", "header", [], []),
-  "org-board": SINGLE("org-board", "Org Board", "header", [], []),
-  "home:facets": SINGLE("home:facets", "Facets", "header", ["page"], []),
-  "home:integrations": SINGLE("home:integrations", "Integrations", "header", [], []),
-  "home:inspections-reports": SINGLE("home:inspections-reports", "Inspections & Reports", "header", ["inspection_report"], []),
-  "home:statistics": SINGLE("home:statistics", "Statistics", "header", ["statistics"], []),
-  "home:knowledge": SINGLE("home:knowledge", "Knowledge", "header", [], []),
-  "home:about": SINGLE("home:about", "About", "header", ["page"], []),
-  "home:contacts": SINGLE("home:contacts", "Contacts", "header", ["contact", "location"], []),
+  "statistics-header": entry("statistics-header", "Statistics header", "header", "statistics", STAT_GRAPH_OUTPUTS, {
+    elementModes: ["one", "filter"],
+    inputs: [{ name: "header", kind: "record", required: true }, { name: "line_count", kind: "number" }],
+    supportsPagination: true,
+    description: "Statistics header and its lines, paged in the same grid as the Spatial Twin.",
+  }),
+  "inspection-header": entry("inspection-header", "Inspections header", "header", "inspection_report", [
+    { id: "record-card", label: "Record card" },
+    { id: "header-card", label: "Header card" },
+    { id: "header-line-stats", label: "Header line stats" },
+  ], {
+    elementModes: ["one", "filter"],
+    inputs: CARD_INPUTS,
+    description: "Header paint for Inspections & Reports.",
+  }),
+  "inspection-lines": entry("inspection-lines", "Inspections lines", "lines_list", "inspection_report", [
+    { id: "lines-list", label: "Lines list" },
+  ], {
+    elementModes: ["one", "filter", "all"],
+    inputs: [{ name: "lines", kind: "record_list", required: true }],
+    supportsPagination: true,
+    description: "Iterate inspection ticket lines.",
+  }),
+  "inspection-line": entry("inspection-line", "Inspections line", "line_single", "inspection_report", [
+    { id: "line-card", label: "Line card" },
+  ], {
+    elementModes: ["one"],
+    inputs: CARD_INPUTS,
+    description: "One inspection line as a card.",
+  }),
+  "embed-header": entry("embed-header", "Embed header", "header", "*", [
+    { id: "glossary-book", label: "Glossary book" },
+    { id: "org-board", label: "Org Board" },
+  ], {
+    elementModes: ["all"],
+    compatibleTypes: ["*", "glossary", "org_board"],
+    description: "Type-level Glossary or Org Board embed.",
+  }),
+  "location-header": entry("location-header", "Location", "header", "location", [
+    { id: "location-card", label: "Location Card" },
+    { id: "location-map", label: "Location with Map" },
+  ], {
+    elementModes: ["one"],
+    description: "A location card, or the same card with a map.",
+  }),
 };
 
-/** Drivers staff may pair from the wizard (not legacy home:* / route features). */
 export const PAIRABLE_DRIVER_IDS = [
-  "html-block",
-  "record-card",
-  "stat-graph",
-  "header-card",
-  "header-line-stats",
-  "lines-list",
-  "line-card",
-  "cycle-strip",
+  "page-header",
+  "statistics-header",
+  "location-header",
 ] as const;
+
+export type FoldedDriverRef = { id: string; output?: string; recordType?: string };
+
+/** Old code keys → the unique Shape + type driver (and default output). */
+export const LEGACY_DRIVER_FOLD: Record<string, FoldedDriverRef> = {
+  "html-block": { id: "page-header", output: "html-block", recordType: "page" },
+  "record-card": { id: "page-header", output: "record-card" },
+  "stat-graph": { id: "statistics-header", output: "grid-1" },
+  "header-card": { id: "statistics-header", output: "grid-1" },
+  "header-line-stats": { id: "statistics-header", output: "grid-1" },
+  "lines-list": { id: "statistics-header", output: "grid-1" },
+  "line-card": { id: "statistics-header", output: "grid-1" },
+  "glossary-book": { id: "embed-header", output: "glossary-book", recordType: "*" },
+  "org-board": { id: "embed-header", output: "org-board", recordType: "*" },
+  "contacts-cards": { id: "location-header", output: "location-card", recordType: "location" },
+  "cycle-strip": { id: "cycle-strip", output: "cycle-strip", recordType: "cycle_strip" },
+};
+
+export function foldLegacyDriver(
+  codeKey: string,
+  recordType?: string,
+): FoldedDriverRef {
+  const key = codeKey.trim();
+  if (DRIVER_RENDER_CATALOG[key]) return { id: key };
+  const base = LEGACY_DRIVER_FOLD[key];
+  if (!base) return { id: key };
+  if (key === "record-card") {
+    if (recordType === "statistics") return { id: "statistics-header", output: "grid-1" };
+    if (recordType === "inspection_report") return { id: "inspection-header", output: "record-card" };
+    return { id: "page-header", output: "record-card" };
+  }
+  if (key === "header-card" && recordType === "inspection_report") {
+    return { id: "inspection-header", output: "header-card" };
+  }
+  if (key === "header-line-stats" && recordType === "inspection_report") {
+    return { id: "inspection-header", output: "header-line-stats" };
+  }
+  if (key === "lines-list" && recordType === "inspection_report") {
+    return { id: "inspection-lines", output: "lines-list" };
+  }
+  if (key === "line-card" && recordType === "inspection_report") {
+    return { id: "inspection-line", output: "line-card" };
+  }
+  return base;
+}
+
+export function catalogIdFromPair(shape: string, recordType: string): string | undefined {
+  return Object.values(DRIVER_RENDER_CATALOG).find(
+    (row) => row.bindShape === shape && row.recordType === recordType,
+  )?.id;
+}
+
+export function driverPairKey(shape: string, recordType: string): string {
+  return `${shape.trim()}\0${recordType.trim()}`;
+}
+
+/** Slot-driver paint id (legacy names stay as output / paint kinds). */
+export function paintKind(codeKey: string | undefined, renderOutput?: string): string {
+  if (!codeKey) return "";
+  const folded = foldLegacyDriver(codeKey);
+  const out = renderOutput || folded.output || "";
+  if (
+    out === "html-block" ||
+    out === "stat-graph" ||
+    out === "contacts-cards" ||
+    out === "glossary-book" ||
+    out === "org-board" ||
+    out === "cycle-strip"
+  ) {
+    return out;
+  }
+  if (folded.id === "page-header") return out === "record-card" ? "record-card" : "html-block";
+  if (folded.id === "statistics-header") return "stat-graph";
+  if (folded.id === "location-header") return "location-card";
+  if (folded.id === "cycle-strip") return "cycle-strip";
+  if (folded.id === "embed-header") return out || "glossary-book";
+  if (LEGACY_DRIVER_FOLD[codeKey]) return paintKind(folded.id, out || folded.output);
+  return codeKey;
+}
 
 export function driverEntry(driver?: string): DriverCatalogEntry | undefined {
   if (!driver) return undefined;
-  return DRIVER_RENDER_CATALOG[driver];
+  const id = foldLegacyDriver(driver).id;
+  return DRIVER_RENDER_CATALOG[id] ?? DRIVER_RENDER_CATALOG[driver];
 }
 
 export function outputsForDriver(driver?: string): DriverRenderOutput[] {
@@ -150,6 +233,8 @@ export function outputsForDriver(driver?: string): DriverRenderOutput[] {
 }
 
 export function defaultOutputId(driver?: string): string {
+  const folded = driver ? foldLegacyDriver(driver) : undefined;
+  if (folded?.output && isKnownOutput(folded.id, folded.output)) return folded.output;
   return outputsForDriver(driver)[0]?.id ?? "default";
 }
 
@@ -187,7 +272,6 @@ export function parseDriverDrop(payload: string): { driverId: string; outputId?:
   return { driverId: payload.slice(0, sep), outputId: outputId || undefined };
 }
 
-/** Header language from the overnight lock: header only / header+lines / lines only. */
 export function driverShapeLabel(shape: DriverBindShape): string {
   if (shape === "header") return "Header only";
   if (shape === "lines_only") return "Lines only";
@@ -195,8 +279,12 @@ export function driverShapeLabel(shape: DriverBindShape): string {
 }
 
 export function pairableDriversForType(recordType: string, bindShape?: DriverBindShape): DriverCatalogEntry[] {
-  return PAIRABLE_DRIVER_IDS.map((id) => DRIVER_RENDER_CATALOG[id]).filter((row) => {
-    if (!row.compatibleTypes.includes(recordType)) return false;
+  return pairableDriverList().filter((row) => {
+    if (row.recordType === "*") {
+      if (recordType !== "*" && recordType !== "glossary" && recordType !== "org_board") return false;
+    } else if (!row.compatibleTypes.includes(recordType) && row.recordType !== recordType) {
+      return false;
+    }
     if (bindShape && row.bindShape !== bindShape) return false;
     return true;
   });

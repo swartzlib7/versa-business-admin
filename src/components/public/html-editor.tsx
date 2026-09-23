@@ -1,18 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
+import Underline from "@tiptap/extension-underline";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Bold,
-  Italic,
+  Code2,
+  FileCode,
   Heading2,
   Heading3,
-  List,
+  Italic,
   Link as LinkIcon,
-  Code2,
+  List,
+  ListOrdered,
+  Quote,
   Type,
-  FileCode,
+  Underline as UnderlineIcon,
 } from "lucide-react";
 
 const SANITIZE =
@@ -26,10 +34,6 @@ export function sanitizePublicHtml(raw: string): string {
 
 export function normalizePageBodyFormat(raw: string | undefined | null): PageBodyFormat {
   return raw === "text" ? "text" : "html";
-}
-
-function exec(cmd: string, value?: string) {
-  document.execCommand(cmd, false, value);
 }
 
 function Segment({
@@ -74,14 +78,41 @@ export function HtmlEditor({
 }) {
   const mode = normalizePageBodyFormat(format);
   const [source, setSource] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
-  const focused = useRef(false);
+  const visual = mode === "html" && !source && !readOnly;
+
+  const editor = useEditor({
+    immediatelyRender: false,
+    shouldRerenderOnTransaction: true,
+    editable: visual,
+    extensions: [
+      StarterKit.configure({ heading: { levels: [2, 3] } }),
+      Underline,
+      Link.configure({ openOnClick: false, autolink: true }),
+      Placeholder.configure({ placeholder: "Write the page…" }),
+    ],
+    content: value || "",
+    editorProps: {
+      attributes: {
+        class: "px-3 py-2.5 text-sm",
+        "aria-label": label,
+      },
+    },
+    onUpdate: ({ editor: current }) => {
+      onChange?.(sanitizePublicHtml(current.getHTML()));
+    },
+  });
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el || focused.current || source || mode !== "html") return;
-    if (el.innerHTML !== (value || "")) el.innerHTML = value || "";
-  }, [value, source, mode]);
+    if (!editor) return;
+    editor.setEditable(visual);
+  }, [editor, visual]);
+
+  useEffect(() => {
+    if (!editor || editor.isFocused || source) return;
+    const next = value || "";
+    if (editor.getHTML() === next) return;
+    editor.commands.setContent(next, { emitUpdate: false });
+  }, [editor, value, source]);
 
   if (readOnly) {
     return (
@@ -93,6 +124,22 @@ export function HtmlEditor({
       </label>
     );
   }
+
+  const mark = (name: string, run: () => void, Icon: typeof Bold, on: boolean) => (
+    <Button
+      key={name}
+      type="button"
+      variant={on ? "secondary" : "ghost"}
+      size="icon-xs"
+      title={name}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        run();
+      }}
+    >
+      <Icon />
+    </Button>
+  );
 
   return (
     <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-background">
@@ -109,50 +156,38 @@ export function HtmlEditor({
             <Type className="size-3.5" />
             Text
           </Segment>
-          <Segment
-            active={mode === "html"}
-            onClick={() => onFormatChange?.("html")}
-          >
+          <Segment active={mode === "html"} onClick={() => onFormatChange?.("html")}>
             <FileCode className="size-3.5" />
             HTML
           </Segment>
         </div>
       </div>
 
-      {mode === "html" && !source ? (
+      {visual && editor ? (
         <div className="flex flex-wrap gap-1 border-b border-border px-2 py-1.5">
-          {(
-            [
-              ["Bold", () => exec("bold"), Bold],
-              ["Italic", () => exec("italic"), Italic],
-              ["Heading", () => exec("formatBlock", "h2"), Heading2],
-              ["Subheading", () => exec("formatBlock", "h3"), Heading3],
-              ["List", () => exec("insertUnorderedList"), List],
-              [
-                "Link",
-                () => {
-                  const url = window.prompt("Link URL");
-                  if (url) exec("createLink", url);
-                },
-                LinkIcon,
-              ],
-            ] as const
-          ).map(([name, fn, Icon]) => (
-            <Button
-              key={name}
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              title={name}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                fn();
-                if (ref.current) onChange?.(sanitizePublicHtml(ref.current.innerHTML));
-              }}
-            >
-              <Icon />
-            </Button>
-          ))}
+          {mark("Bold", () => editor.chain().focus().toggleBold().run(), Bold, editor.isActive("bold"))}
+          {mark("Italic", () => editor.chain().focus().toggleItalic().run(), Italic, editor.isActive("italic"))}
+          {mark("Underline", () => editor.chain().focus().toggleUnderline().run(), UnderlineIcon, editor.isActive("underline"))}
+          {mark("Heading", () => editor.chain().focus().toggleHeading({ level: 2 }).run(), Heading2, editor.isActive("heading", { level: 2 }))}
+          {mark("Subheading", () => editor.chain().focus().toggleHeading({ level: 3 }).run(), Heading3, editor.isActive("heading", { level: 3 }))}
+          {mark("List", () => editor.chain().focus().toggleBulletList().run(), List, editor.isActive("bulletList"))}
+          {mark("Numbered list", () => editor.chain().focus().toggleOrderedList().run(), ListOrdered, editor.isActive("orderedList"))}
+          {mark("Quote", () => editor.chain().focus().toggleBlockquote().run(), Quote, editor.isActive("blockquote"))}
+          {mark(
+            "Link",
+            () => {
+              const previous = editor.getAttributes("link").href as string | undefined;
+              const url = window.prompt("Link URL", previous ?? "https://");
+              if (url === null) return;
+              if (!url.trim()) {
+                editor.chain().focus().unsetLink().run();
+                return;
+              }
+              editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run();
+            },
+            LinkIcon,
+            editor.isActive("link"),
+          )}
           <Button
             type="button"
             variant="ghost"
@@ -168,13 +203,7 @@ export function HtmlEditor({
 
       {mode === "html" && source ? (
         <div className="flex justify-end border-b border-border px-2 py-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => setSource(false)}
-          >
+          <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setSource(false)}>
             Visual
           </Button>
         </div>
@@ -191,27 +220,9 @@ export function HtmlEditor({
           onChange={(e) => onChange?.(mode === "html" ? sanitizePublicHtml(e.target.value) : e.target.value)}
         />
       ) : (
-        <div
-          ref={ref}
-          role="textbox"
-          aria-label={label}
-          aria-multiline
-          className="page-body-visual min-h-[280px] px-3 py-2.5 text-sm focus:outline-none prose prose-sm max-w-none dark:prose-invert"
-          contentEditable
-          suppressContentEditableWarning
-          onFocus={() => {
-            focused.current = true;
-          }}
-          onBlur={() => {
-            focused.current = false;
-            if (!ref.current) return;
-            onChange?.(sanitizePublicHtml(ref.current.innerHTML));
-          }}
-          onInput={() => {
-            if (!ref.current) return;
-            onChange?.(sanitizePublicHtml(ref.current.innerHTML));
-          }}
-        />
+        <div className="page-html">
+          <EditorContent editor={editor} />
+        </div>
       )}
     </div>
   );
@@ -228,14 +239,14 @@ export function HtmlBlock({
 }) {
   if (normalizePageBodyFormat(format) === "text") {
     return (
-      <div className={className ?? "whitespace-pre-wrap text-sm leading-relaxed text-foreground"}>
+      <div className={className ?? "max-w-full whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground"}>
         {html}
       </div>
     );
   }
   return (
     <div
-      className={className ?? "prose prose-sm max-w-none text-foreground dark:prose-invert"}
+      className={className ?? "page-html max-w-full whitespace-normal break-words text-sm leading-relaxed text-foreground"}
       dangerouslySetInnerHTML={{ __html: sanitizePublicHtml(html) }}
     />
   );

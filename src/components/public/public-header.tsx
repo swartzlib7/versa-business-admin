@@ -16,7 +16,10 @@ import {
   customCanvasHref,
   defaultPageBuilder,
   enabledCanvases,
+  homeRowLabelMap,
+  isRowOn,
   isCustomCanvasPath,
+  primaryCanvasLabel,
   type CustomCanvas,
 } from "@/lib/public/page-builder";
 
@@ -49,6 +52,7 @@ export function PublicHeader() {
     page_builder,
   } = useSiteMode();
   // PB-06: every enabled custom canvas joins the sub-menu; canvases[0] keeps the v1 role.
+  const homeLabel = primaryCanvasLabel(page_builder);
   const canvases: CustomCanvas[] = enabledCanvases(page_builder ?? defaultPageBuilder());
   const customOn = canvases.length > 0;
   const onCustom = customOn && canvases.some((c) => isCustomCanvasPath(pathname, c));
@@ -57,6 +61,7 @@ export function PublicHeader() {
     demo: demo_mode,
     enabled: public_menu_enabled,
     order: public_menu_order,
+    sectionLabels: homeRowLabelMap(page_builder?.home_sections),
   });
 
   useEffect(() => {
@@ -95,7 +100,7 @@ export function PublicHeader() {
   const renderHomePrefix = () => (
     <span className="inline-flex items-center gap-0.5">
       <span className="font-bold" style={{ color: brand.brand_color }}>
-        Home
+        {homeLabel}
       </span>
       <ChevronRight
         className="h-3.5 w-3.5 shrink-0"
@@ -124,7 +129,9 @@ export function PublicHeader() {
         </Link>
       ))}
       {canvases.map((canvas) =>
-        canvas.sections.map((section) => (
+        canvas.sections
+          .filter((section, index) => index > 0 && isRowOn(section))
+          .map((section) => (
           <span key={`${canvas.slug}-${section.id}`} className="inline-flex items-center gap-x-2">
             <span className="text-muted-foreground" aria-hidden>
               |
@@ -142,10 +149,23 @@ export function PublicHeader() {
     </>
   );
 
+  const renderSubMenuIdle = () => (
+    <span
+      className="select-none text-xs font-semibold"
+      style={{ color: brand.brand_color }}
+      aria-hidden
+    >
+      -
+    </span>
+  );
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto grid max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] gap-x-12 px-4 sm:px-6 lg:px-8 lg:gap-x-16">
-        <Link href="/" className="col-start-1 row-start-1 flex h-16 min-w-0 items-center gap-2">
+    <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-4 px-3 sm:px-4">
+        <Link
+          href="/"
+          className="relative z-10 col-start-1 row-start-1 flex h-16 min-w-0 max-w-[min(22rem,28vw)] items-center gap-2 justify-self-start bg-transparent pr-2"
+        >
           <BrandMark />
           {brand.brand_name_in_menu !== false ? (
             <span className="truncate whitespace-nowrap text-lg font-semibold tracking-tight">
@@ -156,9 +176,9 @@ export function PublicHeader() {
           )}
         </Link>
 
-        <nav className="col-start-2 row-start-1 hidden h-16 min-w-0 items-center gap-3 xl:flex">
+        <nav className="relative z-20 col-start-2 row-start-1 hidden h-16 items-center justify-center overflow-visible xl:flex">
           <div
-            className="relative"
+            className="relative shrink-0"
             onMouseEnter={() => customOn && setHomeOpen(true)}
             onMouseLeave={() => setHomeOpen(false)}
           >
@@ -170,7 +190,7 @@ export function PublicHeader() {
                   onCustom ? "text-muted-foreground hover:text-foreground" : "text-foreground",
                 )}
               >
-                Home
+                {homeLabel}
               </Link>
               {customOn ? (
                 <button
@@ -188,7 +208,7 @@ export function PublicHeader() {
             {customOn && homeOpen ? (
               <div
                 role="menu"
-                className="absolute left-0 top-full z-30 min-w-44 rounded-md border border-border bg-background py-1 shadow-md"
+                className="absolute left-0 top-full z-[80] min-w-44 rounded-md border border-border bg-background py-1 shadow-md"
               >
                 {canvases.map((canvas) => (
                   <Link
@@ -204,68 +224,85 @@ export function PublicHeader() {
               </div>
             ) : null}
           </div>
-          {navLinks.map((link) => {
-            const Icon = link.icon;
-            return (
+          <div className="ml-3 flex min-w-0 items-center gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className="inline-flex shrink-0 items-center whitespace-nowrap text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
-                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 {link.label}
               </Link>
-            );
-          })}
+            ))}
+          </div>
+        </nav>
+
+        <div className="relative z-10 col-start-3 row-start-1 flex h-16 items-center justify-end gap-2 justify-self-end bg-background/95 pl-2">
+          <PublicBrandMusic />
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={cyclePublicTheme}
-            className="shrink-0 gap-1.5"
+            className="hidden shrink-0 gap-1.5 xl:inline-flex"
             title={`Theme: ${themeLabel(theme)} (click to cycle)`}
           >
             <ThemeIcon theme={theme} />
             <span className="hidden 2xl:inline">{themeLabel(theme)}</span>
           </Button>
           {public_login_enabled ? (
-            <Link href="/login" className={cn(buttonVariants({ size: "sm" }), "shrink-0 whitespace-nowrap")}>
+            <Link
+              href="/login"
+              className={cn(buttonVariants({ size: "sm" }), "hidden shrink-0 whitespace-nowrap xl:inline-flex")}
+            >
               Sign In
             </Link>
           ) : null}
-        </nav>
-
-        <div className="col-start-3 row-start-1 flex h-16 items-center gap-2">
-          <PublicBrandMusic />
           <Button
             variant="outline"
             size="icon"
             className="xl:hidden"
             onClick={() => setOpen(!open)}
           >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          <span className="sr-only">Toggle menu</span>
-        </Button>
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <span className="sr-only">Toggle menu</span>
+          </Button>
         </div>
 
-        {showSubMenu ? (
+        <div
+          className={cn(
+            "col-span-3 row-start-2 grid grid-cols-subgrid border-t border-border",
+            onCustom ? "bg-background" : "bg-background/50",
+          )}
+        >
+          <div className="hidden items-center justify-end py-2 xl:flex">
+            {showSubMenu ? renderHomePrefix() : null}
+          </div>
           <div
             className={cn(
-              "col-span-3 row-start-2 grid grid-cols-subgrid border-t border-border py-2",
-              onCustom ? "bg-background" : "bg-background/50 opacity-50",
+              "hidden flex-wrap items-center gap-x-2 gap-y-1 py-2 text-sm xl:flex",
+              showSubMenu && !onCustom && "opacity-50",
             )}
           >
-            <div className="hidden items-center justify-end xl:flex">{renderHomePrefix()}</div>
-            <div className="hidden flex-wrap items-center gap-x-2 gap-y-1 text-sm xl:flex">
-              {renderCanvasLinks()}
-            </div>
-            <div className="hidden xl:block" />
-            <div className="col-span-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm xl:hidden">
-              {renderHomePrefix()}
-              {renderCanvasLinks()}
-            </div>
+            {showSubMenu ? renderCanvasLinks() : renderSubMenuIdle()}
           </div>
-        ) : null}
+          <div className="hidden xl:block" />
+          <div
+            className={cn(
+              "col-span-3 flex flex-wrap items-center gap-x-2 gap-y-1 py-2 text-sm xl:hidden",
+              showSubMenu && !onCustom && "opacity-50",
+            )}
+          >
+            {showSubMenu ? (
+              <>
+                {renderHomePrefix()}
+                {renderCanvasLinks()}
+              </>
+            ) : (
+              renderSubMenuIdle()
+            )}
+          </div>
+        </div>
       </div>
 
       {open && (
@@ -276,7 +313,7 @@ export function PublicHeader() {
               className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium hover:bg-muted"
               onClick={() => setOpen(false)}
             >
-              Home
+              {homeLabel}
             </Link>
             {canvases.map((canvas) => (
               <Link

@@ -14,7 +14,7 @@ export type PlatformFieldSeed = {
 };
 
 export const PLATFORM_DEFAULT_FIELDS: readonly PlatformFieldSeed[] = [
-  { api_name: "id", label: "ID", data_type: "text", sort_order: 1, is_required: false, lookup_object_api_name: null },
+  { api_name: "id", label: "ID", data_type: "text", sort_order: 9040, is_required: false, lookup_object_api_name: null },
   { api_name: "name", label: "Name", data_type: "text", sort_order: 10, is_required: true, lookup_object_api_name: null },
   { api_name: "external_id", label: "External ID", data_type: "text", sort_order: 8900, is_required: false, lookup_object_api_name: null },
   { api_name: "created_by", label: "Created By", data_type: "lookup", sort_order: 9000, is_required: false, lookup_object_api_name: "user" },

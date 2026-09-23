@@ -13,7 +13,7 @@ import {
   normalizePublicContent,
   type PublicStat,
 } from "@/lib/public/site-content";
-import { HOMEPAGE_SLOT_ORDER } from "@/lib/public/page-builder";
+import { HOMEPAGE_SLOT_ORDER, homeRowLabel, normalizePageBuilder } from "@/lib/public/page-builder";
 import { resolvePublicContacts } from "@/lib/public/resolve-contacts";
 import type { FixtureSiteSettings } from "@/lib/fixtures/site-settings";
 
@@ -67,6 +67,7 @@ export async function composeHomeContent(
 ): Promise<HomeContentBundle> {
   const demo = site.demo_mode !== false;
   const pub = normalizePublicContent(site);
+  const homeRows = normalizePageBuilder(site.page_builder).home_sections;
   const inserted = await samplePresent();
 
   let tickets: Awaited<ReturnType<typeof adapter.listSupportTickets>> = [];
@@ -124,7 +125,7 @@ export async function composeHomeContent(
         return {
           id,
           source: page ? "record" : "fixture-gap",
-          title: "Facets",
+          title: homeRowLabel(homeRows, id, "Facets"),
           subtitle: "Advertised features of Versa - Business Admin.",
           sample: false,
           cards: [],
@@ -137,7 +138,7 @@ export async function composeHomeContent(
         return {
           id,
           source: fromRecords ? "record" : "fixture-gap",
-          title: "Integrations",
+          title: homeRowLabel(homeRows, id, "Integrations"),
           subtitle: "System landscape — vendor integrations. A spatial twin is required before this section paints.",
           sample: false,
           cards: [],
@@ -149,7 +150,7 @@ export async function composeHomeContent(
         return {
           id,
           source: fromRecords ? "record" : "fixture-gap",
-          title: "Inspections & Reports",
+          title: homeRowLabel(homeRows, id, "Inspections & Reports"),
           subtitle: "Organization → Communications — each header is a support type; lines are request tickets.",
           sample: demo && !fromRecords,
           cards: fromRecords
@@ -176,7 +177,7 @@ export async function composeHomeContent(
         return {
           id,
           source: fromRecords ? "record" : "fixture-gap",
-          title: "Statistics",
+          title: homeRowLabel(homeRows, id, "Statistics"),
           subtitle: fromRecords
             ? "Environment statistics — card plus graph."
             : "KPI snapshots and health indicators.",
@@ -216,7 +217,7 @@ export async function composeHomeContent(
         return {
           id,
           source: fromRecords ? "record" : "fixture-gap",
-          title: "Knowledge",
+          title: homeRowLabel(homeRows, id, "Knowledge"),
           subtitle: fromRecords
             ? "Environment knowledge records."
             : "Handbook, process docs, and searchable knowledge.",
@@ -229,7 +230,7 @@ export async function composeHomeContent(
         return {
           id,
           source: fromRecords ? "record" : "fixture-gap",
-          title: "Contacts",
+          title: homeRowLabel(homeRows, id, "Contacts"),
           subtitle: "Organization → Distribution → Contacts, or a Location, resolved through the related Organization.",
           sample: demo && !fromRecords,
           cards: [],
@@ -244,7 +245,7 @@ export async function composeHomeContent(
         return {
           id,
           source: "fixture-gap",
-          title: id,
+          title: homeRowLabel(homeRows, id, id),
           subtitle: "",
           sample: demo,
           cards: [],

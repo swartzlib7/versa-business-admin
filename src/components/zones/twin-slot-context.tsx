@@ -2,8 +2,9 @@
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import type { StatGraphLine } from "@/components/statistics/stat-graph";
-import type { HomeSectionContent } from "@/lib/public/demo-content";
 import type { CycleStep } from "@/lib/public/site-types";
+import type { PublicContactCard } from "@/lib/public/resolve-contact-card";
+import type { PageRecordCard } from "@/lib/public/page-record-card";
 
 export type TwinPreview =
   | {
@@ -21,9 +22,10 @@ export type TwinPreview =
       note?: string;
       renderOutput?: string;
       onRenderOutput?: (outputId: string) => void;
-      homeContent?: HomeSectionContent | null;
       cycleSteps?: CycleStep[];
-      itemIndex?: number;
+      html?: string;
+      pageCard?: PageRecordCard | null;
+      contact?: PublicContactCard;
     }
   | null;
 

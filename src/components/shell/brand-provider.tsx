@@ -49,6 +49,7 @@ export interface BrandConfig {
   brand_music_loop?: boolean;
   brand_music_autoplay?: boolean;
   brand_name_in_menu?: boolean;
+  hero_headline?: string;
 }
 
 const DEFAULT_BRAND: BrandConfig = {
@@ -71,6 +72,7 @@ const DEFAULT_BRAND: BrandConfig = {
   brand_music_loop: true,
   brand_music_autoplay: true,
   brand_name_in_menu: true,
+  hero_headline: "",
 };
 
 const BrandContext = createContext<BrandConfig>(DEFAULT_BRAND);

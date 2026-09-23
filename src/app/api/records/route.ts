@@ -6,6 +6,21 @@ import {
   type CreateInstanceInput,
 } from '@/lib/fixtures/record-instances';
 import { adapter, type RecordFilters } from '@/lib/data/adapter';
+import { DRIVER_PAIRING_TYPE, inferSelectionMode } from '@/lib/public/driver-pairings';
+import {
+  catalogAllowsDriverPair,
+  conflictingDriver,
+  driverConflictMessage,
+  listDriverRecords,
+} from '@/lib/public/driver-unique';
+import {
+  conflictingPairing,
+  listPairingRecords,
+  pairingConflictMessage,
+} from '@/lib/public/pairing-unique';
+import { catalogIdFromPair } from '@/lib/public/render-drivers';
+import { RENDER_DRIVER_TYPE } from '@/lib/public/render-driver-locks';
+import { stampPairingFromDriver } from '@/lib/public/stamp-pairing-record';
 
 // #245 Slice E1 (rev E section 4.2): Horizon 1 persistence. When the adapter
 // implements the record methods (DATA_SOURCE=postgres), reads/writes go through
@@ -55,6 +70,58 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+  let pairingData =
+    typeof body.data === 'object' && body.data && !Array.isArray(body.data)
+      ? { ...(body.data as Record<string, string>) }
+      : {};
+  if (String(body.type_api_name || '') === DRIVER_PAIRING_TYPE) {
+    const stamped = await stampPairingFromDriver(pairingData);
+    if (!stamped.ok) {
+      return NextResponse.json(
+        { error: { code: 'INVALID_PAIRING', message: stamped.message } },
+        { status: 400 },
+      );
+    }
+    pairingData = stamped.data;
+    const existing = conflictingPairing(
+      await listPairingRecords(),
+      String(pairingData.target_record_type ?? ''),
+      String(pairingData.target_record_id ?? ''),
+      String(pairingData.driver_id ?? ''),
+      undefined,
+      inferSelectionMode(
+        String(pairingData.selection_mode ?? ''),
+        String(pairingData.target_record_id ?? ''),
+        pairingData.filter_json,
+      ),
+      pairingData.filter_json,
+    );
+    if (existing) {
+      return NextResponse.json(
+        { error: { code: 'PAIRING_EXISTS', message: pairingConflictMessage(existing) } },
+        { status: 409 },
+      );
+    }
+  }
+  if (String(body.type_api_name || '') === RENDER_DRIVER_TYPE) {
+    const shape = String(pairingData.bind_shape ?? '');
+    const recordType = String(pairingData.compatible_record_type ?? '');
+    if (!catalogAllowsDriverPair(shape, recordType)) {
+      return NextResponse.json(
+        { error: { code: 'INVALID_DRIVER', message: 'That Shape and Record type pair is not a released driver.' } },
+        { status: 400 },
+      );
+    }
+    const catalogId = catalogIdFromPair(shape, recordType);
+    if (catalogId) pairingData.code_key = catalogId;
+    const existing = conflictingDriver(await listDriverRecords(), shape, recordType);
+    if (existing) {
+      return NextResponse.json(
+        { error: { code: 'DRIVER_EXISTS', message: driverConflictMessage(existing) } },
+        { status: 409 },
+      );
+    }
+  }
   const input = {
     type_api_name: String(body.type_api_name || ''),
     parent_kind: String(body.parent_kind || ''),
@@ -62,9 +129,7 @@ export async function POST(request: Request) {
     name: String(body.name || ''),
     status: body.status != null ? String(body.status) : undefined,
     data: {
-      ...(typeof body.data === 'object' && body.data && !Array.isArray(body.data)
-        ? (body.data as Record<string, string>)
-        : {}),
+      ...pairingData,
       ...(session?.userId
         ? { created_by: String(session.userId), last_modified_by: String(session.userId) }
         : {}),

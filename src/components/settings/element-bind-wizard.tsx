@@ -13,8 +13,10 @@ import {
   RENDER_DRIVER_TYPE,
   TYPE_LEVEL_TARGET_ID,
   findExistingPairing,
+  pairingAllowsTypeLevel,
   pairingDisplayName,
-  usedDriverIdsForTarget,
+  pairingFromRecord,
+  pairingPayload,
   type ListedRecord,
 } from "@/lib/public/driver-pairings";
 import {
@@ -22,10 +24,12 @@ import {
   driverEntry,
   isKnownOutput,
   pairableDriversForType,
-  type DriverBindShape,
   type DriverCatalogEntry,
+  type ElementSelectionMode,
 } from "@/lib/public/render-drivers";
 import type { PageBuilderCell } from "@/lib/public/page-builder";
+import { recordTypeLabel } from "@/lib/public/element-types";
+import { iconForBinding } from "@/components/settings/page-builder-controls";
 
 export type BindWizardRequest = {
   recordType: ElementTypeId;
@@ -36,23 +40,16 @@ export type BindWizardRequest = {
   preferredOutput?: string;
 };
 
-type Scope = "header" | "lines" | "type";
+function elementCardCopy(row: ListedRecord): { type: string; name: string } {
+  const fields = pairingFromRecord(row);
+  return {
+    type: recordTypeLabel(fields?.target_record_type),
+    name: row.name?.trim() || "Element",
+  };
+}
 
 function listUrl(type: string, parentKind: string, parent: string) {
   return `/api/records?type=${encodeURIComponent(type)}&parent_kind=${encodeURIComponent(parentKind)}&parent=${encodeURIComponent(parent)}`;
-}
-
-function shapeForScope(scope: Scope): DriverBindShape | undefined {
-  if (scope === "lines") return undefined;
-  if (scope === "type") return "lines_only";
-  return "header";
-}
-
-function scopeFromDriver(driverId: string | undefined, spec: { hasLines: boolean; allowsTypeLevel: boolean }): Scope {
-  const shape = driverEntry(driverId)?.bindShape;
-  if (shape === "lines_only" && spec.allowsTypeLevel) return "type";
-  if ((shape === "lines_list" || shape === "line_single") && spec.hasLines) return "lines";
-  return "header";
 }
 
 export function ElementBindWizard({
@@ -71,24 +68,31 @@ export function ElementBindWizard({
   const [drivers, setDrivers] = useState<ListedRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [scope, setScope] = useState<Scope>(scopeFromDriver(request.preferredDriver, spec));
   const [recordId, setRecordId] = useState("");
   const [driverKey, setDriverKey] = useState(request.preferredDriver ?? "");
-  const [reuseId, setReuseId] = useState("");
+  const [selectionMode, setSelectionMode] = useState<ElementSelectionMode>(
+    driverEntry(request.preferredDriver)?.elementModes[0] ?? "one",
+  );
   const [inputMap, setInputMap] = useState<Record<string, string>>({});
+  const [filterJson, setFilterJson] = useState("[]");
   const [pageSize, setPageSize] = useState("12");
   const [outputId, setOutputId] = useState(
     request.preferredOutput && isKnownOutput(request.preferredDriver, request.preferredOutput)
       ? request.preferredOutput
       : defaultOutputId(request.preferredDriver),
   );
+  /** Existing Element for this driver, or "new" to configure a selection that does not exist yet. */
+  const [pickedId, setPickedId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
+        const skipRecords = spec.allowsTypeLevel && !spec.hasLines;
         const [recRes, pairRes, drvRes] = await Promise.all([
-          fetch(listUrl(spec.recordType, spec.parentKind, spec.parentApiName), { credentials: "include" }),
+          skipRecords
+            ? Promise.resolve(new Response(JSON.stringify({ data: [] }), { status: 200 }))
+            : fetch(listUrl(spec.recordType, spec.parentKind, spec.parentApiName), { credentials: "include" }),
           fetch(listUrl(DRIVER_PAIRING_TYPE, "environment", "custom"), { credentials: "include" }),
           fetch(listUrl(RENDER_DRIVER_TYPE, "environment", "custom"), { credentials: "include" }),
         ]);
@@ -98,9 +102,22 @@ export function ElementBindWizard({
         if (cancelled) return;
         const recs = ((recJson.data ?? []) as ListedRecord[]).filter((r) => r.status !== "archived");
         setRecords(recs);
-        setPairings((pairJson.data ?? []) as ListedRecord[]);
-        setDrivers((drvJson.data ?? []) as ListedRecord[]);
-        if (recs[0] && !spec.allowsTypeLevel) setRecordId(recs[0].id);
+        const loadedPairings = (pairJson.data ?? []) as ListedRecord[];
+        const loadedDrivers = (drvJson.data ?? []) as ListedRecord[];
+        setPairings(loadedPairings);
+        setDrivers(loadedDrivers);
+        const driverRowId =
+          loadedDrivers.find((d) => String(d.data?.code_key ?? "") === (request.preferredDriver ?? ""))?.id ??
+          (request.preferredDriver ? `rd-${request.preferredDriver}` : "");
+        const already = driverRowId
+          ? loadedPairings.filter((row) => pairingFromRecord(row)?.driver_id === driverRowId)
+          : [];
+        if (already[0]) setPickedId(already[0].id);
+        else if (recs[0] && !pairingAllowsTypeLevel(request.preferredDriver ?? "") && !spec.allowsTypeLevel) {
+          setRecordId(recs[0].id);
+        } else if (pairingAllowsTypeLevel(request.preferredDriver ?? "") || spec.allowsTypeLevel) {
+          setRecordId(TYPE_LEVEL_TARGET_ID);
+        }
       } catch {
         if (!cancelled) setError("Could not load records for this Element type.");
       }
@@ -111,24 +128,15 @@ export function ElementBindWizard({
     };
   }, [spec.allowsTypeLevel, spec.parentApiName, spec.parentKind, spec.recordType]);
 
-  const targetId = scope === "type" ? TYPE_LEVEL_TARGET_ID : recordId;
-  const used = usedDriverIdsForTarget(pairings, spec.recordType, targetId || "__none__");
-  const compatible = pairableDriversForType(spec.recordType, shapeForScope(scope)).filter((row) => {
-    if (scope === "lines") return row.bindShape === "lines_list" || row.bindShape === "line_single";
-    return true;
-  });
-  const unused = compatible.filter((row) => {
-    const rec = drivers.find((d) => String(d.data?.code_key ?? "") === row.id);
-    const driverRecordId = rec?.id ?? `rd-${row.id}`;
-    return !used.has(driverRecordId) && !used.has(row.id);
-  });
-  const reuseRows = pairings.filter((row) => {
-    const t = String(row.data?.target_record_type ?? "");
-    const id = String(row.data?.target_record_id ?? "");
-    return t === spec.recordType && id === (targetId || "__none__");
-  });
-  const selectedKey = driverKey || unused[0]?.id || "";
-  const chosen: DriverCatalogEntry | undefined = compatible.find((row) => row.id === selectedKey);
+  const typeLevelOnly =
+    selectionMode !== "one" || pairingAllowsTypeLevel(driverKey || request.preferredDriver || "");
+  const targetId = typeLevelOnly && (!recordId || recordId === TYPE_LEVEL_TARGET_ID)
+    ? TYPE_LEVEL_TARGET_ID
+    : recordId;
+  const compatible = pairableDriversForType(spec.recordType);
+  const selectedKey = request.preferredDriver || driverKey || compatible[0]?.id || "";
+  const chosen: DriverCatalogEntry | undefined =
+    compatible.find((row) => row.id === selectedKey) ?? driverEntry(selectedKey);
 
   function mappedInput(name: string): string {
     if (inputMap[name] !== undefined) return inputMap[name];
@@ -140,12 +148,26 @@ export function ElementBindWizard({
 
   const driverRecordId = (key: string) =>
     drivers.find((d) => String(d.data?.code_key ?? "") === key)?.id ?? `rd-${key}`;
+  const driverPairings = chosen
+    ? pairings.filter((row) => pairingFromRecord(row)?.driver_id === driverRecordId(chosen.id))
+    : [];
+  const usingExisting = Boolean(pickedId && pickedId !== "new" && driverPairings.some((row) => row.id === pickedId));
+  const existing = !usingExisting && chosen && (targetId || selectionMode !== "one")
+    ? findExistingPairing(
+        pairings,
+        spec.recordType,
+        targetId || TYPE_LEVEL_TARGET_ID,
+        driverRecordId(chosen.id),
+        selectionMode,
+        selectionMode === "filter" ? filterJson : "[]",
+      )
+    : undefined;
 
-  const finishWithPairing = (pairingId: string, key: string, recId: string) => {
+  const finishWithPairing = (pairingId: string, key: string, recId: string, recordType?: string) => {
     onBind({
       kind: "record",
       featureId: undefined,
-      recordType: spec.recordType,
+      recordType: recordType || spec.recordType,
       recordId: recId === TYPE_LEVEL_TARGET_ID ? undefined : recId,
       recordMode: recId === TYPE_LEVEL_TARGET_ID ? "all" : "single",
       driver: key,
@@ -156,21 +178,25 @@ export function ElementBindWizard({
   };
 
   const submit = async () => {
-    if (reuseId) {
-      const row = pairings.find((p) => p.id === reuseId);
-      const key = String(row?.data?.code_key ?? drivers.find((d) => d.id === row?.data?.driver_id)?.data?.code_key ?? selectedKey);
-      finishWithPairing(reuseId, key || selectedKey, targetId);
+    if (!chosen) {
+      setError("Pick a Rendering Driver.");
+      return;
+    }
+    if (usingExisting && pickedId) {
+      const row = driverPairings.find((item) => item.id === pickedId);
+      const fields = row ? pairingFromRecord(row) : null;
+      finishWithPairing(
+        pickedId,
+        chosen.id,
+        fields?.target_record_id || TYPE_LEVEL_TARGET_ID,
+        fields?.target_record_type,
+      );
       return;
     }
     if (!targetId) {
       setError("Pick a record, or create one on the Elements tab first.");
       return;
     }
-    if (!chosen) {
-      setError("Pick a Rendering Driver that is not already paired to this record.");
-      return;
-    }
-    const existing = findExistingPairing(pairings, spec.recordType, targetId, driverRecordId(chosen.id));
     if (existing) {
       finishWithPairing(existing.id, chosen.id, targetId);
       return;
@@ -187,19 +213,17 @@ export function ElementBindWizard({
       parent_api_name: "custom",
       name: pairingDisplayName(chosen.label, recordName),
       status: "active",
-      data: {
-        driver_id: driverRecordId(chosen.id),
-        target_record_type: spec.recordType,
-        target_record_id: targetId,
-        target_kind: scope === "lines" ? "lines" : "header",
-        input_map_json: JSON.stringify(
-          Object.fromEntries((chosen?.inputs ?? []).map((input) => [input.name, mappedInput(input.name)])),
-        ),
-        record_mode: scope === "type" || chosen.bindShape === "lines_list" ? "list" : chosen.id === "header-line-stats" ? "rollup" : "single",
-        filter_json: "[]",
-        page_size: chosen.supportsPagination ? pageSize : "",
+      data: pairingPayload({
+        driverRecordId: driverRecordId(chosen.id),
+        codeKey: chosen.id,
+        targetType: spec.recordType,
+        targetId,
+        selectionMode,
+        inputMap: Object.fromEntries((chosen.inputs ?? []).map((input) => [input.name, mappedInput(input.name)])),
+        filterJson: selectionMode === "filter" ? filterJson : "[]",
+        pageSize: chosen.supportsPagination ? pageSize : "",
         page: chosen.supportsPagination ? "1" : "",
-      },
+      }),
     };
     try {
       const res = await fetch("/api/records", {
@@ -209,6 +233,28 @@ export function ElementBindWizard({
         body: JSON.stringify(body),
       });
       const json = await res.json().catch(() => ({}));
+      if (res.status === 409) {
+        const pairRes = await fetch(listUrl(DRIVER_PAIRING_TYPE, "environment", "custom"), {
+          credentials: "include",
+        });
+        const pairJson = pairRes.ok ? await pairRes.json() : { data: [] };
+        const next = (pairJson.data ?? []) as ListedRecord[];
+        const hit = findExistingPairing(
+          next,
+          spec.recordType,
+          targetId,
+          driverRecordId(chosen.id),
+          selectionMode,
+          selectionMode === "filter" ? filterJson : "[]",
+        );
+        if (hit) {
+          finishWithPairing(hit.id, chosen.id, targetId);
+          return;
+        }
+        setError(json?.error?.message || "That Element already exists.");
+        setBusy(false);
+        return;
+      }
       if (!res.ok) {
         setError(json?.error?.message || "Could not save the pairing.");
         setBusy(false);
@@ -232,39 +278,70 @@ export function ElementBindWizard({
       <div
         role="dialog"
         aria-labelledby="bind-wizard-title"
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-background p-5 shadow-lg"
+        className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg border border-border bg-background p-5 shadow-lg"
       >
         <h2 id="bind-wizard-title" className="text-base font-semibold">
-          Configure {spec.label}
+          {chosen?.label ?? spec.label}
         </h2>
-        <p className="mt-1 text-xs text-muted-foreground">{spec.description}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Record type stays on the Driver. This Cell uses an Element as it is already configured.
+        </p>
 
-        {records.length === 0 && !spec.allowsTypeLevel ? (
+        {records.length === 0 && !spec.allowsTypeLevel && driverPairings.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">
-            Create a {spec.label} record on Elements → {spec.label} first. This Cell stays empty.
+            Create a {spec.label} record in its zone listing first. This Cell stays empty.
           </p>
         ) : (
           <div className="mt-4 space-y-4">
-            {(spec.hasLines || spec.allowsTypeLevel) && (
-              <label className="block text-sm">
-                <span className="mb-1 block text-xs text-muted-foreground">Scope</span>
-                <select
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  value={scope}
-                  onChange={(e) => {
-                    setScope(e.target.value as Scope);
-                    setDriverKey("");
-                    setReuseId("");
-                  }}
-                >
-                  {spec.allowsTypeLevel ? <option value="type">All records (type-level)</option> : null}
-                  <option value="header">One header / record</option>
-                  {spec.hasLines ? <option value="lines">Lines of a header</option> : null}
-                </select>
-              </label>
-            )}
+            {driverPairings.length > 0 ? (
+              <div className="space-y-2">
+                <span className="block text-xs text-muted-foreground">Element</span>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {driverPairings.map((row) => {
+                    const card = elementCardCopy(row);
+                    const Icon = iconForBinding({ driver: chosen?.id, recordType: card.type });
+                    const selected = usingExisting && pickedId === row.id;
+                    return (
+                      <button
+                        key={row.id}
+                        type="button"
+                        onClick={() => setPickedId(row.id)}
+                        className={
+                          "flex flex-col items-start gap-1.5 rounded-lg border p-3 text-left " +
+                          (selected
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-muted/30 hover:border-primary/50")
+                        }
+                      >
+                        <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="text-xs text-muted-foreground">{card.type}</span>
+                        <span className="text-sm font-medium leading-tight">{card.name}</span>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setPickedId("new")}
+                    className={
+                      "flex min-h-[6.5rem] flex-col items-start justify-center rounded-lg border border-dashed p-3 text-left text-sm " +
+                      (!usingExisting ? "border-primary bg-primary/5" : "border-border text-muted-foreground")
+                    }
+                  >
+                    New selection
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
-            {scope !== "type" && (
+            {usingExisting ? (
+              <p className="text-xs text-muted-foreground">
+                Add uses this Element as saved. Change one record, a filter, or all records on Canvas → Elements.
+              </p>
+            ) : null}
+
+            {!usingExisting && !typeLevelOnly && (
               <label className="block text-sm">
                 <span className="mb-1 block text-xs text-muted-foreground">Record</span>
                 <select
@@ -273,9 +350,11 @@ export function ElementBindWizard({
                   onChange={(e) => {
                     setRecordId(e.target.value);
                     setDriverKey("");
-                    setReuseId("");
                   }}
                 >
+                  {spec.allowsTypeLevel ? (
+                    <option value={TYPE_LEVEL_TARGET_ID}>All records (type-level)</option>
+                  ) : null}
                   {records.map((row) => (
                     <option key={row.id} value={row.id}>
                       {row.name || row.id}
@@ -285,66 +364,74 @@ export function ElementBindWizard({
               </label>
             )}
 
-            {reuseRows.length > 0 && (
+            {request.preferredDriver ? (
+              <p className="text-xs text-muted-foreground">
+                Driver {chosen?.label ?? request.preferredDriver}. Shape and record type live on the driver.
+              </p>
+            ) : (
               <label className="block text-sm">
-                <span className="mb-1 block text-xs text-muted-foreground">Reuse an existing pairing</span>
+                <span className="mb-1 block text-xs text-muted-foreground">Rendering Driver</span>
                 <select
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                  value={reuseId}
-                  onChange={(e) => setReuseId(e.target.value)}
+                  value={selectedKey}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setDriverKey(next);
+                    setOutputId(defaultOutputId(next));
+                    setSelectionMode(driverEntry(next)?.elementModes[0] ?? "one");
+                  }}
                 >
-                  <option value="">Create a new pairing</option>
-                  {reuseRows.map((row) => (
+                  {compatible.map((row) => (
                     <option key={row.id} value={row.id}>
-                      {row.name || row.id}
+                      {row.label}
                     </option>
                   ))}
                 </select>
               </label>
             )}
 
-            {!reuseId && (
+            {!usingExisting && chosen && chosen.elementModes.length > 1 ? (
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs text-muted-foreground">Records</span>
+                <select
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  value={selectionMode}
+                  onChange={(e) => setSelectionMode(e.target.value as ElementSelectionMode)}
+                >
+                  {chosen.elementModes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {mode === "one" ? "One record" : mode === "filter" ? "Filter" : "All records"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            {existing ? (
+              <p className="text-xs text-muted-foreground">
+                This Element already exists. Add attaches it to this Cell.
+              </p>
+            ) : null}
+
+            {chosen && chosen.outputs.length > 1 ? (
+              <label className="block text-sm">
+                <span className="mb-1 block text-xs text-muted-foreground">Render output</span>
+                <select
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  value={isKnownOutput(chosen.id, outputId) ? outputId : defaultOutputId(chosen.id)}
+                  onChange={(e) => setOutputId(e.target.value)}
+                >
+                  {chosen.outputs.map((out) => (
+                    <option key={out.id} value={out.id}>
+                      {out.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            {!usingExisting && !existing && (
               <>
-                <label className="block text-sm">
-                  <span className="mb-1 block text-xs text-muted-foreground">Rendering Driver (unused on this record)</span>
-                  <select
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                    value={selectedKey}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      setDriverKey(next);
-                      setOutputId(defaultOutputId(next));
-                    }}
-                  >
-                    {unused.length === 0 ? (
-                      <option value="">All compatible drivers are already paired</option>
-                    ) : (
-                      unused.map((row) => (
-                        <option key={row.id} value={row.id}>
-                          {row.label}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </label>
-
-                {chosen && chosen.outputs.length > 1 ? (
-                  <label className="block text-sm">
-                    <span className="mb-1 block text-xs text-muted-foreground">Recipe</span>
-                    <select
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                      value={isKnownOutput(chosen.id, outputId) ? outputId : defaultOutputId(chosen.id)}
-                      onChange={(e) => setOutputId(e.target.value)}
-                    >
-                      {chosen.outputs.map((out) => (
-                        <option key={out.id} value={out.id}>
-                          {out.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : null}
-
                 {chosen
                   ? chosen.inputs.map((input) => (
                       <label key={input.name} className="block text-sm">
@@ -368,6 +455,17 @@ export function ElementBindWizard({
                       </label>
                     ))
                   : null}
+
+                {selectionMode === "filter" ? (
+                  <label className="block text-sm">
+                    <span className="mb-1 block text-xs text-muted-foreground">Filter (JSON)</span>
+                    <textarea
+                      className="min-h-[64px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      value={filterJson}
+                      onChange={(e) => setFilterJson(e.target.value)}
+                    />
+                  </label>
+                ) : null}
 
                 {chosen?.supportsPagination ? (
                   <label className="block text-sm">
@@ -393,9 +491,9 @@ export function ElementBindWizard({
           <Button
             type="button"
             onClick={() => void submit()}
-            disabled={busy || (records.length === 0 && !spec.allowsTypeLevel && !reuseId)}
+            disabled={busy || (records.length === 0 && !spec.allowsTypeLevel && !existing && !usingExisting)}
           >
-            {busy ? "Saving…" : "Bind Cell"}
+            {busy ? "Saving…" : "Add"}
           </Button>
         </div>
       </div>

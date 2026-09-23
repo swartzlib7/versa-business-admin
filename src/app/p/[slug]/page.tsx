@@ -8,25 +8,17 @@ import { loadCycleSteps, normalizePublicContent } from "@/lib/public/site-conten
 import {
   canvasForSlug,
   canvasFrameStyle,
-  customCanvasHref,
   ensureRowCells,
-  isBlankSlotLabel,
   isCellOn,
   isRowOn,
   normalizePageBuilder,
+  rowHeightCss,
   sectionColumnsClass,
   sectionWidthClass,
   visibleCells,
 } from "@/lib/public/page-builder";
-import { CanvasSlotDriver, type CanvasSlotStat } from "@/components/public/canvas-slot-drivers";
-import { listStatLinesDb } from "@/lib/db/stat-lines-store";
-import { statRowsToGraphPoints } from "@/lib/statistics/model";
-import {
-  resolveConstellationVariant,
-  resolveSkyEffects,
-  SKY_DENSITY_DEFAULT,
-  SKY_STARS_ZOOM_DEFAULT,
-} from "@/lib/brand-display";
+import { CanvasSlotDriver } from "@/components/public/canvas-slot-drivers";
+import { resolveCellPaints } from "@/lib/public/resolve-cell-paint";
 
 export const dynamic = "force-dynamic";
 
@@ -45,48 +37,10 @@ export default async function CustomCanvasPage({
 
   const pub = normalizePublicContent(site);
   const cycleSteps = await loadCycleSteps(site);
-  const statByHeader = new Map<string, CanvasSlotStat | null>();
-  const loadStat = async (headerId: string) => {
-    if (statByHeader.has(headerId)) return;
-    const rec = adapter.getRecord
-      ? await adapter.getRecord(headerId).catch(() => null)
-      : null;
-    if (!rec || rec.type_api_name !== "statistics") {
-      statByHeader.set(headerId, null);
-      return;
-    }
-    const rows = await listStatLinesDb(headerId).catch(() => []);
-    statByHeader.set(headerId, {
-      headerId,
-      values: rec.data,
-      lines: statRowsToGraphPoints(rows),
-    });
-  };
-  // PB-13: collect every bound record id across single / multi / all modes.
-  const boundIds = new Set<string>();
-  let allStatIds: string[] = [];
-  for (const section of canvas.sections) {
-    if (!isRowOn(section) || isBlankSlotLabel(section.label)) continue;
-    for (const cell of visibleCells(ensureRowCells(section))) {
-      if (!isCellOn(cell) || cell.kind !== "record" || cell.driver !== "stat-graph") continue;
-      if (cell.recordMode === "multi") {
-        for (const id of cell.recordIds ?? []) boundIds.add(id);
-      } else if (cell.recordMode === "all") {
-        if (!allStatIds.length) {
-          const all = adapter.listRecords
-            ? await adapter
-                .listRecords({ type_api_name: "statistics" })
-                .catch(() => [])
-            : [];
-          allStatIds = all.map((rec) => rec.id);
-        }
-        for (const id of allStatIds) boundIds.add(id);
-      } else if (cell.recordId) {
-        boundIds.add(cell.recordId);
-      }
-    }
-  }
-  for (const headerId of boundIds) await loadStat(headerId);
+  const paintCells = canvas.sections
+    .filter(isRowOn)
+    .flatMap((section) => visibleCells(ensureRowCells(section)).filter(isCellOn));
+  const paints = await resolveCellPaints(paintCells);
   let businessProfile: Awaited<ReturnType<typeof adapter.getBusinessProfile>>;
   try {
     businessProfile = await adapter.getBusinessProfile();
@@ -113,88 +67,52 @@ export default async function CustomCanvasPage({
   };
 
   return (
-    <PublicLayout
-      business={business}
-      demo={site.demo_mode !== false}
-      constellationVariant={resolveConstellationVariant(site.constellation_variant)}
-      constellationDensity={site.constellation_density ?? SKY_DENSITY_DEFAULT}
-      constellationZoom={site.constellation_zoom ?? SKY_STARS_ZOOM_DEFAULT}
-      constellationEffects={resolveSkyEffects(site.constellation_effects)}
-    >
-      <div style={frame.pad}>
+    <PublicLayout business={business} demo={site.demo_mode !== false}>
       <div style={frame.inner}>
       {canvas.sections.filter(isRowOn).map((section, index, rows) => {
         const next = rows[index + 1];
         const cells = visibleCells(ensureRowCells(section));
         return (
           <PublicSection key={section.id} id={section.id} nextId={next?.id}>
-            {isBlankSlotLabel(section.label) ? (
-              <div className="mx-auto h-10" aria-hidden="true" />
-            ) : (
-              <div className="mx-auto">
-                <div className={sectionWidthClass(section.width_pct)}>
-                <p className="text-sm uppercase tracking-wide text-muted-foreground">{canvas.label}</p>
-                <h1 className="mt-2 text-4xl font-semibold tracking-tight">{section.label}</h1>
-                <div className={cn("mt-6", sectionColumnsClass(section.columns ?? canvas.columns))}>
+              <div
+                className="mx-auto flex h-full w-full items-center px-4 sm:px-6 lg:px-8"
+                style={{ padding: frame.pad.padding, paddingTop: `max(${frame.pad.padding}, 4rem)` }}
+              >
+                <div className={cn(sectionWidthClass(section.width_pct), "min-w-0")}>
+                <div
+                  className={cn("min-h-0", sectionColumnsClass(section.columns))}
+                  style={{ height: rowHeightCss(section) }}
+                >
                   {cells.map((cell) => {
                     if (!isCellOn(cell)) {
-                      return <div key={cell.id} aria-hidden="true" />;
+                      return <div key={cell.id} className="h-full min-h-0" aria-hidden="true" />;
                     }
-                    if (cell.kind === "empty") {
-                      return (
-                        <p key={cell.id} className="text-sm text-muted-foreground">
-                          Empty cell · {customCanvasHref(canvas)}#{section.id}
-                        </p>
-                      );
-                    }
-                    const cellStats: CanvasSlotStat[] = [];
-                    if (cell.kind === "record" && cell.driver === "stat-graph") {
-                      const ids =
-                        cell.recordMode === "multi"
-                          ? cell.recordIds ?? []
-                          : cell.recordMode === "all"
-                            ? allStatIds
-                            : cell.recordId
-                              ? [cell.recordId]
-                              : [];
-                      for (const id of ids) {
-                        const stat = statByHeader.get(id);
-                        if (stat) cellStats.push(stat);
-                      }
-                    }
-                    if (cellStats.length > 1) {
-                      return (
-                        <div key={cell.id} className="space-y-4">
-                          {cellStats.map((stat) => (
-                            <CanvasSlotDriver
-                              key={stat.headerId}
-                              driver={cell.driver}
-                              cycleSteps={cycleSteps}
-                              stat={stat}
-                              renderOutput={cell.renderOutput}
-                            />
-                          ))}
-                        </div>
-                      );
+                    const paint = paints.get(cell.id);
+                    if (!paint?.driver) {
+                      return <div key={cell.id} className="h-full min-h-0" aria-hidden="true" />;
                     }
                     return (
-                      <CanvasSlotDriver
-                        key={cell.id}
-                        driver={cell.driver}
-                        cycleSteps={cycleSteps}
-                        stat={cellStats[0] ?? null}
-                        renderOutput={cell.renderOutput}
-                      />
+                      <div key={cell.id} className="h-full min-h-0 min-w-0 max-w-full overflow-auto">
+                        <CanvasSlotDriver
+                          driver={paint.driver}
+                          cycleSteps={cycleSteps}
+                          stat={paint.stat ?? null}
+                          html={paint.html}
+                          pageCard={paint.pageCard}
+                          contact={paint.contact}
+                          renderOutput={paint.renderOutput}
+                          pager={cell.showPager !== false}
+                          pageNumber={cell.pageNumber ?? 1}
+                        />
+                      </div>
                     );
                   })}
                 </div>
                 </div>
               </div>
-            )}
           </PublicSection>
         );
       })}
-      </div>
       </div>
     </PublicLayout>
   );

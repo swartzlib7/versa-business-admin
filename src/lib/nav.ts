@@ -7,7 +7,6 @@ import {
   Globe2,
   BookOpen,
   Database,
-  Palette,
   Mail,
   PanelsTopLeft,
   Layers,
@@ -77,7 +76,7 @@ export function defaultPublicNavHrefs(): string[] {
  */
 const OPERATOR_PATH_OWNERS: { prefix: string; href: string }[] = [
   { prefix: "/records-editor", href: "/records-editor" },
-  { prefix: "/ui-components", href: "/ui-components" },
+  { prefix: "/ui-components", href: "/glossary" },
   { prefix: "/organization", href: "/organization" },
   { prefix: "/collaboration", href: "/collaboration" },
   { prefix: "/environment", href: "/environment" },
@@ -119,9 +118,17 @@ export function visiblePublicNavItems(opts: {
   demo: boolean;
   enabled: string[];
   order?: string[] | null;
+  /** Primary Canvas row labels keyed by section id (`facets`, …). */
+  sectionLabels?: Record<string, string> | null;
 }): PublicNavItem[] {
   const ordered = orderNavItems(DEFAULT_PUBLIC_NAV_ITEMS, opts.order);
-  return ordered.filter((item) => isPublicHrefEnabled(item.href, opts.enabled));
+  return ordered
+    .filter((item) => isPublicHrefEnabled(item.href, opts.enabled))
+    .map((item) => {
+      const id = publicSectionId(item.href);
+      const next = id ? opts.sectionLabels?.[id]?.trim() : "";
+      return next ? { ...item, label: next } : item;
+    });
 }
 
 export function visiblePublicSectionIds(opts: {
@@ -259,11 +266,10 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { href: "/organization", label: "Organization", icon: Building2 },
   { href: "/collaboration", label: "Collaboration", icon: Handshake },
   { href: "/environment", label: "Environment", icon: Globe2 },
-  { href: "/glossary", label: "Glossary", icon: BookOpen },
-  { href: "/page-builder", label: "Page Builder", icon: PanelsTopLeft },
-  { href: "/users", label: "Users", icon: Users },
   { href: "/records-editor", label: "Records Editor", icon: Database },
-  { href: "/ui-components", label: "UI Components", icon: Palette },
+  { href: "/page-builder", label: "Page Builder", icon: PanelsTopLeft },
+  { href: "/glossary", label: "Glossary", icon: BookOpen },
+  { href: "/users", label: "Users", icon: Users },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

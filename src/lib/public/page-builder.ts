@@ -1,8 +1,8 @@
-import {
-  type LayoutColumnCount,
-  normalizeLayoutColumns,
-} from "@/lib/catalog/layout-grid";
 import { foldDriverId, foldHomeSectionId, foldRecordTypeApiName } from "@/lib/catalog/name-aliases";
+
+/** Canvas row columns. Every count from 1 through 8. */
+export const CANVAS_COLUMN_COUNTS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+export type CanvasColumnCount = (typeof CANVAS_COLUMN_COUNTS)[number];
 
 export type SlotKind = "empty" | "feature" | "record";
 /** Locked name: Cell. SlotKind kept so existing bindings still type-check. */
@@ -18,8 +18,12 @@ export type PageBuilderCell = {
   driver?: string;
   recordMode?: "single" | "multi" | "all";
   recordIds?: string[];
-  /** Chosen render output on this Cell (e.g. stat-graph grid-4). */
+  /** Chosen render output on this Cell. Statistics uses this as the Grid (1/2/4/8/12). */
   renderOutput?: string;
+  /** Statistics Element: 1-based page to show. Default 1. */
+  pageNumber?: number;
+  /** Statistics Element: show page controls on the visitor page. Default on. */
+  showPager?: boolean;
   /** Unique Driver pairing this Cell paints. Many Cells may share one pairing. */
   pairingId?: string;
 };
@@ -40,19 +44,28 @@ export type PageBuilderSection = {
   recordIds?: string[];
   /** PB-15: section content width as % of the canvas (25-100, default 100). */
   width_pct?: number;
-  /** PB-16/19: Row columns — Layout editor rotation 1/2/4/6/8. Each column is a Cell. */
-  columns?: LayoutColumnCount;
+  /** Row columns — 1 through 8. Each column is a Cell. */
+  columns?: CanvasColumnCount;
   /** PB-19: Row visibility. Default on. */
   enabled?: boolean;
   /** PB-19: Cells in this Row. Length grows with columns; extras stay parked. */
   cells?: PageBuilderCell[];
-  /** Builder Row (Cell paint area) height in px. Default 240. */
+  /** Builder-only. True hides the row body on the canvas. New rows start collapsed. */
+  collapsed?: boolean;
+  /** Builder-only cell paint height in pixels. The visitor page uses height_unit. */
+  display_px?: number;
+  /** Visitor row height. `px` uses height_px. `vh` uses height_vh as a percent of the viewport. */
+  height_unit?: RowHeightUnit;
   height_px?: number;
+  height_vh?: number;
+  /** True when staff typed the hash; blanking it returns to auto-from-label. */
+  idManual?: boolean;
 };
 
 export type PageBuilderRow = PageBuilderSection;
 
 export type CanvasMarginUnit = "px" | "pct";
+export type RowHeightUnit = "px" | "vh";
 
 export type CustomCanvas = {
   enabled: boolean;
@@ -64,8 +77,10 @@ export type CustomCanvas = {
   /** Inset from all four viewport edges. */
   margin?: number;
   margin_unit?: CanvasMarginUnit;
-  /** PB-11/16: default columns for new sections (1/2/4/6/8). Existing 3 normalizes to 2. */
-  columns?: LayoutColumnCount;
+  /** Default columns for new Rows (1 through 8). */
+  columns?: CanvasColumnCount;
+  /** True when staff typed the slug; blanking it returns to auto-from-label. */
+  slugManual?: boolean;
 };
 
 export type PageBuilderState = {
@@ -83,7 +98,26 @@ export type PageBuilderState = {
   home_width_pct?: number;
   home_margin?: number;
   home_margin_unit?: CanvasMarginUnit;
+  /** Default columns for new Primary Rows. */
+  home_columns?: CanvasColumnCount;
+  /** Visitor name for the Primary Page. Slug stays `/`. */
+  home_label?: string;
 };
+
+export const DEFAULT_HOME_LABEL = "Home";
+
+export function primaryCanvasLabel(
+  state?: Pick<PageBuilderState, "home_label"> | null,
+): string {
+  const label = String(state?.home_label ?? "").trim();
+  return label || DEFAULT_HOME_LABEL;
+}
+
+export function normalizeHomeLabel(raw: unknown): string {
+  if (typeof raw !== "string") return DEFAULT_HOME_LABEL;
+  const label = raw.trim().slice(0, 80);
+  return label || DEFAULT_HOME_LABEL;
+}
 
 /** PB-06: how many custom canvases staff can run alongside the primary homepage. */
 export const MAX_CANVASES = 4;
@@ -135,14 +169,8 @@ export const DRIVER_SUPPORTS_COLUMNS: Record<string, boolean> = {
   "glossary-book": false,
   "org-board": false,
   "stat-graph": true,
-  "home:facets": true,
-  "home:integrations": true,
-  "home:inspections-reports": true,
-  "home:statistics": true,
-  "home:knowledge": true,
-  "home:about": false,
-  "home:contacts": false,
   "html-block": false,
+  "contacts-cards": false,
 };
 
 export function driverSupportsColumns(driver?: string): boolean {
@@ -167,9 +195,75 @@ export const PAGE_BUILDER_RECORD_TYPES = [
     id: "inspection_report",
     label: "Inspections & Reports",
     kind: "record" as const,
-    driver: "home:inspections-reports",
+    driver: "header-card",
+  },
+  {
+    id: "contact",
+    label: "Contacts",
+    kind: "record" as const,
+    driver: "contacts-cards",
+  },
+  {
+    id: "location",
+    label: "Location",
+    kind: "record" as const,
+    driver: "contacts-cards",
   },
 ] as const;
+
+function resolveStoredDriver(
+  kind: SlotKind,
+  featureId: string | undefined,
+  recordType: string | undefined,
+  rawDriver: unknown,
+): string | undefined {
+  const stored =
+    typeof rawDriver === "string" && rawDriver.trim()
+      ? foldDriverId(rawDriver.trim())
+      : "";
+  if (stored && !stored.startsWith("home:")) return stored;
+  const fallback = defaultDriverFor(kind, featureId, recordType);
+  if (!fallback || fallback.startsWith("home:")) return undefined;
+  return fallback;
+}
+
+/** Seed a Cell after the type/driver modal. Staff then configure on the canvas. */
+export function cellSeedFromDriver(raw: string): Partial<PageBuilderCell> {
+  const sep = raw.indexOf("::");
+  const driverId = sep > 0 ? raw.slice(0, sep) : raw;
+  const renderOutput = sep > 0 ? raw.slice(sep + 2) || undefined : undefined;
+  const feature = PAGE_BUILDER_FEATURES.find(
+    (row) => row.driver === driverId || row.id === driverId,
+  );
+  if (feature) {
+    return {
+      kind: "feature",
+      featureId: feature.id,
+      driver: feature.driver,
+      recordType: undefined,
+      recordId: undefined,
+      recordMode: undefined,
+      recordIds: undefined,
+      renderOutput,
+    };
+  }
+  const byDriver = PAGE_BUILDER_RECORD_TYPES.find((row) => row.driver === driverId);
+  if (byDriver) {
+    return {
+      kind: "record",
+      recordType: byDriver.id,
+      driver: byDriver.driver,
+      featureId: undefined,
+      renderOutput,
+    };
+  }
+  return {
+    kind: "record",
+    driver: driverId,
+    featureId: undefined,
+    renderOutput,
+  };
+}
 
 export function defaultDriverFor(
   kind: SlotKind,
@@ -177,11 +271,8 @@ export function defaultDriverFor(
   recordType?: string,
 ): string {
   if (kind === "feature") {
-    return (
-      PAGE_BUILDER_FEATURES.find((row) => row.id === featureId)?.driver ??
-      HOME_SECTION_FEATURES.find((row) => row.id === featureId)?.driver ??
-      ""
-    );
+    const driver = PAGE_BUILDER_FEATURES.find((row) => row.id === featureId)?.driver ?? "";
+    return driver.startsWith("home:") ? "" : driver;
   }
   if (kind === "record") {
     return PAGE_BUILDER_RECORD_TYPES.find((row) => row.id === recordType)?.driver ?? "";
@@ -260,7 +351,9 @@ export function swapCellBindings(
   return { from: nextFrom, to: nextTo };
 }
 
+/** `__blank__` rows cannot be turned On and do not paint on the visitor canvas. */
 export function isRowOn(row: PageBuilderSection): boolean {
+  if (isBlankSlotLabel(row.label ?? "")) return false;
   return row.enabled !== false;
 }
 
@@ -317,6 +410,12 @@ export function collectionItemIndex(
   return undefined;
 }
 
+function clampStatPageNumber(raw: unknown): number | undefined {
+  const n = typeof raw === "number" ? raw : Number.parseInt(String(raw ?? ""), 10);
+  if (!Number.isFinite(n) || n < 1) return undefined;
+  return Math.min(999, Math.round(n));
+}
+
 function bindingFromRow(row: PageBuilderSection): PageBuilderCell {
   return {
     id: `${row.id}-c1`,
@@ -340,15 +439,19 @@ function normalizeCell(raw: unknown, fallbackId: string): PageBuilderCell {
   const rawFeature =
     typeof rec.featureId === "string" ? foldDriverId(rec.featureId) : undefined;
   const knownFeature =
-    PAGE_BUILDER_FEATURES.some((row) => row.id === rawFeature) ||
-    HOME_SECTION_FEATURES.some((row) => row.id === rawFeature);
+    Boolean(rawFeature) &&
+    !String(rawFeature).startsWith("home:") &&
+    PAGE_BUILDER_FEATURES.some((row) => row.id === rawFeature);
   const featureId = rawFeature && knownFeature ? rawFeature : undefined;
   const foldedType =
     typeof rec.recordType === "string" ? foldRecordTypeApiName(rec.recordType) : "";
-  const recordType =
-    foldedType && PAGE_BUILDER_RECORD_TYPES.some((row) => row.id === foldedType)
-      ? foldedType
+  const pairingId =
+    typeof rec.pairingId === "string" && rec.pairingId.trim()
+      ? rec.pairingId.trim().slice(0, 80)
       : undefined;
+  const knownRecordType = PAGE_BUILDER_RECORD_TYPES.some((row) => row.id === foldedType);
+  const recordType =
+    foldedType && (knownRecordType || Boolean(pairingId)) ? foldedType : undefined;
   const recordId =
     typeof rec.recordId === "string" && rec.recordId.trim()
       ? rec.recordId.trim().slice(0, 80)
@@ -362,24 +465,24 @@ function normalizeCell(raw: unknown, fallbackId: string): PageBuilderCell {
         .map((row) => row.trim().slice(0, 80))
         .slice(0, 24)
     : undefined;
+  const nextKind = pairingId ? "record" : kind === "feature" && !featureId ? "empty" : kind;
   return {
     id,
     enabled: rec.enabled !== false,
-    kind,
-    featureId: kind === "feature" ? featureId : undefined,
-    recordType: kind === "record" ? recordType : undefined,
-    recordId: kind === "record" ? recordId : undefined,
-    recordMode: kind === "record" ? recordMode : undefined,
-    recordIds: kind === "record" ? recordIds : undefined,
-    driver: defaultDriverFor(kind, featureId, recordType),
+    kind: nextKind,
+    featureId: nextKind === "feature" ? featureId : undefined,
+    recordType: nextKind === "record" ? recordType : undefined,
+    recordId: nextKind === "record" ? recordId : undefined,
+    recordMode: nextKind === "record" ? recordMode : undefined,
+    recordIds: nextKind === "record" ? recordIds : undefined,
+    driver: resolveStoredDriver(nextKind, featureId, recordType, rec.driver),
     renderOutput:
       typeof rec.renderOutput === "string" && rec.renderOutput.trim()
         ? rec.renderOutput.trim().slice(0, 64)
         : undefined,
-    pairingId:
-      typeof rec.pairingId === "string" && rec.pairingId.trim()
-        ? rec.pairingId.trim().slice(0, 80)
-        : undefined,
+    pairingId,
+    pageNumber: clampStatPageNumber(rec.pageNumber),
+    showPager: rec.showPager === false ? false : rec.showPager === true ? true : undefined,
   };
 }
 
@@ -420,7 +523,7 @@ export function ensureRowCells(row: PageBuilderSection): PageBuilderSection {
   let cells: PageBuilderCell[] = rawCells.map((cell, i) =>
     normalizeCell(cell, `${row.id}-c${i + 1}`),
   );
-  if (!cells.length) cells.push(bindingFromRow(row));
+  if (!cells.length) cells.push(normalizeCell(bindingFromRow(row), `${row.id}-c1`));
   while (cells.length < columns) {
     cells.push(emptyCell(`${row.id}-c${cells.length + 1}`));
   }
@@ -441,6 +544,28 @@ export function ensureRowCells(row: PageBuilderSection): PageBuilderSection {
   };
 }
 
+/** Drop one empty visible column and lower the row's column count by one. */
+export function removeEmptyColumn(row: PageBuilderSection, index: number): PageBuilderSection | null {
+  const prepared = ensureRowCells(row);
+  const columns = clampSectionColumns(prepared.columns);
+  if (columns <= 1 || index < 0 || index >= columns) return null;
+  const cells = [...(prepared.cells ?? [])];
+  const cell = cells[index];
+  if (!cell || cell.kind !== "empty" || String(cell.pairingId ?? "").trim()) return null;
+  cells.splice(index, 1);
+  return ensureRowCells({
+    ...prepared,
+    columns: clampCanvasColumns(columns - 1),
+    cells,
+  });
+}
+
+/** Cells on this Row that already have an Element. Includes parked cells. */
+export function rowElementCount(row: PageBuilderSection): number {
+  const cells = ensureRowCells(row).cells ?? [];
+  return cells.filter((cell) => Boolean(String(cell.pairingId ?? "").trim()) || cell.kind !== "empty").length;
+}
+
 /** Visible Cells for a Row (first `columns` entries). */
 export function visibleCells(row: PageBuilderSection): PageBuilderCell[] {
   const next = ensureRowCells(row);
@@ -455,6 +580,30 @@ export type PairingCellUsage = {
 };
 
 /** Cells that still store this pairingId. Delete of the pairing must fail while any exist. */
+export function remapPairingIds(
+  state: PageBuilderState,
+  remap: Map<string, string>,
+): PageBuilderState {
+  if (!remap.size) return state;
+  const rewrite = (rows: PageBuilderSection[] | undefined): PageBuilderSection[] =>
+    (rows ?? []).map((row) => ({
+      ...row,
+      cells: (row.cells ?? []).map((cell) => {
+        const next = cell.pairingId ? remap.get(cell.pairingId) : undefined;
+        return next ? { ...cell, pairingId: next } : cell;
+      }),
+    }));
+  const home_sections = rewrite(state.home_sections);
+  const canvases = (state.canvases ?? []).map((canvas) => ({
+    ...canvas,
+    sections: rewrite(canvas.sections),
+  }));
+  const custom = canvases[0]
+    ? { ...state.custom, ...canvases[0], sections: canvases[0].sections }
+    : { ...state.custom, sections: rewrite(state.custom.sections) };
+  return { ...state, home_sections, canvases, custom };
+}
+
 export function pairingCellUsages(
   state: PageBuilderState,
   pairingId: string,
@@ -508,12 +657,33 @@ export function clearCellBinding(
   return ensureRowCells({ ...next, cells });
 }
 
-/** PB-04 hole rule: a section labeled `__blank__` (optional counter, e.g. `__blank__ 2`) stays
- * empty - a spacer row on the canvas. Never painted on the visitor page, even if a driver is bound. */
+/** Default Add-row name. Hidden on the visitor canvas; On is locked until staff rename it. */
 export function isBlankSlotLabel(label: string): boolean {
   const raw = label.trim();
   if (!raw) return false;
   return raw === '__blank__' || /^__blank__\s*\d+$/.test(raw);
+}
+
+/** Visitor + builder heading for a Primary Canvas row. Catalog names are the fallback. */
+export function homeRowLabel(
+  sections: PageBuilderSection[] | undefined,
+  id: string,
+  fallback?: string,
+): string {
+  const raw = sections?.find((row) => row.id === id)?.label?.trim();
+  if (raw && !isBlankSlotLabel(raw)) return raw.slice(0, 48);
+  const catalog = (HOME_SECTION_LABELS as Record<string, string>)[id];
+  return fallback ?? catalog ?? id;
+}
+
+export function homeRowLabelMap(
+  sections?: PageBuilderSection[],
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const row of sections ?? []) {
+    map[row.id] = homeRowLabel(sections, row.id);
+  }
+  return map;
 }
 
 /** Default canvas width when unset (80% of the inner frame). */
@@ -571,12 +741,20 @@ export function canvasFrameStyle(
   };
 }
 
-/** PB-16: canvas default columns — Layout editor set (1/2/4/6/8). Saved 3 maps to 2. */
-export function clampCanvasColumns(cols: unknown): LayoutColumnCount {
-  if (cols === 3 || cols === "3") return 2;
+/** Canvas columns are 1 through 8. */
+export function clampCanvasColumns(cols: unknown): CanvasColumnCount {
   const n = typeof cols === "number" ? Math.round(cols) : Number.parseInt(String(cols ?? ""), 10);
-  if (n === 1) return 1;
-  return normalizeLayoutColumns(Number.isFinite(n) ? n : 1);
+  if (n >= 1 && n <= 8) return n as CanvasColumnCount;
+  return 1;
+}
+
+/** Lowest column count that still shows every filled cell, then 1..8 above it. */
+export function nextCanvasColumns(current: unknown, filled = 0): CanvasColumnCount {
+  const floor = Math.min(8, Math.max(1, Math.floor(filled) || 1)) as CanvasColumnCount;
+  const cur = clampCanvasColumns(current);
+  const allowed = CANVAS_COLUMN_COUNTS.filter((n) => n >= floor);
+  if (!allowed.includes(cur)) return allowed[0];
+  return allowed[(allowed.indexOf(cur) + 1) % allowed.length];
 }
 
 /** PB-15: section content width as % of the canvas (25-100, default 100). */
@@ -589,7 +767,7 @@ export function clampSectionWidth(pct: unknown): number {
   return Math.min(100, Math.max(25, stepped));
 }
 
-export function clampSectionColumns(cols: unknown, canvasDefault?: unknown): LayoutColumnCount {
+export function clampSectionColumns(cols: unknown, canvasDefault?: unknown): CanvasColumnCount {
   if (cols === undefined || cols === null || cols === "") {
     return clampCanvasColumns(canvasDefault ?? 1);
   }
@@ -618,14 +796,17 @@ export function sectionWidthClass(pct: number | undefined): string {
   }
 }
 
-/** PB-16: Tailwind grid classes for a section column count (1/2/4/6/8). */
+/** Tailwind grid classes for a canvas row (1 through 8). */
 export function sectionColumnsClass(cols: number | undefined): string {
   switch (clampSectionColumns(cols)) {
     case 2: return "grid grid-cols-1 gap-6 md:grid-cols-2";
+    case 3: return "grid grid-cols-1 gap-6 md:grid-cols-3";
     case 4: return "grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4";
+    case 5: return "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5";
     case 6: return "grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6";
+    case 7: return "grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-7";
     case 8: return "grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-8";
-    default: return "space-y-6";
+    default: return "grid grid-cols-1 gap-6";
   }
 }
 
@@ -649,7 +830,7 @@ export function canvasColumnsClass(cols: number | undefined): string {
 /** PB-12 (Stephen, 2026-09-14 02:48): a feature can appear only ONCE per canvas.
  *  Returns the feature ids already bound on this canvas (excluding one section id). */
 export function usedFeatureIds(
-  canvas: CustomCanvas | undefined | null,
+  canvas: { sections?: PageBuilderSection[] } | undefined | null,
   exceptSectionId?: string,
   exceptCellId?: string,
 ): Set<string> {
@@ -671,24 +852,23 @@ function emptySection(id: string, label: string): PageBuilderSection {
     label,
     kind: "empty",
     enabled: true,
+    idManual: false,
     width_pct: DEFAULT_SECTION_WIDTH_PCT,
     columns: 1,
+    display_px: DEFAULT_ROW_HEIGHT_PX,
+    height_unit: "px",
     height_px: DEFAULT_ROW_HEIGHT_PX,
+    height_vh: DEFAULT_ROW_HEIGHT_VH,
   });
 }
 
+/** Staff-added Primary row. Not a catalog hash. */
+export function blankHomeSection(id: string, label: string): PageBuilderSection {
+  return emptySection(id, label);
+}
+
 export function defaultHomeSection(id: (typeof HOMEPAGE_SLOT_ORDER)[number]): PageBuilderSection {
-  return ensureRowCells({
-    id,
-    label: HOME_SECTION_LABELS[id],
-    kind: "feature",
-    featureId: `home:${id}`,
-    driver: `home:${id}`,
-    enabled: true,
-    width_pct: DEFAULT_SECTION_WIDTH_PCT,
-    columns: 1,
-    height_px: DEFAULT_ROW_HEIGHT_PX,
-  });
+  return { ...emptySection(id, HOME_SECTION_LABELS[id]), idManual: true };
 }
 
 export function defaultHomeSections(): PageBuilderSection[] {
@@ -708,9 +888,37 @@ export function clampRowHeight(raw: unknown): number {
   return Math.min(MAX_ROW_HEIGHT_PX, Math.max(MIN_ROW_HEIGHT_PX, n));
 }
 
+export const DEFAULT_ROW_HEIGHT_VH = 40;
+export const MIN_ROW_HEIGHT_VH = 10;
+export const MAX_ROW_HEIGHT_VH = 100;
+
+export function clampRowHeightUnit(raw: unknown): RowHeightUnit {
+  return raw === "vh" ? "vh" : "px";
+}
+
+export function clampRowHeightVh(raw: unknown): number {
+  const n = typeof raw === "number" ? Math.round(raw) : Number.parseInt(String(raw ?? ""), 10);
+  if (!Number.isFinite(n)) return DEFAULT_ROW_HEIGHT_VH;
+  return Math.min(MAX_ROW_HEIGHT_VH, Math.max(MIN_ROW_HEIGHT_VH, n));
+}
+
+/**
+ * Visitor cell height inside a one-viewport Row.
+ * Pixels are cut down to the viewport. Viewport % is a share of the screen and is not cut again.
+ */
+export function rowHeightCss(row: {
+  height_px?: number;
+  height_vh?: number;
+  height_unit?: unknown;
+}): string {
+  if (clampRowHeightUnit(row.height_unit) === "vh") return `${clampRowHeightVh(row.height_vh)}dvh`;
+  return `min(${clampRowHeight(row.height_px)}px, 100dvh)`;
+}
+
 export const DEFAULT_CUSTOM_CANVAS: CustomCanvas = {
   enabled: true,
   slug: "overview",
+  slugManual: false,
   label: "Overview",
   sections: [emptySection("intro", "Intro"), emptySection("detail", "Detail")],
   width_pct: DEFAULT_CANVAS_WIDTH_PCT,
@@ -718,6 +926,23 @@ export const DEFAULT_CUSTOM_CANVAS: CustomCanvas = {
   margin_unit: "px",
   columns: 1,
 };
+
+/** After Demo off: one empty row on Primary, one on the shipped custom canvas. */
+export function clearedPageBuilder(): PageBuilderState {
+  const base = defaultPageBuilder();
+  const home = blankHomeSection("row", "Row");
+  const custom: CustomCanvas = {
+    ...base.custom,
+    sections: [emptySection("intro", "Intro")],
+  };
+  return {
+    ...base,
+    home_section_order: [home.id],
+    home_sections: [home],
+    custom,
+    canvases: [custom],
+  };
+}
 
 export function defaultPageBuilder(): PageBuilderState {
   const custom: CustomCanvas = {
@@ -733,6 +958,8 @@ export function defaultPageBuilder(): PageBuilderState {
     home_width_pct: DEFAULT_HOME_WIDTH_PCT,
     home_margin: DEFAULT_CANVAS_MARGIN,
     home_margin_unit: "px",
+    home_columns: 1,
+    home_label: DEFAULT_HOME_LABEL,
   };
 }
 
@@ -741,8 +968,9 @@ export function blankCanvas(index: number): CustomCanvas {
   return {
     enabled: true,
     slug: `canvas-${index}`,
+    slugManual: false,
     label: `Canvas ${index}`,
-    sections: DEFAULT_CUSTOM_CANVAS.sections.map((s) => ({ ...s })),
+    sections: DEFAULT_CUSTOM_CANVAS.sections.map((s) => ({ ...s, idManual: false })),
     width_pct: DEFAULT_CANVAS_WIDTH_PCT,
     margin: DEFAULT_CANVAS_MARGIN,
     margin_unit: "px",
@@ -761,37 +989,55 @@ export function canvasForSlug(state: PageBuilderState | undefined | null, slug: 
   return enabledCanvases(state).find((c) => c.slug === slug) ?? null;
 }
 
-/** PB-06: first slug not used by any canvas, derived from raw (slugify + -2/-3 suffix). */
-export function nextCanvasSlug(state: PageBuilderState | undefined | null, raw: string): string {
-  const used = new Set(
-    (state?.canvases?.length ? state.canvases : state?.custom ? [state.custom] : []).map((c) => c.slug),
-  );
-  const base = slugify(raw);
-  if (!used.has(base)) return base;
-  let n = 2;
-  while (used.has(`${base}-${n}`)) n += 1;
-  return `${base}-${n}`;
-}
-
-function slugify(raw: string): string {
+/** URL token from a label. Empty input uses fallback. */
+export function slugifyKey(raw: string, emptyFallback = "row"): string {
   const slug = raw
     .toLowerCase()
     .trim()
+    .replace(/^#+/, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
-  return slug || "overview";
+  return slug || emptyFallback;
+}
+
+/** First unused slugifyKey among `used`. Suffix -2, -3, … on collision. */
+export function uniqueKey(
+  raw: string,
+  used: Iterable<string>,
+  emptyFallback = "row",
+): string {
+  const taken = new Set(used);
+  const base = slugifyKey(raw, emptyFallback);
+  if (!taken.has(base)) return base;
+  let n = 2;
+  while (taken.has(`${base}-${n}`)) n += 1;
+  return `${base}-${n}`;
+}
+
+/** True when `id` is not the auto token (or auto-N) for `source`. */
+export function isManualKey(id: string, source: string, emptyFallback = "row"): boolean {
+  const auto = slugifyKey(source, emptyFallback);
+  return id !== auto && !id.startsWith(`${auto}-`);
+}
+
+/** PB-06: first slug not used by any canvas, derived from raw (slugify + -2/-3 suffix). */
+export function nextCanvasSlug(state: PageBuilderState | undefined | null, raw: string): string {
+  const used =
+    state?.canvases?.length ? state.canvases : state?.custom ? [state.custom] : [];
+  return uniqueKey(
+    raw,
+    used.map((c) => c.slug),
+    "overview",
+  );
+}
+
+function slugify(raw: string): string {
+  return slugifyKey(raw, "overview");
 }
 
 function sectionId(raw: string, used: Set<string>): string {
-  const id = slugify(raw);
-  if (!used.has(id)) {
-    used.add(id);
-    return id;
-  }
-  let n = 2;
-  while (used.has(`${id}-${n}`)) n += 1;
-  const next = `${id}-${n}`;
+  const next = uniqueKey(raw, used, "row");
   used.add(next);
   return next;
 }
@@ -812,8 +1058,9 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
   const rawFeature =
     typeof rec.featureId === "string" ? foldDriverId(rec.featureId) : undefined;
   const knownFeature =
-    PAGE_BUILDER_FEATURES.some((row) => row.id === rawFeature) ||
-    HOME_SECTION_FEATURES.some((row) => row.id === rawFeature);
+    Boolean(rawFeature) &&
+    !String(rawFeature).startsWith("home:") &&
+    PAGE_BUILDER_FEATURES.some((row) => row.id === rawFeature);
   const featureId = rawFeature && knownFeature ? rawFeature : undefined;
   const foldedType =
     typeof rec.recordType === "string" ? foldRecordTypeApiName(rec.recordType) : "";
@@ -836,20 +1083,52 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
   const driver = defaultDriverFor(kind, featureId, recordType);
   const width_pct = clampSectionWidth(rec.width_pct);
   const columns = clampSectionColumns(rec.columns);
+  const collapsed = rec.collapsed === true;
+  const display_px = clampRowHeight(rec.display_px);
   const height_px = clampRowHeight(rec.height_px);
-  const enabled = rec.enabled !== false;
+  const height_unit = clampRowHeightUnit(rec.height_unit);
+  const height_vh = clampRowHeightVh(rec.height_vh);
+  const enabled = rec.enabled !== false && !isBlankSlotLabel(label);
   const cells = Array.isArray(rec.cells) ? rec.cells : undefined;
+  const idManual =
+    rec.idManual === true
+      ? true
+      : rec.idManual === false
+        ? false
+        : isManualKey(id, label, "row");
+  if (kind === "feature" && !featureId) {
+    return ensureRowCells({
+      id,
+      label,
+      kind: "empty",
+      width_pct,
+      columns,
+      collapsed,
+      display_px,
+      height_unit,
+      height_px,
+      height_vh,
+      enabled,
+      idManual,
+      cells: cells as PageBuilderCell[] | undefined,
+    });
+  }
   if (kind === "feature") {
     return ensureRowCells({
       id,
       label,
       kind,
-      featureId: featureId ?? PAGE_BUILDER_FEATURES[0].id,
+      featureId,
       driver,
       width_pct,
       columns,
+      collapsed,
+      display_px,
+      height_unit,
       height_px,
+      height_vh,
       enabled,
+      idManual,
       cells: cells as PageBuilderCell[] | undefined,
     });
   }
@@ -865,8 +1144,13 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
       driver,
       width_pct,
       columns,
+      collapsed,
+      display_px,
+      height_unit,
       height_px,
+      height_vh,
       enabled,
+      idManual,
       cells: cells as PageBuilderCell[] | undefined,
     });
   }
@@ -876,8 +1160,13 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
     kind: "empty",
     width_pct,
     columns,
+    collapsed,
+    display_px,
+    height_unit,
     height_px,
+    height_vh,
     enabled,
+    idManual,
     cells: cells as PageBuilderCell[] | undefined,
   });
 }
@@ -904,9 +1193,16 @@ function normalizeCanvas(
     typeof rec.slug === "string" && rec.slug.trim() ? rec.slug : label,
     usedSlugs,
   );
+  const slugManual =
+    rec.slugManual === true
+      ? true
+      : rec.slugManual === false
+        ? false
+        : isManualKey(slug, label, "overview");
   return {
     enabled: rec.enabled !== false,
     slug,
+    slugManual,
     label,
     sections,
     width_pct: clampCanvasWidth(rec.width_pct),
@@ -962,7 +1258,8 @@ export function normalizePageBuilder(input: unknown): PageBuilderState {
     if (canvases.length >= MAX_CANVASES) break;
   }
   const rawOrderRaw = (raw as { home_section_order?: unknown }).home_section_order;
-  const rawOrder = Array.isArray(rawOrderRaw)
+  const hadSavedOrder = Array.isArray(rawOrderRaw);
+  const rawOrder = hadSavedOrder
     ? rawOrderRaw
         .filter((row): row is string => typeof row === "string")
         .map((id) => foldHomeSectionId(id))
@@ -972,13 +1269,13 @@ export function normalizePageBuilder(input: unknown): PageBuilderState {
   const catalogIds = HOMEPAGE_SLOT_ORDER as readonly string[];
   const retired = new Set<string>(RETIRED_HOME_SECTION_IDS);
   for (const id of rawOrder) {
-    if (!catalogIds.includes(id) || seenOrder.has(id) || retired.has(id)) continue;
+    if (!id || seenOrder.has(id) || retired.has(id)) continue;
     order.push(id);
     seenOrder.add(id);
   }
-  // First persist (no saved order) seeds the default catalog. After that,
-  // omitted ids stay off the canvas — staff can add them back from the palette.
-  if (!rawOrder.length) {
+  // First persist (field missing) seeds the default catalog. A saved empty
+  // list stays empty — deleted rows are not restored.
+  if (!hadSavedOrder) {
     for (const id of HOMEPAGE_SLOT_ORDER) {
       if (!seenOrder.has(id)) {
         order.push(id);
@@ -993,25 +1290,26 @@ export function normalizePageBuilder(input: unknown): PageBuilderState {
     for (const row of rawHome) {
       if (!row || typeof row !== "object") continue;
       const next = normalizeSection(row as Record<string, unknown>, homeUsed);
-      if (next && catalogIds.includes(next.id) && !retired.has(next.id)) {
+      if (next && !retired.has(next.id)) {
         homeById.set(next.id, next);
       }
     }
   }
   const home_sections = order.map((id) => {
-    const slot = id as (typeof HOMEPAGE_SLOT_ORDER)[number];
     const saved = homeById.get(id);
+    const catalogLabel = (HOME_SECTION_LABELS as Record<string, string>)[id];
     if (saved) {
       return {
         ...saved,
         id,
-        label: saved.label || HOME_SECTION_LABELS[slot],
-        kind: "feature" as const,
-        featureId: `home:${id}`,
-        driver: `home:${id}`,
+        label: saved.label || catalogLabel || saved.id,
+        idManual: saved.idManual === true || catalogIds.includes(id),
       };
     }
-    return defaultHomeSection(slot);
+    if ((catalogIds as readonly string[]).includes(id)) {
+      return defaultHomeSection(id as (typeof HOMEPAGE_SLOT_ORDER)[number]);
+    }
+    return blankHomeSection(id, "Row");
   });
 
   return {
@@ -1028,6 +1326,8 @@ export function normalizePageBuilder(input: unknown): PageBuilderState {
       clampCanvasMarginUnit((raw as { home_margin_unit?: unknown }).home_margin_unit),
     ),
     home_margin_unit: clampCanvasMarginUnit((raw as { home_margin_unit?: unknown }).home_margin_unit),
+    home_columns: clampSectionColumns((raw as { home_columns?: unknown }).home_columns ?? 1),
+    home_label: normalizeHomeLabel((raw as { home_label?: unknown }).home_label),
   };
 }
 
@@ -1049,10 +1349,7 @@ export function homepageBuilderSectionOrder(
   saved: string[] | null | undefined,
   visibleIds: string[],
 ): string[] {
-  const catalog = HOMEPAGE_SLOT_ORDER as readonly string[];
-  const savedIds = Array.isArray(saved)
-    ? saved.filter((id) => catalog.includes(id))
-    : [...HOMEPAGE_SLOT_ORDER];
-  const order = savedIds.length ? savedIds : [...HOMEPAGE_SLOT_ORDER];
-  return order.filter((id) => visibleIds.includes(id));
+  const catalog = new Set<string>(HOMEPAGE_SLOT_ORDER);
+  const order = Array.isArray(saved) ? saved : [...HOMEPAGE_SLOT_ORDER];
+  return order.filter((id) => (catalog.has(id) ? visibleIds.includes(id) : Boolean(id)));
 }

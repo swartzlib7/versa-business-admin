@@ -183,6 +183,11 @@ export function LoginForm({ installHints }: { installHints: InstallHints | null 
         return;
       }
 
+      const json = await res.json().catch(() => ({}));
+      if (json?.data?.must_change_password) {
+        window.location.assign("/login/change-password");
+        return;
+      }
       window.location.assign(redirect);
     } catch {
       setError("Network error. Please try again.");

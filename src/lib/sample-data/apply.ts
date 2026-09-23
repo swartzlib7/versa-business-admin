@@ -1,11 +1,15 @@
 import fs from "fs";
 import path from "path";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { elementConfig, recordLine } from "@/lib/db/schema";
 import { primaryOrganization, isPrimaryOrganization } from "@/lib/organizations/primary-org";
 import {
   createInstance,
   deleteInstance,
   listInstances,
 } from "@/lib/fixtures/record-instances";
+import { installDemoCanvas, resetDemoCanvas } from "@/lib/sample-data/demo-install";
 import {
   SAMPLE_ORGS,
   SAMPLE_RECORDS,
@@ -123,7 +127,14 @@ export async function insertSampleData(): Promise<{
     await adapter.createOrganization({
       name: seed.name,
       org_type: seed.org_type,
-      data: { external_id: seed.external_id, notes: seed.notes ?? "", is_active: true },
+      data: {
+        external_id: seed.external_id,
+        name: seed.name,
+        notes: seed.notes ?? "",
+        email: seed.email ?? "",
+        phone: seed.phone ?? "",
+        is_active: true,
+      },
     });
     createdOrgs += 1;
   }
@@ -131,14 +142,20 @@ export async function insertSampleData(): Promise<{
   const byExternal = new Map(
     orgs.filter((o) => orgExternalId(o)).map((o) => [orgExternalId(o) as string, o.id]),
   );
-  const existingIds = new Set(
+  const existingByExternal = new Map(
     (await allRecords())
-      .map((r) => r.data?.external_id)
-      .filter((id): id is string => isSampleExternalId(id)),
+      .filter((row) => isSampleExternalId(row.data?.external_id))
+      .map((row) => [row.data.external_id as string, row]),
   );
   let createdRecords = 0;
   for (const seed of SAMPLE_RECORDS) {
-    if (existingIds.has(seed.data.external_id)) continue;
+    const already = existingByExternal.get(seed.data.external_id);
+    if (already) {
+      if (seed.type_api_name === "page" && adapter.updateRecord) {
+        await adapter.updateRecord(already.id, { name: seed.name, data: seed.data });
+      }
+      continue;
+    }
     const orgId =
       (seed.org_external_id ? byExternal.get(seed.org_external_id) : undefined) ??
       primary?.id;
@@ -196,6 +213,7 @@ export async function insertSampleData(): Promise<{
       createdUsers += 1;
     }
   }
+  await installDemoCanvas();
   writeFlag(true);
   const status = await sampleDataStatus();
   return {
@@ -231,6 +249,9 @@ export async function deleteSampleData(): Promise<{
     .map((org) => org.id);
   for (const id of sampleIds) {
     if (!adapter.deleteOrganization) continue;
+    const db = getDb();
+    await db.delete(elementConfig).where(eq(elementConfig.orgId, id));
+    await db.delete(recordLine).where(eq(recordLine.organizationId, id));
     try {
       const ok = await adapter.deleteOrganization(id);
       if (ok) deletedOrgs += 1;
@@ -249,6 +270,7 @@ export async function deleteSampleData(): Promise<{
       if (ok) deletedUsers += 1;
     }
   }
+  resetDemoCanvas();
   writeFlag(false);
   return {
     inserted: false,

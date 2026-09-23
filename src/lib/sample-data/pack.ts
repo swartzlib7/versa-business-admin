@@ -7,6 +7,13 @@
  * proposed in the field inventory until tasked as record types.
  */
 import type { OrgType } from "@/lib/data/types";
+import {
+  DEMO_ABOUT_HTML,
+  DEMO_FACETS_HTML,
+  DEMO_INSPECTIONS_HTML,
+  DEMO_INTEGRATIONS_HTML,
+  DEMO_KNOWLEDGE_HTML,
+} from "@/lib/sample-data/demo-html";
 
 export const SAMPLE_EXTERNAL_PREFIX = "ba_sample:";
 
@@ -23,6 +30,8 @@ export type SampleOrgSeed = {
   org_type: OrgType;
   external_id: string;
   notes?: string;
+  email?: string;
+  phone?: string;
 };
 
 export type SampleUserSeed = {
@@ -37,63 +46,8 @@ export type SampleUserSeed = {
   key: string;
 };
 
-export const SAMPLE_USERS: SampleUserSeed[] = [
-  {
-    key: "ops-assistant",
-    name: "Ops Assistant",
-    email: "ops-assistant@example.com",
-    role: "member",
-    type: "agent",
-    password: "mission2026",
-    department: "Operations",
-    job_title: "Sample agent account with member role for demos",
-    bio: "Sample agent account with member role for demos.",
-  },
-  {
-    key: "jordan",
-    name: "Jordan Lee",
-    email: "member@example.com",
-    role: "member",
-    type: "human",
-    password: "mission2026",
-    department: "Operations",
-    job_title: "Operations lead keeping production on cadence",
-    bio: "Operations lead keeping production on cadence.",
-  },
-  {
-    key: "research",
-    name: "Research Assistant",
-    email: "research@example.com",
-    role: "member",
-    type: "agent",
-    password: "mission2026",
-    department: "Research",
-    job_title: "Sample agent account with member role",
-    bio: "Sample agent account with member role.",
-  },
-  {
-    key: "casey",
-    name: "Casey Nguyen",
-    email: "success@example.com",
-    role: "member",
-    type: "human",
-    password: "mission2026",
-    department: "Customer",
-    job_title: "Customer partner helping buyers adopt what we ship",
-    bio: "Customer partner helping buyers adopt what we ship.",
-  },
-  {
-    key: "riley",
-    name: "Riley Brooks",
-    email: "marketing@example.com",
-    role: "member",
-    type: "human",
-    password: "mission2026",
-    department: "Outreach",
-    job_title: "Story and reach lead for the public brand",
-    bio: "Story and reach lead for the public brand.",
-  },
-];
+/** Operator accounts stay the install admins. The demo pack does not add users. */
+export const SAMPLE_USERS: SampleUserSeed[] = [];
 
 export type SampleRecordSeed = {
   type_api_name: string;
@@ -107,32 +61,91 @@ export type SampleRecordSeed = {
 
 export const SAMPLE_ORGS: SampleOrgSeed[] = [
   {
-    name: "Wave Sample Vendor",
-    org_type: "vendor",
-    external_id: sampleExternalId("org", "vendor"),
-    notes: "Migrated-shape vendor (AGi organizations.type → MC org_type=vendor).",
-  },
-  {
-    name: "Wave Sample Customer",
+    name: "Sample Customer",
     org_type: "customer",
     external_id: sampleExternalId("org", "customer"),
-    notes: "Migrated-shape customer. Wave Customer maps here via external_id.",
-  },
-  {
-    name: "Sample Channel Partner",
-    org_type: "partner",
-    external_id: sampleExternalId("org", "partner"),
-    notes: "Partner org demo — Collaboration tab org_type rendering.",
-  },
-  {
-    name: "Sample Branch",
-    org_type: "branch",
-    external_id: sampleExternalId("org", "branch"),
-    notes: "Branch org demo — org_type=branch renders as a child section (ERD section 2.7).",
+    notes: "Owns the demo location. Phone and email paint on the location card.",
+    email: "hq@example.com",
+    phone: "+1 (512) 555-0140",
   },
 ];
 
+const PAGE = {
+  parent_kind: "environment" as const,
+  parent_api_name: "custom",
+  status: "active",
+  type_api_name: "page",
+};
+
 export const SAMPLE_RECORDS: SampleRecordSeed[] = [
+  {
+    ...PAGE,
+    name: "Facets",
+    data: {
+      slot: "facets",
+      body_format: "html",
+      body_html: DEMO_FACETS_HTML,
+      external_id: sampleExternalId("page", "facets"),
+    },
+  },
+  {
+    ...PAGE,
+    name: "Integrations",
+    data: {
+      slot: "integrations",
+      body_format: "html",
+      body_html: DEMO_INTEGRATIONS_HTML,
+      external_id: sampleExternalId("page", "integrations"),
+    },
+  },
+  {
+    ...PAGE,
+    name: "Inspections & Reports",
+    data: {
+      slot: "inspections-reports",
+      body_format: "html",
+      body_html: DEMO_INSPECTIONS_HTML,
+      external_id: sampleExternalId("page", "inspections"),
+    },
+  },
+  {
+    ...PAGE,
+    name: "Knowledge",
+    data: {
+      slot: "knowledge",
+      body_format: "html",
+      body_html: DEMO_KNOWLEDGE_HTML,
+      external_id: sampleExternalId("page", "knowledge"),
+    },
+  },
+  {
+    ...PAGE,
+    name: "About",
+    data: {
+      slot: "about",
+      body_format: "html",
+      body_html: DEMO_ABOUT_HTML,
+      external_id: sampleExternalId("page", "about"),
+    },
+  },
+  {
+    type_api_name: "statistics",
+    parent_kind: "environment",
+    parent_api_name: "custom",
+    name: "Sample monthly visits",
+    status: "active",
+    data: {
+      scale_name: "Visits",
+      scale_start: "0",
+      scale_end: "40",
+      scale_step: "5",
+      frequency_type: "month",
+      frequency_qty: "6",
+      start_datetime: "2026-01-01T00:00:00.000Z",
+      series_mode: "single",
+      external_id: sampleExternalId("stat", "visits"),
+    },
+  },
   {
     type_api_name: "location",
     parent_kind: "environment",
@@ -148,175 +161,6 @@ export const SAMPLE_RECORDS: SampleRecordSeed[] = [
       address: "100 Mission Way, Austin, TX 78701",
       external_id: sampleExternalId("location", "hq"),
     },
-  },
-  {
-    type_api_name: "production_product",
-    parent_kind: "faculty",
-    parent_api_name: "production",
-    name: "Sample Widget",
-    data: {
-      category: "manufactured",
-      description: "Sample product with SKU (AGi products.sku).",
-      sku: "MC-WGT-001",
-      status: "available",
-      external_id: sampleExternalId("product", "widget"),
-    },
-  },
-  {
-    type_api_name: "treasury_transaction",
-    parent_kind: "faculty",
-    parent_api_name: "treasury",
-    name: "Sample inbound payment",
-    data: {
-      classification: "income",
-      amount: "150.00",
-      currency: "USD",
-      category: "sales",
-      transaction_date: "2026-09-01",
-      external_id: sampleExternalId("txn", "inbound-1"),
-    },
     org_external_id: sampleExternalId("org", "customer"),
-  },
-  {
-    type_api_name: "communication_staff",
-    parent_kind: "faculty",
-    parent_api_name: "communications",
-    name: "Sample Staffer",
-    data: {
-      role: "Operations",
-      notes: "AGi org_staff → MC communication_staff (no VV connection_uid).",
-      external_id: sampleExternalId("staff", "ops"),
-    },
-  },
-  {
-    type_api_name: "contact",
-    parent_kind: "faculty",
-    parent_api_name: "public",
-    name: "Sample Public Contact",
-    data: {
-      contact_kind: "public",
-      email: "sample.contact@example.com",
-      phone: "+1-512-555-0100",
-      organization: "Wave Sample Customer",
-      external_id: sampleExternalId("contact", "public-1"),
-    },
-    org_external_id: sampleExternalId("org", "customer"),
-  },
-  {
-    type_api_name: "executive_project",
-    parent_kind: "faculty",
-    parent_api_name: "executive",
-    name: "Sample delivery project",
-    status: "planned",
-    data: {
-      owner: "Sample Staffer",
-      description: "Sample project hanging from the Primary Org.",
-      external_id: sampleExternalId("project", "delivery"),
-    },
-  },
-  {
-    type_api_name: "executive_task",
-    parent_kind: "faculty",
-    parent_api_name: "executive",
-    name: "Sample onboarding task",
-    status: "in_progress",
-    data: {
-      description: "Three-message buyer welcome sequence: thank you, how to use, how to get help.",
-      external_id: sampleExternalId("task", "onboarding"),
-    },
-  },
-  {
-    type_api_name: "treasury_transaction",
-    parent_kind: "faculty",
-    parent_api_name: "treasury",
-    name: "Sample vendor expense",
-    data: {
-      classification: "expense",
-      amount: "85.00",
-      currency: "USD",
-      category: "services",
-      transaction_date: "2026-09-02",
-      external_id: sampleExternalId("txn", "expense-1"),
-    },
-    org_external_id: sampleExternalId("org", "vendor"),
-  },
-  {
-    type_api_name: "vendor_integration",
-    parent_kind: "collaboration",
-    parent_api_name: "vendor",
-    name: "Sample vendor integration",
-    data: {
-      integration_type: "email",
-      status: "connected",
-      description: "Shared inbox for client and support mail (demo row).",
-      last_sync: "2026-09-01T23:00:00Z",
-      external_id: sampleExternalId("integration", "email"),
-    },
-    org_external_id: sampleExternalId("org", "vendor"),
-  },
-  {
-    type_api_name: "knowledge",
-    parent_kind: "environment",
-    parent_api_name: "knowledge",
-    name: "Sample onboarding handbook",
-    status: "active",
-    data: {
-      kind: "document",
-      summary: "First-week setup, access, and orientation for new operators.",
-      external_id: sampleExternalId("knowledge", "onboarding"),
-    },
-  },
-  {
-    type_api_name: "knowledge",
-    parent_kind: "environment",
-    parent_api_name: "knowledge",
-    name: "Sample escalation playbook",
-    status: "active",
-    data: {
-      kind: "document",
-      summary: "How to handle a customer escalation: path, timing, templates.",
-      external_id: sampleExternalId("knowledge", "escalation"),
-    },
-  },
-  {
-    type_api_name: "statistics",
-    parent_kind: "environment",
-    parent_api_name: "custom",
-    name: "Sample knowledge assets",
-    status: "active",
-    data: {
-      value: "12",
-      unit: "",
-      category: "Environment",
-      scale: "month",
-      series: "[8,9,9,10,11,12,12,13,12,12]",
-      external_id: sampleExternalId("stat", "knowledge-assets"),
-    },
-  },
-  {
-    type_api_name: "page",
-    parent_kind: "environment",
-    parent_api_name: "custom",
-    name: "Facets",
-    status: "active",
-    data: {
-      slot: "facets",
-      body_html:
-        "<h2>Facets</h2><p>Advertised features of Versa - Business Admin. Edit this HTML Page on Page Builder → Elements.</p>",
-      external_id: sampleExternalId("html", "facets"),
-    },
-  },
-  {
-    type_api_name: "page",
-    parent_kind: "environment",
-    parent_api_name: "custom",
-    name: "About",
-    status: "active",
-    data: {
-      slot: "about",
-      body_html:
-        "<h2>About</h2><p>Who we are and what we produce. Edit this HTML Page on Page Builder → Elements.</p>",
-      external_id: sampleExternalId("html", "about"),
-    },
   },
 ];

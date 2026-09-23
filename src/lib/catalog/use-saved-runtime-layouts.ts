@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   detailSectionsFromCatalog,
   editFieldsFromCatalog,
+  placeIdLast,
 } from "@/lib/catalog/layout-to-fields";
 import {
   savedLayoutToRuntimeSections,
@@ -87,24 +88,46 @@ export function useSavedRuntimeLayouts(
     return () => controller.abort();
   }, [objectApiName]);
 
-  const runtime = useMemo(
-    () => ({
-      detail:
+  const runtime = useMemo(() => {
+    const withIdLast = (sections: LayoutSection[]) => {
+      const pulled: LayoutSection["fields"] = [];
+      const next = sections.map((sec) => {
+        const keep = sec.fields.filter((f) => {
+          if (f.key === "id") {
+            pulled.push(f);
+            return false;
+          }
+          return true;
+        });
+        return { ...sec, fields: keep };
+      });
+      if (!pulled.length) return next;
+      const last = next[next.length - 1];
+      if (!last) return [{ id: "record", label: "Record", columns: 2 as const, fields: placeIdLast(pulled) }];
+      return next.map((sec, i) =>
+        i === next.length - 1 ? { ...sec, fields: placeIdLast([...sec.fields, ...pulled]) } : sec,
+      );
+    };
+    return {
+      detail: withIdLast(
         savedLayoutToRuntimeSections(
           savedLayouts.detail,
           objectApiName,
           "detail",
           fieldSource,
         ) ?? detail.sections,
-      edit:
+      ),
+      edit: withIdLast(
         savedLayoutToRuntimeSections(
           savedLayouts.edit,
           objectApiName,
           "edit",
           fieldSource,
         ) ?? edit.sections,
+      ),
       loading,
-    }),
+    };
+  },
     [detail.sections, edit.sections, objectApiName, savedLayouts, loading, fieldSource],
   );
 

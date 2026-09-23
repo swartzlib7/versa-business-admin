@@ -12,6 +12,21 @@ import { BooleanSwitch } from "@/components/ui/boolean-switch";
 import { SecretValueField, maskSecretDisplay } from "@/components/ui/secret-value-field";
 import { UserLookupField } from "@/components/catalog/user-lookup-field";
 import { OrganizationLookupField } from "@/components/catalog/organization-lookup-field";
+import { RecordTypeLookupField } from "@/components/catalog/record-type-lookup-field";
+import { RenderDriverLookupField } from "@/components/catalog/render-driver-lookup-field";
+import { RecordInstanceLookupField } from "@/components/catalog/record-instance-lookup-field";
+import {
+  PairingFilterField,
+  PairingInputMapField,
+  RenderOptionField,
+  isSelectionFollowup,
+  pairingFieldVisible,
+  useDriverCatalog,
+  useStampPairingRecordType,
+} from "@/components/catalog/pairing-fields";
+import { pairingAllowsTypeLevel } from "@/lib/public/driver-pairings";
+import { ProfilePictureField } from "@/components/users/profile-picture-field";
+import { PasswordField } from "@/components/users/password-field";
 import { ImageUrlField } from "@/components/catalog/image-url-field";
 import { FrequencyStartField } from "@/components/statistics/frequency-start-field";
 import { HtmlEditor, normalizePageBodyFormat } from "@/components/public/html-editor";
@@ -135,6 +150,8 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   defaultSort?: TableSort;
   /** Sort key (defaults to formatCell / raw). Use ISO for datetimes. */
   sortCell?: (row: T, key: string, raw: string) => string;
+  /** When the primary sort ties, order by this field ascending. */
+  tieBreakKey?: string;
 };
 
 type ListingCriterion = { key: string; value: string };
@@ -381,6 +398,9 @@ function FieldInput({
   const kind = field.kind ?? "text";
   const isChecked = value === "true" || value === "1";
   const locked = field.readOnly === true || isAuditField(field.key);
+  const pairingEntry = useDriverCatalog(allValues?.driver_id);
+  if (field.key === "target_kind" || field.key === "record_mode") return null;
+  if (!pairingFieldVisible(field.key, pairingEntry, allValues)) return null;
   if (field.key === "line_stamp") {
     const slot = Number(allValues?.line_slot ?? "");
     const cfg = field.stampConfig;
@@ -451,6 +471,75 @@ function FieldInput({
       />
     );
   }
+  if (field.lookupObjectApiName === "render_driver" || field.key === "driver_id") {
+    return (
+      <RenderDriverLookupField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        required={field.required}
+        readOnly={locked}
+      />
+    );
+  }
+  if (field.key === "render_option") {
+    return (
+      <RenderOptionField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+        driverRecordId={allValues?.driver_id}
+      />
+    );
+  }
+  if (field.key === "filter_json") {
+    return (
+      <PairingFilterField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+        targetType={allValues?.target_record_type}
+      />
+    );
+  }
+  if (field.key === "input_map_json") {
+    return (
+      <PairingInputMapField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+        driverRecordId={allValues?.driver_id}
+        targetType={allValues?.target_record_type}
+      />
+    );
+  }
+  if (field.key === "target_record_id" || field.lookupObjectApiName === "record") {
+    return (
+      <RecordInstanceLookupField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        required={field.required}
+        readOnly={locked}
+        recordType={allValues?.target_record_type}
+        allowTypeLevel={pairingEntry ? pairingAllowsTypeLevel(pairingEntry.id) : false}
+      />
+    );
+  }
+  if (field.lookupObjectApiName === "record_type" || field.key === "compatible_record_type" || field.key === "target_record_type") {
+    return (
+      <RecordTypeLookupField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        required={field.required}
+        readOnly={locked}
+      />
+    );
+  }
   if (
     field.lookupObjectApiName === "organization" ||
     field.key === "organization_id" ||
@@ -473,6 +562,26 @@ function FieldInput({
         value={value}
         onChange={locked ? undefined : onChange}
         required={field.required}
+        readOnly={locked}
+      />
+    );
+  }
+  if (field.key === "password") {
+    return (
+      <PasswordField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+      />
+    );
+  }
+  if (field.key === "avatar") {
+    return (
+      <ProfilePictureField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
         readOnly={locked}
       />
     );
@@ -570,6 +679,19 @@ function InlineForm({
   onCancel: () => void;
   commitLabel: string;
 }) {
+  const stampsPairingType = fields.some(
+    (f) => f.key === "driver_id" || f.key === "target_record_type",
+  );
+  useStampPairingRecordType(
+    stampsPairingType ? draft.driver_id : undefined,
+    draft.target_record_type,
+    (type, previous) =>
+      setDraft((d) => ({
+        ...d,
+        target_record_type: type,
+        ...(previous && previous !== type ? { target_record_id: "" } : {}),
+      })),
+  );
   return (
     <form
       className="border-t border-border bg-muted/20 px-4 py-4 sm:px-6"
@@ -584,8 +706,29 @@ function InlineForm({
         <span className="text-xs text-muted-foreground">Inline row editor</span>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        {fields.filter((f) => f.key !== "body_format").map((f) => (
-          <div key={f.key} className={(f.span === 2 || f.kind === "textarea" || f.key === "body_html") ? "sm:col-span-2" : undefined}>
+        {fields.filter((f) => f.key !== "body_format" && !isSelectionFollowup(f.key)).map((f) => (
+          <div key={f.key} className={(f.span === 2 || f.kind === "textarea" || f.key === "body_html" || f.key === "selection_mode") ? "sm:col-span-2" : undefined}>
+            {f.key === "selection_mode" ? (
+              <div className="space-y-3">
+                <FieldInput
+                  field={f}
+                  value={draft[f.key] ?? ""}
+                  onChange={(v) => setDraft((d) => ({ ...d, [f.key]: v }))}
+                  allValues={draft}
+                  onFieldChange={(key, v) => setDraft((d) => ({ ...d, [key]: v }))}
+                />
+                {fields.filter((row) => isSelectionFollowup(row.key)).map((extra) => (
+                  <FieldInput
+                    key={extra.key}
+                    field={extra}
+                    value={draft[extra.key] ?? ""}
+                    onChange={(v) => setDraft((d) => ({ ...d, [extra.key]: v }))}
+                    allValues={draft}
+                    onFieldChange={(key, v) => setDraft((d) => ({ ...d, [key]: v }))}
+                  />
+                ))}
+              </div>
+            ) : (
             <FieldInput
               field={f}
               value={draft[f.key] ?? ""}
@@ -600,6 +743,7 @@ function InlineForm({
               allValues={draft}
               onFieldChange={(key, v) => setDraft((d) => ({ ...d, [key]: v }))}
             />
+            )}
           </div>
         ))}
       </div>
@@ -666,6 +810,7 @@ export function EntityListing<T extends Record<string, unknown>>({
   addBlockedHint,
   defaultSort,
   sortCell,
+  tieBreakKey,
 }: EntityListingProps<T>) {
   const session = useSession();
   const displayCell = (row: T, key: string): ReactNode => {
@@ -789,17 +934,23 @@ export function EntityListing<T extends Record<string, unknown>>({
     }
     return out;
   }, [rows, criteria, getCell, formatCell, search, nameKey]);
-  const sortedRows = useMemo(
-    () =>
-      !activeSort.key
-        ? filteredRows
-        : sortByText(filteredRows, activeSort.dir, (row) => {
-            const raw = getCell(row, activeSort.key);
-            if (sortCell) return sortCell(row, activeSort.key, raw);
-            return formatCell ? formatCell(row, activeSort.key, raw) : raw;
-          }),
-    [filteredRows, activeSort, getCell, formatCell, sortCell],
-  );
+  const sortedRows = useMemo(() => {
+    if (!activeSort.key) return filteredRows;
+    const sign = activeSort.dir === "asc" ? 1 : -1;
+    const text = (row: T, key: string) => {
+      const raw = getCell(row, key);
+      if (sortCell) return sortCell(row, key, raw);
+      return formatCell ? formatCell(row, key, raw) : raw;
+    };
+    return [...filteredRows].sort((a, b) => {
+      const primary = text(a, activeSort.key).localeCompare(text(b, activeSort.key), undefined, {
+        sensitivity: "base",
+      });
+      if (primary !== 0) return sign * primary;
+      if (!tieBreakKey || tieBreakKey === activeSort.key) return 0;
+      return text(a, tieBreakKey).localeCompare(text(b, tieBreakKey), undefined, { sensitivity: "base" });
+    });
+  }, [filteredRows, activeSort, getCell, formatCell, sortCell, tieBreakKey]);
 
   const [editor, setEditor] = useState<null | "new" | string>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});

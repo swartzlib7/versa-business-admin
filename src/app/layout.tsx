@@ -3,10 +3,12 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/shell/theme-provider";
 import { BrandProvider } from "@/components/shell/brand-provider";
+import { PublicSky } from "@/components/public/public-sky";
 import { SiteModeProvider } from "@/components/shell/site-mode-provider";
 import { getSiteSettingsDb } from "@/lib/db/settings-store";
 import { getBrandLogoOverlay, getSiteSettingsFixture } from "@/lib/fixtures/site-settings";
 import { presentBrandMusic } from "@/lib/public/brand-music-store";
+import { business } from "@/lib/fixtures/business";
 import { SEED_BRAND_LOGO_HREF } from "@/lib/public/brand-seed";
 import { BRAND_MUSIC_HREF } from "@/lib/public/brand-music";
 import { resolveLogoSurfaces, clampSkyZoom, resolveConstellationVariant, resolveSkyEffects, SKY_DENSITY_DEFAULT, SKY_STARS_ZOOM_DEFAULT, SKY_VARIANT_DEFAULT, type LogoSurfaces, type SkyEffects } from "@/lib/brand-display";
@@ -87,6 +89,7 @@ type LoadedSite = {
   brand_music_loop: boolean;
   brand_music_autoplay: boolean;
   brand_name_in_menu: boolean;
+  hero_headline: string;
 };
 
 async function loadBrand(): Promise<LoadedSite> {
@@ -111,6 +114,10 @@ async function loadBrand(): Promise<LoadedSite> {
       order: fixture.public_menu_order,
     });
     const flags = publicFlagsFromEnabled(public_menu_enabled);
+    const headline =
+      typeof fixture.hero_headline === "string" && fixture.hero_headline.trim()
+        ? fixture.hero_headline.trim()
+        : business.slogan;
     return {
       brand_name: settings.brand_name,
       brand_color: settings.brand_color,
@@ -139,6 +146,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_music_loop: fixture.brand_music_loop !== false,
       brand_music_autoplay: fixture.brand_music_autoplay !== false,
       brand_name_in_menu: fixture.brand_name_in_menu !== false,
+      hero_headline: headline,
     };
   } catch {
     // Branding must never take the app down - fall back to static defaults.
@@ -170,6 +178,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_music_loop: true,
       brand_music_autoplay: true,
       brand_name_in_menu: true,
+      hero_headline: business.slogan,
     };
   }
 }
@@ -200,6 +209,7 @@ export default async function RootLayout({
     brand_music_loop: site.brand_music_loop,
     brand_music_autoplay: site.brand_music_autoplay,
     brand_name_in_menu: site.brand_name_in_menu,
+    hero_headline: site.hero_headline,
   };
   const mode = {
     demo_mode: site.demo_mode,
@@ -224,6 +234,7 @@ export default async function RootLayout({
         <ThemeProvider>
           <BrandProvider brand={brand}>
             <SiteModeProvider mode={mode}>
+              <PublicSky />
               <TooltipProvider>{children}</TooltipProvider>
             </SiteModeProvider>
           </BrandProvider>

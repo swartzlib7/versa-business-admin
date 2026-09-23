@@ -50,7 +50,7 @@ export async function PUT(request: Request) {
   }
   let cycle_steps: CycleStep[] | undefined;
   if (Array.isArray(body.cycle_steps)) {
-    cycle_steps = body.cycle_steps.slice(0, 10).map((raw, index) => {
+    cycle_steps = body.cycle_steps.slice(0, DEFAULT_CYCLE_STEPS.length).map((raw, index) => {
       const row = (raw ?? {}) as Record<string, unknown>;
       const title = String(row.title ?? "").slice(0, 40);
       const desc = String(row.desc ?? "").slice(0, 120);

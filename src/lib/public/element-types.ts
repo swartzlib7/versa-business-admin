@@ -2,12 +2,17 @@
  * Element types the canvas can bind. Palette chips are pairable drivers, not these rows.
  */
 import { foldRecordTypeApiName } from "@/lib/catalog/name-aliases";
+import { driverEntry } from "@/lib/public/render-drivers";
 
 export type ElementTypeId =
   | "page"
   | "statistics"
   | "cycle_strip"
-  | "inspection_report";
+  | "inspection_report"
+  | "contact"
+  | "location"
+  | "glossary"
+  | "org_board";
 
 export type ElementTypeDef = {
   id: ElementTypeId;
@@ -66,12 +71,70 @@ export const ELEMENT_TYPE_PALETTE: ElementTypeDef[] = [
     allowsTypeLevel: false,
     description: "Inspection / report header and ticket lines.",
   },
+  {
+    id: "contact",
+    label: "Contacts",
+    recordType: "contact",
+    parentKind: "faculty",
+    parentApiName: "public",
+    structure: "list",
+    hasLines: false,
+    allowsTypeLevel: false,
+    description: "Distribution Contacts. Phone and email, then the related Organization.",
+  },
+  {
+    id: "location",
+    label: "Location",
+    recordType: "location",
+    parentKind: "environment",
+    parentApiName: "locations",
+    structure: "list",
+    hasLines: false,
+    allowsTypeLevel: false,
+    description: "Environment Locations. Address, then Organization phone and email.",
+  },
+  {
+    id: "glossary",
+    label: "Glossary of Terms",
+    recordType: "glossary",
+    parentKind: "environment",
+    parentApiName: "custom",
+    structure: "list",
+    hasLines: false,
+    allowsTypeLevel: true,
+    description: "Embed the live Glossary of Terms. No record pick.",
+  },
+  {
+    id: "org_board",
+    label: "Org Board",
+    recordType: "org_board",
+    parentKind: "environment",
+    parentApiName: "custom",
+    structure: "list",
+    hasLines: false,
+    allowsTypeLevel: true,
+    description: "Embed the Organization board. No record pick.",
+  },
 ];
+
+export function recordTypeLabel(id: string | undefined): string {
+  if (!id || id === "*") return "Embed";
+  return elementTypeById(id)?.label ?? id;
+}
 
 export function elementTypeById(id: string | undefined): ElementTypeDef | undefined {
   if (!id) return undefined;
   const folded = foldRecordTypeApiName(id);
   return ELEMENT_TYPE_PALETTE.find((row) => row.id === id || row.recordType === id || row.id === folded);
+}
+
+export function defaultTypeForDriver(driverId: string): ElementTypeId {
+  if (driverId === "glossary-book" || driverId === "embed-header") return "glossary";
+  if (driverId === "org-board") return "org_board";
+  const entry = driverEntry(driverId);
+  if (entry?.recordType === "*") return "glossary";
+  const first = entry?.compatibleTypes.find((type) => type !== "*" && elementTypeById(type));
+  return (first as ElementTypeId | undefined) ?? ((entry?.recordType as ElementTypeId | undefined) || "page");
 }
 
 /** Fields staff can map onto driver inputs (plus derived outputs when the type has lines). */
@@ -99,4 +162,15 @@ export const RECORD_OUTPUTS_BY_TYPE: Record<ElementTypeId, { id: string; label: 
     { id: "line_count", label: "Line count" },
     { id: "count_by:status", label: "Count by status" },
   ],
+  contact: [
+    { id: "name", label: "Name" },
+    { id: "email", label: "Email" },
+    { id: "phone", label: "Phone" },
+  ],
+  location: [
+    { id: "name", label: "Label" },
+    { id: "address", label: "Address" },
+  ],
+  glossary: [{ id: "name", label: "Name" }],
+  org_board: [{ id: "name", label: "Name" }],
 };

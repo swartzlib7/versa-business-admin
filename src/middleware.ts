@@ -70,33 +70,67 @@ function isProtected(pathname: string): boolean {
   return false;
 }
 
-function getSessionFromCookie(cookie: string): boolean {
+function readSession(cookie: string): { mustChangePassword?: boolean } | null {
   const match = cookie
     .split('; ')
     .find((c) => c.trim().startsWith(AUTH_CONFIG.cookieName + '='));
-  if (!match) return false;
+  if (!match) return null;
   const token = match.split('=')[1];
-  if (!token) return false;
+  if (!token) return null;
   try {
     const json = Buffer.from(token, 'base64').toString('utf-8');
-    JSON.parse(json);
-    return true;
+    return JSON.parse(json) as { mustChangePassword?: boolean };
   } catch {
-    return false;
+    return null;
   }
+}
+
+const PASSWORD_CHANGE_OK = new Set([
+  '/login/change-password',
+  '/api/auth/password',
+  '/api/auth/logout',
+  '/api/auth/session',
+]);
+
+function isVisitorPath(pathname: string): boolean {
+  return (
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname === '/terms' ||
+    pathname === '/board' ||
+    pathname.startsWith('/p/') ||
+    pathname.startsWith('/api/public') ||
+    pathname === '/api/health' ||
+    pathname === '/api/auth/login' ||
+    pathname === '/api/auth/challenge' ||
+    pathname === '/api/auth/logout'
+  );
 }
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const cookie = request.headers.get('cookie') || '';
+  const session = readSession(cookie);
+
+  if (
+    session?.mustChangePassword &&
+    !PASSWORD_CHANGE_OK.has(pathname) &&
+    !isVisitorPath(pathname)
+  ) {
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { error: { code: 'PASSWORD_CHANGE_REQUIRED', message: 'Change the default password before continuing.' } },
+        { status: 403 },
+      );
+    }
+    return NextResponse.redirect(new URL('/login/change-password', request.url));
+  }
 
   if (!isProtected(pathname)) {
     return NextResponse.next();
   }
 
-  const cookie = request.headers.get('cookie') || '';
-  const hasSession = getSessionFromCookie(cookie);
-
-  if (!hasSession) {
+  if (!session) {
     // For API routes, return 401 JSON
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(

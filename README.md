@@ -17,7 +17,7 @@
     <a href="docs/ops/BUSINESS_ADMIN_OPS_MANUAL.md"><strong>Ops Manual</strong></a>
   </p>
   <p>
-    <img src="https://img.shields.io/badge/version-1.0.1-FF9800" alt="Versa - Business Admin version 1.0.1">
+    <img src="https://img.shields.io/badge/version-1.0.2-FF9800" alt="Versa - Business Admin version 1.0.2">
   </p>
   <p align="center">
     <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" alt="Linux">
@@ -43,7 +43,7 @@
 | Who | What to open | How to use it |
 |-----|----------------|---------------|
 | **Operators / agents** (install, configure, maintain, enhance) | **[Ops Manual](docs/ops/BUSINESS_ADMIN_OPS_MANUAL.md)** | Setup, login, roles, day-2 care, restarts, upgrades. Read §0 then §2. |
-| **Staff using VBA** | **[User Manual](docs/ops/BUSINESS_ADMIN_USER_MANUAL.md)** | How to work in the product. Stub — not written yet. |
+| **Staff using VBA** | **[User Manual](docs/ops/BUSINESS_ADMIN_USER_MANUAL.md)** | How to work in the product. Page Builder §7 is written; other chapters planned. |
 | **Agents** working this repo | **[AGENTS.md](AGENTS.md)** | Product door. |
 | **Agents** on a Versa AGi host | Host skills **`business_admin`** (install) and **`business_admin_operate`** (API / operate) | After the workspace exists, load this repo’s `AGENTS.md` and the Ops Manual. |
 | **Everyone** | This README | Product name, roles, quick start, docs map. |
@@ -114,14 +114,14 @@ git checkout main
 npm ci
 cp .env.example .env.local   # edit locally — never commit secrets
 npm run build
-# Default listen port is often 3200 — kill the exact PID from ss -tlnp | grep 3200 (never pkill -f)
+# Review board listens on 3200 — kill the exact PID from fuser 3200/tcp (never pkill -f)
 npx next start -p 3200
 ```
 
 Verify with `curl -s localhost:3200/api/health` (root `/` may stall — do not relaunch on timeout).
 
 Humans installing or operating: continue in the **Ops Manual** §2.  
-Staff using the product: **User Manual** (stub).  
+Staff using the product: **User Manual** (Page Builder §7 written; other chapters planned).  
 Agents in this repo: start at **`AGENTS.md`**. On a Versa AGi host, load **`business_admin`** to orient/install, then **`business_admin_operate`** for API / day-2.
 
 Install login (shown on `/login` only while Demo mode is on — passwords may have been changed):
@@ -135,7 +135,8 @@ Install login (shown on `/login` only while Demo mode is on — passwords may ha
 |------|------|
 | `AGENTS.md` | **Agent door** for this repo |
 | `docs/ops/BUSINESS_ADMIN_OPS_MANUAL.md` | **Ops manual** — install, configure, maintain, enhance |
-| `docs/ops/BUSINESS_ADMIN_USER_MANUAL.md` | **User manual** — staff how-to (planned stub) |
+| `docs/ops/BUSINESS_ADMIN_USER_MANUAL.md` | **User manual** — Page Builder §7 written; rest planned |
+| `docs/ops/RELEASE_NOTES.md` | **Release notes** — what changed in each product version |
 | `docs/ops/WORKING_WITH_VBA.md` | Forms, listings, Spatial Twin, stale UI / deploy |
 | Versa AGi host `business_admin` / `business_admin_operate` | **Install / operate** (not this repo; point here) |
 | Settings → **API** / `GET /api` | This version’s route catalog |

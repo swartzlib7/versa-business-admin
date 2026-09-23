@@ -9,6 +9,11 @@ import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
 import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
 import { theme } from "@/lib/theme";
 import type { User } from "@/lib/data";
+import { ProfilePictureField } from "@/components/users/profile-picture-field";
+import { PasswordField } from "@/components/users/password-field";
+import { passwordProblem } from "@/lib/password-policy";
+
+const RETIRED = new Set(["bio", "department", "department_id"]);
 
 type LocalUser = User & {
   department_id?: string;
@@ -24,11 +29,9 @@ function toValues(u: LocalUser): Record<string, string> {
     type: String(u.type ?? "human"),
     role: String(u.role ?? "member"),
     status: String(u.status ?? "active"),
-    department_id: String(
-      u.department_id ?? u.department ?? data.department_id ?? "",
-    ),
-    bio: String(u.bio ?? data.bio ?? ""),
     job_title: String(data.job_title ?? u.job_title ?? ""),
+    avatar: typeof data.avatar === "string" ? data.avatar : "",
+    password: "",
   };
 }
 
@@ -75,29 +78,45 @@ export default function UserDetailPage() {
     setEditing(false);
   };
 
-  const save = () => {
+  const save = async () => {
     if (!user) return;
-    const next: LocalUser = {
-      ...user,
+    const body: Record<string, unknown> = {
       name: draft.name || user.name,
       email: draft.email || user.email,
-      type: (draft.type as User["type"]) || user.type,
-      role: (draft.role as User["role"]) || user.role,
-      status: (draft.status as User["status"]) || user.status,
-      department: draft.department_id || user.department,
-      department_id: draft.department_id,
-      bio: draft.bio,
+      type: draft.type || user.type,
+      role: draft.role || user.role,
+      status: draft.status || user.status,
       data: {
         ...(typeof user.data === "object" && user.data ? user.data : {}),
         job_title: draft.job_title ?? "",
-        bio: draft.bio,
+        avatar: draft.avatar ?? "",
       },
     };
-    setUser(next);
+    const nextPassword = draft.password?.trim() ?? "";
+    if (nextPassword) {
+      const problem = passwordProblem(nextPassword);
+      if (problem) {
+        setNote(problem + " The current password was kept.");
+        return;
+      }
+      body.password = nextPassword;
+    }
+    const res = await fetch(`/api/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setNote(json?.error?.message || "Could not save the user.");
+      return;
+    }
+    const saved = (json.data ?? user) as LocalUser;
+    setUser(saved);
+    setDraft({ ...toValues(saved), password: "" });
     setEditing(false);
-    setNote(
-      "Saved in this session (mock). The active saved or catalog fallback layout was applied; API write is not wired.",
-    );
+    setNote("Saved.");
   };
 
   return (
@@ -141,7 +160,7 @@ export default function UserDetailPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={save}
+                  onClick={() => void save()}
                   className="rounded-md px-4 py-2 text-sm font-medium text-white"
                   style={{ backgroundColor: theme.colors.brand }}
                 >
@@ -168,13 +187,35 @@ export default function UserDetailPage() {
             </CardContent>
           </Card>
         ) : user ? (
+          <>
           <LayoutDrivenForm
-            sections={editing ? runtimeSections.edit : runtimeSections.detail}
+            sections={(editing ? runtimeSections.edit : runtimeSections.detail)
+              .map((section) => ({
+                ...section,
+                fields: section.fields.filter((field) => !RETIRED.has(field.key)),
+              }))
+              .filter((section) => section.fields.length > 0)}
             values={editing ? draft : toValues(user)}
             onChange={(k, v) => setDraft((d) => ({ ...d, [k]: v }))}
             readOnly={!editing}
             accent={theme.colors.brand}
           />
+          <div className="space-y-4 rounded-lg border border-border p-4">
+            <ProfilePictureField
+              label="Profile picture"
+              value={(editing ? draft.avatar : toValues(user).avatar) ?? ""}
+              onChange={editing ? (next) => setDraft((d) => ({ ...d, avatar: next })) : undefined}
+              readOnly={!editing}
+            />
+            {editing ? (
+              <PasswordField
+                label="Password"
+                value={draft.password ?? ""}
+                onChange={(next) => setDraft((d) => ({ ...d, password: next }))}
+              />
+            ) : null}
+          </div>
+          </>
         ) : null}
 
         {note && <p className="text-xs text-muted-foreground">{note}</p>}

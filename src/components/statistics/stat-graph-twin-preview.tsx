@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { parseStatHeaderConfig, statRowsToGraphPoints } from "@/lib/statistics/model";
-import { graphSeriesFromLines } from "@/lib/statistics/frequency";
+import { configForSeries, graphSeriesFromLines } from "@/lib/statistics/frequency";
 import { StatGraph, type StatGraphLine } from "@/components/statistics/stat-graph";
 import { useTwinSlot } from "@/components/zones/twin-slot-context";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ export function StatGraphTwinPreview({
   onPageChange,
   compact = false,
   lightbox = false,
+  pager = false,
 }: {
   values: Record<string, string>;
   headerId?: string | null;
@@ -29,6 +30,8 @@ export function StatGraphTwinPreview({
   onPageChange?: (page: number) => void;
   compact?: boolean;
   lightbox?: boolean;
+  /** When on, the Element shows the same previous / next page controls as the Spatial Twin. */
+  pager?: boolean;
 }) {
   const { linesEpoch } = useTwinSlot();
   const [fetched, setFetched] = useState<StatGraphLine[]>([]);
@@ -82,12 +85,8 @@ export function StatGraphTwinPreview({
         : layout === 4
           ? "grid-cols-2 grid-rows-2"
           : layout === 8
-            ? lightbox
-              ? "grid-cols-4 grid-rows-2"
-              : "grid-cols-2 grid-rows-4"
-            : lightbox
-              ? "grid-cols-4 grid-rows-3"
-              : "grid-cols-3 grid-rows-4";
+            ? "grid-cols-4 grid-rows-2"
+            : "grid-cols-4 grid-rows-3";
 
   return (
     <div className="flex h-full min-h-0 flex-col p-3">
@@ -100,9 +99,25 @@ export function StatGraphTwinPreview({
             </span>
           ) : null}
         </h3>
-        {pageCount > 1 ? (
-          <span className="text-[11px] text-muted-foreground">
-            Page {safePage + 1} / {pageCount}
+        {pager && pageCount > 1 ? (
+          <span className="inline-flex items-center gap-1">
+            <button
+              type="button"
+              className="rounded border border-border px-1.5 py-0.5 text-[11px]"
+              onClick={() => onPageChange?.(Math.max(0, safePage - 1))}
+            >
+              Prev
+            </button>
+            <span className="text-[11px] text-muted-foreground">
+              Page {safePage + 1} / {pageCount}
+            </span>
+            <button
+              type="button"
+              className="rounded border border-border px-1.5 py-0.5 text-[11px]"
+              onClick={() => onPageChange?.(Math.min(pageCount - 1, safePage + 1))}
+            >
+              Next
+            </button>
           </span>
         ) : null}
       </div>
@@ -128,14 +143,14 @@ export function StatGraphTwinPreview({
                   {lightbox && layout === 1 ? (
                     <div className="h-full w-full">
                       <StatGraph
-                        config={parsed.config}
+                        config={configForSeries(parsed.config, series)}
                         lines={lines.filter((ln) => ln.series === series)}
                         className="h-full w-full"
                       />
                     </div>
                   ) : (
                     <StatGraph
-                      config={parsed.config}
+                      config={configForSeries(parsed.config, series)}
                       lines={lines.filter((ln) => ln.series === series)}
                       className="h-full w-full"
                     />

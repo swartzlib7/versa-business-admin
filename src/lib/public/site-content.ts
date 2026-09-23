@@ -102,25 +102,9 @@ export function enabledCycleSteps(settings: FixtureSiteSettings): CycleStep[] {
   });
 }
 
-/** Prefer Cycle Strip records (heading → Name). Fall back to settings JSON. */
+/** Homepage Cycle Strip is the six branded steps, not a record type. */
 export async function loadCycleSteps(settings: FixtureSiteSettings): Promise<CycleStep[]> {
-  const { adapter } = await import("@/lib/data/adapter");
-  const { listInstances } = await import("@/lib/fixtures/record-instances");
-  const { CYCLE_STRIP_TYPE, cycleRecordToStep, sortCycleStripRecords } = await import(
-    "@/lib/public/cycle-strip"
-  );
-  const rows = adapter.listRecords
-    ? await adapter.listRecords({ type_api_name: CYCLE_STRIP_TYPE })
-    : listInstances({ type_api_name: CYCLE_STRIP_TYPE });
-  if (!rows.length) return enabledCycleSteps(settings);
-  return sortCycleStripRecords(rows)
-    .map(cycleRecordToStep)
-    .filter((s) => {
-      const showNumber = s.numberEnabled && s.number.trim();
-      const showTitle = s.titleEnabled && s.title.trim();
-      const showDesc = s.descEnabled && s.desc.trim();
-      return Boolean(showNumber || showTitle || showDesc);
-    });
+  return enabledCycleSteps(settings);
 }
 
 export async function listPublicIntegrations() {

@@ -98,13 +98,17 @@ export async function verifyCredentialsAsync(
   return verifyCredentials(email, password);
 }
 
-export function createSessionToken(user: User): string {
+export function createSessionToken(
+  user: User,
+  extra?: { mustChangePassword?: boolean },
+): string {
   const session: Session = {
     userId: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
     type: user.type,
+    mustChangePassword: extra?.mustChangePassword === true ? true : undefined,
   };
   return encodeSession(session);
 }

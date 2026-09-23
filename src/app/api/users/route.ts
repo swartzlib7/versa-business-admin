@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { adapter } from "@/lib/data";
 import { getSessionFromRequest, isAuthenticated, isAdmin } from "@/lib/auth";
 import type { CreateUserInput } from "@/lib/data/adapter";
+import { passwordProblem } from "@/lib/password-policy";
 
 export async function GET(request: Request) {
   const session = getSessionFromRequest(request);
@@ -51,6 +52,15 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json(
       { error: { code: "BAD_REQUEST", message: "Invalid JSON body." } },
+      { status: 400 },
+    );
+  }
+
+  const createdPassword = typeof body.password === "string" ? body.password : "";
+  const createdProblem = passwordProblem(createdPassword);
+  if (createdProblem) {
+    return NextResponse.json(
+      { error: { code: "VALIDATION_ERROR", message: createdProblem } },
       { status: 400 },
     );
   }

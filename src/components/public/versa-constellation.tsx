@@ -1343,12 +1343,11 @@ export function VersaConstellation({
       canvas.style.width = `${w}px`;
       canvas.style.height = `${h}px`;
       ctx.setTransform(dpr * zoomClamped, 0, 0, dpr * zoomClamped, 0, 0);
-      seedStars(vw, vh);
+      if (stars.length === 0) seedStars(vw, vh);
     };
-    // Mobile pull-down at the top fires a burst of resize events (browser
-    // chrome shifts) - each one used to reseed every star, which read as the
-    // constellation rapidly regenerating with stutter. Debounce so only the
-    // settled size reseeds; the canvas keeps drawing throughout.
+    // Size the canvas without reseeding. Menu / Glossary scroll used to fire
+    // visualViewport scroll → resize → a new star field. Only a full remount
+    // (hard refresh) seeds again.
     let resizeTimer = 0;
     const onResize = () => {
       window.clearTimeout(resizeTimer);
@@ -1357,7 +1356,6 @@ export function VersaConstellation({
     resize();
     window.addEventListener("resize", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
-    window.visualViewport?.addEventListener("scroll", onResize);
     const ro =
       preview && canvas.parentElement
         ? new ResizeObserver(onResize)
@@ -1903,7 +1901,6 @@ export function VersaConstellation({
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
       window.visualViewport?.removeEventListener("resize", onResize);
-      window.visualViewport?.removeEventListener("scroll", onResize);
       window.clearTimeout(resizeTimer);
       window.removeEventListener("pointermove", onMove);
       document.removeEventListener("visibilitychange", onVis);

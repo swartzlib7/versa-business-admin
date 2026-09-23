@@ -62,14 +62,15 @@ function writeSaved(href: string, time: number, pausedByUser: boolean) {
   }
 }
 
-function seekTo(el: HTMLAudioElement, time: number, loop: boolean) {
+function seekTo(el: HTMLAudioElement, time: number, loop: boolean): boolean {
+  if (!Number.isFinite(time) || time <= 0.3) return false;
+  if (el.readyState < 2 || el.seekable.length === 0) return false;
   const duration = el.duration;
-  if (!Number.isFinite(time) || time <= 0) return;
   if (Number.isFinite(duration) && duration > 0) {
     el.currentTime = loop ? time % duration : Math.min(time, Math.max(duration - 0.05, 0));
-    return;
+    return true;
   }
-  el.currentTime = time;
+  return false;
 }
 
 export function PublicBrandMusic() {
@@ -107,38 +108,45 @@ export function PublicBrandMusic() {
       writeSaved(href, el.currentTime, pausedByUserRef.current);
     };
 
-    const applySaved = () => {
-      if (audible) return;
-      if (el.currentTime > 0.25) return;
-      if (!saved) return;
-      seekTo(el, saved.t, loop);
-    };
-
     const disarmGesture = () => {
       window.removeEventListener("pointerdown", onGesture, true);
       window.removeEventListener("keydown", onGesture, true);
     };
 
-    const tryPlay = () => {
-      if (!wantedRef.current) return;
+    const resumeAt = !audible && saved && saved.t > 0.3 ? saved.t : 0;
+    let started = audible;
+    const readyToStart = () => {
+      if (el.readyState < 3) return false;
+      if (resumeAt <= 0.3) return true;
+      if (el.seekable.length === 0) return false;
+      return el.seekable.end(el.seekable.length - 1) >= resumeAt - 0.05;
+    };
+    const startAudible = () => {
+      if (started || !wantedRef.current || pausedByUserRef.current) return;
+      if (!el.paused && !el.muted) {
+        started = true;
+        setPlaying(true);
+        disarmGesture();
+        return;
+      }
+      if (!readyToStart()) return;
+      if (resumeAt > 0.3) {
+        const duration = el.duration;
+        el.currentTime =
+          Number.isFinite(duration) && duration > 0
+            ? loop
+              ? resumeAt % duration
+              : Math.min(resumeAt, Math.max(duration - 0.05, 0))
+            : resumeAt;
+      }
+      started = true;
       el.muted = false;
-      void el
-        .play()
-        .then(() => {
-          setPlaying(true);
-          disarmGesture();
-        })
-        .catch(() => {
-          el.muted = true;
-          void el
-            .play()
-            .then(() => {
-              /* running muted until the next click unmutes */
-            })
-            .catch(() => {
-              /* still waiting for a gesture */
-            });
-        });
+      void el.play().then(() => {
+        setPlaying(true);
+        disarmGesture();
+      }).catch(() => {
+        started = false;
+      });
     };
 
     function onGesture(e: Event) {
@@ -150,24 +158,9 @@ export function PublicBrandMusic() {
         disarmGesture();
         return;
       }
-      applySaved();
       wantedRef.current = true;
-      el.muted = false;
-      void el
-        .play()
-        .then(() => {
-          setPlaying(true);
-          disarmGesture();
-        })
-        .catch(() => {
-          /* keep listening */
-        });
+      startAudible();
     }
-
-    const onReady = () => {
-      applySaved();
-      tryPlay();
-    };
 
     const onPlay = () => {
       if (el.muted) return;
@@ -184,8 +177,8 @@ export function PublicBrandMusic() {
       writeSaved(href, el.currentTime, pausedByUserRef.current);
     };
 
-    el.addEventListener("loadedmetadata", onReady);
-    el.addEventListener("canplay", onReady);
+    el.addEventListener("canplaythrough", startAudible);
+    el.addEventListener("progress", startAudible);
     el.addEventListener("play", onPlay);
     el.addEventListener("pause", onPause);
     window.addEventListener("pagehide", onHide);
@@ -193,15 +186,14 @@ export function PublicBrandMusic() {
       window.addEventListener("pointerdown", onGesture, true);
       window.addEventListener("keydown", onGesture, true);
     }
-    if (el.readyState >= 1) onReady();
-    else tryPlay();
+    startAudible();
 
     const tick = window.setInterval(persist, 1000);
 
     return () => {
       window.clearInterval(tick);
-      el.removeEventListener("loadedmetadata", onReady);
-      el.removeEventListener("canplay", onReady);
+      el.removeEventListener("canplaythrough", startAudible);
+      el.removeEventListener("progress", startAudible);
       el.removeEventListener("play", onPlay);
       el.removeEventListener("pause", onPause);
       window.removeEventListener("pagehide", onHide);
@@ -218,6 +210,10 @@ export function PublicBrandMusic() {
       pausedByUserRef.current = false;
       wantedRef.current = true;
       el.muted = false;
+      const savedNow = readSaved(href);
+      if (savedNow && el.currentTime <= 0.25 && el.readyState >= 3) {
+        seekTo(el, savedNow.t, loop);
+      }
       void el.play().then(() => setPlaying(true));
       writeSaved(href, el.currentTime, false);
     } else {

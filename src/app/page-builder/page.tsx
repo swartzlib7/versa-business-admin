@@ -9,58 +9,50 @@ import { BrandingPanel, type BrandingSubTab } from "@/components/settings/brandi
 import { MenuItemsPanel } from "@/components/settings/menu-items-panel";
 import { PageBuilderPanel } from "@/components/settings/page-builder-panel";
 import { AppearancePanel } from "@/components/settings/appearance-panel";
+import { PublicSitePanel } from "@/components/settings/public-site-panel";
 import { PanelShell } from "@/components/settings/settings-chrome";
 import {
-  ELEMENTS_SUB_TABS,
   PageBuilderRecordTab,
   type ElementsSubKind,
 } from "@/components/settings/page-builder-record-tab";
-import { TwinSlotProvider, useTwinSlot } from "@/components/zones/twin-slot-context";
-import { SpatialTwinPane } from "@/components/zones/spatial-twin-pane";
-
-function CanvasTwinRail() {
-  const { preview } = useTwinSlot();
-  return (
-    <SpatialTwinPane
-      zoneId="page-builder"
-      hubZone="environment"
-      focusedNodeId={null}
-      onNodeClick={() => undefined}
-      preview={preview}
-    />
-  );
-}
-
-type PageBuilderTab =
-  | "canvas"
-  | "elements"
-  | "branding"
-  | "menu"
-  | "appearance"
-  | "sky";
+type PageBuilderTab = "appearance" | "branding" | "menu" | "canvas" | "sky";
+type CanvasSubKind = "configuration" | ElementsSubKind;
 
 const TABS: { id: PageBuilderTab; label: string }[] = [
-  { id: "canvas", label: "Canvas" },
-  { id: "elements", label: "Elements" },
+  { id: "appearance", label: "Appearance" },
   { id: "branding", label: "Branding" },
   { id: "menu", label: "Menu" },
-  { id: "appearance", label: "Appearance" },
+  { id: "canvas", label: "Canvas" },
   { id: "sky", label: "Sky Animation" },
 ];
 
-const TAB_IDS = TABS.map((t) => t.id);
-const BRANDING_SUBS = ["brand", "logo"] as const;
-const ELEMENT_SUB_IDS = ELEMENTS_SUB_TABS.map((t) => t.id);
+const CANVAS_SUB_TABS: { id: CanvasSubKind; label: string }[] = [
+  { id: "configuration", label: "Configuration" },
+  { id: "pairings", label: "Elements" },
+  { id: "render-drivers", label: "Rendering Drivers" },
+];
 
-function isElementsSub(value: string | null): value is ElementsSubKind {
-  return !!value && ELEMENT_SUB_IDS.includes(value as ElementsSubKind);
+const TAB_IDS = TABS.map((t) => t.id);
+const BRANDING_SUBS = ["brand", "logo", "cycle"] as const;
+const CANVAS_SUB_IDS = CANVAS_SUB_TABS.map((t) => t.id);
+
+function isCanvasSub(value: string | null): value is CanvasSubKind {
+  return !!value && CANVAS_SUB_IDS.includes(value as CanvasSubKind);
+}
+
+function canvasSubFromValue(value: string | null): CanvasSubKind {
+  if (value === "elements" || value === "pairings") return "pairings";
+  if (isCanvasSub(value)) return value;
+  return "configuration";
 }
 
 function tabFromSearch(): PageBuilderTab {
   if (typeof window === "undefined") return "canvas";
   const q = new URLSearchParams(window.location.search).get("tab");
-  if (q === "page-builder") return "canvas";
-  if (q === "html-pages" || q === "cycle-strip") return "elements";
+  if (q === "cycle-strip") return "branding";
+  if (q === "page-builder" || q === "elements" || q === "html-pages") {
+    return "canvas";
+  }
   if (q && TAB_IDS.includes(q as PageBuilderTab)) return q as PageBuilderTab;
   return "canvas";
 }
@@ -69,17 +61,21 @@ function subFromSearch(tab: PageBuilderTab): string {
   if (typeof window === "undefined") {
     if (tab === "branding") return "brand";
     if (tab === "menu") return "operator";
-    if (tab === "elements") return "pairings";
+    if (tab === "canvas") return "configuration";
     return "configuration";
   }
   const params = new URLSearchParams(window.location.search);
   const qTab = params.get("tab");
   const sub = params.get("sub");
-  if (tab === "elements") {
-    if (isElementsSub(sub)) return sub;
-    return "pairings";
+  if (tab === "canvas") {
+    if (qTab === "elements") return canvasSubFromValue(sub ?? "pairings");
+    if (qTab === "html-pages" || qTab === "cycle-strip") return "configuration";
+    return canvasSubFromValue(sub);
   }
-  if (tab === "branding" && sub && (BRANDING_SUBS as readonly string[]).includes(sub)) return sub;
+  if (tab === "branding") {
+    if (qTab === "cycle-strip") return "cycle";
+    if (sub && (BRANDING_SUBS as readonly string[]).includes(sub)) return sub;
+  }
   if (tab === "menu" && (sub === "operator" || sub === "public")) return sub;
   return tab === "branding" ? "brand" : tab === "menu" ? "operator" : "configuration";
 }
@@ -89,7 +85,7 @@ function writeSearch(tab: PageBuilderTab, sub: string) {
   url.searchParams.set("tab", tab);
   if (tab === "branding" && sub !== "brand") url.searchParams.set("sub", sub);
   else if (tab === "menu" && sub !== "operator") url.searchParams.set("sub", sub);
-  else if (tab === "elements") url.searchParams.set("sub", sub);
+  else if (tab === "canvas" && sub && sub !== "configuration") url.searchParams.set("sub", sub);
   else url.searchParams.delete("sub");
   const next = `${url.pathname}${url.search}`;
   if (next !== `${window.location.pathname}${window.location.search}`) {
@@ -103,6 +99,11 @@ export default function PageBuilderPage() {
   const [subTab, setSubTab] = useState<string>(() => subFromSearch(tabFromSearch()));
 
   useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("tab") === "ui-components" || q.get("sub") === "ui-components") {
+      window.location.replace("/glossary?tab=ui-components");
+      return;
+    }
     writeSearch(tab, subTab);
   }, [tab, subTab]);
 
@@ -120,7 +121,7 @@ export default function PageBuilderPage() {
             setTab(next);
             if (next === "branding") setSubTab("brand");
             else if (next === "menu") setSubTab("operator");
-            else if (next === "elements") setSubTab("pairings");
+            else if (next === "canvas") setSubTab("configuration");
             else setSubTab("configuration");
           }}
           tabsAriaLabel="Page Builder sections"
@@ -129,41 +130,23 @@ export default function PageBuilderPage() {
         {tab === "canvas" && (
           <div role="tabpanel" className="space-y-3">
             <SubTabBar
-              items={[{ id: "configuration", label: "Configuration" }]}
-              activeId="configuration"
-              accent={brand.brand_color}
-              onSelect={() => undefined}
-              ariaLabel="Canvas sub-sections"
-            />
-            <TwinSlotProvider>
-              <div className="flex flex-col items-start gap-3 lg:flex-row">
-                <div className="min-w-0 flex-1">
-                  <PanelShell
-                    summary="Drop an Element type onto a Cell, then configure the record and driver. The Element paints inside the Cell. Click a Cell to preview it in the Spatial Twin."
-                    badge="Canvas"
-                    fill
-                  >
-                    <PageBuilderPanel />
-                  </PanelShell>
-                </div>
-                <aside className="w-full shrink-0 lg:w-auto">
-                  <CanvasTwinRail />
-                </aside>
-              </div>
-            </TwinSlotProvider>
-          </div>
-        )}
-
-        {tab === "elements" && (
-          <div role="tabpanel" className="space-y-3">
-            <SubTabBar
-              items={ELEMENTS_SUB_TABS}
-              activeId={isElementsSub(subTab) ? subTab : "pairings"}
+              items={CANVAS_SUB_TABS}
+              activeId={canvasSubFromValue(subTab)}
               accent={brand.brand_color}
               onSelect={setSubTab}
-              ariaLabel="Element types"
+              ariaLabel="Canvas sub-sections"
             />
-            <PageBuilderRecordTab kind={isElementsSub(subTab) ? subTab : "pairings"} />
+            {canvasSubFromValue(subTab) === "configuration" ? (
+              <PanelShell
+                summary="Plus lists Element records. The Cell stores that Element and a Render output. Create Elements on Canvas → Elements."
+                badge="Canvas"
+                fill
+              >
+                <PageBuilderPanel />
+              </PanelShell>
+            ) : (
+              <PageBuilderRecordTab kind={canvasSubFromValue(subTab) as ElementsSubKind} />
+            )}
           </div>
         )}
 
@@ -173,20 +156,30 @@ export default function PageBuilderPage() {
               items={[
                 { id: "brand", label: "Brand" },
                 { id: "logo", label: "Logo" },
+                { id: "cycle", label: "Cycle Strip" },
               ]}
-              activeId={subTab}
+              activeId={subTab === "logo" || subTab === "cycle" ? subTab : "brand"}
               accent={brand.brand_color}
               onSelect={setSubTab}
               ariaLabel="Branding sub-sections"
             />
+            {subTab === "cycle" ? (
+              <PanelShell
+                summary="The six homepage steps beside the logo. Numbers, labels, and descriptions each have a toggle."
+                badge="Cycle Strip"
+              >
+                <PublicSitePanel />
+              </PanelShell>
+            ) : (
             <PanelShell
               summary="Customize how Versa - Business Admin appears. Name, color, and logo are saved permanently and survive a restart."
               badge="Brand"
             >
               <BrandingPanel
-                subTab={(["brand", "logo"].includes(subTab) ? subTab : "brand") as BrandingSubTab}
+                subTab={(subTab === "logo" ? "logo" : "brand") as BrandingSubTab}
               />
             </PanelShell>
+            )}
           </div>
         )}
 
@@ -238,6 +231,7 @@ export default function PageBuilderPage() {
             </PanelShell>
           </div>
         )}
+
       </div>
     </AppShell>
   );

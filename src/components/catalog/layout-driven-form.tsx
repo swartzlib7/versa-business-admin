@@ -7,6 +7,19 @@ import { BooleanSwitch } from "@/components/ui/boolean-switch";
 import { SecretValueField } from "@/components/ui/secret-value-field";
 import { UserLookupField } from "@/components/catalog/user-lookup-field";
 import { OrganizationLookupField } from "@/components/catalog/organization-lookup-field";
+import { RecordTypeLookupField } from "@/components/catalog/record-type-lookup-field";
+import { RenderDriverLookupField } from "@/components/catalog/render-driver-lookup-field";
+import { RecordInstanceLookupField } from "@/components/catalog/record-instance-lookup-field";
+import {
+  PairingFilterField,
+  PairingInputMapField,
+  RenderOptionField,
+  isSelectionFollowup,
+  pairingFieldVisible,
+  useDriverCatalog,
+  useStampPairingRecordType,
+} from "@/components/catalog/pairing-fields";
+import { pairingAllowsTypeLevel } from "@/lib/public/driver-pairings";
 import { ImageUrlField } from "@/components/catalog/image-url-field";
 import { FrequencyStartField } from "@/components/statistics/frequency-start-field";
 import { deriveFrequencyStart } from "@/lib/statistics/frequency";
@@ -38,6 +51,9 @@ function FieldInput({
     "w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
   const kind = field.kind ?? "text";
   const isChecked = value === "true" || value === "1";
+  const pairingEntry = useDriverCatalog(allValues?.driver_id);
+  if (field.key === "target_kind" || field.key === "record_mode") return null;
+  if (!pairingFieldVisible(field.key, pairingEntry, allValues)) return null;
 
   if (field.key === "body_format") return null;
   if (field.key === "body_html") {
@@ -76,6 +92,81 @@ function FieldInput({
         onChange={readOnly ? undefined : onChange}
         required={field.required}
         readOnly={readOnly}
+      />
+    );
+  }
+  if (field.lookupObjectApiName === "render_driver" || field.key === "driver_id") {
+    return (
+      <RenderDriverLookupField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        required={field.required}
+        readOnly={readOnly}
+        help={field.help}
+      />
+    );
+  }
+  if (field.key === "render_option") {
+    return (
+      <RenderOptionField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+        help={field.help}
+        driverRecordId={allValues?.driver_id}
+      />
+    );
+  }
+  if (field.key === "filter_json") {
+    return (
+      <PairingFilterField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+        help={field.help}
+        targetType={allValues?.target_record_type}
+      />
+    );
+  }
+  if (field.key === "input_map_json") {
+    return (
+      <PairingInputMapField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+        help={field.help}
+        driverRecordId={allValues?.driver_id}
+        targetType={allValues?.target_record_type}
+      />
+    );
+  }
+  if (field.key === "target_record_id" || field.lookupObjectApiName === "record") {
+    return (
+      <RecordInstanceLookupField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        required={field.required}
+        readOnly={readOnly}
+        help={field.help}
+        recordType={allValues?.target_record_type}
+        allowTypeLevel={pairingEntry ? pairingAllowsTypeLevel(pairingEntry.id) : false}
+      />
+    );
+  }
+  if (field.lookupObjectApiName === "record_type" || field.key === "compatible_record_type" || field.key === "target_record_type") {
+    return (
+      <RecordTypeLookupField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        required={field.required}
+        readOnly={readOnly}
+        help={field.help}
       />
     );
   }
@@ -220,6 +311,17 @@ export function LayoutDrivenForm({
   readOnly?: boolean;
   accent?: string;
 }) {
+  const stampsPairingType = sections.some((sec) =>
+    sec.fields.some((f) => f.key === "driver_id" || f.key === "target_record_type"),
+  );
+  useStampPairingRecordType(
+    stampsPairingType ? values.driver_id : undefined,
+    values.target_record_type,
+    (type, previous) => {
+      onChange?.("target_record_type", type);
+      if (previous && previous !== type) onChange?.("target_record_id", "");
+    },
+  );
   return (
     <div className="space-y-6">
       {sections.map((sec) => (
@@ -237,8 +339,44 @@ export function LayoutDrivenForm({
           </h3>
           <div className={sectionGridClass(normalizeLayoutColumns(sec.columns))}>
             {sec.fields.map((f) => {
-              if (f.key === "body_format") return null;
+              if (f.key === "body_format" || isSelectionFollowup(f.key)) return null;
               const columns = normalizeLayoutColumns(sec.columns);
+              if (f.key === "selection_mode") {
+                const extras = sec.fields.filter((row) => isSelectionFollowup(row.key));
+                return (
+                  <div key={f.key} className={fieldSpanClass(columns, columns)}>
+                    <div className="space-y-3">
+                      <FieldInput
+                        field={f}
+                        value={values[f.key] ?? ""}
+                        onChange={
+                          readOnly || isAuditField(f.key) || f.readOnly
+                            ? undefined
+                            : (v) => onChange?.(f.key, v)
+                        }
+                        readOnly={readOnly || isAuditField(f.key) || Boolean(f.readOnly)}
+                        allValues={values}
+                        onFieldChange={readOnly ? undefined : onChange}
+                      />
+                      {extras.map((extra) => (
+                        <FieldInput
+                          key={extra.key}
+                          field={extra}
+                          value={values[extra.key] ?? ""}
+                          onChange={
+                            readOnly || isAuditField(extra.key) || extra.readOnly
+                              ? undefined
+                              : (v) => onChange?.(extra.key, v)
+                          }
+                          readOnly={readOnly || isAuditField(extra.key) || Boolean(extra.readOnly)}
+                          allValues={values}
+                          onFieldChange={readOnly ? undefined : onChange}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
               const span =
                 f.span && f.span > 1
                   ? f.span
@@ -263,11 +401,11 @@ export function LayoutDrivenForm({
                     field={f}
                     value={values[f.key] ?? ""}
                     onChange={
-                      readOnly || isAuditField(f.key)
+                      readOnly || isAuditField(f.key) || f.readOnly
                         ? undefined
                         : (v) => onChange?.(f.key, v)
                     }
-                    readOnly={readOnly || isAuditField(f.key)}
+                    readOnly={readOnly || isAuditField(f.key) || Boolean(f.readOnly)}
                     allValues={values}
                     onFieldChange={readOnly ? undefined : onChange}
                   />
