@@ -3,7 +3,6 @@ import { PublicLayout } from "@/components/public/public-layout";
 import { PublicMaintenance } from "@/components/public/public-maintenance";
 import { PublicSection } from "@/components/public/public-section";
 import { getPublicSiteSettings } from "@/lib/fixtures/site-settings";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { adapter } from "@/lib/data";
 import {
@@ -19,7 +18,8 @@ import {
   homepageVisibleSectionIds,
 } from "@/lib/nav";
 import {
-  canvasFrameStyle,
+  canvasMetricVars,
+  rowWidthVars,
   canvasIsDisabled,
   ensureRowCells,
   homepageBuilderSectionOrder,
@@ -28,7 +28,6 @@ import {
   normalizePageBuilder,
   rowHeightCss,
   sectionColumnsClass,
-  sectionWidthClass,
   visibleCells,
 } from "@/lib/public/page-builder";
 import { resolveCellPaints } from "@/lib/public/resolve-cell-paint";
@@ -62,11 +61,14 @@ export default async function HomePage() {
   const firstSection = sectionIds[0];
   const heroOn = builder.home_hero_enabled !== false;
   const homeDisabled = canvasIsDisabled(builder.home_width_pct);
-  const homeFrame = canvasFrameStyle(
-    builder.home_width_pct,
-    builder.home_margin,
-    builder.home_margin_unit,
-  );
+  const homeFrame = canvasMetricVars({
+    widthPct: builder.home_width_pct,
+    margin: builder.home_margin,
+    marginUnit: builder.home_margin_unit,
+    mobileWidthPct: builder.home_mobile_width_pct,
+    mobileMargin: builder.home_mobile_margin,
+    mobileMarginUnit: builder.home_mobile_margin_unit,
+  });
   const homeCells = sectionIds.flatMap((id) => {
     const slot = homeById.get(id);
     if (!slot) return [];
@@ -108,12 +110,11 @@ export default async function HomePage() {
   return (
     <PublicLayout business={business} demo={demo}>
       {homeDisabled ? null : (
-      <div style={homeFrame.inner}>
+      <div className="pb-canvas-inner" style={homeFrame}>
       {heroOn ? (
       <PublicSection id="top" nextId={firstSection} className="bg-transparent">
         <div
-          className="mx-auto flex h-full w-full max-w-7xl items-center px-4 sm:px-6 lg:px-8"
-          style={{ padding: homeFrame.pad.padding, paddingTop: `max(${homeFrame.pad.padding}, 4rem)` }}
+          className="pb-section-pad mx-auto flex h-full w-full max-w-7xl items-center"
         >
           <div className="mx-auto flex w-full max-w-5xl flex-col items-center text-center">
             {site.brand_logo_url ? (
@@ -141,13 +142,6 @@ export default async function HomePage() {
               {pub.hero_headline}
             </h1>
             <p className="mt-3 text-sm text-muted-foreground sm:text-base">{pub.hero_subhead}</p>
-            {sectionIds.includes("contacts") ? (
-              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <a href="#contacts" className={cn(buttonVariants({ variant: "outline", size: "lg" }))}>
-                  Contacts
-                </a>
-              </div>
-            ) : null}
             {cycle.length > 0 ? (
               <div className="mt-12 w-full">
                 <CycleStrip steps={cycle} />
@@ -171,10 +165,9 @@ export default async function HomePage() {
               className="bg-transparent"
             >
               <div
-                className="mx-auto flex h-full w-full items-center px-4 sm:px-6 lg:px-8"
-                style={{ padding: homeFrame.pad.padding, paddingTop: `max(${homeFrame.pad.padding}, 4rem)` }}
+                className="pb-section-pad mx-auto flex h-full w-full items-center"
               >
-                <div className={cn(sectionWidthClass(slot.width_pct), "min-w-0")}>
+                <div className="pb-row-width min-w-0" style={rowWidthVars(slot.width_pct, slot.mobile_width_pct)}>
                   <div
                     className={cn("min-h-0", sectionColumnsClass(slot.columns))}
                     style={{ height: rowHeightCss(row) }}
@@ -196,6 +189,10 @@ export default async function HomePage() {
                             html={paint.html}
                             pageCard={paint.pageCard}
                             contact={paint.contact}
+                            integration={paint.integration}
+                            schedule={paint.schedule}
+                            inspection={paint.inspection}
+                            project={paint.project}
                             renderOutput={paint.renderOutput}
                             pager={cell.showPager !== false}
                             pageNumber={cell.pageNumber ?? 1}

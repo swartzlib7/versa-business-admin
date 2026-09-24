@@ -7,14 +7,14 @@ import { adapter } from "@/lib/data";
 import { loadCycleSteps, normalizePublicContent } from "@/lib/public/site-content";
 import {
   canvasForSlug,
-  canvasFrameStyle,
+  canvasMetricVars,
+  rowWidthVars,
   ensureRowCells,
   isCellOn,
   isRowOn,
   normalizePageBuilder,
   rowHeightCss,
   sectionColumnsClass,
-  sectionWidthClass,
   visibleCells,
 } from "@/lib/public/page-builder";
 import { CanvasSlotDriver } from "@/components/public/canvas-slot-drivers";
@@ -33,7 +33,14 @@ export default async function CustomCanvasPage({
   // PB-06: resolve ANY enabled custom canvas by slug (not just the first).
   const canvas = canvasForSlug(builder, slug);
   if (!canvas) notFound();
-  const frame = canvasFrameStyle(canvas.width_pct, canvas.margin, canvas.margin_unit);
+  const frame = canvasMetricVars({
+    widthPct: canvas.width_pct,
+    margin: canvas.margin,
+    marginUnit: canvas.margin_unit,
+    mobileWidthPct: canvas.mobile_width_pct,
+    mobileMargin: canvas.mobile_margin,
+    mobileMarginUnit: canvas.mobile_margin_unit,
+  });
 
   const pub = normalizePublicContent(site);
   const cycleSteps = await loadCycleSteps(site);
@@ -68,17 +75,16 @@ export default async function CustomCanvasPage({
 
   return (
     <PublicLayout business={business} demo={site.demo_mode !== false}>
-      <div style={frame.inner}>
+      <div className="pb-canvas-inner" style={frame}>
       {canvas.sections.filter(isRowOn).map((section, index, rows) => {
         const next = rows[index + 1];
         const cells = visibleCells(ensureRowCells(section));
         return (
           <PublicSection key={section.id} id={section.id} nextId={next?.id}>
               <div
-                className="mx-auto flex h-full w-full items-center px-4 sm:px-6 lg:px-8"
-                style={{ padding: frame.pad.padding, paddingTop: `max(${frame.pad.padding}, 4rem)` }}
+                className="pb-section-pad mx-auto flex h-full w-full items-center"
               >
-                <div className={cn(sectionWidthClass(section.width_pct), "min-w-0")}>
+                <div className="pb-row-width min-w-0" style={rowWidthVars(section.width_pct, section.mobile_width_pct)}>
                 <div
                   className={cn("min-h-0", sectionColumnsClass(section.columns))}
                   style={{ height: rowHeightCss(section) }}
@@ -100,6 +106,10 @@ export default async function CustomCanvasPage({
                           html={paint.html}
                           pageCard={paint.pageCard}
                           contact={paint.contact}
+                          integration={paint.integration}
+                          schedule={paint.schedule}
+                          inspection={paint.inspection}
+                          project={paint.project}
                           renderOutput={paint.renderOutput}
                           pager={cell.showPager !== false}
                           pageNumber={cell.pageNumber ?? 1}

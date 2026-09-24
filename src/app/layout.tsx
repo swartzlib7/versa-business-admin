@@ -59,7 +59,7 @@ export async function generateMetadata(): Promise<Metadata> {
 // never baked into a static prerender at build time.
 export const dynamic = "force-dynamic";
 
-const themeInitScript = `(function(){try{var path=location.pathname;var isPublic=path==='/'||path===''||path==='/terms'||path==='/board'||path==='/p'||path.indexOf('/p/')===0;var t=localStorage.getItem(isPublic?'versa-public-ui-theme':'versa-ui-theme')||localStorage.getItem('versa-ui-theme');if(isPublic){if(t!=='slate'&&t!=='dark'&&t!=='architect')t='dark';}else if(t!=='light'&&t!=='dusk'&&t!=='dark'&&t!=='architect'&&t!=='slate')t='dark';var r=document.documentElement;r.classList.remove('dark','architect','slate','dusk');if(t==='dark')r.classList.add('dark');if(t==='architect')r.classList.add('architect');if(t==='slate')r.classList.add('slate');if(t==='dusk')r.classList.add('dusk');r.dataset.theme=t;}catch(e){}})();`;
+const themeInitScript = `(function(){try{var path=location.pathname;var isPublic=path==='/'||path===''||path==='/terms'||path==='/board'||path==='/p'||path.indexOf('/p/')===0;var t=localStorage.getItem(isPublic?'versa-public-ui-theme':'versa-ui-theme')||localStorage.getItem('versa-ui-theme');if(isPublic){if(t!=='slate'&&t!=='dark'&&t!=='architect')t='dark';}else if(t!=='light'&&t!=='dusk'&&t!=='dark'&&t!=='architect'&&t!=='slate')t='dark';var r=document.documentElement;r.classList.remove('dark','architect','slate','dusk');if(t==='dark')r.classList.add('dark');if(t==='architect')r.classList.add('architect');if(t==='slate')r.classList.add('slate');if(t==='dusk')r.classList.add('dusk');r.dataset.theme=t;if(localStorage.getItem('ba.sidebarCollapsed')==='1')r.classList.add('sidebar-collapsed');}catch(e){}})();`;
 
 type LoadedSite = {
   brand_name: string;

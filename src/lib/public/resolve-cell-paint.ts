@@ -8,6 +8,16 @@ import { statRowsToGraphPoints } from "@/lib/statistics/model";
 import { resolvePublicContactFromRecord } from "@/lib/public/resolve-contacts";
 import type { PublicContactCard } from "@/lib/public/resolve-contact-card";
 import { pageRecordCardFrom, type PageRecordCard } from "@/lib/public/page-record-card";
+import {
+  inspectionPaint,
+  integrationPaint,
+  projectPaint,
+  scheduleBoard,
+  type InspectionPaint,
+  type IntegrationPaint,
+  type ProjectPaint,
+  type SchedulePaint,
+} from "@/lib/public/board-paint";
 
 export type ResolvedCellPaint = {
   driver?: string;
@@ -18,6 +28,10 @@ export type ResolvedCellPaint = {
   pageCard?: PageRecordCard | null;
   stat?: CanvasSlotStat | null;
   contact?: PublicContactCard;
+  integration?: IntegrationPaint;
+  schedule?: SchedulePaint;
+  inspection?: InspectionPaint;
+  project?: ProjectPaint;
 };
 
 function codeKeyFromDriverId(driverId: string): string {
@@ -72,6 +86,40 @@ export async function resolveCellPaint(cell: PageBuilderCell): Promise<ResolvedC
     } else {
       out.stat = null;
     }
+  }
+
+  if (kind === "integration-table" && adapter.listRecords) {
+    const recs = await adapter.listRecords({ type_api_name: "vendor_integration" }).catch(() => []);
+    const chosen = fields.selection_mode === "one" && targetId ? recs.filter((row) => row.id === targetId) : recs;
+    const vendorById = new Map<string, { name: string; logoUrl: string }>();
+    if (adapter.getOrganization) {
+      for (const rec of chosen) {
+        const vendorId = String(rec.data?.organization_id ?? "");
+        if (!vendorId || vendorById.has(vendorId)) continue;
+        const org = await adapter.getOrganization(vendorId).catch(() => null);
+        if (org) vendorById.set(vendorId, { name: org.name, logoUrl: String(org.data?.logo_url ?? "") });
+      }
+    }
+    out.integration = integrationPaint(chosen, vendorById);
+  }
+
+  if (kind === "schedule-board" && adapter.listRecords) {
+    const recs = await adapter.listRecords({ type_api_name: "schedule" }).catch(() => []);
+    const chosen = fields.selection_mode === "one" && targetId ? recs.filter((row) => row.id === targetId) : recs;
+    out.schedule = scheduleBoard(chosen);
+  }
+
+  if (kind === "inspection-tickets" && adapter.listRecords) {
+    const recs = await adapter.listRecords({ type_api_name: "inspection_report" }).catch(() => []);
+    const chosen = fields.selection_mode === "one" && targetId ? recs.filter((row) => row.id === targetId) : recs;
+    out.inspection = inspectionPaint(chosen);
+  }
+
+  if ((kind === "project-table" || kind === "project-cards") && adapter.listRecords) {
+    const projects = await adapter.listRecords({ type_api_name: "executive_project" }).catch(() => []);
+    const chosen = fields.selection_mode === "one" && targetId ? projects.filter((row) => row.id === targetId) : projects;
+    const tasks = await adapter.listRecords({ type_api_name: "executive_task" }).catch(() => []);
+    out.project = projectPaint(chosen, tasks);
   }
 
   if ((kind === "location-card" || kind === "contacts-cards") && targetId) {

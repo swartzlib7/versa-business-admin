@@ -98,16 +98,7 @@ export default function TasksPage() {
       meta?.kind === "select" && raw
         ? resolvePicklistLabel(meta, raw)
         : raw;
-    if (key === "title" && row.id) {
-      return (
-        <Link
-          href={`/tasks/${row.id}`}
-          className="font-medium text-foreground underline-offset-4 hover:underline"
-        >
-          {text || "—"}
-        </Link>
-      );
-    }
+    if (key === "title") return text || "—";
     return text;
   };
 

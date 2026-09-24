@@ -5,6 +5,12 @@ import { contactCardFromSeed } from "@/lib/public/resolve-contact-card";
 import { paintKind } from "@/lib/public/render-drivers";
 import type { RecordInstance } from "@/lib/fixtures/record-instances";
 import { pageRecordCardFrom } from "@/lib/public/page-record-card";
+import {
+  inspectionPaint,
+  integrationPaint,
+  projectPaint,
+  scheduleBoard,
+} from "@/lib/public/board-paint";
 
 function asData(raw: Record<string, unknown> | undefined): Record<string, string> {
   const out: Record<string, string> = {};
@@ -119,6 +125,47 @@ export async function loadPairingTwinPreview(args: {
       renderOutput: renderOption === "location-map" ? "location-map" : "location-card",
       contact: contactCardFromSeed(typed, org),
     };
+  }
+  if (
+    kind === "integration-table" ||
+    kind === "schedule-board" ||
+    kind === "inspection-tickets" ||
+    kind === "project-table" ||
+    kind === "project-cards"
+  ) {
+    const base = {
+      kind: "canvas-driver" as const,
+      driver: codeKey || kind,
+      label: name,
+      renderOutput: renderOption,
+    };
+    const one = targetId && targetId !== "*";
+    if (kind === "schedule-board") {
+      const list = await fetch("/api/records?type=schedule", { credentials: "include", signal: args.signal });
+      const rows = list.ok ? ((await list.json()) as { data?: RecordInstance[] }).data ?? [] : [];
+      return { ...base, schedule: scheduleBoard(one ? rows.filter((row) => row.id === targetId) : rows) };
+    }
+    if (kind === "integration-table") {
+      const list = await fetch("/api/records?type=vendor_integration", { credentials: "include", signal: args.signal });
+      const rows = list.ok ? ((await list.json()) as { data?: RecordInstance[] }).data ?? [] : [];
+      const chosen = one ? rows.filter((row) => row.id === targetId) : rows;
+      const orgRes = await fetch("/api/organizations", { credentials: "include", signal: args.signal });
+      const orgJson = orgRes.ok ? ((await orgRes.json()) as { data?: Organization[] }) : {};
+      const vendorById = new Map(
+        (orgJson.data ?? []).map((org) => [org.id, { name: org.name, logoUrl: String(org.data?.logo_url ?? "") }] as const),
+      );
+      return { ...base, integration: integrationPaint(chosen, vendorById) };
+    }
+    if (kind === "inspection-tickets") {
+      const list = await fetch("/api/records?type=inspection_report", { credentials: "include", signal: args.signal });
+      const rows = list.ok ? ((await list.json()) as { data?: RecordInstance[] }).data ?? [] : [];
+      return { ...base, inspection: inspectionPaint(one ? rows.filter((row) => row.id === targetId) : rows) };
+    }
+    const projectsRes = await fetch("/api/records?type=executive_project", { credentials: "include", signal: args.signal });
+    const projects = projectsRes.ok ? ((await projectsRes.json()) as { data?: RecordInstance[] }).data ?? [] : [];
+    const tasksRes = await fetch("/api/records?type=executive_task", { credentials: "include", signal: args.signal });
+    const tasks = tasksRes.ok ? ((await tasksRes.json()) as { data?: RecordInstance[] }).data ?? [] : [];
+    return { ...base, project: projectPaint(one ? projects.filter((row) => row.id === targetId) : projects, tasks) };
   }
   return {
     kind: "canvas-driver",

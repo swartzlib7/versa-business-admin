@@ -13,7 +13,7 @@ import {
   HOME_SECTION_LABELS,
   MAX_CANVASES,
   blankCanvas,
-  canvasFrameStyle,
+  canvasMetricVars,
   canvasIsDisabled,
   clampCanvasWidth,
   clampRowHeight,
@@ -21,6 +21,8 @@ import {
   clampSectionWidth,
   DEFAULT_CANVAS_WIDTH_PCT,
   DEFAULT_HOME_WIDTH_PCT,
+  DEFAULT_MOBILE_CANVAS_MARGIN,
+  DEFAULT_MOBILE_CANVAS_WIDTH_PCT,
   blankHomeSection,
   defaultHomeSections,
   ensureRowCells,
@@ -126,6 +128,10 @@ function CellPaint({
         html={paint.html}
         pageCard={paint.pageCard}
         contact={paint.contact}
+        integration={paint.integration}
+        schedule={paint.schedule}
+        inspection={paint.inspection}
+        project={paint.project}
         renderOutput={paint.renderOutput}
         pager={cell.showPager !== false}
         pageNumber={cell.pageNumber ?? 1}
@@ -164,6 +170,9 @@ export function PageBuilderPanel() {
   const [homeWidth, setHomeWidth] = useState(DEFAULT_HOME_WIDTH_PCT);
   const [homeMargin, setHomeMargin] = useState(0);
   const [homeMarginUnit, setHomeMarginUnit] = useState<CanvasMarginUnit>("px");
+  const [homeMobileWidth, setHomeMobileWidth] = useState(DEFAULT_MOBILE_CANVAS_WIDTH_PCT);
+  const [homeMobileMargin, setHomeMobileMargin] = useState(DEFAULT_MOBILE_CANVAS_MARGIN);
+  const [homeMobileMarginUnit, setHomeMobileMarginUnit] = useState<CanvasMarginUnit>("px");
   const [homeColumns, setHomeColumns] = useState(1);
   const [homeLabel, setHomeLabel] = useState(DEFAULT_HOME_LABEL);
   const [cellFocus, setCellFocus] = useState<Record<string, number>>({});
@@ -198,6 +207,9 @@ export function PageBuilderPanel() {
         setHomeWidth(pb.home_width_pct ?? DEFAULT_HOME_WIDTH_PCT);
         setHomeMargin(pb.home_margin ?? 0);
         setHomeMarginUnit(pb.home_margin_unit ?? "px");
+        setHomeMobileWidth(pb.home_mobile_width_pct ?? DEFAULT_MOBILE_CANVAS_WIDTH_PCT);
+        setHomeMobileMargin(pb.home_mobile_margin ?? DEFAULT_MOBILE_CANVAS_MARGIN);
+        setHomeMobileMarginUnit(pb.home_mobile_margin_unit ?? "px");
         setHomeColumns(clampSectionColumns(pb.home_columns ?? 1));
         setHomeLabel(pb.home_label ?? DEFAULT_HOME_LABEL);
         setLoaded(true);
@@ -249,6 +261,9 @@ export function PageBuilderPanel() {
             home_width_pct: homeWidth,
             home_margin: homeMargin,
             home_margin_unit: homeMarginUnit,
+            home_mobile_width_pct: homeMobileWidth,
+            home_mobile_margin: homeMobileMargin,
+            home_mobile_margin_unit: homeMobileMarginUnit,
             home_columns: homeColumns,
             home_label: normalizeHomeLabel(homeLabel),
           },
@@ -264,6 +279,9 @@ export function PageBuilderPanel() {
       setHomeWidth(pb.home_width_pct ?? DEFAULT_HOME_WIDTH_PCT);
       setHomeMargin(pb.home_margin ?? 0);
       setHomeMarginUnit(pb.home_margin_unit ?? "px");
+      setHomeMobileWidth(pb.home_mobile_width_pct ?? DEFAULT_MOBILE_CANVAS_WIDTH_PCT);
+      setHomeMobileMargin(pb.home_mobile_margin ?? DEFAULT_MOBILE_CANVAS_MARGIN);
+      setHomeMobileMarginUnit(pb.home_mobile_margin_unit ?? "px");
       setHomeColumns(clampSectionColumns(pb.home_columns ?? homeColumns));
       setHomeLabel(pb.home_label ?? DEFAULT_HOME_LABEL);
       setSaved(true);
@@ -791,6 +809,7 @@ export function PageBuilderPanel() {
             </Button>
           </div>
           <CanvasSizeControls
+            surface="Desktop"
             width={homeWidth}
             margin={homeMargin}
             marginUnit={homeMarginUnit}
@@ -798,16 +817,32 @@ export function PageBuilderPanel() {
             onMargin={setHomeMargin}
             onMarginUnit={setHomeMarginUnit}
           />
+          <CanvasSizeControls
+            surface="Mobile"
+            width={homeMobileWidth}
+            margin={homeMobileMargin}
+            marginUnit={homeMobileMarginUnit}
+            onWidth={setHomeMobileWidth}
+            onMargin={setHomeMobileMargin}
+            onMarginUnit={setHomeMobileMarginUnit}
+          />
           {canvasIsDisabled(homeWidth) ? (
             <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
               Width is 0% — the primary canvas is disabled on the visitor homepage.
             </p>
           ) : null}
           <div
-            className="space-y-3 rounded-lg border-2 border-dashed border-primary/35 bg-primary/[0.03] p-2"
-            style={canvasFrameStyle(homeWidth, homeMargin, homeMarginUnit).pad}
+            className="pb-section-pad space-y-3 rounded-lg border-2 border-dashed border-primary/35 bg-primary/[0.03]"
+            style={canvasMetricVars({
+              widthPct: homeWidth,
+              margin: homeMargin,
+              marginUnit: homeMarginUnit,
+              mobileWidthPct: homeMobileWidth,
+              mobileMargin: homeMobileMargin,
+              mobileMarginUnit: homeMobileMarginUnit,
+            })}
           >
-            <div className="space-y-3" data-pb-row-list="home" style={canvasFrameStyle(homeWidth, homeMargin, homeMarginUnit).inner}>
+            <div className="pb-canvas-inner space-y-3" data-pb-row-list="home">
             <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded border border-dashed border-primary/40 bg-background px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -927,8 +962,16 @@ export function PageBuilderPanel() {
                     />
                     <SectionWidthSlider
                       compact
+                      label="Desktop"
                       value={slot.width_pct}
                       onChange={(pct) => patchHomeSection(id, { width_pct: pct })}
+                    />
+                    <SectionWidthSlider
+                      compact
+                      label="Mobile"
+                      mobile
+                      value={slot.mobile_width_pct}
+                      onChange={(pct) => patchHomeSection(id, { mobile_width_pct: pct })}
                     />
                     <span
                       className="ml-auto inline-flex items-center gap-1"
@@ -1190,6 +1233,7 @@ export function PageBuilderPanel() {
           </Button>
         </div>
         <CanvasSizeControls
+          surface="Desktop"
           width={editCanvas.width_pct}
           margin={editCanvas.margin}
           marginUnit={editCanvas.margin_unit}
@@ -1203,6 +1247,15 @@ export function PageBuilderPanel() {
           onMargin={(value) => commitEdit({ ...editCanvas, margin: value })}
           onMarginUnit={(unit) => commitEdit({ ...editCanvas, margin_unit: unit })}
         />
+        <CanvasSizeControls
+          surface="Mobile"
+          width={editCanvas.mobile_width_pct}
+          margin={editCanvas.mobile_margin}
+          marginUnit={editCanvas.mobile_margin_unit}
+          onWidth={(pct) => commitEdit({ ...editCanvas, mobile_width_pct: pct })}
+          onMargin={(value) => commitEdit({ ...editCanvas, mobile_margin: value })}
+          onMarginUnit={(unit) => commitEdit({ ...editCanvas, mobile_margin_unit: unit })}
+        />
         {canvasIsDisabled(editCanvas.width_pct, editCanvas.enabled) ? (
           <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
             This canvas is off — visitors will not see /p/{editCanvas.slug || "overview"}.
@@ -1210,14 +1263,17 @@ export function PageBuilderPanel() {
         ) : null}
         <div className="space-y-3">
           <div
-            className="space-y-3 rounded-lg border-2 border-dashed border-primary/35 bg-primary/[0.03] p-2"
-            style={canvasFrameStyle(editCanvas.width_pct, editCanvas.margin, editCanvas.margin_unit).pad}
+            className="pb-section-pad space-y-3 rounded-lg border-2 border-dashed border-primary/35 bg-primary/[0.03]"
+            style={canvasMetricVars({
+              widthPct: editCanvas.width_pct,
+              margin: editCanvas.margin,
+              marginUnit: editCanvas.margin_unit,
+              mobileWidthPct: editCanvas.mobile_width_pct,
+              mobileMargin: editCanvas.mobile_margin,
+              mobileMarginUnit: editCanvas.mobile_margin_unit,
+            })}
           >
-            <div
-              className="space-y-3"
-              data-pb-row-list="custom"
-              style={canvasFrameStyle(editCanvas.width_pct, editCanvas.margin, editCanvas.margin_unit).inner}
-            >
+            <div className="pb-canvas-inner space-y-3" data-pb-row-list="custom">
           {editCanvas.sections.map((row, index) => {
             const blank = isBlankSlotLabel(row.label);
             const isDrop = dropIndex === index && dragIndex !== null && dragIndex !== index;
@@ -1328,8 +1384,16 @@ export function PageBuilderPanel() {
                     />
                     <SectionWidthSlider
                       compact
+                      label="Desktop"
                       value={row.width_pct}
                       onChange={(pct) => setSection(index, { width_pct: pct })}
+                    />
+                    <SectionWidthSlider
+                      compact
+                      label="Mobile"
+                      mobile
+                      value={row.mobile_width_pct}
+                      onChange={(pct) => setSection(index, { mobile_width_pct: pct })}
                     />
                     <span
                       className="ml-auto inline-flex items-center gap-1"
@@ -1504,13 +1568,17 @@ export function PageBuilderPanel() {
             </Button>
           </div>
           <div
-            className="space-y-3 rounded-lg border-2 border-dashed border-primary/35 bg-primary/[0.03] p-2"
-            style={canvasFrameStyle(editCanvas.width_pct, editCanvas.margin, editCanvas.margin_unit).pad}
+            className="pb-section-pad space-y-3 rounded-lg border-2 border-dashed border-primary/35 bg-primary/[0.03]"
+            style={canvasMetricVars({
+              widthPct: editCanvas.width_pct,
+              margin: editCanvas.margin,
+              marginUnit: editCanvas.margin_unit,
+              mobileWidthPct: editCanvas.mobile_width_pct,
+              mobileMargin: editCanvas.mobile_margin,
+              mobileMarginUnit: editCanvas.mobile_margin_unit,
+            })}
           >
-            <div
-              className="space-y-3"
-              style={canvasFrameStyle(editCanvas.width_pct, editCanvas.margin, editCanvas.margin_unit).inner}
-            >
+            <div className="pb-canvas-inner space-y-3">
             {custom.sections.filter(isRowOn).map((row) => (
               <div key={`preview-${row.id}`} className="rounded-md border-2 border-primary/30 bg-background p-4">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">{custom.label}</p>

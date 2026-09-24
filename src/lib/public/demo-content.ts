@@ -151,7 +151,7 @@ export async function composeHomeContent(
           id,
           source: fromRecords ? "record" : "fixture-gap",
           title: homeRowLabel(homeRows, id, "Inspections & Reports"),
-          subtitle: "Organization → Communications — each header is a support type; lines are request tickets.",
+          subtitle: "Inspections and reports.",
           sample: demo && !fromRecords,
           cards: fromRecords
             ? reports.map((r) => ({

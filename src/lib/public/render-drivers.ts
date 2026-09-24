@@ -96,14 +96,31 @@ export const DRIVER_RENDER_CATALOG: Record<string, DriverCatalogEntry> = {
     supportsPagination: true,
     description: "Statistics header and its lines, paged in the same grid as the Spatial Twin.",
   }),
-  "inspection-header": entry("inspection-header", "Inspections header", "header", "inspection_report", [
-    { id: "record-card", label: "Record card" },
-    { id: "header-card", label: "Header card" },
-    { id: "header-line-stats", label: "Header line stats" },
+  "inspection-header": entry("inspection-header", "Inspections & Reports", "header", "inspection_report", [
+    { id: "tickets", label: "Table" },
   ], {
-    elementModes: ["one", "filter"],
+    elementModes: ["one", "all"],
     inputs: CARD_INPUTS,
-    description: "Header paint for Inspections & Reports.",
+    description: "Inspections and reports as a table.",
+  }),
+  "integration-header": entry("integration-header", "Integration", "header", "vendor_integration", [
+    { id: "table", label: "Table" },
+  ], {
+    elementModes: ["one", "all"],
+    description: "Integrations in a table with the vendor and its logo.",
+  }),
+  "schedule-header": entry("schedule-header", "Schedule", "header", "schedule", [
+    { id: "board", label: "Board" },
+  ], {
+    elementModes: ["one", "all"],
+    description: "A calendar board of planned points on the frequency spectrum.",
+  }),
+  "project-header": entry("project-header", "Project", "header", "executive_project", [
+    { id: "table", label: "Table" },
+    { id: "cards", label: "Cards" },
+  ], {
+    elementModes: ["one", "all"],
+    description: "Projects as a table with task counts, or as cards that open the tasks.",
   }),
   "inspection-lines": entry("inspection-lines", "Inspections lines", "lines_list", "inspection_report", [
     { id: "lines-list", label: "Lines list" },
@@ -111,7 +128,7 @@ export const DRIVER_RENDER_CATALOG: Record<string, DriverCatalogEntry> = {
     elementModes: ["one", "filter", "all"],
     inputs: [{ name: "lines", kind: "record_list", required: true }],
     supportsPagination: true,
-    description: "Iterate inspection ticket lines.",
+    description: "Lines list for an Inspections & Reports record.",
   }),
   "inspection-line": entry("inspection-line", "Inspections line", "line_single", "inspection_report", [
     { id: "line-card", label: "Line card" },
@@ -141,6 +158,10 @@ export const PAIRABLE_DRIVER_IDS = [
   "page-header",
   "statistics-header",
   "location-header",
+  "integration-header",
+  "schedule-header",
+  "inspection-header",
+  "project-header",
 ] as const;
 
 export type FoldedDriverRef = { id: string; output?: string; recordType?: string };
@@ -216,6 +237,10 @@ export function paintKind(codeKey: string | undefined, renderOutput?: string): s
   if (folded.id === "page-header") return out === "record-card" ? "record-card" : "html-block";
   if (folded.id === "statistics-header") return "stat-graph";
   if (folded.id === "location-header") return "location-card";
+  if (folded.id === "integration-header") return "integration-table";
+  if (folded.id === "schedule-header") return "schedule-board";
+  if (folded.id === "inspection-header") return "inspection-tickets";
+  if (folded.id === "project-header") return out === "cards" ? "project-cards" : "project-table";
   if (folded.id === "cycle-strip") return "cycle-strip";
   if (folded.id === "embed-header") return out || "glossary-book";
   if (LEGACY_DRIVER_FOLD[codeKey]) return paintKind(folded.id, out || folded.output);

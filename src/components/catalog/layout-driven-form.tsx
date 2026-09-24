@@ -31,6 +31,8 @@ import {
   type LayoutColumnCount,
 } from "@/lib/catalog/layout-grid";
 import { HtmlEditor, normalizePageBodyFormat } from "@/components/public/html-editor";
+import { CustomSlotsField } from "@/components/catalog/custom-slots-field";
+import { intervalIso, scheduleFieldHidden } from "@/lib/public/schedule-times";
 
 function FieldInput({
   field,
@@ -55,6 +57,28 @@ function FieldInput({
   if (field.key === "target_kind" || field.key === "record_mode") return null;
   if (!pairingFieldVisible(field.key, pairingEntry, allValues)) return null;
 
+  if (scheduleFieldHidden(field.key, allValues?.kind)) return null;
+  if (field.key === "custom_slots") {
+    return (
+      <CustomSlotsField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+      />
+    );
+  }
+  if (field.key === "notes" && field.label === "Data") {
+    return (
+      <HtmlEditor
+        label={field.label}
+        value={value}
+        format="html"
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+      />
+    );
+  }
   if (field.key === "body_format") return null;
   if (field.key === "body_html") {
     return (
@@ -186,6 +210,23 @@ function FieldInput({
     );
   }
 
+  if (
+    field.lookupObjectApiName === "vendor_integration" ||
+    field.lookupObjectApiName === "executive_project" ||
+    field.lookupObjectApiName === "location" ||
+    field.lookupObjectApiName === "event"
+  ) {
+    return (
+      <RecordInstanceLookupField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        required={field.required}
+        readOnly={readOnly}
+        recordType={field.lookupObjectApiName}
+      />
+    );
+  }
   if (kind === "lookup" || field.lookupObjectApiName === "user") {
     return (
       <UserLookupField
@@ -246,7 +287,12 @@ function FieldInput({
         <select
           className={base}
           value={value}
-          onChange={(e) => onChange?.(e.target.value)}
+          onChange={(e) => {
+            onChange?.(e.target.value);
+            if (field.key === "interval_unit") {
+              onFieldChange?.("interval_iso", intervalIso(allValues?.interval_count, e.target.value));
+            }
+          }}
         >
           <option value="">Select…</option>
           {(field.options ?? []).map((o, i) => (
@@ -284,7 +330,12 @@ function FieldInput({
             kind === "email" ? "name@example.com" : kind === "phone" ? "+1 555 000 0000" : undefined
           }
           value={value}
-          onChange={(e) => onChange?.(e.target.value)}
+          onChange={(e) => {
+            onChange?.(e.target.value);
+            if (field.key === "interval_count") {
+              onFieldChange?.("interval_iso", intervalIso(e.target.value, allValues?.interval_unit));
+            }
+          }}
         />
       )}
     </label>

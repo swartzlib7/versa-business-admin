@@ -379,7 +379,22 @@
 
 .page-html {
   max-width: 100%;
+  height: 100%;
+  min-height: 100%;
   overflow-wrap: break-word;
+  box-sizing: border-box;
+}
+.page-html > .demo-stage {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  overflow: auto;
+  border-radius: 1.05rem;
+  padding: 1.05rem 1.15rem 1.1rem;
+  border: 1px solid transparent;
 }
 .page-html :where(h2) {
   margin: 0.85em 0 0.35em;
@@ -455,6 +470,149 @@
   border-color: color-mix(in srgb, #0284c7 35%, transparent);
 }
 .page-html .demo-panel-slate :where(h2) { color: #7dd3fc; }
+.page-html .demo-stage :where(h2) {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.2vw, 1.9rem);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+.page-html .demo-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.page-html .demo-lead {
+  margin: 0;
+  max-width: 40rem;
+  opacity: 0.92;
+}
+.page-html .demo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+}
+.page-html .demo-meters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.page-html .demo-meter {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.28rem 0.7rem;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  font-size: 0.78rem;
+}
+.page-html .demo-meter b {
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+.page-html .demo-fill {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+.page-html .demo-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.page-html .demo-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.page-html .demo-stack {
+  display: flex;
+  flex-direction: column;
+}
+@media (max-width: 1023px) {
+  .page-html .demo-cols-3,
+  .page-html .demo-cols-2 { grid-template-columns: minmax(0, 1fr); }
+}
+.page-html .demo-card,
+.page-html .demo-band {
+  min-height: 0;
+  border-radius: 0.9rem;
+  padding: 0.85rem 0.95rem;
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+.page-html .demo-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+.page-html .demo-band {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+.page-html .demo-band > div { flex: 1 1 auto; min-width: 0; }
+.page-html .demo-card :where(h3),
+.page-html .demo-band :where(h3) {
+  margin: 0.15rem 0 0.2rem;
+  font-size: 1.05rem;
+}
+.page-html .demo-card :where(p),
+.page-html .demo-band :where(p),
+.page-html .demo-card :where(ol) {
+  margin: 0;
+}
+.page-html .demo-index {
+  font-family: Hack, ui-monospace, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.page-html .demo-stage-teal {
+  background:
+    radial-gradient(90% 80% at 100% 0%, color-mix(in srgb, #14b8a6 36%, transparent), transparent 58%),
+    color-mix(in srgb, #14b8a6 16%, transparent);
+  border-color: color-mix(in srgb, #14b8a6 46%, transparent);
+}
+.page-html .demo-stage-teal .demo-kicker,
+.page-html .demo-stage-teal .demo-index { color: color-mix(in srgb, #0f766e 55%, currentColor); }
+.page-html .demo-stage-amber {
+  background:
+    radial-gradient(90% 80% at 0% 0%, color-mix(in srgb, #f59e0b 38%, transparent), transparent 58%),
+    color-mix(in srgb, #f59e0b 16%, transparent);
+  border-color: color-mix(in srgb, #f59e0b 48%, transparent);
+}
+.page-html .demo-stage-amber .demo-kicker,
+.page-html .demo-stage-amber .demo-index { color: color-mix(in srgb, #b45309 50%, currentColor); }
+.page-html .demo-stage-slate {
+  background:
+    radial-gradient(80% 70% at 100% 100%, color-mix(in srgb, #0284c7 32%, transparent), transparent 60%),
+    color-mix(in srgb, #38bdf8 14%, transparent);
+  border-color: color-mix(in srgb, #0284c7 40%, transparent);
+}
+.page-html .demo-stage-slate .demo-kicker,
+.page-html .demo-stage-slate .demo-index { color: color-mix(in srgb, #0369a1 45%, currentColor); }
+.page-html .demo-stage-violet {
+  background:
+    radial-gradient(90% 80% at 0% 100%, color-mix(in srgb, #8b5cf6 34%, transparent), transparent 58%),
+    color-mix(in srgb, #8b5cf6 15%, transparent);
+  border-color: color-mix(in srgb, #8b5cf6 42%, transparent);
+}
+.page-html .demo-stage-violet .demo-kicker,
+.page-html .demo-stage-violet .demo-index { color: color-mix(in srgb, #6d28d9 45%, currentColor); }
+.page-html .demo-stage-emerald {
+  background:
+    radial-gradient(90% 80% at 100% 0%, color-mix(in srgb, #10b981 34%, transparent), transparent 58%),
+    color-mix(in srgb, #10b981 15%, transparent);
+  border-color: color-mix(in srgb, #10b981 42%, transparent);
+}
+.page-html .demo-stage-emerald .demo-kicker,
+.page-html .demo-stage-emerald .demo-index { color: color-mix(in srgb, #047857 45%, currentColor); }
+.page-html .demo-stage .demo-tickets {
+  height: 100%;
+}
+.page-html .demo-stage .demo-tickets tbody tr {
+  height: 22%;
+}
 .page-html .demo-tickets {
   width: 100%;
   border-collapse: collapse;
@@ -505,4 +663,113 @@
   color: var(--muted-foreground);
   content: attr(data-placeholder);
   pointer-events: none;
+}
+
+/* Canvas metrics: mobile below 1024px, desktop at 1024px and up. */
+.pb-canvas-inner {
+  width: var(--pb-w-m);
+  margin-left: auto;
+  margin-right: auto;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.pb-section-pad {
+  box-sizing: border-box;
+  padding: var(--pb-pad-m);
+  padding-top: max(var(--pb-pad-m), 4rem);
+}
+.pb-row-width {
+  width: var(--pb-row-w-m);
+  margin-left: auto;
+  margin-right: auto;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.board-glass {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 100%;
+  overflow: auto;
+  border-radius: 1.05rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  background:
+    radial-gradient(90% 80% at 100% 0%, color-mix(in srgb, #14b8a6 28%, transparent), transparent 58%),
+    color-mix(in srgb, currentColor 7%, transparent);
+}
+.board-glass table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.board-glass th,
+.board-glass td {
+  text-align: left;
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+.board-glass th {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, currentColor 70%, transparent);
+}
+.schedule-block {
+  border-radius: 0.35rem;
+  padding: 0.25rem 0;
+  font-weight: 650;
+  background: color-mix(in srgb, #14b8a6 62%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #14b8a6 90%, white);
+}
+@media (min-width: 1024px) {
+  html.sidebar-collapsed [data-sidebar="operator"][data-variant="rail"] {
+    width: 3.5rem;
+    overflow: hidden;
+  }
+  html.sidebar-collapsed [data-sidebar="operator"][data-variant="rail"] [data-sidebar-label] {
+    display: none;
+  }
+  html.sidebar-collapsed [data-sidebar="operator"][data-variant="rail"] nav > ul {
+    align-items: center;
+  }
+  html.sidebar-collapsed [data-sidebar="operator"][data-variant="rail"] a,
+  html.sidebar-collapsed [data-sidebar="operator"][data-variant="rail"] button {
+    width: 2.25rem;
+    height: 2.25rem;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+  }
+  html.sidebar-collapsed .operator-main {
+    padding-left: 3.5rem;
+  }
+}
+.schedule-today {
+  border-radius: 0.35rem;
+  padding: 0.25rem 0;
+  font-weight: 650;
+  color: #1c1408;
+  background: #f5c16c;
+  box-shadow: inset 0 0 0 1px #ffe3a3;
+}
+@media (min-width: 1024px) {
+  .pb-canvas-inner {
+    width: var(--pb-w);
+  }
+  .pb-section-pad {
+    padding: var(--pb-pad);
+    padding-top: max(var(--pb-pad), 4rem);
+  }
+  .pb-row-width {
+    width: var(--pb-row-w);
+  }
+}
+
+/* Stable small viewport so the browser toolbar show/hide does not resize sections. */
+@media (max-width: 1023px) {
+  section[data-public-section] {
+    height: 100svh;
+    min-height: 100svh;
+    max-height: 100svh;
+  }
 }

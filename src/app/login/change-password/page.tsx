@@ -44,7 +44,7 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md">
+      <Card size="hug" className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Change password</CardTitle>
           <CardDescription>

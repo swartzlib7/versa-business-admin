@@ -23,6 +23,20 @@ export function AppShell({
     return () => window.removeEventListener(SIDEBAR_COLLAPSE_EVENT, sync);
   }, []);
 
+  useEffect(() => {
+    const release = () => {
+      document.body.style.cursor = "";
+    };
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+    window.addEventListener("dragend", release);
+    return () => {
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", release);
+      window.removeEventListener("dragend", release);
+    };
+  }, []);
+
   // Mobile fit (Stephen 2026-09-14 03:06, iPhone 16 Pro Max): the operator
   // shell must never be wider than the viewport, or Safari zooms the whole
   // page out to fit the document width ("always too big, must pinch out").
@@ -37,7 +51,7 @@ export function AppShell({
       </div>
       <div
         className={cn(
-          "flex min-w-0 flex-1 flex-col transition-[padding] duration-200",
+          "operator-main flex min-w-0 flex-1 flex-col transition-[padding] duration-200",
           collapsed ? "lg:pl-14" : "lg:pl-56",
           fillViewport ? "min-h-svh lg:h-svh lg:min-h-0" : "min-h-svh"
         )}

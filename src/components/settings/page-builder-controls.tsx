@@ -52,6 +52,7 @@ import {
   MAX_ROW_HEIGHT_VH,
   type RowHeightUnit,
   clampSectionWidth,
+  clampMobileSectionWidth,
   ensureRowCells,
   slotBindingLabel,
   visibleCells,
@@ -271,9 +272,10 @@ export function RowCellStrip({
         const painted = empty ? null : paintCell?.(cell, index);
         const showsPaint = Boolean(painted);
         return (
-          <button
+          <div
             key={cell.id}
-            type="button"
+            role="button"
+            tabIndex={0}
             draggable={filled}
             onClick={() => {
               if (empty && onAddCell) {
@@ -281,6 +283,12 @@ export function RowCellStrip({
                 return;
               }
               onSelect(index);
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" && e.key !== " ") return;
+              e.preventDefault();
+              if (empty && onAddCell) onAddCell(index);
+              else onSelect(index);
             }}
             onDragStart={(e) => {
               if (!filled) {
@@ -290,9 +298,17 @@ export function RowCellStrip({
               const source = { rowId: row.id, cellIndex: index };
               e.dataTransfer.effectAllowed = "move";
               e.dataTransfer.setData("application/x-pb-cell", JSON.stringify(source));
+              const ghost = document.createElement("div");
+              ghost.textContent = label;
+              ghost.style.cssText =
+                "position:fixed;top:-1000px;padding:4px 8px;border-radius:6px;background:#111;color:#fff;font-size:12px;";
+              document.body.appendChild(ghost);
+              e.dataTransfer.setDragImage(ghost, 8, 8);
+              window.setTimeout(() => ghost.remove(), 0);
               onCellDragStart?.(source);
             }}
             onDragEnd={() => {
+              document.body.style.cursor = "";
               setOverIndex(null);
               onCellDragEnd?.();
             }}
@@ -323,7 +339,7 @@ export function RowCellStrip({
               over && "border-primary bg-primary/10 shadow-md",
               draggingThis && "opacity-40",
               on ? "" : "opacity-60",
-              filled && "cursor-grab active:cursor-grabbing",
+              filled && "cursor-grab",
               empty && "cursor-pointer",
             )}
             title={filled ? "Drag to another Cell or Row" : "Add an Element"}
@@ -421,7 +437,7 @@ export function RowCellStrip({
                 </div>
               )}
             </div>
-          </button>
+          </div>
         );
       })}
     </div>
@@ -478,6 +494,7 @@ export function ColumnCycleToggle({
 }
 
 export function CanvasSizeControls({
+  surface = "Desktop",
   width,
   margin,
   marginUnit,
@@ -485,6 +502,7 @@ export function CanvasSizeControls({
   onMargin,
   onMarginUnit,
 }: {
+  surface?: string;
   width: number | undefined;
   margin: number | undefined;
   marginUnit: CanvasMarginUnit | undefined;
@@ -497,6 +515,9 @@ export function CanvasSizeControls({
   const m = clampCanvasMargin(margin, unit);
   return (
     <div className="grid gap-3 rounded-lg border-2 border-primary/30 bg-primary/5 p-3 sm:grid-cols-2">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground sm:col-span-2">
+        {surface}
+      </p>
       <label className="flex flex-col gap-1 text-sm">
         <span className="flex h-8 items-center font-medium">
           Width {w}%{w === 0 ? " — disabled" : ""}
@@ -511,7 +532,11 @@ export function CanvasSizeControls({
           className="w-full accent-primary"
           title="Canvas width. 0% disables this canvas."
         />
-        <span className="text-xs text-muted-foreground">0% disables the canvas. 100% fills the inner frame.</span>
+        <span className="text-xs text-muted-foreground">
+          {surface === "Mobile"
+            ? "Used below 1024px. 100% fills the screen."
+            : "0% disables the canvas. 100% fills the inner frame."}
+        </span>
       </label>
       <div className="flex flex-col gap-1 text-sm">
         <div className="flex h-8 items-center justify-between gap-2">
@@ -562,15 +587,20 @@ export function SectionWidthSlider({
   value,
   onChange,
   compact,
+  label = "Width",
+  mobile,
 }: {
   value: number | undefined;
   onChange: (pct: number) => void;
   compact?: boolean;
+  label?: string;
+  /** Missing mobile width stays 100. Desktop width still uses the 25–100 clamp. */
+  mobile?: boolean;
 }) {
-  const pct = clampSectionWidth(value);
+  const pct = mobile ? clampMobileSectionWidth(value) : clampSectionWidth(value);
   return (
     <label className={compact ? "flex min-w-[8rem] flex-1 items-center gap-2 text-xs" : "block space-y-1 text-sm"}>
-      <span className="shrink-0 text-muted-foreground">Width {pct}%</span>
+      <span className="shrink-0 text-muted-foreground">{label} {pct}%</span>
       <input
         type="range"
         min={25}

@@ -30,6 +30,8 @@ import { PasswordField } from "@/components/users/password-field";
 import { ImageUrlField } from "@/components/catalog/image-url-field";
 import { FrequencyStartField } from "@/components/statistics/frequency-start-field";
 import { HtmlEditor, normalizePageBodyFormat } from "@/components/public/html-editor";
+import { CustomSlotsField } from "@/components/catalog/custom-slots-field";
+import { intervalIso, scheduleFieldHidden } from "@/lib/public/schedule-times";
 import { isAuditField } from "@/lib/catalog/audit-fields";
 import {
   applyDerivedFrequencyStart,
@@ -434,6 +436,28 @@ function FieldInput({
       </label>
     );
   }
+  if (scheduleFieldHidden(field.key, allValues?.kind)) return null;
+  if (field.key === "custom_slots") {
+    return (
+      <CustomSlotsField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+      />
+    );
+  }
+  if (field.key === "notes" && field.label === "Data") {
+    return (
+      <HtmlEditor
+        label={field.label}
+        value={value}
+        format="html"
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+      />
+    );
+  }
   if (field.key === "body_format") return null;
   if (field.key === "body_html") {
     return (
@@ -555,6 +579,23 @@ function FieldInput({
       />
     );
   }
+  if (
+    field.lookupObjectApiName === "vendor_integration" ||
+    field.lookupObjectApiName === "executive_project" ||
+    field.lookupObjectApiName === "location" ||
+    field.lookupObjectApiName === "event"
+  ) {
+    return (
+      <RecordInstanceLookupField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        required={field.required}
+        readOnly={locked}
+        recordType={field.lookupObjectApiName}
+      />
+    );
+  }
   if (kind === "lookup" || field.lookupObjectApiName === "user") {
     return (
       <UserLookupField
@@ -616,7 +657,16 @@ function FieldInput({
           onChange={(e) => onChange(e.target.value)}
         />
       ) : kind === "select" ? (
-        <select className={base} value={value} onChange={(e) => onChange(e.target.value)}>
+        <select
+          className={base}
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            if (field.key === "interval_unit") {
+              onFieldChange?.("interval_iso", intervalIso(allValues?.interval_count, e.target.value));
+            }
+          }}
+        >
           <option value="">Select…</option>
           {(field.options ?? []).map((o, i) => (
             <option key={o} value={o} disabled={field.disabledOptions?.includes(o)}>
@@ -653,7 +703,12 @@ function FieldInput({
             kind === "email" ? "name@example.com" : kind === "phone" ? "+1 555 000 0000" : undefined
           }
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            onChange(e.target.value);
+            if (field.key === "interval_count") {
+              onFieldChange?.("interval_iso", intervalIso(e.target.value, allValues?.interval_unit));
+            }
+          }}
         />
       )}
     </label>

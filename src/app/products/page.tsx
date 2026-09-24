@@ -89,16 +89,7 @@ export default function ProductsPage() {
     const meta = catalogFields.find((f) => f.key === key);
     const text =
       meta?.kind === "select" && raw ? resolvePicklistLabel(meta, raw) : raw;
-    if (key === "name" && row.id) {
-      return (
-        <Link
-          href={`/products/${row.id}`}
-          className="font-medium text-foreground underline-offset-4 hover:underline"
-        >
-          {text || "—"}
-        </Link>
-      );
-    }
+    if (key === "name") return text || "—";
     return text;
   };
 

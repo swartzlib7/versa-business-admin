@@ -297,6 +297,10 @@ function TwinBody({
             html={preview.html}
             pageCard={preview.pageCard}
             contact={preview.contact}
+            integration={preview.integration}
+            schedule={preview.schedule}
+            inspection={preview.inspection}
+            project={preview.project}
             renderOutput={preview.renderOutput}
           />
         </div>

@@ -12,6 +12,8 @@ import {
   Layers,
   Plug,
   ClipboardCheck,
+  CalendarClock,
+  FolderKanban,
   BarChart3,
   Library,
   LayoutGrid,
@@ -40,7 +42,9 @@ export type PublicNavItem = {
 export const DEFAULT_PUBLIC_NAV_ITEMS: PublicNavItem[] = [
   { href: "/#facets", label: "Facets", icon: Layers },
   { href: "/#integrations", label: "Integrations", icon: Plug },
+  { href: "/#schedules", label: "Schedules", icon: CalendarClock },
   { href: "/#inspections-reports", label: "Inspections & Reports", icon: ClipboardCheck },
+  { href: "/#projects", label: "Projects", icon: FolderKanban },
   { href: "/#statistics", label: "Statistics", icon: BarChart3 },
   { href: "/#knowledge", label: "Knowledge", icon: Library },
   { href: "/#contacts", label: "Contacts", icon: Mail },
@@ -52,7 +56,7 @@ export const DEFAULT_PUBLIC_NAV_ITEMS: PublicNavItem[] = [
 export const DEMO_HOMEPAGE_SECTIONS = ["inspections-reports"] as const;
 
 /** Added 0.7.140. Default On until they appear in a saved order (then Off is sticky). */
-const PUBLIC_MENU_INTRODUCED_HREFS = ["/#facets", "/#inspections-reports", "/#about"] as const;
+const PUBLIC_MENU_INTRODUCED_HREFS = ["/#facets", "/#inspections-reports", "/#about", "/#schedules", "/#projects"] as const;
 
 /** Page Builder left Settings (2026-09-14). Default On until a saved order has seen it. */
 const OPERATOR_MENU_INTRODUCED_HREFS = ["/page-builder"] as const;

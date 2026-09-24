@@ -71,7 +71,7 @@ export const PAGE_ELEMENT_SEED: PageElementDef[] = [
     driver: "home:inspections-reports",
     kind: "record",
     recordType: "inspection_report",
-    description: "Support types as headers; tickets as lines.",
+    description: "Inspections and reports.",
     preview: "Inspection / report cards.",
   },
   {

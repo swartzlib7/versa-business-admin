@@ -231,10 +231,6 @@ export async function PUT(request: Request) {
     patch.email_delivery = normalizeEmailDelivery({
       ...currentMail,
       ...incoming,
-      password:
-        typeof incoming.password === "string" && incoming.password
-          ? incoming.password
-          : currentMail.password,
     });
   }
   upsertSiteSettingsFixture(patch);

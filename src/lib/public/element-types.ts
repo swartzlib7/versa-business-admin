@@ -66,10 +66,10 @@ export const ELEMENT_TYPE_PALETTE: ElementTypeDef[] = [
     recordType: "inspection_report",
     parentKind: "faculty",
     parentApiName: "communications",
-    structure: "header_lines",
-    hasLines: true,
+    structure: "list",
+    hasLines: false,
     allowsTypeLevel: false,
-    description: "Inspection / report header and ticket lines.",
+    description: "Inspections and reports.",
   },
   {
     id: "contact",
@@ -157,10 +157,9 @@ export const RECORD_OUTPUTS_BY_TYPE: Record<ElementTypeId, { id: string; label: 
     { id: "description", label: "Description" },
   ],
   inspection_report: [
-    { id: "name", label: "Support type" },
+    { id: "name", label: "Name" },
     { id: "summary", label: "Summary" },
-    { id: "line_count", label: "Line count" },
-    { id: "count_by:status", label: "Count by status" },
+    { id: "status", label: "Status" },
   ],
   contact: [
     { id: "name", label: "Name" },

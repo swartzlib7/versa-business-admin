@@ -9,6 +9,12 @@ import { statRowsToGraphPoints } from "@/lib/statistics/model";
 import type { RecordInstance } from "@/lib/fixtures/record-instances";
 import type { Organization } from "@/lib/data/types";
 import { pageRecordCardFrom } from "@/lib/public/page-record-card";
+import {
+  inspectionPaint,
+  integrationPaint,
+  projectPaint,
+  scheduleBoard,
+} from "@/lib/public/board-paint";
 
 async function fetchJson<T>(url: string): Promise<T | null> {
   const res = await fetch(url, { credentials: "include" });
@@ -90,6 +96,39 @@ export async function fetchCellPaint(cell: PageBuilderCell): Promise<ResolvedCel
     } else {
       out.stat = null;
     }
+  }
+
+  if (kind === "integration-table") {
+    const list = await fetchJson<{ data?: RecordInstance[] }>("/api/records?type=vendor_integration");
+    const recs = list?.data ?? [];
+    const chosen = fields.selection_mode === "one" && targetId ? recs.filter((row) => row.id === targetId) : recs;
+    const orgJson = await fetchJson<{ data?: Organization[] }>("/api/organizations");
+    const vendorById = new Map(
+      (orgJson?.data ?? []).map((org) => [org.id, { name: org.name, logoUrl: String(org.data?.logo_url ?? "") }] as const),
+    );
+    out.integration = integrationPaint(chosen, vendorById);
+  }
+
+  if (kind === "schedule-board") {
+    const list = await fetchJson<{ data?: RecordInstance[] }>("/api/records?type=schedule");
+    const recs = list?.data ?? [];
+    const chosen = fields.selection_mode === "one" && targetId ? recs.filter((row) => row.id === targetId) : recs;
+    out.schedule = scheduleBoard(chosen);
+  }
+
+  if (kind === "inspection-tickets") {
+    const list = await fetchJson<{ data?: RecordInstance[] }>("/api/records?type=inspection_report");
+    const recs = list?.data ?? [];
+    const chosen = fields.selection_mode === "one" && targetId ? recs.filter((row) => row.id === targetId) : recs;
+    out.inspection = inspectionPaint(chosen);
+  }
+
+  if (kind === "project-table" || kind === "project-cards") {
+    const projectsJson = await fetchJson<{ data?: RecordInstance[] }>("/api/records?type=executive_project");
+    const projects = projectsJson?.data ?? [];
+    const chosen = fields.selection_mode === "one" && targetId ? projects.filter((row) => row.id === targetId) : projects;
+    const tasksJson = await fetchJson<{ data?: RecordInstance[] }>("/api/records?type=executive_task");
+    out.project = projectPaint(chosen, tasksJson?.data ?? []);
   }
 
   if ((kind === "location-card" || kind === "contacts-cards") && targetId) {

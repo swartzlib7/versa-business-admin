@@ -20,8 +20,10 @@ export function isValidPhone(value: string): boolean {
   return /^[+]?[\d\s().-]{7,22}$/.test(value.trim());
 }
 
+const SEED_LOGO_RE = /^\/seed\/[\w./-]+\.(svg|png|webp|jpe?g|gif)$/i;
+
 export function isValidOrgLogo(value: string): boolean {
-  return HTTP_RE.test(value) || DATA_IMAGE_RE.test(value);
+  return HTTP_RE.test(value) || DATA_IMAGE_RE.test(value) || SEED_LOGO_RE.test(value);
 }
 
 export function isValidSlug(value: string): boolean {
@@ -38,7 +40,7 @@ export function organizationFieldError(draft: Record<string, string>): string | 
   const slug = (draft.slug ?? "").trim();
   if (slug && !isValidSlug(slug)) return "Slug must be lowercase letters, numbers, and hyphens.";
   const logo = (draft.logo_url ?? "").trim();
-  if (logo && !isValidOrgLogo(logo)) return "Logo must be an uploaded image or an http(s) image URL.";
+  if (logo && !isValidOrgLogo(logo)) return "Logo must be an uploaded image, a seed image, or an http(s) image URL.";
   return null;
 }
 

@@ -84,16 +84,7 @@ export default function ProjectsPage() {
       meta?.kind === "select" && raw
         ? resolvePicklistLabel(meta, raw)
         : raw;
-    if (key === "name" && row.id) {
-      return (
-        <Link
-          href={`/projects/${row.id}`}
-          className="font-medium text-foreground underline-offset-4 hover:underline"
-        >
-          {text || "—"}
-        </Link>
-      );
-    }
+    if (key === "name") return text || "—";
     return text;
   };
 

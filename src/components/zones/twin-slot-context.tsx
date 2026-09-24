@@ -26,6 +26,10 @@ export type TwinPreview =
       html?: string;
       pageCard?: PageRecordCard | null;
       contact?: PublicContactCard;
+      integration?: import("@/lib/public/board-paint").IntegrationPaint;
+      schedule?: import("@/lib/public/board-paint").SchedulePaint;
+      inspection?: import("@/lib/public/board-paint").InspectionPaint;
+      project?: import("@/lib/public/board-paint").ProjectPaint;
     }
   | null;
 

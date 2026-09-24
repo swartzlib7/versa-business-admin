@@ -134,28 +134,20 @@ export function StatGraphTwinPreview({
               {series == null ? (
                 <div className="h-full min-h-[4rem] rounded-md border border-dashed border-border/60 bg-muted/10" />
               ) : (
-                <>
+                <div className="flex h-full min-h-[4rem] min-w-0 flex-col overflow-hidden rounded-md border border-dashed border-border/60 bg-muted/10">
                   {!compact && seriesIds.length > 1 ? (
-                    <p className="mb-1 text-[11px] font-medium text-muted-foreground">
+                    <p className="mb-1 px-1 pt-1 text-[11px] font-medium text-muted-foreground">
                       Period {series}
                     </p>
                   ) : null}
-                  {lightbox && layout === 1 ? (
-                    <div className="h-full w-full">
-                      <StatGraph
-                        config={configForSeries(parsed.config, series)}
-                        lines={lines.filter((ln) => ln.series === series)}
-                        className="h-full w-full"
-                      />
-                    </div>
-                  ) : (
+                  <div className={cn("min-h-0 flex-1", lightbox && layout === 1 && "flex h-full w-full items-center justify-center")}>
                     <StatGraph
                       config={configForSeries(parsed.config, series)}
                       lines={lines.filter((ln) => ln.series === series)}
                       className="h-full w-full"
                     />
-                  )}
-                </>
+                  </div>
+                </div>
               )}
             </div>
           ))}

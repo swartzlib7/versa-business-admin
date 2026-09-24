@@ -2412,10 +2412,6 @@ function TabPanel({
   const [detailRecordId, setDetailRecordId] = useState<string | null>(null);
   const [detailEditing, setDetailEditing] = useState(false);
   const [graphRecordId, setGraphRecordId] = useState<string | null>(null);
-  const detailPanel = useMemo(
-    () => (detailRecordId ? { ...panel, id: panel.id + "-detail" } : panel),
-    [panel, detailRecordId],
-  );
 
   // I5.6.34 — sub-tab strip + description in stable position; body only changes
   return (
@@ -2452,7 +2448,7 @@ function TabPanel({
         <OrgTypeListingPanel orgType={panel.orgTypePanel} accent={accent} summary={panel.summary} />
       ) : isOrganizationsSelf ? (
         <OrganizationsPanel accent={accent} />
-      ) : isListToDetail && panel.recordTypeApiName === "statistics" ? (
+      ) : isListToDetail ? (
         <ListingPanel
           panel={panel}
           accent={accent}
@@ -2487,6 +2483,7 @@ function TabPanel({
                 onEditingChange={setDetailEditing}
                 publishTwin={graphRecordId === recordId}
               />
+              <RecordRelationsPanel key={recordId} recordId={recordId} accent={accent} />
               <ListingPanel
                 panel={{ ...panel, id: panel.id + "-detail" }}
                 accent={accent}
@@ -2496,37 +2493,6 @@ function TabPanel({
             </div>
           )}
         />
-      ) : isListToDetail ? (
-        detailRecordId ? (
-          <div className="space-y-4">
-            <button
-              type="button"
-              onClick={() => setDetailRecordId(null)}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              &larr; Back to {panel.label}
-            </button>
-            <FormPanel
-              key={detailRecordId}
-              panel={detailPanel}
-              accent={accent}
-              detailRecordId={detailRecordId}
-            />
-            <RecordRelationsPanel key={detailRecordId} recordId={detailRecordId} accent={accent} />
-            <ListingPanel
-              panel={detailPanel}
-              accent={accent}
-              headerRecordId={detailRecordId}
-            />
-          </div>
-        ) : (
-          <ListingPanel
-            panel={panel}
-            accent={accent}
-            viewMode="instances"
-            onRowOpen={(recordId) => setDetailRecordId(recordId)}
-          />
-        )
       ) : isHeaderLines ? (
         <div className="space-y-4">
           <FormPanel

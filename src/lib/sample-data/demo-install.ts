@@ -44,27 +44,32 @@ export async function installDemoCanvas(): Promise<void> {
     { key: "about", name: "About", code: "page-header", type: "page", target: page("about") },
     { key: "statistics", name: "Sample monthly visits", code: "statistics-header", type: "statistics", target: statistics },
     { key: "location", name: "Sample HQ", code: "location-header", type: "location", target: location },
+    { key: "integration", name: "Integrations", code: "integration-header", type: "vendor_integration", target: "*", mode: "all" as const },
+    { key: "schedule", name: "Schedules", code: "schedule-header", type: "schedule", target: "*", mode: "all" as const },
+    { key: "tickets", name: "Support Requests", code: "inspection-header", type: "inspection_report", target: "*", mode: "all" as const },
+    { key: "project", name: "Projects", code: "project-header", type: "executive_project", target: "*", mode: "all" as const },
   ] as const;
 
   const { adapter } = await import("@/lib/data/adapter");
   const pairings: Record<string, string> = {};
   for (const spec of specs) {
     const externalId = sampleExternalId("pairing", spec.key);
-    const existing = rows.find((item) => item.data?.external_id === externalId);
-    if (existing) {
-      pairings[spec.key] = existing.id;
-      continue;
-    }
     const data = {
       ...pairingPayload({
         driverRecordId: driverId(spec.code),
         codeKey: spec.code,
         targetType: spec.type,
         targetId: spec.target,
-        selectionMode: "one",
+        selectionMode: "mode" in spec ? spec.mode : "one",
       }),
       external_id: externalId,
     };
+    const existing = rows.find((item) => item.data?.external_id === externalId);
+    if (existing) {
+      if (adapter.updateRecord) await adapter.updateRecord(existing.id, { name: spec.name, data });
+      pairings[spec.key] = existing.id;
+      continue;
+    }
     const created = adapter.createRecord
       ? await adapter.createRecord({
           type_api_name: DRIVER_PAIRING_TYPE,
@@ -107,6 +112,10 @@ export async function installDemoCanvas(): Promise<void> {
       },
       statistics,
       location,
+      integration: idFor(rows, sampleExternalId("integration", "quickbooks")),
+      schedule: idFor(rows, sampleExternalId("schedule", "buffer")),
+      inspection: idFor(rows, sampleExternalId("inspection", "support")),
+      project: idFor(rows, sampleExternalId("project", "rollout")),
       pairings: {
         facets: pairings.facets,
         integrations: pairings.integrations,
@@ -115,8 +124,13 @@ export async function installDemoCanvas(): Promise<void> {
         about: pairings.about,
         statistics: pairings.statistics,
         location: pairings.location,
+        integration: pairings.integration,
+        schedule: pairings.schedule,
+        tickets: pairings.tickets,
+        project: pairings.project,
       },
     }),
+    email_delivery: { credential_id: idFor(rows, sampleExternalId("credential", "mail")) },
   });
 }
 
@@ -124,6 +138,7 @@ export function resetDemoCanvas(): void {
   upsertSiteSettingsFixture({
     demo_mode: false,
     page_builder: clearedPageBuilder(),
+    email_delivery: { credential_id: "" },
   });
 }
 

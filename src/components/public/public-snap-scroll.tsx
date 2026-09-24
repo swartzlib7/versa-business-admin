@@ -4,6 +4,8 @@ import { useEffect } from "react";
 
 const THRESHOLD = 0.25;
 const SETTLE_MS = 700;
+/** Ignore scroll direction while the mobile browser bar is resizing the viewport. */
+const CHROME_MS = 700;
 
 let programmaticLock = false;
 let programmaticTimer = 0;
@@ -20,70 +22,110 @@ export function scrollPublicToTop() {
   programmaticTimer = window.setTimeout(unlock, 2000);
 }
 
+function mobileLayout(): boolean {
+  return (
+    window.matchMedia("(max-width: 1023px)").matches ||
+    window.matchMedia("(pointer: coarse)").matches
+  );
+}
+
 /**
  * Snap the visitor homepage to the next/previous full-viewport section once
  * native scroll has crossed 25% of the distance between section tops.
+ * Phones and tablets do not use that activation region.
  */
 export function PublicSnapScroll() {
   useEffect(() => {
-    // Mobile/tablet: no section snapping - it fights the responsive layout
-    // on narrow screens (PU report 2026-09-05). Desktop keeps the snap.
-    if (window.matchMedia("(max-width: 1023px)").matches) return;
-    const main = document.querySelector("main");
-    if (!main) return;
+    const narrow = window.matchMedia("(max-width: 1023px)");
+    const coarse = window.matchMedia("(pointer: coarse)");
+    let cleanup = () => {};
 
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let snapping = false;
-    let lastY = window.scrollY;
-    let lastDir = 1;
-    let settleTimer = 0;
+    function attach() {
+      cleanup();
+      cleanup = () => {};
+      if (mobileLayout()) return;
+      const main = document.querySelector("main");
+      if (!main) return;
 
-    const sections = () =>
-      [...main.querySelectorAll<HTMLElement>("[data-public-section]")];
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let snapping = false;
+      let lastY = window.scrollY;
+      let lastDir = 1;
+      let settleTimer = 0;
+      let chromeUntil = 0;
+      let lastVv = window.visualViewport?.height ?? 0;
 
-    function snapTo(el: HTMLElement) {
-      if (Math.abs(window.scrollY - el.offsetTop) < 8) return;
-      snapping = true;
-      el.scrollIntoView({
-        behavior: reduce ? "auto" : "smooth",
-        block: "start",
-      });
-      window.clearTimeout(settleTimer);
-      settleTimer = window.setTimeout(() => {
-        snapping = false;
-        lastY = window.scrollY;
-      }, reduce ? 40 : SETTLE_MS);
-    }
+      const sections = () =>
+        [...main.querySelectorAll<HTMLElement>("[data-public-section]")];
 
-    function onScroll() {
-      if (snapping || programmaticLock) return;
-      const y = window.scrollY;
-      const delta = y - lastY;
-      if (delta !== 0) lastDir = delta > 0 ? 1 : -1;
-      lastY = y;
-
-      const els = sections();
-      if (els.length < 2) return;
-      const tops = els.map((el) => el.offsetTop);
-
-      let i = 0;
-      for (let n = 0; n < tops.length; n++) {
-        if (tops[n] <= y + 1) i = n;
+      function snapTo(el: HTMLElement) {
+        if (Math.abs(window.scrollY - el.offsetTop) < 8) return;
+        snapping = true;
+        el.scrollIntoView({
+          behavior: reduce ? "auto" : "smooth",
+          block: "start",
+        });
+        window.clearTimeout(settleTimer);
+        settleTimer = window.setTimeout(() => {
+          snapping = false;
+          lastY = window.scrollY;
+        }, reduce ? 40 : SETTLE_MS);
       }
 
-      if (lastDir > 0 && i < els.length - 1) {
-        const span = Math.max(1, tops[i + 1] - tops[i]);
-        if ((y - tops[i]) / span >= THRESHOLD) snapTo(els[i + 1]);
-      } else if (lastDir < 0 && i + 1 < tops.length) {
-        const span = Math.max(1, tops[i + 1] - tops[i]);
-        if ((tops[i + 1] - y) / span >= THRESHOLD) snapTo(els[i]);
+      function onViewport() {
+        const h = window.visualViewport?.height ?? lastVv;
+        if (Math.abs(h - lastVv) > 1) {
+          lastVv = h;
+          chromeUntil = Date.now() + CHROME_MS;
+          lastY = window.scrollY;
+        }
       }
+
+      function onScroll() {
+        if (snapping || programmaticLock) return;
+        const y = window.scrollY;
+        if (Date.now() < chromeUntil) {
+          lastY = y;
+          return;
+        }
+        const delta = y - lastY;
+        if (delta !== 0) lastDir = delta > 0 ? 1 : -1;
+        lastY = y;
+
+        const els = sections();
+        if (els.length < 2) return;
+        const tops = els.map((el) => el.offsetTop);
+
+        let i = 0;
+        for (let n = 0; n < tops.length; n++) {
+          if (tops[n] <= y + 1) i = n;
+        }
+
+        if (lastDir > 0 && i < els.length - 1) {
+          const span = Math.max(1, tops[i + 1] - tops[i]);
+          if ((y - tops[i]) / span >= THRESHOLD) snapTo(els[i + 1]);
+        } else if (lastDir < 0 && i + 1 < tops.length) {
+          const span = Math.max(1, tops[i + 1] - tops[i]);
+          if ((tops[i + 1] - y) / span >= THRESHOLD) snapTo(els[i]);
+        }
+      }
+
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.visualViewport?.addEventListener("resize", onViewport);
+      cleanup = () => {
+        window.removeEventListener("scroll", onScroll);
+        window.visualViewport?.removeEventListener("resize", onViewport);
+        window.clearTimeout(settleTimer);
+      };
     }
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    attach();
+    narrow.addEventListener("change", attach);
+    coarse.addEventListener("change", attach);
     return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.clearTimeout(settleTimer);
+      narrow.removeEventListener("change", attach);
+      coarse.removeEventListener("change", attach);
+      cleanup();
     };
   }, []);
 

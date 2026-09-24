@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { foldDriverId, foldHomeSectionId, foldRecordTypeApiName } from "@/lib/catalog/name-aliases";
 
 /** Canvas row columns. Every count from 1 through 8. */
@@ -42,8 +43,10 @@ export type PageBuilderSection = {
   recordMode?: "single" | "multi" | "all";
   /** PB-13: picked record ids for recordMode "multi". */
   recordIds?: string[];
-  /** PB-15: section content width as % of the canvas (25-100, default 100). */
+  /** PB-15: section content width as % of the canvas (25-100, default 100). Desktop. */
   width_pct?: number;
+  /** Same width, applied below 1024px. Missing means 100%. */
+  mobile_width_pct?: number;
   /** Row columns — 1 through 8. Each column is a Cell. */
   columns?: CanvasColumnCount;
   /** PB-19: Row visibility. Default on. */
@@ -74,9 +77,13 @@ export type CustomCanvas = {
   sections: PageBuilderSection[];
   /** Canvas content width as % of the inner frame (0–100). 0 disables the canvas. */
   width_pct?: number;
-  /** Inset from all four viewport edges. */
+  /** Inset from all four viewport edges. Desktop. */
   margin?: number;
   margin_unit?: CanvasMarginUnit;
+  /** Width and inset below 1024px. Missing width is 100%; missing margin is 16px. */
+  mobile_width_pct?: number;
+  mobile_margin?: number;
+  mobile_margin_unit?: CanvasMarginUnit;
   /** Default columns for new Rows (1 through 8). */
   columns?: CanvasColumnCount;
   /** True when staff typed the slug; blanking it returns to auto-from-label. */
@@ -98,6 +105,10 @@ export type PageBuilderState = {
   home_width_pct?: number;
   home_margin?: number;
   home_margin_unit?: CanvasMarginUnit;
+  /** Primary canvas width and inset below 1024px. */
+  home_mobile_width_pct?: number;
+  home_mobile_margin?: number;
+  home_mobile_margin_unit?: CanvasMarginUnit;
   /** Default columns for new Primary Rows. */
   home_columns?: CanvasColumnCount;
   /** Visitor name for the Primary Page. Slug stays `/`. */
@@ -690,6 +701,9 @@ export function homeRowLabelMap(
 export const DEFAULT_CANVAS_WIDTH_PCT = 80;
 export const DEFAULT_CANVAS_MARGIN = 0;
 export const DEFAULT_HOME_WIDTH_PCT = 100;
+/** Phones and tablets start full-bleed with a small inset, not the desktop frame. */
+export const DEFAULT_MOBILE_CANVAS_WIDTH_PCT = 100;
+export const DEFAULT_MOBILE_CANVAS_MARGIN = 16;
 
 /** Canvas width 0–100 (step 5). 0 disables the canvas. Missing → default 80. */
 export function clampCanvasWidth(pct: unknown): number {
@@ -698,6 +712,12 @@ export function clampCanvasWidth(pct: unknown): number {
   if (!Number.isFinite(n)) return DEFAULT_CANVAS_WIDTH_PCT;
   const stepped = Math.round(n / 5) * 5;
   return Math.min(100, Math.max(0, stepped));
+}
+
+/** Mobile canvas width. Missing stays 100 so a desktop 75% frame does not shrink the phone. */
+export function clampMobileCanvasWidth(pct: unknown): number {
+  if (pct === undefined || pct === null || pct === "") return DEFAULT_MOBILE_CANVAS_WIDTH_PCT;
+  return clampCanvasWidth(pct);
 }
 
 export function clampCanvasMarginUnit(raw: unknown): CanvasMarginUnit {
@@ -741,6 +761,37 @@ export function canvasFrameStyle(
   };
 }
 
+/** Desktop metrics from 1024px up; mobile metrics below that. Variables inherit. */
+export function canvasMetricVars(input: {
+  widthPct?: number;
+  margin?: number;
+  marginUnit?: CanvasMarginUnit;
+  mobileWidthPct?: number;
+  mobileMargin?: number;
+  mobileMarginUnit?: CanvasMarginUnit;
+}): CSSProperties {
+  const desk = canvasFrameStyle(input.widthPct, input.margin, input.marginUnit);
+  const mobileUnit =
+    input.mobileMargin === undefined && input.mobileMarginUnit === undefined
+      ? "px"
+      : clampCanvasMarginUnit(input.mobileMarginUnit);
+  const mobileMargin =
+    input.mobileMargin === undefined
+      ? DEFAULT_MOBILE_CANVAS_MARGIN
+      : clampCanvasMargin(input.mobileMargin, mobileUnit);
+  const mob = canvasFrameStyle(
+    clampMobileCanvasWidth(input.mobileWidthPct),
+    mobileMargin,
+    mobileUnit,
+  );
+  return {
+    "--pb-w": desk.inner.width,
+    "--pb-w-m": mob.inner.width,
+    "--pb-pad": desk.pad.padding,
+    "--pb-pad-m": mob.pad.padding,
+  } as CSSProperties;
+}
+
 /** Canvas columns are 1 through 8. */
 export function clampCanvasColumns(cols: unknown): CanvasColumnCount {
   const n = typeof cols === "number" ? Math.round(cols) : Number.parseInt(String(cols ?? ""), 10);
@@ -765,6 +816,19 @@ export function clampSectionWidth(pct: unknown): number {
   if (!Number.isFinite(n)) return DEFAULT_SECTION_WIDTH_PCT;
   const stepped = Math.round(n / 5) * 5;
   return Math.min(100, Math.max(25, stepped));
+}
+
+/** Row width below 1024px. Missing stays 100. */
+export function clampMobileSectionWidth(pct: unknown): number {
+  if (pct === undefined || pct === null || pct === "") return DEFAULT_SECTION_WIDTH_PCT;
+  return clampSectionWidth(pct);
+}
+
+export function rowWidthVars(desktop: unknown, mobile: unknown): CSSProperties {
+  return {
+    "--pb-row-w": `${clampSectionWidth(desktop)}%`,
+    "--pb-row-w-m": `${clampMobileSectionWidth(mobile)}%`,
+  } as CSSProperties;
 }
 
 export function clampSectionColumns(cols: unknown, canvasDefault?: unknown): CanvasColumnCount {
@@ -799,13 +863,13 @@ export function sectionWidthClass(pct: number | undefined): string {
 /** Tailwind grid classes for a canvas row (1 through 8). */
 export function sectionColumnsClass(cols: number | undefined): string {
   switch (clampSectionColumns(cols)) {
-    case 2: return "grid grid-cols-1 gap-6 md:grid-cols-2";
-    case 3: return "grid grid-cols-1 gap-6 md:grid-cols-3";
-    case 4: return "grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4";
-    case 5: return "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5";
-    case 6: return "grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-6";
-    case 7: return "grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-7";
-    case 8: return "grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-8";
+    case 2: return "grid grid-cols-1 gap-6 lg:grid-cols-2";
+    case 3: return "grid grid-cols-1 gap-6 lg:grid-cols-3";
+    case 4: return "grid grid-cols-1 gap-6 lg:grid-cols-4";
+    case 5: return "grid grid-cols-1 gap-6 lg:grid-cols-5";
+    case 6: return "grid grid-cols-1 gap-6 lg:grid-cols-6";
+    case 7: return "grid grid-cols-1 gap-6 lg:grid-cols-7";
+    case 8: return "grid grid-cols-1 gap-6 lg:grid-cols-8";
     default: return "grid grid-cols-1 gap-6";
   }
 }
@@ -875,16 +939,16 @@ export function defaultHomeSections(): PageBuilderSection[] {
   return HOMEPAGE_SLOT_ORDER.map((id) => defaultHomeSection(id));
 }
 
-/** Previous default (preview-below-cells era). Folded to 240 on load. */
-export const PREVIOUS_DEFAULT_ROW_HEIGHT_PX = 336;
+/** Earlier defaults. Folded to the current default on load. */
+export const PREVIOUS_DEFAULT_ROW_HEIGHTS_PX = [240, 336];
 /** Cell paint area — total Row body height. */
-export const DEFAULT_ROW_HEIGHT_PX = 240;
+export const DEFAULT_ROW_HEIGHT_PX = 650;
 export const MIN_ROW_HEIGHT_PX = 140;
 export const MAX_ROW_HEIGHT_PX = 900;
 
 export function clampRowHeight(raw: unknown): number {
   const n = typeof raw === "number" ? Math.round(raw) : Number.parseInt(String(raw ?? ""), 10);
-  if (!Number.isFinite(n) || n === PREVIOUS_DEFAULT_ROW_HEIGHT_PX) return DEFAULT_ROW_HEIGHT_PX;
+  if (!Number.isFinite(n) || PREVIOUS_DEFAULT_ROW_HEIGHTS_PX.includes(n)) return DEFAULT_ROW_HEIGHT_PX;
   return Math.min(MAX_ROW_HEIGHT_PX, Math.max(MIN_ROW_HEIGHT_PX, n));
 }
 
@@ -911,8 +975,8 @@ export function rowHeightCss(row: {
   height_vh?: number;
   height_unit?: unknown;
 }): string {
-  if (clampRowHeightUnit(row.height_unit) === "vh") return `${clampRowHeightVh(row.height_vh)}dvh`;
-  return `min(${clampRowHeight(row.height_px)}px, 100dvh)`;
+  if (clampRowHeightUnit(row.height_unit) === "vh") return `${clampRowHeightVh(row.height_vh)}svh`;
+  return `min(${clampRowHeight(row.height_px)}px, 100svh)`;
 }
 
 export const DEFAULT_CUSTOM_CANVAS: CustomCanvas = {
@@ -1082,6 +1146,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
     : undefined;
   const driver = defaultDriverFor(kind, featureId, recordType);
   const width_pct = clampSectionWidth(rec.width_pct);
+  const mobile_width_pct = clampMobileSectionWidth(rec.mobile_width_pct);
   const columns = clampSectionColumns(rec.columns);
   const collapsed = rec.collapsed === true;
   const display_px = clampRowHeight(rec.display_px);
@@ -1102,6 +1167,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
       label,
       kind: "empty",
       width_pct,
+      mobile_width_pct,
       columns,
       collapsed,
       display_px,
@@ -1121,6 +1187,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
       featureId,
       driver,
       width_pct,
+      mobile_width_pct,
       columns,
       collapsed,
       display_px,
@@ -1143,6 +1210,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
       recordIds,
       driver,
       width_pct,
+      mobile_width_pct,
       columns,
       collapsed,
       display_px,
@@ -1159,6 +1227,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
     label,
     kind: "empty",
     width_pct,
+    mobile_width_pct,
     columns,
     collapsed,
     display_px,
@@ -1208,6 +1277,13 @@ function normalizeCanvas(
     width_pct: clampCanvasWidth(rec.width_pct),
     margin: clampCanvasMargin(rec.margin, clampCanvasMarginUnit(rec.margin_unit)),
     margin_unit: clampCanvasMarginUnit(rec.margin_unit),
+    mobile_width_pct: clampMobileCanvasWidth(rec.mobile_width_pct),
+    mobile_margin: clampCanvasMargin(
+      rec.mobile_margin === undefined ? DEFAULT_MOBILE_CANVAS_MARGIN : rec.mobile_margin,
+      rec.mobile_margin_unit === undefined ? "px" : clampCanvasMarginUnit(rec.mobile_margin_unit),
+    ),
+    mobile_margin_unit:
+      rec.mobile_margin_unit === undefined ? "px" : clampCanvasMarginUnit(rec.mobile_margin_unit),
     columns: clampCanvasColumns(rec.columns),
   };
 }
@@ -1326,6 +1402,21 @@ export function normalizePageBuilder(input: unknown): PageBuilderState {
       clampCanvasMarginUnit((raw as { home_margin_unit?: unknown }).home_margin_unit),
     ),
     home_margin_unit: clampCanvasMarginUnit((raw as { home_margin_unit?: unknown }).home_margin_unit),
+    home_mobile_width_pct: clampMobileCanvasWidth(
+      (raw as { home_mobile_width_pct?: unknown }).home_mobile_width_pct,
+    ),
+    home_mobile_margin: clampCanvasMargin(
+      (raw as { home_mobile_margin?: unknown }).home_mobile_margin === undefined
+        ? DEFAULT_MOBILE_CANVAS_MARGIN
+        : (raw as { home_mobile_margin?: unknown }).home_mobile_margin,
+      (raw as { home_mobile_margin_unit?: unknown }).home_mobile_margin_unit === undefined
+        ? "px"
+        : clampCanvasMarginUnit((raw as { home_mobile_margin_unit?: unknown }).home_mobile_margin_unit),
+    ),
+    home_mobile_margin_unit:
+      (raw as { home_mobile_margin_unit?: unknown }).home_mobile_margin_unit === undefined
+        ? "px"
+        : clampCanvasMarginUnit((raw as { home_mobile_margin_unit?: unknown }).home_mobile_margin_unit),
     home_columns: clampSectionColumns((raw as { home_columns?: unknown }).home_columns ?? 1),
     home_label: normalizeHomeLabel((raw as { home_label?: unknown }).home_label),
   };

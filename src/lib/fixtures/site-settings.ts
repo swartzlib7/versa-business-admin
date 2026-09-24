@@ -378,10 +378,6 @@ export function upsertSiteSettingsFixture(
         ? normalizeEmailDelivery({
             ...normalizeEmailDelivery(current.email_delivery),
             ...input.email_delivery,
-            password:
-              input.email_delivery.password !== undefined && input.email_delivery.password !== ""
-                ? input.email_delivery.password
-                : normalizeEmailDelivery(current.email_delivery).password,
           })
         : normalizeEmailDelivery(current.email_delivery),
   };

@@ -222,7 +222,7 @@ export function LoginForm({ installHints }: { installHints: InstallHints | null 
           </div>
         )}
 
-        <Card>
+        <Card size="hug">
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
             <CardDescription>
@@ -280,7 +280,7 @@ export function LoginForm({ installHints }: { installHints: InstallHints | null 
             </form>
 
             {installHints && (
-              <div className="mt-4 rounded-md border border-dashed border-muted p-3">
+              <div className="mt-4 rounded-md border border-border p-3">
                 <p className="text-xs text-muted-foreground">
                   <span className="font-medium">Install accounts (demo mode):</span>
                   <br />

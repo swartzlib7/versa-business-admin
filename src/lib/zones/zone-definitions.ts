@@ -206,11 +206,11 @@ export const organizationZone: ZoneConfig = {
         {
           id: "reports",
           label: "Inspections & Reports",
-          summary: "Support types (header) and request tickets (lines), same shape as Statistics.",
+          summary: "Inspections and reports.",
           presentation: "listing",
-          listColumns: ["Support type", "Status"],
+          listColumns: ["Name", "Status"],
           fields: [
-            { label: "Support type", placeholder: "Type of support available" },
+            { label: "Name", placeholder: "Name" },
             { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
             { label: "Summary", placeholder: "What this type covers...", kind: "textarea" },
             { label: "Notes", placeholder: "...", kind: "textarea" },
@@ -755,7 +755,6 @@ export const environmentZone: ZoneConfig = {
       relations: [
         { zone: "Environment", label: "Event", hint: "Events this knowledge relates to." },
         { zone: "Environment", label: "Location", hint: "Where knowledge is gained or stored." },
-        { zone: "Environment", label: "Schedule", hint: "When knowledge is acquired." },
         { zone: "Organization", label: "Owning department", hint: "Who maintains this asset." },
       ],
     },

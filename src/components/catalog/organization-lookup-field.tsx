@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
-type OrgRow = { id: string; name?: string };
+type OrgRow = { id: string; name?: string; org_type?: string };
+
+const ORG_TYPE_LABEL: Record<string, string> = {
+  vendor: "Vendor",
+  customer: "Customer",
+  partner: "Partner",
+  branch: "Branch",
+  internal: "Org",
+};
 
 export function OrganizationLookupField({
   label,
@@ -32,7 +40,12 @@ export function OrganizationLookupField({
   }, []);
 
   const selected = orgs.find((o) => o.id === value);
-  const display = selected?.name ?? (value || "—");
+  const typeLabel = selected?.org_type ? ORG_TYPE_LABEL[selected.org_type] ?? selected.org_type : "";
+  const display = selected?.name
+    ? typeLabel
+      ? `${selected.name} · ${typeLabel}`
+      : selected.name
+    : value || "—";
 
   if (readOnly) {
     return (

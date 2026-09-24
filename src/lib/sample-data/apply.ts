@@ -123,7 +123,13 @@ export async function insertSampleData(): Promise<{
   const primary = primaryOrganization(orgs);
   let createdOrgs = 0;
   for (const seed of SAMPLE_ORGS) {
-    if (existingOrg(orgs, seed)) continue;
+    const alreadyOrg = existingOrg(orgs, seed);
+    if (alreadyOrg) {
+      if (seed.logo_url && adapter.updateOrganization) {
+        await adapter.updateOrganization(alreadyOrg.id, { data: { logo_url: seed.logo_url } });
+      }
+      continue;
+    }
     await adapter.createOrganization({
       name: seed.name,
       org_type: seed.org_type,
@@ -133,6 +139,7 @@ export async function insertSampleData(): Promise<{
         notes: seed.notes ?? "",
         email: seed.email ?? "",
         phone: seed.phone ?? "",
+        logo_url: seed.logo_url ?? "",
         is_active: true,
       },
     });
@@ -147,19 +154,44 @@ export async function insertSampleData(): Promise<{
       .filter((row) => isSampleExternalId(row.data?.external_id))
       .map((row) => [row.data.external_id as string, row]),
   );
+  const idByExternal = new Map<string, string>(byExternal);
+  for (const [externalId, row] of existingByExternal) idByExternal.set(externalId, row.id);
+  const resolve = (data: Record<string, string>, refs?: Record<string, string>) => {
+    const next = { ...data };
+    for (const [field, externalId] of Object.entries(refs ?? {})) {
+      const id = idByExternal.get(externalId);
+      if (id) next[field] = id;
+    }
+    return next;
+  };
   let createdRecords = 0;
   for (const seed of SAMPLE_RECORDS) {
+    const data = resolve(seed.data, seed.refs);
+    const lines = (seed.lines ?? []).map((line) => ({
+      data: resolve(line.data, line.refs),
+    }));
+    const relations = (seed.relations ?? []).flatMap((rel) => {
+      const recordId = idByExternal.get(rel.target_external_id);
+      return recordId ? [{ record_id: recordId, relation_kind: rel.relation_kind }] : [];
+    });
     const already = existingByExternal.get(seed.data.external_id);
     if (already) {
-      if (seed.type_api_name === "page" && adapter.updateRecord) {
-        await adapter.updateRecord(already.id, { name: seed.name, data: seed.data });
+      if (
+        adapter.updateRecord &&
+        (seed.type_api_name === "page" || seed.refs || seed.type_api_name === "inspection_report")
+      ) {
+        await adapter.updateRecord(already.id, {
+          name: seed.name,
+          status: seed.status,
+          data,
+          ...(seed.type_api_name === "inspection_report" ? { lines } : {}),
+        });
       }
       continue;
     }
     const orgId =
       (seed.org_external_id ? byExternal.get(seed.org_external_id) : undefined) ??
       primary?.id;
-    const data = { ...seed.data };
     if (
       orgId &&
       (seed.type_api_name === "contact" ||
@@ -179,11 +211,16 @@ export async function insertSampleData(): Promise<{
       status: seed.status,
       data,
       org_id: orgId,
+      ...(lines.length ? { lines } : {}),
+      ...(relations.length ? { relations } : {}),
     };
     const result = adapter.createRecord
       ? await adapter.createRecord(input)
       : createInstance(input);
-    if (result.ok) createdRecords += 1;
+    if (result.ok) {
+      createdRecords += 1;
+      idByExternal.set(seed.data.external_id, result.instance.id);
+    }
   }
   let createdUsers = 0;
   if (adapter.createUser) {

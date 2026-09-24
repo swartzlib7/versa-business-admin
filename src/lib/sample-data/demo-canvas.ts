@@ -1,4 +1,5 @@
 import {
+  DEFAULT_ROW_HEIGHT_PX,
   defaultPageBuilder,
   type CanvasColumnCount,
   type PageBuilderCell,
@@ -16,6 +17,10 @@ export type DemoCanvasIds = {
   };
   statistics: string;
   location: string;
+  integration: string;
+  schedule: string;
+  inspection: string;
+  project: string;
   pairings: {
     facets: string;
     integrations: string;
@@ -24,6 +29,10 @@ export type DemoCanvasIds = {
     about: string;
     statistics: string;
     location: string;
+    integration: string;
+    schedule: string;
+    tickets: string;
+    project: string;
   };
 };
 
@@ -64,10 +73,11 @@ function row(
     enabled: true,
     collapsed: false,
     width_pct: 100,
+    mobile_width_pct: 100,
     columns,
-    display_px: 480,
+    display_px: DEFAULT_ROW_HEIGHT_PX,
     height_unit: "px",
-    height_px: 480,
+    height_px: DEFAULT_ROW_HEIGHT_PX,
     height_vh: 70,
     cells,
   };
@@ -79,6 +89,10 @@ export function demoPageBuilder(ids: DemoCanvasIds): PageBuilderState {
   const page = "page-header";
   const stat = "statistics-header";
   const loc = "location-header";
+  const integration = "integration-header";
+  const schedule = "schedule-header";
+  const tickets = "inspection-header";
+  const project = "project-header";
   const home = [
     row("facets", "Facets", 1, [
       boundCell("facets-c1", {
@@ -91,20 +105,38 @@ export function demoPageBuilder(ids: DemoCanvasIds): PageBuilderState {
     ]),
     row("integrations", "Integrations", 1, [
       boundCell("integrations-c1", {
-        pairingId: ids.pairings.integrations,
-        driver: page,
-        recordType: "page",
-        recordId: ids.pages.integrations,
-        renderOutput: "html-block",
+        pairingId: ids.pairings.integration,
+        driver: integration,
+        recordType: "vendor_integration",
+        recordId: ids.integration,
+        renderOutput: "table",
       }),
     ]),
-    row("inspections-reports", "Inspections & Reports", 1, [
+    row("schedules", "Schedules", 1, [
+      boundCell("schedules-c1", {
+        pairingId: ids.pairings.schedule,
+        driver: schedule,
+        recordType: "schedule",
+        recordId: ids.schedule,
+        renderOutput: "board",
+      }),
+    ]),
+    row("inspections-reports", "Support Requests", 1, [
       boundCell("inspections-reports-c1", {
-        pairingId: ids.pairings.inspections,
-        driver: page,
-        recordType: "page",
-        recordId: ids.pages.inspections,
-        renderOutput: "html-block",
+        pairingId: ids.pairings.tickets,
+        driver: tickets,
+        recordType: "inspection_report",
+        recordId: ids.inspection,
+        renderOutput: "tickets",
+      }),
+    ]),
+    row("projects", "Projects", 1, [
+      boundCell("projects-c1", {
+        pairingId: ids.pairings.project,
+        driver: project,
+        recordType: "executive_project",
+        recordId: ids.project,
+        renderOutput: "table",
       }),
     ]),
     row("statistics", "Statistics", 1, [
@@ -113,7 +145,7 @@ export function demoPageBuilder(ids: DemoCanvasIds): PageBuilderState {
         driver: stat,
         recordType: "statistics",
         recordId: ids.statistics,
-        renderOutput: "grid-4",
+        renderOutput: "grid-2",
       }),
     ]),
     row("knowledge", "Knowledge", 1, [
@@ -178,6 +210,9 @@ export function demoPageBuilder(ids: DemoCanvasIds): PageBuilderState {
     width_pct: 75,
     margin: 48,
     margin_unit: "px" as const,
+    mobile_width_pct: 100,
+    mobile_margin: 16,
+    mobile_margin_unit: "px" as const,
     sections: customSections,
   };
   return {
@@ -186,6 +221,9 @@ export function demoPageBuilder(ids: DemoCanvasIds): PageBuilderState {
     home_width_pct: 75,
     home_margin: 48,
     home_margin_unit: "px",
+    home_mobile_width_pct: 100,
+    home_mobile_margin: 16,
+    home_mobile_margin_unit: "px",
     home_section_order: home.map((section) => section.id),
     home_sections: home,
     custom,

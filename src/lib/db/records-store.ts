@@ -30,6 +30,19 @@ import {
   recordType as recordTypeTable,
   users as usersTable,
 } from './schema';
+
+async function scheduleIntegrationTaken(integrationId: string, exceptId?: string): Promise<boolean> {
+  const db = getDb();
+  const rows = await db
+    .select({ id: recordTable.id, header: recordTable.header })
+    .from(recordTable)
+    .innerJoin(recordTypeTable, eq(recordTable.recordTypeId, recordTypeTable.id))
+    .where(eq(recordTypeTable.apiName, 'schedule'));
+  return rows.some((row) => {
+    const header = (row.header ?? {}) as Record<string, unknown>;
+    return String(header.integration_id ?? '') === integrationId && row.id !== exceptId;
+  });
+}
 import { recordTypes } from '@/lib/fixtures/record-types';
 import { listFieldDefinitions } from '@/lib/fixtures/catalog';
 import type {
@@ -454,6 +467,17 @@ export async function createRecordDb(
   header.name = input.name.trim();
   header.status = input.status || 'active';
 
+  if (type.apiName === 'schedule' && header.integration_id) {
+    const taken = await scheduleIntegrationTaken(header.integration_id);
+    if (taken) {
+      return {
+        ok: false,
+        code: 'SCHEDULE_INTEGRATION',
+        message: 'That integration already has a schedule.',
+      };
+    }
+  }
+
   const stableId = input.id?.trim();
   let recordId: string;
   try {
@@ -542,6 +566,22 @@ export async function updateRecordDb(
   }
   if (input.name !== undefined) nextHeader.name = input.name.trim();
   if (input.status !== undefined) nextHeader.status = input.status;
+
+  const curType = await db
+    .select({ apiName: recordTypeTable.apiName })
+    .from(recordTypeTable)
+    .where(eq(recordTypeTable.id, cur[0].recordTypeId))
+    .limit(1);
+  if (curType[0]?.apiName === 'schedule' && nextHeader.integration_id) {
+    const taken = await scheduleIntegrationTaken(nextHeader.integration_id, id);
+    if (taken) {
+      return {
+        ok: false,
+        code: 'SCHEDULE_INTEGRATION',
+        message: 'That integration already has a schedule.',
+      };
+    }
+  }
 
   // #249 Slice E2 (rev E section 2.5): org field is user-changeable per record.
   // Validate the target organization exists before moving the record.

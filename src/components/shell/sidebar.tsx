@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -31,6 +30,7 @@ export function readSidebarCollapsed(): boolean {
 
 export function writeSidebarCollapsed(collapsed: boolean) {
   window.localStorage.setItem(SIDEBAR_COLLAPSE_KEY, collapsed ? "1" : "0");
+  document.documentElement.classList.toggle("sidebar-collapsed", collapsed);
   window.dispatchEvent(new Event(SIDEBAR_COLLAPSE_EVENT));
 }
 
@@ -124,9 +124,10 @@ export function Sidebar({
   return (
     <aside
       data-sidebar="operator"
+      data-variant={variant}
       data-collapsed={iconsOnly ? "true" : "false"}
       className={cn(
-        "z-40 flex flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-[width] duration-200",
+        "z-[60] flex flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-[width] duration-200",
         variant === "drawer"
           ? "h-full w-56"
           : cn("fixed inset-y-0 left-0", iconsOnly ? "w-14" : "w-56")
@@ -140,7 +141,7 @@ export function Sidebar({
       >
         <BrandMark />
         {!iconsOnly ? (
-          <span className="truncate text-sm font-semibold tracking-tight">
+          <span data-sidebar-label className="truncate text-sm font-semibold tracking-tight">
             {brand.brand_name}
           </span>
         ) : null}
@@ -165,8 +166,9 @@ export function Sidebar({
                         <entry.icon className="h-4 w-4" aria-hidden="true" />
                         {!iconsOnly ? (
                           <>
-                            <span className="flex-1 text-left">{entry.label}</span>
+                            <span data-sidebar-label className="flex-1 text-left">{entry.label}</span>
                             <ChevronDown
+                              data-sidebar-label
                               className={cn(
                                 "h-4 w-4 transition-transform",
                                 isExpanded && "rotate-180"
@@ -184,7 +186,7 @@ export function Sidebar({
                             pathname.startsWith(child.href + "/");
                           return (
                             <li key={child.href}>
-                              <Link
+                              <a
                                 href={child.href}
                                 className={cn(
                                   "flex items-center gap-3 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
@@ -197,7 +199,7 @@ export function Sidebar({
                               >
                                 <child.icon className="h-3.5 w-3.5" aria-hidden="true" />
                                 {child.label}
-                              </Link>
+                              </a>
                             </li>
                           );
                         })}
@@ -214,7 +216,7 @@ export function Sidebar({
                 (entry.href === "/dashboard" && pathname === "/dashboard");
               return (
                 <li key={entry.href}>
-                  <Link
+                  <a
                       href={entry.href}
                       aria-label={entry.label}
                       title={iconsOnly ? entry.label : undefined}
@@ -222,8 +224,8 @@ export function Sidebar({
                       style={activeStyle(isActive)}
                     >
                       <entry.icon className="h-4 w-4" aria-hidden="true" />
-                      {!iconsOnly ? entry.label : null}
-                    </Link>
+                      {!iconsOnly ? <span data-sidebar-label>{entry.label}</span> : null}
+                    </a>
                 </li>
               );
             })}
@@ -253,10 +255,10 @@ export function Sidebar({
             ) : (
               <PanelLeftClose className="h-4 w-4" aria-hidden="true" />
             )}
-            {!iconsOnly ? <span>Collapse</span> : null}
+            {!iconsOnly ? <span data-sidebar-label>Collapse</span> : null}
           </button>
           {!iconsOnly ? (
-            <p className="px-2 pb-1 text-xs text-sidebar-foreground/50">
+            <p data-sidebar-label className="px-2 pb-1 text-xs text-sidebar-foreground/50">
               {brand.brand_name} v{process.env.NEXT_PUBLIC_APP_VERSION ?? "0.7.141"}
             </p>
           ) : null}
