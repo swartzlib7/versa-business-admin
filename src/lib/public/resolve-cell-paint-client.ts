@@ -72,6 +72,7 @@ export async function fetchCellPaint(cell: PageBuilderCell): Promise<ResolvedCel
     const data = page?.data ?? {};
     const html = [data.body_html, data.body, data.html].find((v) => typeof v === "string" && v.trim());
     if (typeof html === "string") out.html = html;
+    if (typeof data.body_format === "string") out.htmlFormat = data.body_format;
     if (kind === "record-card") out.pageCard = pageRecordCardFrom(page);
   }
 

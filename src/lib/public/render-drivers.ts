@@ -152,6 +152,12 @@ export const DRIVER_RENDER_CATALOG: Record<string, DriverCatalogEntry> = {
     elementModes: ["one"],
     description: "A location card, or the same card with a map.",
   }),
+  "contact-header": entry("contact-header", "Contact", "header", "contact", [
+    { id: "signup-form", label: "Sign-up form" },
+  ], {
+    elementModes: ["all"],
+    description: "Email sign-up. Each sign-up saves a public Contact.",
+  }),
 };
 
 export const PAIRABLE_DRIVER_IDS = [
@@ -162,6 +168,7 @@ export const PAIRABLE_DRIVER_IDS = [
   "schedule-header",
   "inspection-header",
   "project-header",
+  "contact-header",
 ] as const;
 
 export type FoldedDriverRef = { id: string; output?: string; recordType?: string };
@@ -241,6 +248,7 @@ export function paintKind(codeKey: string | undefined, renderOutput?: string): s
   if (folded.id === "schedule-header") return "schedule-board";
   if (folded.id === "inspection-header") return "inspection-tickets";
   if (folded.id === "project-header") return out === "cards" ? "project-cards" : "project-table";
+  if (folded.id === "contact-header") return "signup-form";
   if (folded.id === "cycle-strip") return "cycle-strip";
   if (folded.id === "embed-header") return out || "glossary-book";
   if (LEGACY_DRIVER_FOLD[codeKey]) return paintKind(folded.id, out || folded.output);

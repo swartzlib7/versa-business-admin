@@ -36,6 +36,7 @@ function themeLabel(theme: UiTheme): string {
 }
 
 const SEEN_KEY = "vba-custom-canvas-seen";
+const LAST_KEY = "vba-custom-canvas-last";
 
 export function PublicHeader() {
   const [open, setOpen] = useState(false);
@@ -53,10 +54,19 @@ export function PublicHeader() {
   } = useSiteMode();
   // PB-06: every enabled custom canvas joins the sub-menu; canvases[0] keeps the v1 role.
   const homeLabel = primaryCanvasLabel(page_builder);
-  const canvases: CustomCanvas[] = enabledCanvases(page_builder ?? defaultPageBuilder());
+  const canvases: CustomCanvas[] = enabledCanvases(page_builder ?? defaultPageBuilder()).filter(
+    (canvas) => canvas.menu_enabled !== false,
+  );
+  const homeMenu = (page_builder?.home_sections ?? []).filter(
+    (section) => isRowOn(section) && section.in_menu !== false,
+  );
   const customOn = canvases.length > 0;
-  const onCustom = customOn && canvases.some((c) => isCustomCanvasPath(pathname, c));
-  const showSubMenu = customOn && (onCustom || sawCustom);
+  const currentCanvas = canvases.find((c) => isCustomCanvasPath(pathname, c)) ?? null;
+  const onCustom = currentCanvas !== null;
+  const [lastSlug, setLastSlug] = useState<string | null>(null);
+  const subCanvas =
+    currentCanvas ?? canvases.find((c) => c.slug === lastSlug) ?? null;
+  const showSubMenu = customOn && subCanvas !== null && (onCustom || sawCustom);
   const navLinks = visiblePublicNavItems({
     demo: demo_mode,
     enabled: public_menu_enabled,
@@ -71,20 +81,23 @@ export function PublicHeader() {
   useEffect(() => {
     try {
       if (sessionStorage.getItem(SEEN_KEY) === "1") setSawCustom(true);
+      setLastSlug(sessionStorage.getItem(LAST_KEY));
     } catch {
       /* ignore */
     }
   }, []);
 
   useEffect(() => {
-    if (!onCustom) return;
+    if (!currentCanvas) return;
     setSawCustom(true);
+    setLastSlug(currentCanvas.slug);
     try {
       sessionStorage.setItem(SEEN_KEY, "1");
+      sessionStorage.setItem(LAST_KEY, currentCanvas.slug);
     } catch {
       /* ignore */
     }
-  }, [onCustom]);
+  }, [currentCanvas]);
 
   const selectCustom = () => {
     setHomeOpen(false);
@@ -111,11 +124,12 @@ export function PublicHeader() {
     </span>
   );
 
-  const renderCanvasLinks = () => (
-    <>
-      {canvases.map((canvas) => (
+  const renderCanvasLinks = () => {
+    const canvas = subCanvas;
+    if (!canvas) return null;
+    return (
+      <>
         <Link
-          key={canvas.slug}
           href={customCanvasHref(canvas)}
           className={cn(
             "font-semibold",
@@ -127,27 +141,27 @@ export function PublicHeader() {
         >
           {canvas.label}
         </Link>
-      ))}
-      {canvases.map((canvas) =>
-        canvas.sections
-          .filter((section, index) => index > 0 && isRowOn(section))
-          .map((section) => (
-          <span key={`${canvas.slug}-${section.id}`} className="inline-flex items-center gap-x-2">
-            <span className="text-muted-foreground" aria-hidden>
-              |
-            </span>
-            <Link
-              href={`${customCanvasHref(canvas)}#${section.id}`}
-              className="text-muted-foreground hover:text-foreground"
-              onClick={selectCustom}
-            >
-              {section.label}
-            </Link>
-          </span>
-        )),
-      )}
-    </>
-  );
+        {canvas.content_mode === "html"
+          ? null
+          : canvas.sections
+              .filter((section) => isRowOn(section) && section.in_menu !== false)
+              .map((section) => (
+                <span key={`${canvas.slug}-${section.id}`} className="inline-flex items-center gap-x-2">
+                  <span className="text-muted-foreground" aria-hidden>
+                    |
+                  </span>
+                  <Link
+                    href={`${customCanvasHref(canvas)}#${section.id}`}
+                    className="text-muted-foreground hover:text-foreground"
+                    onClick={selectCustom}
+                  >
+                    {section.label}
+                  </Link>
+                </span>
+              ))}
+      </>
+    );
+  };
 
   const renderSubMenuIdle = () => (
     <span
@@ -161,14 +175,14 @@ export function PublicHeader() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-4 px-3 sm:px-4">
+      <div className="grid w-full grid-cols-[minmax(0,1fr)_0_auto] gap-x-2 px-3 sm:px-4 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] xl:gap-x-4">
         <Link
           href="/"
-          className="relative z-10 col-start-1 row-start-1 flex h-16 min-w-0 max-w-[min(22rem,28vw)] items-center gap-2 justify-self-start bg-transparent pr-2"
+          className="relative z-10 col-start-1 row-start-1 flex h-16 min-w-0 max-w-full items-center gap-2 justify-self-start bg-transparent pr-2 xl:max-w-[min(22rem,28vw)]"
         >
           <BrandMark />
           {brand.brand_name_in_menu !== false ? (
-            <span className="truncate whitespace-nowrap text-lg font-semibold tracking-tight">
+            <span className="truncate whitespace-nowrap text-base font-semibold tracking-tight sm:text-lg">
               {brand.brand_name}
             </span>
           ) : (
@@ -225,7 +239,16 @@ export function PublicHeader() {
             ) : null}
           </div>
           <div className="ml-3 flex min-w-0 items-center gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {navLinks.map((link) => (
+            {homeMenu.map((section) => (
+              <Link
+                key={section.id}
+                href={`/#${section.id}`}
+                className="inline-flex shrink-0 items-center whitespace-nowrap text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {section.label}
+              </Link>
+            ))}
+            {navLinks.filter((link) => !link.href.startsWith("/#")).map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

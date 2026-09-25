@@ -87,7 +87,7 @@ There is **one** login page. Admin and member are not different apps or differen
 
 API catalog `auth` column: `open` / `session` / `admin` / `admin-or-self` / `admin-or-assignee`. The HTTP API does not dual-publish old names unless the Primary User asks. Overlay-read folds (`name-aliases.ts`) map pre-1.0 catalog names on load.
 
-**First login (Demo mode):** `/login` shows an alert to change the Administrator (human) and COA (agent) passwords. The install email/password hint box appears **only while Demo mode is on**, and says passwords may have been changed. After sign-in the same reminder sits in the operator shell until Demo mode is turned off (Settings → Modes). Change passwords on **Users**.
+**First login (Demo mode):** The system ships in demo mode. Turn it off in Settings → Modes before real use. Turning it off deletes the sample pack. `/login` shows an alert to change the Administrator (human) and COA (agent) passwords. The install email/password hint box appears **only while Demo mode is on**, and says passwords may have been changed. After sign-in the same reminder sits in the operator shell until Demo mode is turned off. Change passwords on **Users**.
 
 Also in root `README.md` (Roles).
 

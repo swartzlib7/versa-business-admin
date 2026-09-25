@@ -2,9 +2,9 @@ import {
   DEFAULT_ROW_HEIGHT_PX,
   defaultPageBuilder,
   type CanvasColumnCount,
+  type CustomCanvas,
   type PageBuilderCell,
   type PageBuilderSection,
-  type PageBuilderState,
 } from "@/lib/public/page-builder";
 
 export type DemoCanvasIds = {
@@ -83,8 +83,11 @@ function row(
   };
 }
 
-/** Primary menu rows plus the Overview canvas, bound to demo Elements. */
-export function demoPageBuilder(ids: DemoCanvasIds): PageBuilderState {
+/** Demo-owned canvases. Demo off removes only these. Retired `cv-demo-overview` and `cv-demo-showcase` are still cleaned up. */
+export const DEMO_CANVAS_IDS = ["cv-demo", "cv-demo-overview", "cv-demo-showcase"] as const;
+
+/** The demo canvas, bound to demo Elements. Demo mode never writes Primary. */
+export function demoCanvas(ids: DemoCanvasIds): CustomCanvas {
   const base = defaultPageBuilder();
   const page = "page-header";
   const stat = "statistics-header";
@@ -203,30 +206,14 @@ export function demoPageBuilder(ids: DemoCanvasIds): PageBuilderState {
   ];
   const custom = {
     ...base.custom,
+    id: DEMO_CANVAS_IDS[0],
     enabled: true,
-    slug: "overview",
+    slug: "demo",
     slugManual: true,
-    label: "Overview",
-    width_pct: 75,
-    margin: 48,
-    margin_unit: "px" as const,
-    mobile_width_pct: 100,
-    mobile_margin: 16,
-    mobile_margin_unit: "px" as const,
-    sections: customSections,
+    label: "Demo",
+    sections: [...customSections, ...home].map((section) => ({ ...section, in_menu: true })),
+    menu_enabled: true,
+    seo: { title: "Demo", description: "Sample content canvas.", og_image_url: "", noindex: true },
   };
-  return {
-    ...base,
-    home_hero_enabled: true,
-    home_width_pct: 75,
-    home_margin: 48,
-    home_margin_unit: "px",
-    home_mobile_width_pct: 100,
-    home_mobile_margin: 16,
-    home_mobile_margin_unit: "px",
-    home_section_order: home.map((section) => section.id),
-    home_sections: home,
-    custom,
-    canvases: [custom],
-  };
+  return custom;
 }

@@ -1,9 +1,16 @@
 import { captureStatLineDb, listStatLinesDb } from "@/lib/db/stat-lines-store";
-import { upsertSiteSettingsFixture } from "@/lib/fixtures/site-settings";
-import { clearedPageBuilder } from "@/lib/public/page-builder";
+import { getSiteSettingsFixture, upsertSiteSettingsFixture } from "@/lib/fixtures/site-settings";
+import {
+  MAX_CANVASES,
+  clearedPageBuilder,
+  nextCanvasSlug,
+  normalizePageBuilder,
+  rowElementCount,
+  type CustomCanvas,
+} from "@/lib/public/page-builder";
 import { DRIVER_PAIRING_TYPE, RENDER_DRIVER_TYPE, pairingPayload } from "@/lib/public/driver-pairings";
 import { ensureRenderDriverRecords } from "@/lib/public/ensure-render-drivers";
-import { demoPageBuilder } from "@/lib/sample-data/demo-canvas";
+import { DEMO_CANVAS_IDS, demoCanvas } from "@/lib/sample-data/demo-canvas";
 import { sampleExternalId } from "@/lib/sample-data/pack";
 
 const VISITS = [8, 12, 15, 18, 22, 27];
@@ -22,8 +29,8 @@ function idFor(rows: Listed[], externalId: string): string {
   return row.id;
 }
 
-/** Bind demo Elements onto the Primary canvas and the Overview canvas. */
-export async function installDemoCanvas(): Promise<void> {
+/** Bind demo Elements onto the demo canvas. Primary is never touched. */
+export async function installDemoCanvas(opts?: { keepCanvas?: boolean }): Promise<void> {
   await ensureRenderDriverRecords();
   const rows = await recordsOf();
   const drivers = await recordsOf(RENDER_DRIVER_TYPE);
@@ -100,9 +107,7 @@ export async function installDemoCanvas(): Promise<void> {
     if (!captured.ok) throw new Error(captured.message);
   }
 
-  upsertSiteSettingsFixture({
-    demo_mode: true,
-    page_builder: demoPageBuilder({
+  const demo = demoCanvas({
       pages: {
         facets: page("facets"),
         integrations: page("integrations"),
@@ -129,15 +134,42 @@ export async function installDemoCanvas(): Promise<void> {
         tickets: pairings.tickets,
         project: pairings.project,
       },
-    }),
+  });
+  const current = normalizePageBuilder(getSiteSettingsFixture().page_builder);
+  const demoIds = new Set<string>(DEMO_CANVAS_IDS);
+  const isDemo = (canvas: CustomCanvas) => Boolean(canvas.id && demoIds.has(canvas.id));
+  if (opts?.keepCanvas && current.canvases.some(isDemo)) return;
+  const kept = current.canvases.filter((canvas) => !isDemo(canvas) && !isPlaceholderCanvas(canvas));
+  const slug = kept.some((canvas) => canvas.slug === demo.slug)
+    ? nextCanvasSlug({ ...current, canvases: kept }, demo.label)
+    : demo.slug;
+  const canvases = kept.length < MAX_CANVASES ? [...kept, { ...demo, slug }] : kept;
+  upsertSiteSettingsFixture({
+    demo_mode: true,
+    page_builder: { ...current, custom: canvases[0], canvases },
     email_delivery: { credential_id: idFor(rows, sampleExternalId("credential", "mail")) },
   });
 }
 
+/** The blank Overview a cleared install ships with. Demo install replaces it. */
+function isPlaceholderCanvas(canvas: CustomCanvas): boolean {
+  return (
+    canvas.id === "cv-overview" &&
+    canvas.content_mode !== "html" &&
+    !canvas.html_page_id &&
+    canvas.sections.every((row) => rowElementCount(row) === 0)
+  );
+}
+
+/** Demo off removes the demo canvases only. Primary and staff canvases stay as they are. */
 export function resetDemoCanvas(): void {
+  const current = normalizePageBuilder(getSiteSettingsFixture().page_builder);
+  const demoIds = new Set<string>(DEMO_CANVAS_IDS);
+  const kept = current.canvases.filter((canvas) => !(canvas.id && demoIds.has(canvas.id)));
+  const canvases = kept.length ? kept : clearedPageBuilder().canvases;
   upsertSiteSettingsFixture({
     demo_mode: false,
-    page_builder: clearedPageBuilder(),
+    page_builder: { ...current, custom: canvases[0], canvases },
     email_delivery: { credential_id: "" },
   });
 }

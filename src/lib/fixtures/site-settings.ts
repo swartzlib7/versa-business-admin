@@ -10,7 +10,7 @@ import { theme } from "@/lib/theme";
 import type { CycleStep } from "@/lib/public/site-types";
 import type { LogoSurfaces, SkyEffects } from "@/lib/brand-display";
 import { clampSkyZoom, resolveLogoSurfaces, resolveSkyEffects, SKY_DENSITY_DEFAULT, SKY_STARS_ZOOM_DEFAULT, SKY_VARIANT_DEFAULT } from "@/lib/brand-display";
-import { normalizePageBuilder, type PageBuilderState } from "@/lib/public/page-builder";
+import { applyMenuDefaults, normalizePageBuilder, type PageBuilderState } from "@/lib/public/page-builder";
 import { sanitizeMenuOrder } from "@/lib/nav";
 import { foldPublicHrefs } from "@/lib/catalog/name-aliases";
 import { resolveBrandLogoUrl } from "@/lib/public/brand-seed";
@@ -40,6 +40,8 @@ export interface FixtureSiteSettings {
   constellation_effects?: SkyEffects;
   demo_mode?: boolean;
   maintenance_mode?: boolean;
+  /** Sky Animation master. Default on. */
+  sky_enabled?: boolean;
   hero_headline?: string;
   hero_subhead?: string;
   cycle_enabled?: boolean;
@@ -47,6 +49,8 @@ export interface FixtureSiteSettings {
   contact_email?: string;
   contact_phone?: string;
   contact_address?: string;
+  /** Name on the footer copyright line. Empty uses the brand name. */
+  footer_copyright?: string;
   menu_order?: string[];
   menu_enabled?: string[];
   public_menu_order?: string[];
@@ -138,6 +142,7 @@ function readFile(): FixtureSiteSettings | null {
       constellation_effects: resolveSkyEffects(parsed.constellation_effects),
       demo_mode: parsed.demo_mode !== false,
       maintenance_mode: parsed.maintenance_mode === true,
+      sky_enabled: parsed.sky_enabled !== false,
       hero_headline: typeof parsed.hero_headline === "string" ? parsed.hero_headline : undefined,
       hero_subhead: typeof parsed.hero_subhead === "string" ? parsed.hero_subhead : undefined,
       cycle_enabled: parsed.cycle_enabled,
@@ -145,6 +150,7 @@ function readFile(): FixtureSiteSettings | null {
       contact_email: typeof parsed.contact_email === "string" ? parsed.contact_email : undefined,
       contact_phone: typeof parsed.contact_phone === "string" ? parsed.contact_phone : undefined,
       contact_address: typeof parsed.contact_address === "string" ? parsed.contact_address : undefined,
+      footer_copyright: typeof parsed.footer_copyright === "string" ? parsed.footer_copyright : undefined,
       email_delivery: parsed.email_delivery ? normalizeEmailDelivery(parsed.email_delivery) : undefined,
       menu_order: Array.isArray(parsed.menu_order)
         ? sanitizeMenuOrder(parsed.menu_order) ?? undefined
@@ -161,7 +167,10 @@ function readFile(): FixtureSiteSettings | null {
       public_login_enabled: parsed.public_login_enabled !== false,
       glossary_in_menu: parsed.glossary_in_menu !== false,
       org_board_enabled: parsed.org_board_enabled !== false,
-      page_builder: normalizePageBuilder(parsed.page_builder),
+      page_builder: applyMenuDefaults(
+        normalizePageBuilder(parsed.page_builder),
+        Array.isArray(parsed.public_menu_enabled) ? parsed.public_menu_enabled : undefined,
+      ),
       brand_music_url:
         typeof parsed.brand_music_url === "string" && parsed.brand_music_url
           ? parsed.brand_music_url
@@ -207,6 +216,7 @@ function defaults(): FixtureSiteSettings {
     constellation_effects: resolveSkyEffects({}),
     demo_mode: true,
     maintenance_mode: false,
+    sky_enabled: true,
     public_login_enabled: true,
     glossary_in_menu: true,
     org_board_enabled: true,
@@ -311,6 +321,8 @@ export function upsertSiteSettingsFixture(
       input.maintenance_mode !== undefined
         ? input.maintenance_mode
         : current.maintenance_mode === true,
+    sky_enabled:
+      input.sky_enabled !== undefined ? input.sky_enabled !== false : current.sky_enabled !== false,
     hero_headline:
       input.hero_headline !== undefined ? input.hero_headline : current.hero_headline,
     hero_subhead:
@@ -325,6 +337,8 @@ export function upsertSiteSettingsFixture(
       input.contact_phone !== undefined ? input.contact_phone : current.contact_phone,
     contact_address:
       input.contact_address !== undefined ? input.contact_address : current.contact_address,
+    footer_copyright:
+      input.footer_copyright !== undefined ? input.footer_copyright : current.footer_copyright,
     menu_order:
       input.menu_order !== undefined ? input.menu_order : current.menu_order,
     menu_enabled:
@@ -349,10 +363,14 @@ export function upsertSiteSettingsFixture(
       input.org_board_enabled !== undefined
         ? input.org_board_enabled
         : current.org_board_enabled !== false,
-    page_builder:
+    page_builder: applyMenuDefaults(
       input.page_builder !== undefined
         ? normalizePageBuilder(input.page_builder)
         : normalizePageBuilder(current.page_builder),
+      input.public_menu_enabled !== undefined
+        ? input.public_menu_enabled
+        : current.public_menu_enabled,
+    ),
     brand_music_url:
       input.brand_music_url !== undefined
         ? input.brand_music_url

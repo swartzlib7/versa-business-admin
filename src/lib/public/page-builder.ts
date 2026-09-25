@@ -51,6 +51,8 @@ export type PageBuilderSection = {
   columns?: CanvasColumnCount;
   /** PB-19: Row visibility. Default on. */
   enabled?: boolean;
+  /** Public menu entry for this row. Separate from enabled (paint). Default on. */
+  in_menu?: boolean;
   /** PB-19: Cells in this Row. Length grows with columns; extras stay parked. */
   cells?: PageBuilderCell[];
   /** Builder-only. True hides the row body on the canvas. New rows start collapsed. */
@@ -68,9 +70,22 @@ export type PageBuilderSection = {
 export type PageBuilderRow = PageBuilderSection;
 
 export type CanvasMarginUnit = "px" | "pct";
-export type RowHeightUnit = "px" | "vh";
+export type CanvasWidthUnit = "pct" | "px";
+export type CanvasContentMode = "rows" | "html";
+export type CanvasSkyChoice = "on" | "off";
+/** `fit` grows the row with its content instead of one screen. */
+export type RowHeightUnit = "px" | "vh" | "fit";
+
+export type CanvasSeo = {
+  title: string;
+  description: string;
+  og_image_url: string;
+  noindex: boolean;
+};
 
 export type CustomCanvas = {
+  /** Stable identity. Label and slug can change; id does not. */
+  id?: string;
   enabled: boolean;
   slug: string;
   label: string;
@@ -84,6 +99,23 @@ export type CustomCanvas = {
   mobile_width_pct?: number;
   mobile_margin?: number;
   mobile_margin_unit?: CanvasMarginUnit;
+  /** Which width value paints. `pct` uses width_pct. `px` uses width_px. */
+  width_unit?: CanvasWidthUnit;
+  width_px?: number;
+  mobile_width_unit?: CanvasWidthUnit;
+  mobile_width_px?: number;
+  /** `rows` paints the row grid. `html` paints one Pages record as the whole page. */
+  content_mode?: CanvasContentMode;
+  html_page_id?: string;
+  /** A Pages record whose styles apply to every HTML Cell and the HTML page on this canvas. */
+  style_page_id?: string;
+  /** Public menu entry for this canvas. Default on. */
+  menu_enabled?: boolean;
+  seo?: CanvasSeo;
+  /** Per-canvas sky. Site sky_enabled off wins. */
+  sky?: CanvasSkyChoice;
+  header_enabled?: boolean;
+  footer_enabled?: boolean;
   /** Default columns for new Rows (1 through 8). */
   columns?: CanvasColumnCount;
   /** True when staff typed the slug; blanking it returns to auto-from-label. */
@@ -109,6 +141,17 @@ export type PageBuilderState = {
   home_mobile_width_pct?: number;
   home_mobile_margin?: number;
   home_mobile_margin_unit?: CanvasMarginUnit;
+  home_width_unit?: CanvasWidthUnit;
+  home_width_px?: number;
+  home_mobile_width_unit?: CanvasWidthUnit;
+  home_mobile_width_px?: number;
+  home_content_mode?: CanvasContentMode;
+  home_html_page_id?: string;
+  home_style_page_id?: string;
+  home_seo?: CanvasSeo;
+  home_sky?: CanvasSkyChoice;
+  home_header_enabled?: boolean;
+  home_footer_enabled?: boolean;
   /** Default columns for new Primary Rows. */
   home_columns?: CanvasColumnCount;
   /** Visitor name for the Primary Page. Slug stays `/`. */
@@ -132,6 +175,9 @@ export function normalizeHomeLabel(raw: unknown): string {
 
 /** PB-06: how many custom canvases staff can run alongside the primary homepage. */
 export const MAX_CANVASES = 4;
+
+/** Rows on one custom canvas. */
+export const MAX_CANVAS_ROWS = 16;
 
 /** Homepage slot ids the primary canvas can order. Hero stays first on the visitor page.
  *  Sections are removable — this catalog is the addable set, not a locked row list.
@@ -697,12 +743,11 @@ export function homeRowLabelMap(
   return map;
 }
 
-/** Default canvas width when unset (80% of the inner frame). */
-export const DEFAULT_CANVAS_WIDTH_PCT = 80;
-export const DEFAULT_CANVAS_MARGIN = 0;
-export const DEFAULT_HOME_WIDTH_PCT = 100;
-/** Phones and tablets start full-bleed with a small inset, not the desktop frame. */
-export const DEFAULT_MOBILE_CANVAS_WIDTH_PCT = 100;
+/** Canvas Desktop and Mobile defaults, shared by Primary and every custom canvas. */
+export const DEFAULT_CANVAS_WIDTH_PCT = 75;
+export const DEFAULT_CANVAS_MARGIN = 48;
+export const DEFAULT_HOME_WIDTH_PCT = DEFAULT_CANVAS_WIDTH_PCT;
+export const DEFAULT_MOBILE_CANVAS_WIDTH_PCT = 85;
 export const DEFAULT_MOBILE_CANVAS_MARGIN = 16;
 
 /** Canvas width 0–100 (step 5). 0 disables the canvas. Missing → default 80. */
@@ -724,36 +769,67 @@ export function clampCanvasMarginUnit(raw: unknown): CanvasMarginUnit {
   return raw === "pct" ? "pct" : "px";
 }
 
-export function clampCanvasMargin(raw: unknown, unit: CanvasMarginUnit = "px"): number {
+/** Margin is always pixels. The old percent unit is folded to pixels on load. */
+export function clampCanvasMargin(raw: unknown, _unit?: CanvasMarginUnit): number {
   const n = typeof raw === "number" ? Math.round(raw) : Number.parseInt(String(raw ?? ""), 10);
   if (!Number.isFinite(n) || n < 0) return 0;
-  if (unit === "pct") return Math.min(25, n);
   return Math.min(200, n);
+}
+
+export const DEFAULT_CANVAS_WIDTH_PX = 1200;
+
+export function clampCanvasWidthUnit(raw: unknown): CanvasWidthUnit {
+  return raw === "px" ? "px" : "pct";
+}
+
+export function clampCanvasWidthPx(raw: unknown): number {
+  const n = typeof raw === "number" ? Math.round(raw) : Number.parseInt(String(raw ?? ""), 10);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.min(2400, n);
+}
+
+export function canvasWidthCss(
+  unit: unknown,
+  pct: unknown,
+  px: unknown,
+  mobile = false,
+): string {
+  if (clampCanvasWidthUnit(unit) === "px") {
+    const n = clampCanvasWidthPx(px);
+    return n <= 0 ? "0" : `min(100%, ${n}px)`;
+  }
+  const w = mobile ? clampMobileCanvasWidth(pct) : clampCanvasWidth(pct);
+  return w === 0 ? "0" : `${w}%`;
 }
 
 export function canvasIsDisabled(
   widthPct: number | undefined,
   enabled?: boolean,
+  unit?: CanvasWidthUnit,
+  widthPx?: number,
 ): boolean {
   if (enabled === false) return true;
+  if (clampCanvasWidthUnit(unit) === "px") return clampCanvasWidthPx(widthPx) === 0;
   return clampCanvasWidth(widthPct ?? DEFAULT_CANVAS_WIDTH_PCT) === 0;
 }
 
 export function canvasFrameStyle(
   widthPct: number | undefined,
   margin: number | undefined,
-  unit: CanvasMarginUnit | undefined,
+  unit?: CanvasMarginUnit,
+  widthUnit?: CanvasWidthUnit,
+  widthPx?: number,
+  mobile = false,
 ): {
   pad: { padding: string };
   inner: { width: string; marginLeft: string; marginRight: string; minWidth: number };
 } {
-  const u = clampCanvasMarginUnit(unit);
-  const m = clampCanvasMargin(margin, u);
-  const w = clampCanvasWidth(widthPct);
+  const m = clampCanvasMargin(margin, unit);
+  const w = canvasWidthCss(widthUnit, widthPct, widthPx, mobile);
   return {
-    pad: { padding: u === "pct" ? `${m}%` : `${m}px` },
+    pad: { padding: `${m}px` },
     inner: {
-      width: w === 0 ? "0" : `${w}%`,
+      width: w,
       marginLeft: "auto",
       marginRight: "auto",
       minWidth: 0,
@@ -764,25 +840,35 @@ export function canvasFrameStyle(
 /** Desktop metrics from 1024px up; mobile metrics below that. Variables inherit. */
 export function canvasMetricVars(input: {
   widthPct?: number;
+  widthUnit?: CanvasWidthUnit;
+  widthPx?: number;
   margin?: number;
   marginUnit?: CanvasMarginUnit;
   mobileWidthPct?: number;
+  mobileWidthUnit?: CanvasWidthUnit;
+  mobileWidthPx?: number;
   mobileMargin?: number;
   mobileMarginUnit?: CanvasMarginUnit;
 }): CSSProperties {
-  const desk = canvasFrameStyle(input.widthPct, input.margin, input.marginUnit);
-  const mobileUnit =
-    input.mobileMargin === undefined && input.mobileMarginUnit === undefined
-      ? "px"
-      : clampCanvasMarginUnit(input.mobileMarginUnit);
+  const desk = canvasFrameStyle(
+    input.widthPct,
+    input.margin,
+    input.marginUnit,
+    input.widthUnit,
+    input.widthPx,
+    false,
+  );
   const mobileMargin =
     input.mobileMargin === undefined
       ? DEFAULT_MOBILE_CANVAS_MARGIN
-      : clampCanvasMargin(input.mobileMargin, mobileUnit);
+      : clampCanvasMargin(input.mobileMargin);
   const mob = canvasFrameStyle(
-    clampMobileCanvasWidth(input.mobileWidthPct),
+    input.mobileWidthPct,
     mobileMargin,
-    mobileUnit,
+    "px",
+    input.mobileWidthUnit,
+    input.mobileWidthPx,
+    true,
   );
   return {
     "--pb-w": desk.inner.width,
@@ -790,6 +876,28 @@ export function canvasMetricVars(input: {
     "--pb-pad": desk.pad.padding,
     "--pb-pad-m": mob.pad.padding,
   } as CSSProperties;
+}
+
+export function emptySeo(): CanvasSeo {
+  return { title: "", description: "", og_image_url: "", noindex: false };
+}
+
+export function normalizeSeo(raw: unknown): CanvasSeo {
+  const rec = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    title: typeof rec.title === "string" ? rec.title.trim().slice(0, 120) : "",
+    description: typeof rec.description === "string" ? rec.description.trim().slice(0, 300) : "",
+    og_image_url: typeof rec.og_image_url === "string" ? rec.og_image_url.trim().slice(0, 500) : "",
+    noindex: rec.noindex === true,
+  };
+}
+
+export function normalizeContentMode(raw: unknown): CanvasContentMode {
+  return raw === "html" ? "html" : "rows";
+}
+
+export function normalizeSkyChoice(raw: unknown): CanvasSkyChoice {
+  return raw === "off" ? "off" : "on";
 }
 
 /** Canvas columns are 1 through 8. */
@@ -957,7 +1065,11 @@ export const MIN_ROW_HEIGHT_VH = 10;
 export const MAX_ROW_HEIGHT_VH = 100;
 
 export function clampRowHeightUnit(raw: unknown): RowHeightUnit {
-  return raw === "vh" ? "vh" : "px";
+  return raw === "vh" ? "vh" : raw === "fit" ? "fit" : "px";
+}
+
+export function rowFitsContent(row: { height_unit?: unknown }): boolean {
+  return clampRowHeightUnit(row.height_unit) === "fit";
 }
 
 export function clampRowHeightVh(raw: unknown): number {
@@ -975,11 +1087,13 @@ export function rowHeightCss(row: {
   height_vh?: number;
   height_unit?: unknown;
 }): string {
+  if (clampRowHeightUnit(row.height_unit) === "fit") return "auto";
   if (clampRowHeightUnit(row.height_unit) === "vh") return `${clampRowHeightVh(row.height_vh)}svh`;
   return `min(${clampRowHeight(row.height_px)}px, 100svh)`;
 }
 
 export const DEFAULT_CUSTOM_CANVAS: CustomCanvas = {
+  id: "cv-overview",
   enabled: true,
   slug: "overview",
   slugManual: false,
@@ -1045,7 +1159,9 @@ export function blankCanvas(index: number): CustomCanvas {
 /** PB-06: enabled custom canvases, safest read across old persisted shapes. */
 export function enabledCanvases(state: PageBuilderState | undefined | null): CustomCanvas[] {
   const list = state?.canvases?.length ? state.canvases : state?.custom ? [state.custom] : [];
-  return list.filter((c) => c && !canvasIsDisabled(c.width_pct, c.enabled));
+  return list.filter(
+    (c) => c && !canvasIsDisabled(c.width_pct, c.enabled, c.width_unit, c.width_px),
+  );
 }
 
 /** PB-06: find an ENABLED canvas by slug (visitor /p/[slug] resolution). */
@@ -1154,6 +1270,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
   const height_unit = clampRowHeightUnit(rec.height_unit);
   const height_vh = clampRowHeightVh(rec.height_vh);
   const enabled = rec.enabled !== false && !isBlankSlotLabel(label);
+  const in_menu = rec.in_menu === false ? false : rec.in_menu === true ? true : undefined;
   const cells = Array.isArray(rec.cells) ? rec.cells : undefined;
   const idManual =
     rec.idManual === true
@@ -1175,6 +1292,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
       height_px,
       height_vh,
       enabled,
+      in_menu,
       idManual,
       cells: cells as PageBuilderCell[] | undefined,
     });
@@ -1195,6 +1313,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
       height_px,
       height_vh,
       enabled,
+      in_menu,
       idManual,
       cells: cells as PageBuilderCell[] | undefined,
     });
@@ -1218,6 +1337,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
       height_px,
       height_vh,
       enabled,
+      in_menu,
       idManual,
       cells: cells as PageBuilderCell[] | undefined,
     });
@@ -1235,6 +1355,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
     height_px,
     height_vh,
     enabled,
+    in_menu,
     idManual,
     cells: cells as PageBuilderCell[] | undefined,
   });
@@ -1248,7 +1369,7 @@ function normalizeCanvas(
   const used = new Set<string>();
   const sectionsIn = Array.isArray(rec.sections) ? rec.sections : fallback.sections;
   const sections: PageBuilderSection[] = [];
-  for (const row of sectionsIn.slice(0, 8)) {
+  for (const row of sectionsIn.slice(0, MAX_CANVAS_ROWS)) {
     if (!row || typeof row !== "object") continue;
     const next = normalizeSection(row as Record<string, unknown>, used);
     if (next) sections.push(next);
@@ -1269,21 +1390,30 @@ function normalizeCanvas(
         ? false
         : isManualKey(slug, label, "overview");
   return {
+    id: typeof rec.id === "string" && rec.id.trim() ? rec.id.trim().slice(0, 64) : `cv-${slug}`,
     enabled: rec.enabled !== false,
     slug,
     slugManual,
     label,
     sections,
     width_pct: clampCanvasWidth(rec.width_pct),
-    margin: clampCanvasMargin(rec.margin, clampCanvasMarginUnit(rec.margin_unit)),
-    margin_unit: clampCanvasMarginUnit(rec.margin_unit),
+    width_unit: clampCanvasWidthUnit(rec.width_unit),
+    width_px: clampCanvasWidthPx(rec.width_px ?? DEFAULT_CANVAS_WIDTH_PX),
+    margin: clampCanvasMargin(rec.margin === undefined ? DEFAULT_CANVAS_MARGIN : rec.margin),
     mobile_width_pct: clampMobileCanvasWidth(rec.mobile_width_pct),
+    mobile_width_unit: clampCanvasWidthUnit(rec.mobile_width_unit),
+    mobile_width_px: clampCanvasWidthPx(rec.mobile_width_px ?? DEFAULT_CANVAS_WIDTH_PX),
     mobile_margin: clampCanvasMargin(
       rec.mobile_margin === undefined ? DEFAULT_MOBILE_CANVAS_MARGIN : rec.mobile_margin,
-      rec.mobile_margin_unit === undefined ? "px" : clampCanvasMarginUnit(rec.mobile_margin_unit),
     ),
-    mobile_margin_unit:
-      rec.mobile_margin_unit === undefined ? "px" : clampCanvasMarginUnit(rec.mobile_margin_unit),
+    content_mode: normalizeContentMode(rec.content_mode),
+    html_page_id: typeof rec.html_page_id === "string" ? rec.html_page_id.trim().slice(0, 80) : "",
+    style_page_id: typeof rec.style_page_id === "string" ? rec.style_page_id.trim().slice(0, 80) : "",
+    menu_enabled: rec.menu_enabled !== false,
+    seo: normalizeSeo(rec.seo),
+    sky: normalizeSkyChoice(rec.sky),
+    header_enabled: rec.header_enabled !== false,
+    footer_enabled: rec.footer_enabled !== false,
     columns: clampCanvasColumns(rec.columns),
   };
 }
@@ -1327,10 +1457,14 @@ export function normalizePageBuilder(input: unknown): PageBuilderState {
           ? rec.label
           : "",
     );
+    const recId = typeof rec.id === "string" ? rec.id.trim() : "";
+    if (recId && canvases.some((c) => c.id === recId)) continue;
     if (canvases.some((c) => c.slug === srcSlug)) continue;
-    canvases.push(
-      normalizeCanvas(rec, blankCanvas(canvases.length + 1), usedSlugs),
-    );
+    const next = normalizeCanvas(rec, blankCanvas(canvases.length + 1), usedSlugs);
+    let id = next.id ?? `cv-${next.slug}`;
+    let n = 2;
+    while (canvases.some((c) => c.id === id)) id = `${next.id}-${n++}`;
+    canvases.push({ ...next, id });
     if (canvases.length >= MAX_CANVASES) break;
   }
   const rawOrderRaw = (raw as { home_section_order?: unknown }).home_section_order;
@@ -1394,32 +1528,88 @@ export function normalizePageBuilder(input: unknown): PageBuilderState {
     home_section_order: order,
     home_sections,
     home_hero_enabled: (raw as { home_hero_enabled?: unknown }).home_hero_enabled !== false,
+    home_header_enabled: (raw as { home_header_enabled?: unknown }).home_header_enabled !== false,
+    home_footer_enabled: (raw as { home_footer_enabled?: unknown }).home_footer_enabled !== false,
+    home_content_mode: normalizeContentMode((raw as { home_content_mode?: unknown }).home_content_mode),
+    home_html_page_id:
+      typeof (raw as { home_html_page_id?: unknown }).home_html_page_id === "string"
+        ? String((raw as { home_html_page_id?: string }).home_html_page_id).trim().slice(0, 80)
+        : "",
+    home_style_page_id:
+      typeof (raw as { home_style_page_id?: unknown }).home_style_page_id === "string"
+        ? String((raw as { home_style_page_id?: string }).home_style_page_id).trim().slice(0, 80)
+        : "",
+    home_seo: normalizeSeo((raw as { home_seo?: unknown }).home_seo),
+    home_sky: normalizeSkyChoice((raw as { home_sky?: unknown }).home_sky),
     home_width_pct: clampCanvasWidth(
       (raw as { home_width_pct?: unknown }).home_width_pct ?? DEFAULT_HOME_WIDTH_PCT,
     ),
-    home_margin: clampCanvasMargin(
-      (raw as { home_margin?: unknown }).home_margin,
-      clampCanvasMarginUnit((raw as { home_margin_unit?: unknown }).home_margin_unit),
+    home_width_unit: clampCanvasWidthUnit((raw as { home_width_unit?: unknown }).home_width_unit),
+    home_width_px: clampCanvasWidthPx(
+      (raw as { home_width_px?: unknown }).home_width_px ?? DEFAULT_CANVAS_WIDTH_PX,
     ),
-    home_margin_unit: clampCanvasMarginUnit((raw as { home_margin_unit?: unknown }).home_margin_unit),
+    home_margin: clampCanvasMargin(
+      (raw as { home_margin?: unknown }).home_margin === undefined
+        ? DEFAULT_CANVAS_MARGIN
+        : (raw as { home_margin?: unknown }).home_margin,
+    ),
     home_mobile_width_pct: clampMobileCanvasWidth(
       (raw as { home_mobile_width_pct?: unknown }).home_mobile_width_pct,
+    ),
+    home_mobile_width_unit: clampCanvasWidthUnit(
+      (raw as { home_mobile_width_unit?: unknown }).home_mobile_width_unit,
+    ),
+    home_mobile_width_px: clampCanvasWidthPx(
+      (raw as { home_mobile_width_px?: unknown }).home_mobile_width_px ?? DEFAULT_CANVAS_WIDTH_PX,
     ),
     home_mobile_margin: clampCanvasMargin(
       (raw as { home_mobile_margin?: unknown }).home_mobile_margin === undefined
         ? DEFAULT_MOBILE_CANVAS_MARGIN
         : (raw as { home_mobile_margin?: unknown }).home_mobile_margin,
-      (raw as { home_mobile_margin_unit?: unknown }).home_mobile_margin_unit === undefined
-        ? "px"
-        : clampCanvasMarginUnit((raw as { home_mobile_margin_unit?: unknown }).home_mobile_margin_unit),
     ),
-    home_mobile_margin_unit:
-      (raw as { home_mobile_margin_unit?: unknown }).home_mobile_margin_unit === undefined
-        ? "px"
-        : clampCanvasMarginUnit((raw as { home_mobile_margin_unit?: unknown }).home_mobile_margin_unit),
     home_columns: clampSectionColumns((raw as { home_columns?: unknown }).home_columns ?? 1),
     home_label: normalizeHomeLabel((raw as { home_label?: unknown }).home_label),
   };
+}
+
+/** Catalog rows without in_menu follow the saved Public menu. Other rows default on. */
+export function applyMenuDefaults(
+  state: PageBuilderState,
+  enabledHrefs?: string[] | null,
+): PageBuilderState {
+  const catalog = new Set<string>(HOMEPAGE_SLOT_ORDER);
+  const stamp = (section: PageBuilderSection): PageBuilderSection => {
+    if (typeof section.in_menu === "boolean") return section;
+    if (enabledHrefs && catalog.has(section.id)) {
+      return { ...section, in_menu: enabledHrefs.includes(`/#${section.id}`) };
+    }
+    return { ...section, in_menu: true };
+  };
+  const canvases = state.canvases.map((canvas) => ({
+    ...canvas,
+    sections: canvas.sections.map(stamp),
+  }));
+  const custom = canvases[0] ?? { ...state.custom, sections: state.custom.sections.map(stamp) };
+  return {
+    ...state,
+    custom,
+    canvases: canvases.length ? canvases : [custom],
+    home_sections: (state.home_sections ?? []).map(stamp),
+  };
+}
+
+/** Keep the first custom canvas even if a payload omits it. Matched by id, so a rename is not a delete. */
+export function keepFirstCustomCanvas(
+  previous: PageBuilderState | null | undefined,
+  next: PageBuilderState,
+): PageBuilderState {
+  const first = previous?.canvases?.[0] ?? previous?.custom;
+  if (!first?.id) return next;
+  if (next.canvases.some((canvas) => canvas.id === first.id)) return next;
+  const slugTaken = next.canvases.some((canvas) => canvas.slug === first.slug);
+  const kept = slugTaken ? { ...first, slug: `${first.slug}-kept` } : first;
+  const canvases = [kept, ...next.canvases].slice(0, MAX_CANVASES);
+  return { ...next, custom: canvases[0], canvases };
 }
 
 export function customCanvasHref(canvas: CustomCanvas): string {

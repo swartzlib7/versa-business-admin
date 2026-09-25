@@ -90,6 +90,8 @@ export async function PUT(request: Request) {
     contact_email: body.contact_email != null ? String(body.contact_email) : undefined,
     contact_phone: body.contact_phone != null ? String(body.contact_phone) : undefined,
     contact_address: body.contact_address != null ? String(body.contact_address) : undefined,
+    footer_copyright:
+      body.footer_copyright != null ? String(body.footer_copyright).trim().slice(0, 120) : undefined,
   });
   return NextResponse.json({ data: await payload() });
 }

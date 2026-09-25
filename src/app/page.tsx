@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import type { Metadata } from "next";
 import { PublicLayout } from "@/components/public/public-layout";
 import { PublicMaintenance } from "@/components/public/public-maintenance";
 import { PublicSection } from "@/components/public/public-section";
@@ -12,62 +13,76 @@ import {
   resolveLogoSurfaces,
 } from "@/lib/brand-display";
 import { loadCycleSteps, normalizePublicContent } from "@/lib/public/site-content";
-import {
-  nextPublicSectionId,
-  resolvePublicMenu,
-  homepageVisibleSectionIds,
-} from "@/lib/nav";
+import { nextPublicSectionId } from "@/lib/nav";
 import {
   canvasMetricVars,
   rowWidthVars,
   canvasIsDisabled,
   ensureRowCells,
-  homepageBuilderSectionOrder,
   isCellOn,
   isRowOn,
   normalizePageBuilder,
+  rowFitsContent,
   rowHeightCss,
   sectionColumnsClass,
   visibleCells,
 } from "@/lib/public/page-builder";
 import { resolveCellPaints } from "@/lib/public/resolve-cell-paint";
 import { CanvasSlotDriver, CycleStrip } from "@/components/public/canvas-slot-drivers";
+import { CanvasHtmlPage } from "@/components/public/canvas-html-page";
+import { CanvasSkyFlag } from "@/components/public/canvas-sky-flag";
+import { signedInVisitor } from "@/lib/public/visitor-session";
+import { pageBodyHtml } from "@/lib/public/page-record";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getPublicSiteSettings();
+  const builder = normalizePageBuilder(site.page_builder);
+  const seo = builder.home_seo;
+  const title = seo?.title || `${site.brand_name}`;
+  const description = seo?.description || "";
+  return {
+    title,
+    description,
+    robots: seo?.noindex ? { index: false, follow: false } : undefined,
+    openGraph: {
+      title,
+      description,
+      images: seo?.og_image_url ? [seo.og_image_url] : undefined,
+    },
+  };
+}
 
 export default async function HomePage() {
   const site = await getPublicSiteSettings();
   const pub = normalizePublicContent(site);
   const cycle = await loadCycleSteps(site);
   const demo = site.demo_mode !== false;
-  const publicMenu = resolvePublicMenu({
-    enabled: site.public_menu_enabled,
-    order: site.public_menu_order,
-  });
-  const visibleIds = homepageVisibleSectionIds({
-    demo,
-    enabled: publicMenu.enabled,
-    order: publicMenu.order,
-  });
   const builder = normalizePageBuilder(site.page_builder);
   const homeById = new Map((builder.home_sections ?? []).map((s) => [s.id, s]));
-  const sectionIds = homepageBuilderSectionOrder(builder.home_section_order, visibleIds).filter(
-    (id) => {
-      const row = homeById.get(id);
-      return row ? isRowOn(row) : false;
-    },
-  );
+  const sectionIds = (builder.home_section_order ?? []).filter((id) => {
+    const row = homeById.get(id);
+    return row ? isRowOn(row) : false;
+  });
   const nextOf = (id: string) => nextPublicSectionId(id, sectionIds);
   const firstSection = sectionIds[0];
   const heroOn = builder.home_hero_enabled !== false;
-  const homeDisabled = canvasIsDisabled(builder.home_width_pct);
+  const homeDisabled = canvasIsDisabled(
+    builder.home_width_pct,
+    true,
+    builder.home_width_unit,
+    builder.home_width_px,
+  );
   const homeFrame = canvasMetricVars({
     widthPct: builder.home_width_pct,
+    widthUnit: builder.home_width_unit,
+    widthPx: builder.home_width_px,
     margin: builder.home_margin,
-    marginUnit: builder.home_margin_unit,
     mobileWidthPct: builder.home_mobile_width_pct,
+    mobileWidthUnit: builder.home_mobile_width_unit,
+    mobileWidthPx: builder.home_mobile_width_px,
     mobileMargin: builder.home_mobile_margin,
-    mobileMarginUnit: builder.home_mobile_margin_unit,
   });
   const homeCells = sectionIds.flatMap((id) => {
     const slot = homeById.get(id);
@@ -75,6 +90,9 @@ export default async function HomePage() {
     return visibleCells(ensureRowCells(slot)).filter(isCellOn);
   });
   const paints = await resolveCellPaints(homeCells);
+  const fullHtml =
+    builder.home_content_mode === "html" ? await pageBodyHtml(builder.home_html_page_id) : "";
+  const pageStyles = await pageBodyHtml(builder.home_style_page_id);
 
   const emptyProfile = {
     name: site.brand_name,
@@ -103,12 +121,19 @@ export default async function HomePage() {
     address: pub.contact_address,
   };
 
-  if (site.maintenance_mode === true) {
+  if (site.maintenance_mode === true && !(await signedInVisitor())) {
     return <PublicMaintenance brandName={site.brand_name} />;
   }
 
   return (
-    <PublicLayout business={business} demo={demo}>
+    <PublicLayout
+      business={business}
+      demo={demo}
+      showHeader={builder.home_header_enabled !== false}
+      showFooter={builder.home_footer_enabled !== false}
+      maintenance={site.maintenance_mode === true}
+    >
+      <CanvasSkyFlag on={site.sky_enabled !== false && builder.home_sky !== "off"} />
       {homeDisabled ? null : (
       <div className="pb-canvas-inner" style={homeFrame}>
       {heroOn ? (
@@ -152,20 +177,32 @@ export default async function HomePage() {
       </PublicSection>
       ) : null}
 
-      {sectionIds.map((id) => {
+      {builder.home_content_mode === "html" ? (
+        <CanvasHtmlPage
+          html={fullHtml}
+          stylesheet={pageStyles}
+          belowHeader={builder.home_header_enabled !== false}
+        />
+      ) : sectionIds.map((id, index) => {
         const slot = homeById.get(id);
         if (!slot) return null;
         const row = ensureRowCells(slot);
         const cells = visibleCells(row);
+        const fit = rowFitsContent(row);
+        const clearHeader = index === 0 && !heroOn && builder.home_header_enabled !== false;
         return (
           <Fragment key={id}>
             <PublicSection
               id={id}
               nextId={nextOf(id)}
+              fillViewport={!fit}
               className="bg-transparent"
             >
               <div
-                className="pb-section-pad mx-auto flex h-full w-full items-center"
+                className={cn(
+                  "mx-auto flex h-full w-full items-center",
+                  fit ? (clearHeader ? "pt-28" : "") : "pb-section-pad",
+                )}
               >
                 <div className="pb-row-width min-w-0" style={rowWidthVars(slot.width_pct, slot.mobile_width_pct)}>
                   <div
@@ -181,12 +218,20 @@ export default async function HomePage() {
                         return <div key={cell.id} className="h-full min-h-0" aria-hidden="true" />;
                       }
                       return (
-                        <div key={cell.id} className="h-full min-h-0 min-w-0 max-w-full overflow-auto">
+                        <div
+                          key={cell.id}
+                          className={cn(
+                            "min-h-0 min-w-0 max-w-full",
+                            fit ? "overflow-visible" : "h-full overflow-auto",
+                          )}
+                        >
                           <CanvasSlotDriver
                             driver={paint.driver}
                             cycleSteps={cycle}
                             stat={paint.stat ?? null}
                             html={paint.html}
+                            htmlFormat={paint.htmlFormat}
+                            pageStyles={pageStyles}
                             pageCard={paint.pageCard}
                             contact={paint.contact}
                             integration={paint.integration}

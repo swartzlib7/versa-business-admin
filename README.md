@@ -17,7 +17,7 @@
     <a href="docs/ops/BUSINESS_ADMIN_OPS_MANUAL.md"><strong>Ops Manual</strong></a>
   </p>
   <p>
-    <img src="https://img.shields.io/badge/version-1.0.3-FF9800" alt="Versa - Business Admin version 1.0.3">
+    <img src="https://img.shields.io/badge/version-1.0.4-FF9800" alt="Versa - Business Admin version 1.0.4">
   </p>
   <p align="center">
     <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" alt="Linux">

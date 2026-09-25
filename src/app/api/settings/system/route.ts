@@ -17,7 +17,7 @@ import {
   DEFAULT_PUBLIC_NAV_ITEMS,
   orderNavItems,
 } from "@/lib/nav";
-import { normalizePageBuilder } from "@/lib/public/page-builder";
+import { keepFirstCustomCanvas, normalizePageBuilder } from "@/lib/public/page-builder";
 import {
   normalizeEmailDelivery,
   publicEmailDelivery,
@@ -39,6 +39,7 @@ function modesFromStore() {
   return {
     demo_mode: settings.demo_mode !== false,
     maintenance_mode: settings.maintenance_mode === true,
+    sky_enabled: settings.sky_enabled !== false,
     menu_order: operatorMenu.order,
     menu_enabled,
     public_menu_order: publicMenu.order,
@@ -89,6 +90,7 @@ export async function PUT(request: Request) {
   const patch: {
     demo_mode?: boolean;
     maintenance_mode?: boolean;
+    sky_enabled?: boolean;
     menu_order?: string[];
     menu_enabled?: string[];
     public_menu_order?: string[];
@@ -102,6 +104,9 @@ export async function PUT(request: Request) {
   if (typeof body.demo_mode === "boolean") patch.demo_mode = body.demo_mode;
   if (typeof body.maintenance_mode === "boolean") {
     patch.maintenance_mode = body.maintenance_mode;
+  }
+  if (typeof body.sky_enabled === "boolean") {
+    patch.sky_enabled = body.sky_enabled;
   }
   if (typeof body.public_login_enabled === "boolean") {
     patch.public_login_enabled = body.public_login_enabled;
@@ -223,7 +228,8 @@ export async function PUT(request: Request) {
     patch.org_board_enabled = flags.org_board_enabled;
   }
   if (body.page_builder !== undefined) {
-    patch.page_builder = normalizePageBuilder(body.page_builder);
+    const previous = normalizePageBuilder(getSiteSettingsFixture().page_builder);
+    patch.page_builder = keepFirstCustomCanvas(previous, normalizePageBuilder(body.page_builder));
   }
   if (body.email_delivery && typeof body.email_delivery === "object") {
     const incoming = body.email_delivery as Record<string, unknown>;

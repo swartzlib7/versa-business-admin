@@ -63,6 +63,7 @@ export function normalizePublicContent(settings: FixtureSiteSettings): {
   contact_email: string;
   contact_phone: string;
   contact_address: string;
+  footer_copyright: string;
 } {
   const steps = clampSteps(settings.cycle_steps);
   return {
@@ -88,6 +89,8 @@ export function normalizePublicContent(settings: FixtureSiteSettings): {
       typeof settings.contact_address === "string" && settings.contact_address.trim()
         ? settings.contact_address.trim()
         : business.address,
+    footer_copyright:
+      typeof settings.footer_copyright === "string" ? settings.footer_copyright.trim() : "",
   };
 }
 

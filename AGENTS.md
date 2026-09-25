@@ -21,6 +21,10 @@ Host install/orient: Versa AGi skill **`business_admin`** (`coa_only`). Host API
 | Staff how-to | `docs/ops/BUSINESS_ADMIN_USER_MANUAL.md` |
 | HTTP API catalog | `GET /api` (open) and Settings → API |
 
+## First run
+
+A new install ships with **demo mode on** (`demo_mode: true`). Turn it off in Settings → Modes before real use. Turning it off deletes the sample pack. The Primary Org and the install accounts stay.
+
 ## Standing product rules
 
 - Hide leftover catalog fields (`active: false`). Do not delete system fields or invent a second meaning for an old `api_name`.

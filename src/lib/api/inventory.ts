@@ -32,6 +32,20 @@ export const API_RESOURCES: ApiResource[] = [
   {
     group: "Discovery",
     method: "GET",
+    path: "/sitemap.xml",
+    auth: "open",
+    summary: "Enabled canvases. A canvas with seo.noindex is left out.",
+  },
+  {
+    group: "Discovery",
+    method: "GET",
+    path: "/robots.txt",
+    auth: "open",
+    summary: "Allows crawlers and points at /sitemap.xml.",
+  },
+  {
+    group: "Discovery",
+    method: "GET",
     path: "/api/health",
     auth: "open",
     summary: "Process health, package version, and database connectivity.",
@@ -440,14 +454,16 @@ export const API_RESOURCES: ApiResource[] = [
     method: "GET",
     path: "/api/settings/system",
     auth: "session",
-    summary: "Modes, operator menu, and public menu.",
+    summary:
+      "Modes, sky_enabled, operator menu, public menu, and page_builder (content_mode, html_page_id, in_menu, menu_enabled, seo, sky, header_enabled, footer_enabled, width_unit, width_px). The first custom canvas cannot be removed.",
   },
   {
     group: "Settings",
     method: "PUT",
     path: "/api/settings/system",
     auth: "admin",
-    summary: "Update modes and menus.",
+    summary:
+      "Update modes, sky_enabled, menus, and page_builder. Margins are pixels. Width unit is pct or px. The first custom canvas is kept if a payload omits it.",
   },
   {
     group: "Settings",
@@ -511,6 +527,14 @@ export const API_RESOURCES: ApiResource[] = [
     path: "/api/public/business",
     auth: "open",
     summary: "Public business profile.",
+  },
+  {
+    group: "Public",
+    method: "POST",
+    path: "/api/public/subscribe",
+    auth: "open",
+    summary:
+      "Email sign-up. Body: email, challenge (solved GET /api/auth/challenge), optional source. Saves one public Contact per email; a repeat is not an error.",
   },
   {
     group: "Public",

@@ -12,6 +12,7 @@ import {
   DEFAULT_HOME_SECTION_ORDER,
   HOME_SECTION_LABELS,
   MAX_CANVASES,
+  MAX_CANVAS_ROWS,
   blankCanvas,
   canvasMetricVars,
   canvasIsDisabled,
@@ -19,10 +20,13 @@ import {
   clampRowHeight,
   clampSectionColumns,
   clampSectionWidth,
+  DEFAULT_CANVAS_MARGIN,
   DEFAULT_CANVAS_WIDTH_PCT,
+  DEFAULT_CANVAS_WIDTH_PX,
   DEFAULT_HOME_WIDTH_PCT,
   DEFAULT_MOBILE_CANVAS_MARGIN,
   DEFAULT_MOBILE_CANVAS_WIDTH_PCT,
+  emptySeo,
   blankHomeSection,
   defaultHomeSections,
   ensureRowCells,
@@ -40,15 +44,20 @@ import {
   usedFeatureIds,
   rowElementCount,
   visibleCells,
-  type CanvasMarginUnit,
+  type CanvasContentMode,
+  type CanvasSeo,
+  type CanvasSkyChoice,
+  type CanvasWidthUnit,
   type CustomCanvas,
   type PageBuilderCell,
   type PageBuilderSection,
 } from "@/lib/public/page-builder";
 import { CanvasSlotDriver } from "@/components/public/canvas-slot-drivers";
 import {
+  CanvasSettingsBox,
   CanvasSizeControls,
   ColumnCycleToggle,
+  LockedCanvasRow,
   ElementPickModal,
   type PickedElement,
   ElementConfigSection,
@@ -126,6 +135,7 @@ function CellPaint({
         cycleSteps={cycleSteps}
         stat={paint.stat ?? null}
         html={paint.html}
+        htmlFormat={paint.htmlFormat}
         pageCard={paint.pageCard}
         contact={paint.contact}
         integration={paint.integration}
@@ -168,11 +178,23 @@ export function PageBuilderPanel() {
   const [builderTab, setBuilderTab] = useState<"primary" | number>("primary");
   const [homeHero, setHomeHero] = useState(true);
   const [homeWidth, setHomeWidth] = useState(DEFAULT_HOME_WIDTH_PCT);
-  const [homeMargin, setHomeMargin] = useState(0);
-  const [homeMarginUnit, setHomeMarginUnit] = useState<CanvasMarginUnit>("px");
+  const [homeWidthUnit, setHomeWidthUnit] = useState<CanvasWidthUnit>("pct");
+  const [homeWidthPx, setHomeWidthPx] = useState(DEFAULT_CANVAS_WIDTH_PX);
+  const [homeMargin, setHomeMargin] = useState(DEFAULT_CANVAS_MARGIN);
   const [homeMobileWidth, setHomeMobileWidth] = useState(DEFAULT_MOBILE_CANVAS_WIDTH_PCT);
+  const [homeMobileWidthUnit, setHomeMobileWidthUnit] = useState<CanvasWidthUnit>("pct");
+  const [homeMobileWidthPx, setHomeMobileWidthPx] = useState(DEFAULT_CANVAS_WIDTH_PX);
   const [homeMobileMargin, setHomeMobileMargin] = useState(DEFAULT_MOBILE_CANVAS_MARGIN);
-  const [homeMobileMarginUnit, setHomeMobileMarginUnit] = useState<CanvasMarginUnit>("px");
+  const [homeHeader, setHomeHeader] = useState(true);
+  const [homeFooter, setHomeFooter] = useState(true);
+  const [homeMode, setHomeMode] = useState<CanvasContentMode>("rows");
+  const [homeHtmlId, setHomeHtmlId] = useState("");
+  const [homeStyleId, setHomeStyleId] = useState("");
+  const [homeSeo, setHomeSeo] = useState<CanvasSeo>(emptySeo());
+  const [homeSky, setHomeSky] = useState<CanvasSkyChoice>("on");
+  const [skySiteOn, setSkySiteOn] = useState(true);
+  const [pages, setPages] = useState<{ id: string; name: string }[]>([]);
+  const [canvasConfirm, setCanvasConfirm] = useState<number | null>(null);
   const [homeColumns, setHomeColumns] = useState(1);
   const [homeLabel, setHomeLabel] = useState(DEFAULT_HOME_LABEL);
   const [cellFocus, setCellFocus] = useState<Record<string, number>>({});
@@ -195,21 +217,50 @@ export function PageBuilderPanel() {
   }, [builderTab]);
 
   useEffect(() => {
+    fetch("/api/records?type=page", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("pages"))))
+      .then((json: { data?: { id: string; name?: string }[] }) => {
+        setPages((json.data ?? []).map((row) => ({ id: row.id, name: row.name || "Page" })));
+      })
+      .catch(() => undefined);
+    fetch("/api/settings/system", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("sky"))))
+      .then((json: { data?: { sky_enabled?: boolean } }) => {
+        setSkySiteOn(json.data?.sky_enabled !== false);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     fetch("/api/settings/system", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("load failed"))))
       .then((json: { data?: { page_builder?: unknown } }) => {
         const pb = normalizePageBuilder(json.data?.page_builder);
-        setCustom(pb.custom);
-        setCanvases(pb.canvases ?? [pb.custom]);
+        const fold = (rows: PageBuilderSection[]) => rows.map((row) => ({ ...row, collapsed: true }));
+        const canvasesIn = (pb.canvases ?? [pb.custom]).map((canvas) => ({
+          ...canvas,
+          sections: fold(canvas.sections),
+        }));
+        setCustom(canvasesIn[0] ?? pb.custom);
+        setCanvases(canvasesIn);
         setHomeOrder(pb.home_section_order ?? DEFAULT_HOME_SECTION_ORDER);
-        setHomeSections(pb.home_sections ?? defaultHomeSections());
+        setHomeSections(fold(pb.home_sections ?? defaultHomeSections()));
         setHomeHero(pb.home_hero_enabled !== false);
+        setHomeHeader(pb.home_header_enabled !== false);
+        setHomeFooter(pb.home_footer_enabled !== false);
+        setHomeMode(pb.home_content_mode === "html" ? "html" : "rows");
+        setHomeHtmlId(pb.home_html_page_id ?? "");
+        setHomeStyleId(pb.home_style_page_id ?? "");
+        setHomeSeo(pb.home_seo ?? emptySeo());
+        setHomeSky(pb.home_sky === "off" ? "off" : "on");
         setHomeWidth(pb.home_width_pct ?? DEFAULT_HOME_WIDTH_PCT);
-        setHomeMargin(pb.home_margin ?? 0);
-        setHomeMarginUnit(pb.home_margin_unit ?? "px");
+        setHomeWidthUnit(pb.home_width_unit === "px" ? "px" : "pct");
+        setHomeWidthPx(pb.home_width_px ?? DEFAULT_CANVAS_WIDTH_PX);
+        setHomeMargin(pb.home_margin ?? DEFAULT_CANVAS_MARGIN);
         setHomeMobileWidth(pb.home_mobile_width_pct ?? DEFAULT_MOBILE_CANVAS_WIDTH_PCT);
+        setHomeMobileWidthUnit(pb.home_mobile_width_unit === "px" ? "px" : "pct");
+        setHomeMobileWidthPx(pb.home_mobile_width_px ?? DEFAULT_CANVAS_WIDTH_PX);
         setHomeMobileMargin(pb.home_mobile_margin ?? DEFAULT_MOBILE_CANVAS_MARGIN);
-        setHomeMobileMarginUnit(pb.home_mobile_margin_unit ?? "px");
         setHomeColumns(clampSectionColumns(pb.home_columns ?? 1));
         setHomeLabel(pb.home_label ?? DEFAULT_HOME_LABEL);
         setLoaded(true);
@@ -240,13 +291,13 @@ export function PageBuilderPanel() {
     next: CustomCanvas,
     nextHomeOrder?: string[],
     nextHomeSections?: PageBuilderSection[],
+    nextCanvases?: CustomCanvas[],
   ) => {
     setSaving(true);
     setError(null);
     setSaved(false);
     try {
-      // PB-06: canvases travels alongside custom (index 0 mirrors custom).
-      const canvasesOut = canvases.map((c, i) => (i === 0 ? next : c));
+      const canvasesOut = (nextCanvases ?? canvases).map((c, i) => (i === 0 ? next : c));
       const res = await fetch("/api/settings/system", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -258,12 +309,21 @@ export function PageBuilderPanel() {
             home_section_order: nextHomeOrder ?? homeOrder,
             home_sections: nextHomeSections ?? homeSections,
             home_hero_enabled: homeHero,
+            home_header_enabled: homeHeader,
+            home_footer_enabled: homeFooter,
+            home_content_mode: homeMode,
+            home_html_page_id: homeHtmlId,
+            home_style_page_id: homeStyleId,
+            home_seo: homeSeo,
+            home_sky: homeSky,
             home_width_pct: homeWidth,
+            home_width_unit: homeWidthUnit,
+            home_width_px: homeWidthPx,
             home_margin: homeMargin,
-            home_margin_unit: homeMarginUnit,
             home_mobile_width_pct: homeMobileWidth,
+            home_mobile_width_unit: homeMobileWidthUnit,
+            home_mobile_width_px: homeMobileWidthPx,
             home_mobile_margin: homeMobileMargin,
-            home_mobile_margin_unit: homeMobileMarginUnit,
             home_columns: homeColumns,
             home_label: normalizeHomeLabel(homeLabel),
           },
@@ -276,12 +336,21 @@ export function PageBuilderPanel() {
       setCanvases(pb.canvases ?? [pb.custom]);
       setHomeSections(pb.home_sections ?? homeSections);
       setHomeHero(pb.home_hero_enabled !== false);
+      setHomeHeader(pb.home_header_enabled !== false);
+      setHomeFooter(pb.home_footer_enabled !== false);
+      setHomeMode(pb.home_content_mode === "html" ? "html" : "rows");
+      setHomeHtmlId(pb.home_html_page_id ?? "");
+      setHomeStyleId(pb.home_style_page_id ?? "");
+      setHomeSeo(pb.home_seo ?? emptySeo());
+      setHomeSky(pb.home_sky === "off" ? "off" : "on");
       setHomeWidth(pb.home_width_pct ?? DEFAULT_HOME_WIDTH_PCT);
-      setHomeMargin(pb.home_margin ?? 0);
-      setHomeMarginUnit(pb.home_margin_unit ?? "px");
+      setHomeWidthUnit(pb.home_width_unit === "px" ? "px" : "pct");
+      setHomeWidthPx(pb.home_width_px ?? DEFAULT_CANVAS_WIDTH_PX);
+      setHomeMargin(pb.home_margin ?? DEFAULT_CANVAS_MARGIN);
       setHomeMobileWidth(pb.home_mobile_width_pct ?? DEFAULT_MOBILE_CANVAS_WIDTH_PCT);
+      setHomeMobileWidthUnit(pb.home_mobile_width_unit === "px" ? "px" : "pct");
+      setHomeMobileWidthPx(pb.home_mobile_width_px ?? DEFAULT_CANVAS_WIDTH_PX);
       setHomeMobileMargin(pb.home_mobile_margin ?? DEFAULT_MOBILE_CANVAS_MARGIN);
-      setHomeMobileMarginUnit(pb.home_mobile_margin_unit ?? "px");
       setHomeColumns(clampSectionColumns(pb.home_columns ?? homeColumns));
       setHomeLabel(pb.home_label ?? DEFAULT_HOME_LABEL);
       setSaved(true);
@@ -309,6 +378,7 @@ export function PageBuilderPanel() {
     const seed = blankCanvas(canvases.length + 1);
     const canvas: CustomCanvas = {
       ...seed,
+      id: `cv-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
       slug: nextCanvasSlug({ custom, canvases }, seed.label),
     };
     setCanvases((cur) => [...cur, canvas]);
@@ -321,7 +391,7 @@ export function PageBuilderPanel() {
   };
 
   const addSection = (afterIndex?: number) => {
-    if (editCanvas.sections.length >= 8) return;
+    if (editCanvas.sections.length >= MAX_CANVAS_ROWS) return;
     const id = uniqueKey(
       BLANK_LABEL,
       editCanvas.sections.map((row) => row.id),
@@ -694,6 +764,25 @@ export function PageBuilderPanel() {
         <ElementPickModal onCancel={() => setAddCell(null)} onPick={pickElementForCell} />
       ) : null}
       <ConfirmDialog
+        open={canvasConfirm !== null}
+        title="Delete canvas"
+        description="Delete this canvas? Its menu entries go with it. Records stay."
+        confirmLabel="Delete"
+        tone="danger"
+        onCancel={() => setCanvasConfirm(null)}
+        onConfirm={() => {
+          if (canvasConfirm == null || canvasConfirm <= 0) {
+            setCanvasConfirm(null);
+            return;
+          }
+          const next = canvases.filter((_, i) => i !== canvasConfirm);
+          setCanvases(next);
+          setBuilderTab("primary");
+          setCanvasConfirm(null);
+          void persist(next[0] ?? custom, homeOrder, homeSections, next);
+        }}
+      />
+      <ConfirmDialog
         open={rowConfirm !== null}
         title="Remove row"
         description={`Remove “${rowConfirm?.label ?? "this row"}” permanently? This cannot be undone.`}
@@ -764,26 +853,71 @@ export function PageBuilderPanel() {
         </p>
         {loaded ? (
           <>
-          <label className="block space-y-1 text-sm">
-            <span>Label</span>
-            <input
-              className="w-full rounded-md border border-border bg-background px-3 py-2"
-              value={homeLabel}
-              onChange={(e) => setHomeLabel(e.target.value)}
-              onBlur={() => setHomeLabel(normalizeHomeLabel(homeLabel))}
+            <CanvasSettingsBox
+              identity={
+                <>
+                  <label className="block space-y-1 text-sm">
+                    <span>Label</span>
+                    <input
+                      className="w-full rounded-md border border-border bg-background px-3 py-2"
+                      value={homeLabel}
+                      onChange={(e) => setHomeLabel(e.target.value)}
+                      onBlur={() => setHomeLabel(normalizeHomeLabel(homeLabel))}
+                    />
+                  </label>
+                  <label className="block space-y-1 text-sm">
+                    <span>Slug</span>
+                    <input
+                      className="w-full rounded-md border border-border bg-background px-3 py-2"
+                      value="/"
+                      disabled
+                    />
+                    <span className="text-xs text-muted-foreground">Visitor URL: /</span>
+                  </label>
+                </>
+              }
+              styleId={homeStyleId}
+              onStyle={setHomeStyleId}
+              skyOn={homeSky !== "off"}
+              skySiteOn={skySiteOn}
+              onSky={(on) => setHomeSky(on ? "on" : "off")}
+              mode={homeMode}
+              onMode={setHomeMode}
+              pageId={homeHtmlId}
+              pages={pages}
+              onPage={setHomeHtmlId}
+              seo={homeSeo}
+              onSeo={setHomeSeo}
             />
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>Slug</span>
-            <input
-              className="w-full rounded-md border border-border bg-background px-3 py-2"
-              value="/"
-              disabled
+          <div className="grid gap-3 md:grid-cols-2">
+            <CanvasSizeControls
+              surface="Desktop"
+              widthUnit={homeWidthUnit}
+              widthPct={homeWidth}
+              widthPx={homeWidthPx}
+              margin={homeMargin}
+              onWidthUnit={setHomeWidthUnit}
+              onWidthPct={setHomeWidth}
+              onWidthPx={setHomeWidthPx}
+              onMargin={setHomeMargin}
             />
-            <span className="text-xs text-muted-foreground">
-              Visitor URL: / — the Primary Page. Custom canvases use /p/{"{slug}"}.
-            </span>
-          </label>
+            <CanvasSizeControls
+              surface="Mobile"
+              widthUnit={homeMobileWidthUnit}
+              widthPct={homeMobileWidth}
+              widthPx={homeMobileWidthPx}
+              margin={homeMobileMargin}
+              onWidthUnit={setHomeMobileWidthUnit}
+              onWidthPct={setHomeMobileWidth}
+              onWidthPx={setHomeMobileWidthPx}
+              onMargin={setHomeMobileMargin}
+            />
+          </div>
+          {canvasIsDisabled(homeWidth, true, homeWidthUnit, homeWidthPx) ? (
+            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
+              Width is 0 — the primary canvas is disabled on the visitor homepage.
+            </p>
+          ) : null}
           <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
             <div className="space-y-1 text-sm">
               <span className="block text-muted-foreground">Default columns for new Rows</span>
@@ -808,54 +942,33 @@ export function PageBuilderPanel() {
               Add row
             </Button>
           </div>
-          <CanvasSizeControls
-            surface="Desktop"
-            width={homeWidth}
-            margin={homeMargin}
-            marginUnit={homeMarginUnit}
-            onWidth={setHomeWidth}
-            onMargin={setHomeMargin}
-            onMarginUnit={setHomeMarginUnit}
-          />
-          <CanvasSizeControls
-            surface="Mobile"
-            width={homeMobileWidth}
-            margin={homeMobileMargin}
-            marginUnit={homeMobileMarginUnit}
-            onWidth={setHomeMobileWidth}
-            onMargin={setHomeMobileMargin}
-            onMarginUnit={setHomeMobileMarginUnit}
-          />
-          {canvasIsDisabled(homeWidth) ? (
-            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
-              Width is 0% — the primary canvas is disabled on the visitor homepage.
-            </p>
-          ) : null}
           <div
             className="pb-section-pad space-y-3 rounded-lg border-2 border-dashed border-primary/35 bg-primary/[0.03]"
             style={canvasMetricVars({
               widthPct: homeWidth,
+              widthUnit: homeWidthUnit,
+              widthPx: homeWidthPx,
               margin: homeMargin,
-              marginUnit: homeMarginUnit,
               mobileWidthPct: homeMobileWidth,
+              mobileWidthUnit: homeMobileWidthUnit,
+              mobileWidthPx: homeMobileWidthPx,
               mobileMargin: homeMobileMargin,
-              mobileMarginUnit: homeMobileMarginUnit,
             })}
           >
             <div className="pb-canvas-inner space-y-3" data-pb-row-list="home">
-            <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded border border-dashed border-primary/40 bg-background px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                  Locked
-                </span>
-                <span className="text-sm font-medium">Hero</span>
-                <RowVisibilityToggle on={homeHero} onChange={setHomeHero} />
+            <LockedCanvasRow label="Header" on={homeHeader} onChange={setHomeHeader} />
+            <LockedCanvasRow
+              label="Hero"
+              on={homeHero}
+              onChange={setHomeHero}
+              note="Brand lockup + Cycle Strip. Off hides it on the visitor Page."
+            />
+            {homeMode === "html" ? (
+              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm">
+                HTML page: {pages.find((page) => page.id === homeHtmlId)?.name ?? "Select a page"}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Brand lockup + Cycle Strip. Cannot reorder or remove. Off hides it on the visitor Page.
-              </p>
-            </div>
-            {homeOrder.map((id, index) => {
+            ) : null}
+            {homeMode === "html" ? null : homeOrder.map((id, index) => {
               const slot = homeSections.find((s) => s.id === id) ?? {
                 id,
                 label: HOME_SECTION_LABELS[id as keyof typeof HOME_SECTION_LABELS] ?? id,
@@ -989,6 +1102,11 @@ export function PageBuilderPanel() {
                           patchHomeSection(id, { enabled: on });
                         }}
                       />
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Menu</span>
+                      <RowVisibilityToggle
+                        on={homeRow.in_menu !== false}
+                        onChange={(on) => patchHomeSection(id, { in_menu: on })}
+                      />
                       <Button
                         type="button"
                         variant="ghost"
@@ -1090,6 +1208,7 @@ export function PageBuilderPanel() {
                 </div>
               );
             })}
+            <LockedCanvasRow label="Footer" on={homeFooter} onChange={setHomeFooter} />
             </div>
           </div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
@@ -1152,10 +1271,7 @@ export function PageBuilderPanel() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  removeCanvas(editIndex);
-                  setBuilderTab("primary");
-                }}
+                onClick={() => setCanvasConfirm(editIndex)}
                 aria-label="Remove this canvas"
               >
                 <X className="h-4 w-4" />
@@ -1168,6 +1284,9 @@ export function PageBuilderPanel() {
           reorder. Menu visibility still follows Page Builder → Menu → Public.
         </p>
         {loaded ? (
+        <>
+        <CanvasSettingsBox
+          identity={
         <>
         <label className="block space-y-1 text-sm">
           <span>Label</span>
@@ -1205,6 +1324,64 @@ export function PageBuilderPanel() {
           />
           <span className="text-xs text-muted-foreground">Visitor URL: /p/{editCanvas.slug || "overview"}</span>
         </label>
+        </>
+          }
+          styleId={editCanvas.style_page_id ?? ""}
+          onStyle={(id) => commitEdit({ ...editCanvas, style_page_id: id })}
+          menuOn={editCanvas.menu_enabled !== false}
+          onMenu={(on) => commitEdit({ ...editCanvas, menu_enabled: on })}
+          skyOn={editCanvas.sky !== "off"}
+          skySiteOn={skySiteOn}
+          onSky={(on) => commitEdit({ ...editCanvas, sky: on ? "on" : "off" })}
+          mode={editCanvas.content_mode === "html" ? "html" : "rows"}
+          onMode={(mode) => commitEdit({ ...editCanvas, content_mode: mode })}
+          pageId={editCanvas.html_page_id ?? ""}
+          pages={pages}
+          onPage={(id) => commitEdit({ ...editCanvas, html_page_id: id })}
+          seo={editCanvas.seo ?? emptySeo()}
+          onSeo={(seo) => commitEdit({ ...editCanvas, seo })}
+        />
+        <div className="grid gap-3 md:grid-cols-2">
+        <CanvasSizeControls
+          surface="Desktop"
+          widthUnit={editCanvas.width_unit}
+          widthPct={editCanvas.width_pct}
+          widthPx={editCanvas.width_px}
+          margin={editCanvas.margin}
+          onWidthUnit={(unit) => commitEdit({ ...editCanvas, width_unit: unit })}
+          onWidthPct={(pct) =>
+            commitEdit({
+              ...editCanvas,
+              width_pct: pct,
+              enabled: pct === 0 ? false : editCanvas.enabled,
+            })
+          }
+          onWidthPx={(px) =>
+            commitEdit({
+              ...editCanvas,
+              width_px: px,
+              enabled: px === 0 ? false : editCanvas.enabled,
+            })
+          }
+          onMargin={(value) => commitEdit({ ...editCanvas, margin: value })}
+        />
+        <CanvasSizeControls
+          surface="Mobile"
+          widthUnit={editCanvas.mobile_width_unit}
+          widthPct={editCanvas.mobile_width_pct}
+          widthPx={editCanvas.mobile_width_px}
+          margin={editCanvas.mobile_margin}
+          onWidthUnit={(unit) => commitEdit({ ...editCanvas, mobile_width_unit: unit })}
+          onWidthPct={(pct) => commitEdit({ ...editCanvas, mobile_width_pct: pct })}
+          onWidthPx={(px) => commitEdit({ ...editCanvas, mobile_width_px: px })}
+          onMargin={(value) => commitEdit({ ...editCanvas, mobile_margin: value })}
+        />
+        </div>
+        {canvasIsDisabled(editCanvas.width_pct, editCanvas.enabled, editCanvas.width_unit, editCanvas.width_px) ? (
+          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
+            This canvas is off — visitors will not see /p/{editCanvas.slug || "overview"}.
+          </p>
+        ) : null}
         <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
           <div className="space-y-1 text-sm">
             <span className="block text-muted-foreground">Default columns for new Rows</span>
@@ -1232,49 +1409,32 @@ export function PageBuilderPanel() {
             Add row
           </Button>
         </div>
-        <CanvasSizeControls
-          surface="Desktop"
-          width={editCanvas.width_pct}
-          margin={editCanvas.margin}
-          marginUnit={editCanvas.margin_unit}
-          onWidth={(pct) =>
-            commitEdit({
-              ...editCanvas,
-              width_pct: pct,
-              enabled: pct === 0 ? false : true,
-            })
-          }
-          onMargin={(value) => commitEdit({ ...editCanvas, margin: value })}
-          onMarginUnit={(unit) => commitEdit({ ...editCanvas, margin_unit: unit })}
-        />
-        <CanvasSizeControls
-          surface="Mobile"
-          width={editCanvas.mobile_width_pct}
-          margin={editCanvas.mobile_margin}
-          marginUnit={editCanvas.mobile_margin_unit}
-          onWidth={(pct) => commitEdit({ ...editCanvas, mobile_width_pct: pct })}
-          onMargin={(value) => commitEdit({ ...editCanvas, mobile_margin: value })}
-          onMarginUnit={(unit) => commitEdit({ ...editCanvas, mobile_margin_unit: unit })}
-        />
-        {canvasIsDisabled(editCanvas.width_pct, editCanvas.enabled) ? (
-          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
-            This canvas is off — visitors will not see /p/{editCanvas.slug || "overview"}.
-          </p>
-        ) : null}
         <div className="space-y-3">
           <div
             className="pb-section-pad space-y-3 rounded-lg border-2 border-dashed border-primary/35 bg-primary/[0.03]"
             style={canvasMetricVars({
               widthPct: editCanvas.width_pct,
+              widthUnit: editCanvas.width_unit,
+              widthPx: editCanvas.width_px,
               margin: editCanvas.margin,
-              marginUnit: editCanvas.margin_unit,
               mobileWidthPct: editCanvas.mobile_width_pct,
+              mobileWidthUnit: editCanvas.mobile_width_unit,
+              mobileWidthPx: editCanvas.mobile_width_px,
               mobileMargin: editCanvas.mobile_margin,
-              mobileMarginUnit: editCanvas.mobile_margin_unit,
             })}
           >
             <div className="pb-canvas-inner space-y-3" data-pb-row-list="custom">
-          {editCanvas.sections.map((row, index) => {
+          <LockedCanvasRow
+            label="Header"
+            on={editCanvas.header_enabled !== false}
+            onChange={(on) => commitEdit({ ...editCanvas, header_enabled: on })}
+          />
+          {editCanvas.content_mode === "html" ? (
+            <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-sm">
+              HTML page: {pages.find((page) => page.id === editCanvas.html_page_id)?.name ?? "Select a page"}
+            </div>
+          ) : null}
+          {editCanvas.content_mode === "html" ? null : editCanvas.sections.map((row, index) => {
             const blank = isBlankSlotLabel(row.label);
             const isDrop = dropIndex === index && dragIndex !== null && dragIndex !== index;
             const customRow = ensureRowCells(row);
@@ -1407,6 +1567,11 @@ export function PageBuilderPanel() {
                           setSection(index, { enabled: on });
                         }}
                       />
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Menu</span>
+                      <RowVisibilityToggle
+                        on={row.in_menu !== false}
+                        onChange={(on) => setSection(index, { in_menu: on })}
+                      />
                       <Button
                         type="button"
                         variant="ghost"
@@ -1521,6 +1686,11 @@ export function PageBuilderPanel() {
                   : ""
             }`}
           />
+          <LockedCanvasRow
+            label="Footer"
+            on={editCanvas.footer_enabled !== false}
+            onChange={(on) => commitEdit({ ...editCanvas, footer_enabled: on })}
+          />
             </div>
           </div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
@@ -1571,11 +1741,13 @@ export function PageBuilderPanel() {
             className="pb-section-pad space-y-3 rounded-lg border-2 border-dashed border-primary/35 bg-primary/[0.03]"
             style={canvasMetricVars({
               widthPct: editCanvas.width_pct,
+              widthUnit: editCanvas.width_unit,
+              widthPx: editCanvas.width_px,
               margin: editCanvas.margin,
-              marginUnit: editCanvas.margin_unit,
               mobileWidthPct: editCanvas.mobile_width_pct,
+              mobileWidthUnit: editCanvas.mobile_width_unit,
+              mobileWidthPx: editCanvas.mobile_width_px,
               mobileMargin: editCanvas.mobile_margin,
-              mobileMarginUnit: editCanvas.mobile_margin_unit,
             })}
           >
             <div className="pb-canvas-inner space-y-3">

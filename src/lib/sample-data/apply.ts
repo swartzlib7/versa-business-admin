@@ -105,7 +105,7 @@ export async function sampleDataStatus(): Promise<{
   };
 }
 
-export async function insertSampleData(): Promise<{
+export async function insertSampleData(opts?: { keepCanvas?: boolean }): Promise<{
   inserted: boolean;
   org_count: number;
   record_count: number;
@@ -250,7 +250,7 @@ export async function insertSampleData(): Promise<{
       createdUsers += 1;
     }
   }
-  await installDemoCanvas();
+  await installDemoCanvas(opts);
   writeFlag(true);
   const status = await sampleDataStatus();
   return {
@@ -322,5 +322,5 @@ export async function hydrateSampleData(): Promise<void> {
   if (g[FLAG]) return;
   g[FLAG] = true;
   if (!readFlag().inserted) return;
-  await insertSampleData();
+  await insertSampleData({ keepCanvas: true });
 }

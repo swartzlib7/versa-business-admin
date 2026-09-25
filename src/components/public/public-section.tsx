@@ -24,11 +24,12 @@ export function PublicSection({
     <section
       id={id}
       data-public-section=""
+      data-public-fit={fillViewport ? undefined : ""}
       style={style}
       className={cn(
         "relative flex flex-col overflow-hidden border-border",
         nextId ? "border-b" : "border-b-0",
-        fillViewport ? "h-dvh max-h-dvh min-h-dvh justify-center pb-16" : "min-h-0",
+        fillViewport ? "h-dvh max-h-dvh min-h-dvh justify-center pb-16" : "min-h-0 pb-16",
         className,
       )}
     >

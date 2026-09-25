@@ -1,9 +1,35 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.3 (2026-09-24)
+**Current:** 1.0.4 (2026-09-25)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.4
+
+Canvas menus, SEO, full HTML pages, and visitor sign-up.
+
+- A signed-in user can view the site while maintenance mode is on.
+- A canvas can be one full HTML page.
+- The Public menu follows canvas and row menu switches.
+- Each canvas has SEO fields. `/sitemap.xml` and `/robots.txt` list the canvases.
+- Sky Animation has a site switch and a per-canvas switch.
+- Header and footer can be turned off on each canvas.
+- Canvas width is percent or pixels. Margin is pixels.
+- Custom canvases after the first confirm before they are deleted.
+- Email sign-up: the Contact driver's Sign-up form saves each visitor email as a public Contact.
+- Page styles: one Pages record can style every HTML row on a canvas.
+- Rows can use a Fit content height.
+- Demo mode adds its own Demo canvas. It never writes the Primary canvas or canvases staff made. Demo off removes the Demo canvas.
+- The demo Showcase canvas is gone.
+- A Full page HTML record can hold a sign-up form. The system wires it; page scripts stay off.
+- HTML records never cover the site header.
+- Section arrows and snap scrolling work on Fit content rows. Tall rows scroll normally.
+- Branding → Footer has a Copyright name field.
+- The mobile header shows more of the site name.
+- New canvases start at 75% width and 48px margin, and 85% width and 16px margin on mobile.
+- Renaming a canvas keeps the same canvas.
+- `/sitemap.xml` and `/robots.txt` list full URLs.
 
 ## 1.0.3
 

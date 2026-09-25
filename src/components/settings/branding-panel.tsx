@@ -66,6 +66,7 @@ type BrandDraft = {
   effects: SkyEffects;
   headline: string;
   subhead: string;
+  footerName: string;
   musicName: string;
   musicUrl: string;
   musicLoop: boolean;
@@ -89,6 +90,7 @@ const emptyDraft = (brand: ReturnType<typeof useBrand>): BrandDraft => ({
   effects: resolveSkyEffects(brand.constellation_effects),
   headline: "",
   subhead: "",
+  footerName: brand.footer_copyright ?? "",
   musicName: SEED_BRAND_MUSIC_NAME,
   musicUrl: BRAND_MUSIC_HREF,
   musicLoop: brand.brand_music_loop !== false,
@@ -431,6 +433,7 @@ export function BrandingPanel({
           effects: resolveSkyEffects(b.constellation_effects),
           headline: typeof p.hero_headline === "string" ? p.hero_headline : "",
           subhead: typeof p.hero_subhead === "string" ? p.hero_subhead : "",
+          footerName: typeof p.footer_copyright === "string" ? p.footer_copyright : "",
           musicName:
             typeof b.brand_music_name === "string" && b.brand_music_name
               ? b.brand_music_name
@@ -536,6 +539,7 @@ export function BrandingPanel({
         body: JSON.stringify({
           hero_headline: draft.headline,
           hero_subhead: draft.subhead,
+          footer_copyright: draft.footerName,
         }),
       });
       if (!pub.ok) {
@@ -646,6 +650,19 @@ export function BrandingPanel({
                 rows={3}
                 className="w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
+            </label>
+          </div>
+          <div className="space-y-3">
+            <p className="text-sm font-medium">Footer</p>
+            <label className="block space-y-1">
+              <span className="text-xs text-muted-foreground">Copyright name</span>
+              <input
+                value={draft.footerName}
+                onChange={(e) => patch({ footerName: e.target.value })}
+                placeholder={draft.name}
+                className={fieldClass()}
+              />
+              <span className="text-xs text-muted-foreground">Empty uses the brand name.</span>
             </label>
           </div>
           <div className="space-y-3">

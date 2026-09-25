@@ -27,7 +27,7 @@ export function PublicSky() {
   const brand = useBrand();
   const visible = isPublicSkyPath(pathname);
   return (
-    <div className={cn(!visible && "invisible")} aria-hidden>
+    <div className={cn("public-sky", !visible && "invisible")} aria-hidden>
       <VersaConstellation
         variant={resolveConstellationVariant(brand.constellation_variant)}
         density={brand.constellation_density ?? SKY_DENSITY_DEFAULT}

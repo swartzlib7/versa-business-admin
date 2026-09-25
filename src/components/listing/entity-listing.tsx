@@ -458,13 +458,12 @@ function FieldInput({
       />
     );
   }
-  if (field.key === "body_format") return null;
   if (field.key === "body_html") {
     return (
       <HtmlEditor
         label={field.label}
         value={value}
-        format={normalizePageBodyFormat(allValues?.body_format)}
+        format={allValues?.body_format === "page" ? "page" : normalizePageBodyFormat(allValues?.body_format)}
         onChange={onChange}
         onFormatChange={(fmt) => onFieldChange?.("body_format", fmt)}
       />

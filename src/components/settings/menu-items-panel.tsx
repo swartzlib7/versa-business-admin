@@ -17,6 +17,7 @@ import {
 import { theme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { GripVertical } from "lucide-react";
+import { CanvasMenuTree } from "@/components/settings/canvas-menu-tree";
 
 type MenuKind = "operator" | "public";
 
@@ -115,15 +116,18 @@ export function MenuItemsPanel({ kind }: { kind: MenuKind }) {
     void persist({ enabled: next });
   };
 
-  const items = orderNavItems(catalog, order);
+  const items = orderNavItems(catalog, order).filter(
+    (item) => isOperator || !item.href.startsWith("/#"),
+  );
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
         {isOperator
           ? "Drag to reorder the operator sidebar. Turn an item off to hide it and block its routes. Settings stays on so you can always get back here."
-          : "Drag to reorder the visitor header and footer. Turn an item off to hide it; dedicated pages (Glossary, Org Board) also 404."}
+          : "Canvases and their rows join the visitor menu when their switch is on. Glossary and Org Board are pages of their own; off also hides the page."}
       </p>
+      {isOperator ? null : <CanvasMenuTree />}
       <ol className="divide-y divide-border rounded-lg border border-border">
         {items.map((item) => {
           const lockedOn = locked.includes(item.href);

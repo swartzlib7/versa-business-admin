@@ -714,6 +714,9 @@
   text-transform: uppercase;
   color: color-mix(in srgb, currentColor 70%, transparent);
 }
+html[data-sky-off] .public-sky {
+  display: none;
+}
 .schedule-block {
   border-radius: 0.35rem;
   padding: 0.25rem 0;

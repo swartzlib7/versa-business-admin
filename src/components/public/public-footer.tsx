@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronUp } from "lucide-react";
+import { ChevronUp, LayoutGrid } from "lucide-react";
 import type { BusinessProfile } from "@/lib/data";
 import { BrandMark, brandSurface, useBrand } from "@/components/shell/brand-provider";
 import { useSiteMode } from "@/components/shell/site-mode-provider";
 import { LOGO_BASE_PX, logoPx, logoSurfaceFilter } from "@/lib/brand-display";
 import { scrollPublicToTop } from "./public-snap-scroll";
 import { visiblePublicNavItems } from "@/lib/nav";
-import { homeRowLabelMap } from "@/lib/public/page-builder";
+import { homeRowLabelMap, isRowOn } from "@/lib/public/page-builder";
 
 function addressLines(address: string): string[] {
   const parts = address
@@ -34,12 +34,21 @@ export function PublicFooter({
   const footerLogo = brandSurface(brand, "footer");
   const { demo_mode, public_menu_enabled, public_menu_order, page_builder } = useSiteMode();
   const showDemo = demo && demo_mode;
-  const links = visiblePublicNavItems({
-    demo: showDemo,
-    enabled: public_menu_enabled,
-    order: public_menu_order,
-    sectionLabels: homeRowLabelMap(page_builder?.home_sections),
-  }).filter((link) => link.href.startsWith("/#"));
+  const catalogIcons = new Map(
+    visiblePublicNavItems({
+      demo: showDemo,
+      enabled: public_menu_enabled,
+      order: public_menu_order,
+      sectionLabels: homeRowLabelMap(page_builder?.home_sections),
+    }).map((link) => [link.href, link.icon] as const),
+  );
+  const links = (page_builder?.home_sections ?? [])
+    .filter((section) => isRowOn(section) && section.in_menu !== false)
+    .map((section) => ({
+      href: `/#${section.id}`,
+      label: section.label,
+      icon: catalogIcons.get(`/#${section.id}`) ?? LayoutGrid,
+    }));
   const splitAt = Math.ceil(links.length / 2);
   const linkCols = [links.slice(0, splitAt), links.slice(splitAt)];
   const heading = brand.hero_headline?.trim() || business.slogan;
@@ -129,7 +138,7 @@ export function PublicFooter({
 
         <div className="mt-8 border-t border-border pt-6">
           <p className="text-xs text-muted-foreground">
-            © {year} {brand.brand_name}. All rights reserved.
+            © {year} {brand.footer_copyright?.trim() || brand.brand_name}. All rights reserved.
           </p>
         </div>
         </div>

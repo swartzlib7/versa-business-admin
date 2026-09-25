@@ -50,6 +50,7 @@ export interface BrandConfig {
   brand_music_autoplay?: boolean;
   brand_name_in_menu?: boolean;
   hero_headline?: string;
+  footer_copyright?: string;
 }
 
 const DEFAULT_BRAND: BrandConfig = {

@@ -79,6 +79,7 @@ type LoadedSite = {
   brand_logo_surfaces: LogoSurfaces;
   demo_mode: boolean;
   maintenance_mode: boolean;
+  sky_enabled: boolean;
   public_login_enabled: boolean;
   glossary_in_menu: boolean;
   org_board_enabled: boolean;
@@ -90,6 +91,7 @@ type LoadedSite = {
   brand_music_autoplay: boolean;
   brand_name_in_menu: boolean;
   hero_headline: string;
+  footer_copyright: string;
 };
 
 async function loadBrand(): Promise<LoadedSite> {
@@ -136,6 +138,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_logo_surfaces: surfaces,
       demo_mode: fixture.demo_mode !== false,
       maintenance_mode: fixture.maintenance_mode === true,
+      sky_enabled: fixture.sky_enabled !== false,
       public_login_enabled: fixture.public_login_enabled !== false,
       glossary_in_menu: flags.glossary_in_menu,
       org_board_enabled: flags.org_board_enabled,
@@ -147,6 +150,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_music_autoplay: fixture.brand_music_autoplay !== false,
       brand_name_in_menu: fixture.brand_name_in_menu !== false,
       hero_headline: headline,
+      footer_copyright: typeof fixture.footer_copyright === "string" ? fixture.footer_copyright.trim() : "",
     };
   } catch {
     // Branding must never take the app down - fall back to static defaults.
@@ -168,6 +172,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_logo_surfaces: resolveLogoSurfaces({}),
       demo_mode: true,
       maintenance_mode: false,
+      sky_enabled: true,
       public_login_enabled: true,
       glossary_in_menu: true,
       org_board_enabled: true,
@@ -179,6 +184,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_music_autoplay: true,
       brand_name_in_menu: true,
       hero_headline: business.slogan,
+      footer_copyright: "",
     };
   }
 }
@@ -210,6 +216,7 @@ export default async function RootLayout({
     brand_music_autoplay: site.brand_music_autoplay,
     brand_name_in_menu: site.brand_name_in_menu,
     hero_headline: site.hero_headline,
+    footer_copyright: site.footer_copyright,
   };
   const mode = {
     demo_mode: site.demo_mode,

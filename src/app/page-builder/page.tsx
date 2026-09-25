@@ -7,6 +7,7 @@ import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { useBrand } from "@/components/shell/brand-provider";
 import { BrandingPanel, type BrandingSubTab } from "@/components/settings/branding-panel";
 import { MenuItemsPanel } from "@/components/settings/menu-items-panel";
+import { SkyMasterSwitch } from "@/components/settings/sky-master-switch";
 import { PageBuilderPanel } from "@/components/settings/page-builder-panel";
 import { AppearancePanel } from "@/components/settings/appearance-panel";
 import { PublicSitePanel } from "@/components/settings/public-site-panel";
@@ -189,6 +190,7 @@ export default function PageBuilderPage() {
               summary="Visitor homepage sky. Variant, zoom, density, and effects are saved permanently and survive a restart."
               badge="Sky"
             >
+              <SkyMasterSwitch />
               <BrandingPanel subTab="sky" />
             </PanelShell>
           </div>

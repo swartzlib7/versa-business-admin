@@ -41,8 +41,9 @@ import {
   type CanvasColumnCount,
   cellBindingLabel,
   clampCanvasMargin,
-  clampCanvasMarginUnit,
   clampCanvasWidth,
+  clampCanvasWidthPx,
+  clampCanvasWidthUnit,
   clampRowHeight,
   clampRowHeightUnit,
   clampRowHeightVh,
@@ -56,7 +57,9 @@ import {
   ensureRowCells,
   slotBindingLabel,
   visibleCells,
-  type CanvasMarginUnit,
+  type CanvasWidthUnit,
+  type CanvasContentMode,
+  type CanvasSeo,
   type PageBuilderCell,
   type PageBuilderSection,
 } from "@/lib/public/page-builder";
@@ -495,90 +498,238 @@ export function ColumnCycleToggle({
 
 export function CanvasSizeControls({
   surface = "Desktop",
-  width,
+  widthUnit,
+  widthPct,
+  widthPx,
   margin,
-  marginUnit,
-  onWidth,
+  onWidthUnit,
+  onWidthPct,
+  onWidthPx,
   onMargin,
-  onMarginUnit,
 }: {
   surface?: string;
-  width: number | undefined;
+  widthUnit: CanvasWidthUnit | undefined;
+  widthPct: number | undefined;
+  widthPx: number | undefined;
   margin: number | undefined;
-  marginUnit: CanvasMarginUnit | undefined;
-  onWidth: (pct: number) => void;
+  onWidthUnit: (unit: CanvasWidthUnit) => void;
+  onWidthPct: (pct: number) => void;
+  onWidthPx: (px: number) => void;
   onMargin: (value: number) => void;
-  onMarginUnit: (unit: CanvasMarginUnit) => void;
 }) {
-  const w = clampCanvasWidth(width);
-  const unit = clampCanvasMarginUnit(marginUnit);
-  const m = clampCanvasMargin(margin, unit);
+  const unit = clampCanvasWidthUnit(widthUnit);
+  const w = clampCanvasWidth(widthPct);
+  const px = clampCanvasWidthPx(widthPx);
+  const m = clampCanvasMargin(margin);
+  const disabled = unit === "px" ? px === 0 : w === 0;
   return (
-    <div className="grid gap-3 rounded-lg border-2 border-primary/30 bg-primary/5 p-3 sm:grid-cols-2">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground sm:col-span-2">
+    <div className="grid content-start gap-3 rounded-lg border-2 border-primary/30 bg-primary/5 p-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {surface}
       </p>
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="flex h-8 items-center font-medium">
-          Width {w}%{w === 0 ? " — disabled" : ""}
-        </span>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          step={5}
-          value={w}
-          onChange={(e) => onWidth(clampCanvasWidth(e.target.value))}
-          className="w-full accent-primary"
-          title="Canvas width. 0% disables this canvas."
-        />
-        <span className="text-xs text-muted-foreground">
-          {surface === "Mobile"
-            ? "Used below 1024px. 100% fills the screen."
-            : "0% disables the canvas. 100% fills the inner frame."}
-        </span>
-      </label>
       <div className="flex flex-col gap-1 text-sm">
         <div className="flex h-8 items-center justify-between gap-2">
           <span className="font-medium">
-            Margin {m}
-            {unit === "pct" ? "%" : "px"}
+            Width {unit === "px" ? `${px}px` : `${w}%`}
+            {disabled ? " — disabled" : ""}
           </span>
           <div className="inline-flex rounded-md border border-primary/30">
             <button
               type="button"
-              className={`px-2 py-0.5 text-xs ${unit === "px" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-              onClick={() => {
-                onMarginUnit("px");
-                onMargin(clampCanvasMargin(m, "px"));
-              }}
-            >
-              px
-            </button>
-            <button
-              type="button"
               className={`px-2 py-0.5 text-xs ${unit === "pct" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-              onClick={() => {
-                onMarginUnit("pct");
-                onMargin(clampCanvasMargin(m, "pct"));
-              }}
+              onClick={() => onWidthUnit("pct")}
             >
               %
             </button>
+            <button
+              type="button"
+              className={`px-2 py-0.5 text-xs ${unit === "px" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+              onClick={() => onWidthUnit("px")}
+            >
+              px
+            </button>
           </div>
         </div>
+        {unit === "pct" ? (
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={w}
+            onChange={(e) => onWidthPct(clampCanvasWidth(e.target.value))}
+            className="w-full accent-primary"
+            title="Canvas width as a percent of the frame. 0% disables this canvas."
+          />
+        ) : (
+          <input
+            type="number"
+            min={0}
+            max={2400}
+            value={px}
+            onChange={(e) => onWidthPx(clampCanvasWidthPx(e.target.value))}
+            className="h-8 rounded-md border border-input bg-background px-2 text-sm"
+            title="Canvas width in pixels. 0 disables this canvas."
+          />
+        )}
+        <span className="text-xs text-muted-foreground">
+          {unit === "px" ? "Pixel width, never wider than the frame." : "0% disables the canvas."}
+        </span>
+      </div>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="flex h-8 items-center font-medium">Margin {m}px</span>
         <input
           type="range"
           min={0}
-          max={unit === "pct" ? 25 : 200}
-          step={unit === "pct" ? 1 : 4}
+          max={200}
+          step={4}
           value={m}
-          onChange={(e) => onMargin(clampCanvasMargin(e.target.value, unit))}
+          onChange={(e) => onMargin(clampCanvasMargin(e.target.value))}
           className="w-full accent-primary"
-          title="Space on all four edges of the screen"
+          title="Space on all four edges of the screen, in pixels"
         />
-        <span className="text-xs text-muted-foreground">Inset from all four edges of the screen.</span>
+        <span className="text-xs text-muted-foreground">Inset from all four edges, in pixels.</span>
+      </label>
+    </div>
+  );
+}
+
+const FIELD = "w-full rounded-md border border-border bg-background px-3 py-2";
+
+/** Label, slug, sky, content, and SEO for one canvas. Primary and custom canvases share it. */
+export function CanvasSettingsBox({
+  identity,
+  styleId,
+  onStyle,
+  menuOn,
+  onMenu,
+  skyOn,
+  skySiteOn,
+  onSky,
+  mode,
+  onMode,
+  pageId,
+  pages,
+  onPage,
+  seo,
+  onSeo,
+}: {
+  identity: ReactNode;
+  styleId: string;
+  onStyle: (id: string) => void;
+  menuOn?: boolean;
+  onMenu?: (on: boolean) => void;
+  skyOn: boolean;
+  skySiteOn: boolean;
+  onSky: (on: boolean) => void;
+  mode: CanvasContentMode;
+  onMode: (mode: CanvasContentMode) => void;
+  pageId: string;
+  pages: { id: string; name: string }[];
+  onPage: (id: string) => void;
+  seo: CanvasSeo;
+  onSeo: (seo: CanvasSeo) => void;
+}) {
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+    <div className="grid content-start gap-3 rounded-lg border border-border p-3">
+      <div className="grid gap-3 sm:grid-cols-2">{identity}</div>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="min-w-[12rem] flex-1 space-y-1 text-sm">
+          <span className="block">Content</span>
+          <select
+            className={FIELD}
+            value={mode}
+            onChange={(e) => onMode(e.target.value === "html" ? "html" : "rows")}
+          >
+            <option value="rows">Rows</option>
+            <option value="html">HTML page</option>
+          </select>
+        </label>
+        <div className="flex h-10 items-center gap-2 text-sm">
+          <span>Sky</span>
+          <RowVisibilityToggle on={skyOn && skySiteOn} disabled={!skySiteOn} onChange={onSky} />
+        </div>
+        {onMenu ? (
+          <div className="flex h-10 items-center gap-2 text-sm">
+            <span>Menu</span>
+            <RowVisibilityToggle on={menuOn !== false} onChange={onMenu} />
+          </div>
+        ) : null}
       </div>
+      {mode === "html" ? (
+        <label className="block space-y-1 text-sm">
+          <span>Pages record</span>
+          <select className={FIELD} value={pageId} onChange={(e) => onPage(e.target.value)}>
+            <option value="">Select a page</option>
+            {pages.map((page) => (
+              <option key={page.id} value={page.id}>{page.name}</option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      <label className="block space-y-1 text-sm">
+        <span>Page styles</span>
+        <select className={FIELD} value={styleId} onChange={(e) => onStyle(e.target.value)}>
+          <option value="">None</option>
+          {pages.map((page) => (
+            <option key={page.id} value={page.id}>{page.name}</option>
+          ))}
+        </select>
+      </label>
+    </div>
+    <div className="grid content-start gap-3 rounded-lg border border-border p-3 sm:grid-cols-2">
+      <label className="block space-y-1 text-sm">
+        <span>SEO title</span>
+        <input className={FIELD} value={seo.title} onChange={(e) => onSeo({ ...seo, title: e.target.value })} />
+      </label>
+      <label className="block space-y-1 text-sm">
+        <span>SEO description</span>
+        <input
+          className={FIELD}
+          value={seo.description}
+          onChange={(e) => onSeo({ ...seo, description: e.target.value })}
+        />
+      </label>
+      <label className="block space-y-1 text-sm">
+        <span>SEO image URL</span>
+        <input
+          className={FIELD}
+          value={seo.og_image_url}
+          onChange={(e) => onSeo({ ...seo, og_image_url: e.target.value })}
+        />
+      </label>
+      <label className="flex items-center justify-between gap-2 text-sm">
+        <span>Hide from search</span>
+        <RowVisibilityToggle on={seo.noindex} onChange={(on) => onSeo({ ...seo, noindex: on })} />
+      </label>
+    </div>
+    </div>
+  );
+}
+
+/** Locked Header / Hero / Footer row on a canvas. */
+export function LockedCanvasRow({
+  label,
+  on,
+  onChange,
+  note,
+}: {
+  label: string;
+  on: boolean;
+  onChange: (on: boolean) => void;
+  note?: string;
+}) {
+  return (
+    <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded border border-dashed border-primary/40 bg-background px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+          Locked
+        </span>
+        <span className="text-sm font-medium">{label}</span>
+        <RowVisibilityToggle on={on} onChange={onChange} />
+      </div>
+      {note ? <p className="mt-1 text-xs text-muted-foreground">{note}</p> : null}
     </div>
   );
 }
@@ -699,7 +850,7 @@ export function RowHeightHandle({
       <div className="flex flex-wrap items-center gap-3 px-2 py-2">
       <span>Visitor height</span>
       <span className="basis-full text-[10px]">
-        The visitor row is one screen. Pixels taller than that screen are cut to it. Viewport % is not.
+        The visitor row is one screen. Pixels taller than that screen are cut to it. Viewport % is not. Fit content grows with what is in the row.
       </span>
       <HeightNumber
         label="px"
@@ -725,7 +876,7 @@ export function RowHeightHandle({
           value={mode}
           onChange={(e) =>
             onChange({
-              height_unit: e.target.value === "vh" ? "vh" : "px",
+              height_unit: clampRowHeightUnit(e.target.value),
               height_px: px,
               height_vh: vh,
             })
@@ -735,6 +886,7 @@ export function RowHeightHandle({
         >
           <option value="px">px</option>
           <option value="vh">viewport %</option>
+          <option value="fit">Fit content</option>
         </select>
       </label>
       </div>

@@ -1295,6 +1295,7 @@ export const valueSetItems: ValueSetItem[] = [
   { id: 'vsi-phs-custom', value_set_id: 'vs-public-html-slot', api_value: 'custom', label: 'Custom', sort_order: 40, active: true },
   { id: 'vsi-pbf-html', value_set_id: 'vs-page-body-format', api_value: 'html', label: 'HTML', sort_order: 10, active: true },
   { id: 'vsi-pbf-text', value_set_id: 'vs-page-body-format', api_value: 'text', label: 'Text', sort_order: 20, active: true },
+  { id: 'vsi-pbf-page', value_set_id: 'vs-page-body-format', api_value: 'page', label: 'Full page', sort_order: 30, active: true },
   { id: 'vsi-polstat-draft', value_set_id: 'vs-policy-status', api_value: 'draft', label: 'Draft', sort_order: 10, active: true },
   { id: 'vsi-polstat-active', value_set_id: 'vs-policy-status', api_value: 'active', label: 'Active', sort_order: 20, active: true },
   { id: 'vsi-polstat-archived', value_set_id: 'vs-policy-status', api_value: 'archived', label: 'Archived', sort_order: 30, active: true },

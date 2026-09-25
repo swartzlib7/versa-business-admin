@@ -68,10 +68,10 @@ export function DemoSampleSwitch({
         <div className="max-w-lg space-y-1">
           <p className="text-sm font-medium">Demo with Sample data</p>
           <p className="text-sm text-muted-foreground">
-            One switch. On installs the sample pack and binds those records on
-            the Primary canvas and the Overview canvas. Off deletes the sample
-            pack and clears those cells. The Primary Org, Administrator, and
-            COA accounts stay.
+            One switch. On installs the sample pack and shows it on a new
+            Demo canvas. Off deletes the sample pack and that canvas. The
+            Primary canvas, your own canvases, the Primary Org, Administrator,
+            and COA accounts stay.
           </p>
           <p className="text-xs text-muted-foreground">
             {status

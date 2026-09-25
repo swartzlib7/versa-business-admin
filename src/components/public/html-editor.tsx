@@ -8,6 +8,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { sanitizeCanvasHtml } from "@/lib/public/sanitize-html";
 import {
   Bold,
   Code2,
@@ -72,7 +73,7 @@ export function HtmlEditor({
   label?: string;
   value: string;
   onChange?: (html: string) => void;
-  format?: PageBodyFormat;
+  format?: PageBodyFormat | "page";
   onFormatChange?: (format: PageBodyFormat) => void;
   readOnly?: boolean;
 }) {
@@ -113,6 +114,21 @@ export function HtmlEditor({
     if (editor.getHTML() === next) return;
     editor.commands.setContent(next, { emitUpdate: false });
   }, [editor, value, source]);
+
+  if (format === "page") {
+    return (
+      <label className="flex flex-col gap-1.5">
+        {label ? <span className="text-xs font-medium text-muted-foreground">{label}</span> : null}
+        <textarea
+          className="min-h-[280px] w-full resize-y rounded-md border border-border bg-background px-3 py-2.5 font-mono text-[13px] leading-relaxed focus:outline-none"
+          value={value}
+          readOnly={readOnly}
+          placeholder="<style>…</style><h1>Page</h1>"
+          onChange={(e) => onChange?.(sanitizeCanvasHtml(e.target.value))}
+        />
+      </label>
+    );
+  }
 
   if (readOnly) {
     return (

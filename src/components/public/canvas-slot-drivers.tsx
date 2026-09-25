@@ -4,6 +4,9 @@ import { useState, type ReactNode } from "react";
 import { StatGraphTwinPreview } from "@/components/statistics/stat-graph-twin-preview";
 import { PublicGlossaryBook, PublicOrgBoard } from "@/components/glossary/public-surfaces";
 import { HtmlBlock } from "@/components/public/html-editor";
+import { SignupForm } from "@/components/public/signup-form";
+import { ShadowHtml } from "@/components/public/shadow-html";
+import { canvasHtmlMarkup } from "@/lib/public/canvas-html";
 import type { CycleStep } from "@/lib/public/site-types";
 import type { PublicContactCard } from "@/lib/public/resolve-contact-card";
 import { paintKind, tilesFromOutputId } from "@/lib/public/render-drivers";
@@ -227,11 +230,16 @@ export function CanvasSlotDriver({
   compact = false,
   pager = true,
   pageNumber = 1,
+  htmlFormat,
+  pageStyles,
 }: {
   driver?: string;
   cycleSteps?: CycleStep[];
   stat?: CanvasSlotStat | null;
   html?: string;
+  /** Pages record body format. `page` paints isolated with the canvas stylesheet. */
+  htmlFormat?: string;
+  pageStyles?: string;
   pageCard?: PageRecordCard | null;
   contact?: PublicContactCard;
   integration?: IntegrationPaint;
@@ -245,6 +253,7 @@ export function CanvasSlotDriver({
 }) {
   const kind = paintKind(driver, renderOutput);
   if (kind === "cycle-strip") return <CycleStrip steps={cycleSteps ?? []} />;
+  if (kind === "signup-form") return <SignupForm />;
   if (kind === "glossary-book") return <PublicGlossaryBook />;
   if (kind === "org-board") return <PublicOrgBoard />;
   if (kind === "stat-graph") {
@@ -266,6 +275,10 @@ export function CanvasSlotDriver({
     );
   }
   if (kind === "html-block") {
+    if (html && htmlFormat === "page") {
+      const markup = canvasHtmlMarkup(html, pageStyles);
+      return <ShadowHtml root={markup.root} sheets={markup.sheets} className="w-full" />;
+    }
     if (html) {
       return (
         <div className="h-full min-h-0 min-w-0 max-w-full">

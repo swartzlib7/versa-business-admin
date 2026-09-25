@@ -58,13 +58,10 @@ export function PublicSnapScroll() {
       const sections = () =>
         [...main.querySelectorAll<HTMLElement>("[data-public-section]")];
 
-      function snapTo(el: HTMLElement) {
-        if (Math.abs(window.scrollY - el.offsetTop) < 8) return;
+      function snapTo(target: number) {
+        if (Math.abs(window.scrollY - target) < 8) return;
         snapping = true;
-        el.scrollIntoView({
-          behavior: reduce ? "auto" : "smooth",
-          block: "start",
-        });
+        window.scrollTo({ top: target, behavior: reduce ? "auto" : "smooth" });
         window.clearTimeout(settleTimer);
         settleTimer = window.setTimeout(() => {
           snapping = false;
@@ -100,13 +97,26 @@ export function PublicSnapScroll() {
         for (let n = 0; n < tops.length; n++) {
           if (tops[n] <= y + 1) i = n;
         }
+        const vh = window.innerHeight;
+        const heightOf = (n: number) => els[n].offsetHeight;
+        // A section taller than the screen reads with native scroll; its snap point
+        // going back up is where its bottom meets the bottom of the screen.
+        const tall = (n: number) => heightOf(n) > vh + 8;
+        const settleOf = (n: number) => (tall(n) ? tops[n] + heightOf(n) - vh : tops[n]);
 
         if (lastDir > 0 && i < els.length - 1) {
-          const span = Math.max(1, tops[i + 1] - tops[i]);
-          if ((y - tops[i]) / span >= THRESHOLD) snapTo(els[i + 1]);
+          if (tall(i)) {
+            const shown = y + vh - tops[i + 1];
+            if (shown / vh >= THRESHOLD) snapTo(tops[i + 1]);
+          } else {
+            const span = Math.max(1, tops[i + 1] - tops[i]);
+            if ((y - tops[i]) / span >= THRESHOLD) snapTo(tops[i + 1]);
+          }
         } else if (lastDir < 0 && i + 1 < tops.length) {
-          const span = Math.max(1, tops[i + 1] - tops[i]);
-          if ((tops[i + 1] - y) / span >= THRESHOLD) snapTo(els[i]);
+          if (tall(i) && y > tops[i]) return;
+          const back = tops[i + 1] - y;
+          const span = tall(i) ? vh : Math.max(1, tops[i + 1] - tops[i]);
+          if (back / span >= THRESHOLD) snapTo(settleOf(i));
         }
       }
 
