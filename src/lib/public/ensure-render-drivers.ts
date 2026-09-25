@@ -76,7 +76,10 @@ export async function ensureRenderDriverRecords(): Promise<void> {
         if (adapter.createRecord) await adapter.createRecord(input, { createdBy: "user-coa" });
         else createInstance(input);
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
+        const cause = err instanceof Error ? (err as Error & { cause?: unknown }).cause : undefined;
+        const message = [err, cause]
+          .map((e) => (e instanceof Error ? e.message : String(e ?? "")))
+          .join(" ");
         if (!/duplicate key|already exists/i.test(message)) throw err;
       }
     }

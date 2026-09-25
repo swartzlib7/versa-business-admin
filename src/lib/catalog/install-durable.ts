@@ -103,9 +103,10 @@ export function ensureDurableCatalog(): void {
     void mod.ensureCycleStripRecords();
   });
   void import("@/lib/public/ensure-render-drivers").then((mod) => {
-    void mod.ensureRenderDriverRecords().then(() =>
-      import("@/lib/public/ensure-pairings").then((pair) => pair.ensureUniquePairings()),
-    );
+    void mod
+      .ensureRenderDriverRecords()
+      .then(() => import("@/lib/public/ensure-pairings").then((pair) => pair.ensureUniquePairings()))
+      .then(() => import("@/lib/site-pack").then((site) => site.installSitePackIfPending()));
   });
 }
 

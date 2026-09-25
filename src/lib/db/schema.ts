@@ -480,6 +480,8 @@ export const siteSettings = pgTable(
     constellationZoom: numeric('constellation_zoom', { precision: 4, scale: 2 }).notNull().default('0.75'),
     constellationEffects: jsonb('constellation_effects').notNull().default({}),
     brandLogoSurfaces: jsonb('brand_logo_surfaces').notNull().default({}),
+    // Every site setting without its own column: Page Builder, menus, modes, hero, footer.
+    body: jsonb('body').notNull().default({}),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
 );

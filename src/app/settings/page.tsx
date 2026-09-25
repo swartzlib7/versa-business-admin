@@ -11,11 +11,13 @@ import { DemoSampleSwitch } from "@/components/settings/sample-data-panel";
 import { ApiDocsPanel } from "@/components/settings/api-docs-panel";
 import { PanelShell } from "@/components/settings/settings-chrome";
 import { EmailDeliveryPanel } from "@/components/settings/email-delivery-panel";
+import { AppearancePanel } from "@/components/settings/appearance-panel";
 
-type SettingsTab = "modes" | "email" | "api";
+type SettingsTab = "modes" | "appearance" | "email" | "api";
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: "modes", label: "Modes" },
+  { id: "appearance", label: "Appearance" },
   { id: "email", label: "E-Mail Delivery" },
   { id: "api", label: "API" },
 ];
@@ -26,7 +28,6 @@ const MOVED_TO_PAGE_BUILDER: Record<string, string> = {
   "page-builder": "/page-builder?tab=canvas",
   public: "/page-builder?tab=canvas",
   cycle: "/page-builder?tab=canvas",
-  appearance: "/page-builder?tab=appearance",
   sky: "/page-builder?tab=sky",
 };
 
@@ -192,7 +193,7 @@ export default function SettingsPage() {
       <div className="space-y-3">
         <PageHeader
           title="Settings"
-          subtitle="System modes, e-mail delivery, and API. Site chrome lives under Page Builder."
+          subtitle="System modes, appearance, e-mail delivery, and API. Site chrome lives under Page Builder."
           accent={brand.brand_color}
           tabs={TABS}
           tabsValue={tab}
@@ -210,6 +211,19 @@ export default function SettingsPage() {
               ariaLabel="Modes sub-sections"
             />
             <SystemPanel />
+          </div>
+        )}
+
+        {tab === "appearance" && (
+          <div role="tabpanel" className="space-y-3">
+            <SubTabBar
+              items={[{ id: "configuration", label: "Configuration" }]}
+              activeId="configuration"
+              accent={brand.brand_color}
+              onSelect={() => undefined}
+              ariaLabel="Appearance sub-sections"
+            />
+            <AppearancePanel />
           </div>
         )}
 

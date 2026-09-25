@@ -9,21 +9,19 @@ import { BrandingPanel, type BrandingSubTab } from "@/components/settings/brandi
 import { MenuItemsPanel } from "@/components/settings/menu-items-panel";
 import { SkyMasterSwitch } from "@/components/settings/sky-master-switch";
 import { PageBuilderPanel } from "@/components/settings/page-builder-panel";
-import { AppearancePanel } from "@/components/settings/appearance-panel";
 import { PublicSitePanel } from "@/components/settings/public-site-panel";
 import { PanelShell } from "@/components/settings/settings-chrome";
 import {
   PageBuilderRecordTab,
   type ElementsSubKind,
 } from "@/components/settings/page-builder-record-tab";
-type PageBuilderTab = "appearance" | "branding" | "menu" | "canvas" | "sky";
+type PageBuilderTab = "branding" | "canvas" | "menu" | "sky";
 type CanvasSubKind = "configuration" | ElementsSubKind;
 
 const TABS: { id: PageBuilderTab; label: string }[] = [
-  { id: "appearance", label: "Appearance" },
   { id: "branding", label: "Branding" },
-  { id: "menu", label: "Menu" },
   { id: "canvas", label: "Canvas" },
+  { id: "menu", label: "Menu" },
   { id: "sky", label: "Sky Animation" },
 ];
 
@@ -103,6 +101,10 @@ export default function PageBuilderPage() {
     const q = new URLSearchParams(window.location.search);
     if (q.get("tab") === "ui-components" || q.get("sub") === "ui-components") {
       window.location.replace("/glossary?tab=ui-components");
+      return;
+    }
+    if (q.get("tab") === "appearance") {
+      window.location.replace("/settings?tab=appearance");
       return;
     }
     writeSearch(tab, subTab);
@@ -193,19 +195,6 @@ export default function PageBuilderPage() {
               <SkyMasterSwitch />
               <BrandingPanel subTab="sky" />
             </PanelShell>
-          </div>
-        )}
-
-        {tab === "appearance" && (
-          <div role="tabpanel" className="space-y-3">
-            <SubTabBar
-              items={[{ id: "configuration", label: "Configuration" }]}
-              activeId={subTab}
-              accent={brand.brand_color}
-              onSelect={setSubTab}
-              ariaLabel="Appearance sub-sections"
-            />
-            <AppearancePanel />
           </div>
         )}
 

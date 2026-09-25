@@ -118,9 +118,9 @@ The right-hand Spatial Twin pane is a **system slot**, not only a 3D view. It is
 
 - A capability lives in **one** operator place. If it is a zone sub-tab, it is not also a sidebar Menu item.
 - Hidden menu item ⇒ route disabled (redirect or 404). Do not leave a second entry that shows the old mock fields.
-- **Page Builder** (`/page-builder`) owns visitor chrome. Tab order: Appearance, Branding, Menu, Canvas, Sky Animation. Canvas sub-tabs: **Configuration** (compose), **Elements** (pairings listing), **Rendering Drivers**. The component gallery is Glossary → UI Components, after Org Board. Do not put pairings or drivers back under Environment → Custom. Staff map: User Manual §7.
+- **Page Builder** (`/page-builder`) owns visitor chrome. Tab order: Branding, Canvas, Menu, Sky Animation. Canvas sub-tabs: **Configuration** (compose), **Elements** (pairings listing), **Rendering Drivers**. The component gallery is Glossary → UI Components, after Org Board. Do not put pairings or drivers back under Environment → Custom. Staff map: User Manual §7.
 - Rendering Driver **Record type** is a lookup to Records Editor types (one value; Contacts is `location`). **Code key** and **Shape** are owned by product code and are not editable. Recipes stay in product code — the driver record has no recipe lines. **Status** Active is required for the type picker and for the visitor Cell to paint. Leaving Active or changing Record type while pairings exist needs confirm. Rendering Drivers do not show Primary Org.
-- Settings is **Modes + API** only. Old Settings tabs for branding / menu / appearance / sky / page-builder redirect here.
+- Settings is **Modes**, **Appearance** (staff theme), **E-Mail Delivery**, and **API**. Old Settings tabs for branding / menu / sky / page-builder redirect to Page Builder; old Page Builder `?tab=appearance` opens Settings → Appearance.
 
 ---
 

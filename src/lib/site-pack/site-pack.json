@@ -1,0 +1,823 @@
+{
+  "version": "1.0.4",
+  "exported_at": "2026-09-25T16:35:16.897Z",
+  "records": [
+    {
+      "key": "page:versa-agi-analysis",
+      "type_api_name": "page",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Analysis",
+      "status": "active",
+      "data": {
+        "body_html": "<!DOCTYPE html>\n<html lang=\"en\">\n\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>The Agentic Landscape: OpenClaw vs. Hermes vs. Versa AGi</title>\n  <meta name=\"description\" content=\"A peer-to-peer comparative review of open-source agent architectures — OpenClaw, Hermes Agent, and Versa AGi. Covering security, orchestration, memory, and the Unified Global Production Network (uGPN).\">\n  <meta property=\"og:title\" content=\"The Agentic Landscape — Versa AGi Comparative Analysis\">\n  <meta property=\"og:description\" content=\"How Versa AGi's patent-pending uGPN architecture compares to OpenClaw and Hermes Agent across 7 architectural dimensions.\">\n  <meta property=\"og:type\" content=\"article\">\n  <meta property=\"og:url\" content=\"https://versavoice.ai/versa-agi-comparison\">\n  <meta name=\"twitter:card\" content=\"summary_large_image\">\n  <style>\n    :root {\n      --bg-editor: #181818;\n      --bg-chrome: #141414;\n      --bg-elevated: #1e1e1e;\n      --text-primary: #e4e4e4;\n      --text-secondary: #a0a0a0;\n      --text-tertiary: #6c757d;\n      --accent-blue: #599ce7;\n      --accent-green: #2ed573;\n      --accent-muted-green: rgba(46, 213, 115, 0.15);\n      --accent-muted-blue: rgba(89, 156, 231, 0.15);\n      --stroke-color: rgba(228, 228, 228, 0.1);\n      --font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;\n      --color-openclaw: #ff4b4b;\n      /* Lobster Red/Coral */\n      --color-hermes: #ffb300;\n      /* Warm Gold */\n      --color-versa: #2ed573;\n      /* Emerald Green */\n    }\n\n    body {\n      color: var(--text-primary);\n      font-family: var(--font-family);\n      line-height: 1.6;\n      margin: 0;\n      padding: 40px 20px;\n    }\n\n    .container {\n      max-width: 1100px;\n      margin: 0 auto;\n    }\n\n    header {\n      display: flex;\n      justify-content: space-between;\n      align-items: center;\n      border-bottom: 1px solid var(--stroke-color);\n      padding-bottom: 24px;\n      margin-bottom: 32px;\n    }\n\n    h1 {\n      font-size: 28px;\n      font-weight: 600;\n      margin: 0 0 8px 0;\n      color: var(--text-primary);\n    }\n\n    .subtitle {\n      font-size: 16px;\n      color: var(--text-secondary);\n      margin: 0;\n    }\n\n    .badge {\n      background-color: var(--accent-muted-green);\n      color: var(--accent-green);\n      border: 1px solid var(--accent-green);\n      padding: 6px 14px;\n      border-radius: 20px;\n      font-weight: 600;\n      font-size: 13px;\n      letter-spacing: 0.5px;\n      text-transform: uppercase;\n    }\n\n    .callout {\n      background-color: rgba(89, 156, 231, 0.08);\n      border-left: 4px solid var(--accent-blue);\n      padding: 24px;\n      border-radius: 0 8px 8px 0;\n      margin-bottom: 40px;\n    }\n\n    .callout-title {\n      font-weight: 700;\n      font-size: 18px;\n      margin-bottom: 8px;\n      color: var(--accent-blue);\n    }\n\n    .callout-content {\n      margin: 0;\n      font-size: 15px;\n      color: var(--text-primary);\n    }\n\n    .stats-grid {\n      display: grid;\n      grid-template-columns: repeat(3, 1fr);\n      gap: 20px;\n      margin-bottom: 40px;\n    }\n\n    .stat-card {\n      background-color: var(--bg-chrome);\n      border: 1px solid var(--stroke-color);\n      border-radius: 8px;\n      padding: 24px;\n      display: flex;\n      align-items: center;\n      gap: 20px;\n      text-align: left;\n    }\n\n    .stat-icon {\n      font-size: 42px;\n      line-height: 1;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      flex-shrink: 0;\n      width: 60px;\n      height: 60px;\n      border-radius: 8px;\n    }\n\n    .stat-openclaw .stat-icon {\n      background-color: rgba(255, 75, 75, 0.1);\n      border: 1px solid rgba(255, 75, 75, 0.2);\n    }\n\n    .stat-hermes .stat-icon {\n      background-color: rgba(255, 179, 0, 0.1);\n      border: 1px solid rgba(255, 179, 0, 0.2);\n    }\n\n    .stat-versa .stat-icon {\n      background-color: rgba(46, 213, 115, 0.1);\n      border: 1px solid rgba(46, 213, 115, 0.2);\n    }\n\n    .stat-info-group {\n      display: flex;\n      flex-direction: column;\n      gap: 4px;\n    }\n\n    .stat-value {\n      font-size: 18px;\n      font-weight: 700;\n      margin: 0;\n    }\n\n    .stat-label {\n      font-size: 11px;\n      color: var(--text-secondary);\n      text-transform: uppercase;\n      letter-spacing: 0.5px;\n      margin: 0;\n    }\n\n    .stat-openclaw .stat-value {\n      color: var(--color-openclaw);\n    }\n\n    .stat-hermes .stat-value {\n      color: var(--color-hermes);\n    }\n\n    .stat-versa .stat-value {\n      color: var(--color-versa);\n    }\n\n    h2 {\n      font-size: 22px;\n      font-weight: 600;\n      border-bottom: 1px solid var(--stroke-color);\n      padding-bottom: 10px;\n      margin: 40px 0 20px 0;\n      color: var(--text-primary);\n    }\n\n    /* SVG Bar Chart */\n    .chart-card {\n      background-color: var(--bg-chrome);\n      border: 1px solid var(--stroke-color);\n      border-radius: 8px;\n      padding: 24px;\n      margin-bottom: 40px;\n    }\n\n    .chart-header {\n      font-weight: 600;\n      font-size: 15px;\n      margin-bottom: 6px;\n    }\n\n    .chart-desc {\n      font-size: 13px;\n      color: var(--text-secondary);\n      margin-bottom: 24px;\n    }\n\n    .chart-container {\n      display: grid;\n      grid-template-columns: repeat(7, 1fr);\n      gap: 16px;\n      align-items: flex-end;\n      height: 280px;\n      margin-bottom: 20px;\n      border-bottom: 1px solid var(--stroke-color);\n      padding-bottom: 15px;\n    }\n\n    .chart-column {\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      height: 100%;\n      justify-content: flex-end;\n    }\n\n    .chart-bars-group {\n      display: flex;\n      flex-direction: row;\n      align-items: flex-end;\n      gap: 8px;\n      height: 180px;\n      width: 100%;\n      justify-content: center;\n    }\n\n    .chart-bar-wrapper {\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: flex-end;\n      height: 100%;\n      width: 22px;\n    }\n\n    .chart-bar {\n      width: 100%;\n      border-radius: 4px 4px 0 0;\n      transition: height 0.5s ease-in-out;\n    }\n\n    .bar-openclaw {\n      background-color: var(--color-openclaw);\n    }\n\n    .bar-hermes {\n      background-color: var(--color-hermes);\n    }\n\n    .bar-versa {\n      background-color: var(--color-versa);\n    }\n\n    .chart-val-text {\n      font-size: 11px;\n      color: var(--text-secondary);\n      margin-bottom: 4px;\n      font-weight: 600;\n    }\n\n    .chart-legend {\n      display: flex;\n      gap: 20px;\n      justify-content: center;\n      margin-top: 24px;\n      font-size: 12px;\n    }\n\n    .legend-item {\n      display: flex;\n      align-items: center;\n      gap: 8px;\n      color: var(--text-secondary);\n    }\n\n    .legend-color {\n      width: 12px;\n      height: 12px;\n      border-radius: 2px;\n    }\n\n    /* Feature Matrix Table */\n    .table-responsive {\n      overflow-x: auto;\n      margin-bottom: 40px;\n      border-radius: 8px;\n      border: 1px solid var(--stroke-color);\n    }\n\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      font-size: 14px;\n      background-color: var(--bg-chrome);\n      text-align: left;\n    }\n\n    th {\n      background-color: rgba(228, 228, 228, 0.03);\n      color: var(--text-primary);\n      font-weight: 600;\n      padding: 16px;\n      border-bottom: 2px solid var(--stroke-color);\n    }\n\n    td {\n      padding: 16px;\n      border-bottom: 1px solid var(--stroke-color);\n      vertical-align: top;\n      color: var(--text-secondary);\n      line-height: 1.5;\n    }\n\n    tr:nth-child(even) {\n      background-color: rgba(228, 228, 228, 0.01);\n    }\n\n    .dimension-name {\n      font-weight: 600;\n      color: var(--text-primary);\n    }\n\n    .versa-column {\n      color: var(--text-primary);\n    }\n\n    /* 3-Column Strengths Grid */\n    .columns-3 {\n      display: grid;\n      grid-template-columns: repeat(3, 1fr);\n      gap: 20px;\n      margin-bottom: 40px;\n    }\n\n    .column-card {\n      background-color: var(--bg-chrome);\n      border: 1px solid var(--stroke-color);\n      border-radius: 8px;\n      padding: 24px;\n    }\n\n    .card-tag {\n      font-size: 11px;\n      text-transform: uppercase;\n      font-weight: 600;\n      letter-spacing: 0.5px;\n      margin-bottom: 12px;\n      display: inline-block;\n    }\n\n    .tag-openclaw {\n      color: var(--color-openclaw);\n    }\n\n    .tag-hermes {\n      color: var(--color-hermes);\n    }\n\n    .tag-versa {\n      color: var(--color-versa);\n    }\n\n    .card-title {\n      font-size: 16px;\n      font-weight: 600;\n      margin: 0 0 16px 0;\n      color: var(--text-primary);\n    }\n\n    .card-bullet {\n      margin-bottom: 16px;\n    }\n\n    .bullet-label {\n      font-weight: 600;\n      font-size: 13px;\n      margin-bottom: 4px;\n    }\n\n    .bullet-desc {\n      font-size: 13px;\n      color: var(--text-secondary);\n      margin: 0;\n    }\n\n    /* Collapsible Sections */\n    .synthesis-section {\n      display: flex;\n      flex-direction: column;\n      gap: 16px;\n      margin-bottom: 40px;\n    }\n\n    .collapsible-card {\n      background-color: var(--bg-chrome);\n      border: 1px solid var(--stroke-color);\n      border-radius: 8px;\n      overflow: hidden;\n    }\n\n    .collapsible-header {\n      padding: 16px 24px;\n      font-weight: 600;\n      font-size: 15px;\n      cursor: pointer;\n      background-color: rgba(228, 228, 228, 0.02);\n      display: flex;\n      justify-content: space-between;\n      align-items: center;\n      border-bottom: 1px solid var(--stroke-color);\n    }\n\n    .collapsible-header::after {\n      content: \"▼\";\n      font-size: 10px;\n      color: var(--text-tertiary);\n    }\n\n    .collapsible-body {\n      padding: 24px;\n      font-size: 14px;\n      color: var(--text-secondary);\n      line-height: 1.6;\n    }\n\n    footer {\n      text-align: center;\n      padding: 40px 0 20px 0;\n      font-size: 12px;\n      color: var(--text-tertiary);\n      border-top: 1px solid var(--stroke-color);\n    }\n\n    footer strong {\n      color: var(--text-secondary);\n    }\n  </style>\n</head>\n\n<body>\n\n  <div class=\"container\">\n    <header>\n      <div>\n        <h1>The Agentic Landscape: OpenClaw vs. Hermes vs. Versa AGi</h1>\n        <p class=\"subtitle\">A Peer-to-Peer Comparative Review of Open-Source Agent Architectures</p>\n      </div>\n      <div class=\"badge\">US Patent Pending</div>\n    </header>\n\n    <section class=\"callout\">\n      <div class=\"callout-title\">Executive Summary</div>\n      <p class=\"callout-content\">\n        This report maps the current open-source agent landscape by comparing three distinct architectural philosophies.\n        <strong>OpenClaw</strong> (est. November 2025) is a personal AI assistant platform with massive integration\n        reach across 20+ messaging channels, optional Docker-based sandboxing, and a community-driven skill ecosystem.\n        <strong>Hermes Agent</strong> (est. late 2025, by Nous Research) pioneers a self-improving learning loop with\n        trace-driven procedural memory generation and tiered local-first storage.         <strong>Versa AGi</strong> (development\n        started January 2026, building on the VersaVoice AI communication platform designed December 2025) is a\n        distributed multi-agent framework enforcing zero-trust Unix user isolation, pre-spawn budget circuit breakers,\n        and cross-lingual synthesis over a patent-pending architecture.\n        <br><br>\n        Each system addresses different priorities: OpenClaw optimizes for reach and developer accessibility; Hermes\n        optimizes for autonomous self-improvement; Versa AGi optimizes for secure enterprise governance and its\n        <strong>Unified Global Production Network (uGPN)</strong> — a vision built to place human creative freedom and\n        borderless collaboration at the center of agentic production.\n      </p>\n    </section>\n\n    <section class=\"stats-grid\">\n      <div class=\"stat-card stat-openclaw\">\n        <div class=\"stat-icon\">🦞</div>\n        <div class=\"stat-info-group\">\n          <div class=\"stat-value\">Platform Integration</div>\n          <div class=\"stat-label\">OpenClaw Core Focus</div>\n        </div>\n      </div>\n      <div class=\"stat-card stat-hermes\">\n        <div class=\"stat-icon\">☤</div>\n        <div class=\"stat-info-group\">\n          <div class=\"stat-value\">Self-Improving Loops</div>\n          <div class=\"stat-label\">Hermes Core Focus</div>\n        </div>\n      </div>\n      <div class=\"stat-card stat-versa\">\n        <div class=\"stat-icon\">🛡️</div>\n        <div class=\"stat-info-group\">\n          <div class=\"stat-value\">Patent-Pending Human-uGPN</div>\n          <div class=\"stat-label\">Versa AGi Core Focus</div>\n        </div>\n      </div>\n    </section>\n\n    <section class=\"chart-card\">\n      <div class=\"chart-header\">Architectural Performance Index</div>\n      <div class=\"chart-desc\">Comparing how the three systems score across critical architectural dimensions. Scores\n        reflect current shipped capabilities weighted against documented design maturity. Categories marked with (*) are\n        domain-specific differentiators unique to Versa AGi's stated mission.</div>\n\n      <div class=\"chart-container\">\n        <!-- Column 1 -->\n        <div class=\"chart-column\">\n          <div class=\"chart-bars-group\">\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">2</span>\n              <div class=\"chart-bar bar-openclaw\" style=\"height: 20%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">1</span>\n              <div class=\"chart-bar bar-hermes\" style=\"height: 10%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">10</span>\n              <div class=\"chart-bar bar-versa\" style=\"height: 100%;\"></div>\n            </div>\n          </div>\n          <div class=\"chart-label\"\n            style=\"font-size: 11px; font-weight: 500; color: var(--text-primary); text-align: center; margin-top: 12px; height: 40px; display: flex; align-items: center; justify-content: center; line-height: 1.3;\">\n            uGPN Human Vision *</div>\n        </div>\n        <!-- Column 2 -->\n        <div class=\"chart-column\">\n          <div class=\"chart-bars-group\">\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">4</span>\n              <div class=\"chart-bar bar-openclaw\" style=\"height: 40%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">3</span>\n              <div class=\"chart-bar bar-hermes\" style=\"height: 30%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">10</span>\n              <div class=\"chart-bar bar-versa\" style=\"height: 100%;\"></div>\n            </div>\n          </div>\n          <div class=\"chart-label\"\n            style=\"font-size: 11px; font-weight: 500; color: var(--text-primary); text-align: center; margin-top: 12px; height: 40px; display: flex; align-items: center; justify-content: center; line-height: 1.3;\">\n            Humane EQ & UX *</div>\n        </div>\n        <!-- Column 3 -->\n        <div class=\"chart-column\">\n          <div class=\"chart-bars-group\">\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">3</span>\n              <div class=\"chart-bar bar-openclaw\" style=\"height: 30%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">10</span>\n              <div class=\"chart-bar bar-hermes\" style=\"height: 100%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">8</span>\n              <div class=\"chart-bar bar-versa\" style=\"height: 80%;\"></div>\n            </div>\n          </div>\n          <div class=\"chart-label\"\n            style=\"font-size: 11px; font-weight: 500; color: var(--text-primary); text-align: center; margin-top: 12px; height: 40px; display: flex; align-items: center; justify-content: center; line-height: 1.3;\">\n            Learning & Adapt.</div>\n        </div>\n        <!-- Column 4 -->\n        <div class=\"chart-column\">\n          <div class=\"chart-bars-group\">\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">6</span>\n              <div class=\"chart-bar bar-openclaw\" style=\"height: 60%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">8</span>\n              <div class=\"chart-bar bar-hermes\" style=\"height: 80%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">9</span>\n              <div class=\"chart-bar bar-versa\" style=\"height: 90%;\"></div>\n            </div>\n          </div>\n          <div class=\"chart-label\"\n            style=\"font-size: 11px; font-weight: 500; color: var(--text-primary); text-align: center; margin-top: 12px; height: 40px; display: flex; align-items: center; justify-content: center; line-height: 1.3;\">\n            Memory & Eff.</div>\n        </div>\n        <!-- Column 5 -->\n        <div class=\"chart-column\">\n          <div class=\"chart-bars-group\">\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">4</span>\n              <div class=\"chart-bar bar-openclaw\" style=\"height: 40%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">6</span>\n              <div class=\"chart-bar bar-hermes\" style=\"height: 60%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">9</span>\n              <div class=\"chart-bar bar-versa\" style=\"height: 90%;\"></div>\n            </div>\n          </div>\n          <div class=\"chart-label\"\n            style=\"font-size: 11px; font-weight: 500; color: var(--text-primary); text-align: center; margin-top: 12px; height: 40px; display: flex; align-items: center; justify-content: center; line-height: 1.3;\">\n            Safety & Budget</div>\n        </div>\n        <!-- Column 6 -->\n        <div class=\"chart-column\">\n          <div class=\"chart-bars-group\">\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">5</span>\n              <div class=\"chart-bar bar-openclaw\" style=\"height: 50%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">4</span>\n              <div class=\"chart-bar bar-hermes\" style=\"height: 40%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">10</span>\n              <div class=\"chart-bar bar-versa\" style=\"height: 100%;\"></div>\n            </div>\n          </div>\n          <div class=\"chart-label\"\n            style=\"font-size: 11px; font-weight: 500; color: var(--text-primary); text-align: center; margin-top: 12px; height: 40px; display: flex; align-items: center; justify-content: center; line-height: 1.3;\">\n            Security & Isol.</div>\n        </div>\n        <!-- Column 7 -->\n        <div class=\"chart-column\">\n          <div class=\"chart-bars-group\">\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">6</span>\n              <div class=\"chart-bar bar-openclaw\" style=\"height: 60%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">8</span>\n              <div class=\"chart-bar bar-hermes\" style=\"height: 80%;\"></div>\n            </div>\n            <div class=\"chart-bar-wrapper\">\n              <span class=\"chart-val-text\">10</span>\n              <div class=\"chart-bar bar-versa\" style=\"height: 100%;\"></div>\n            </div>\n          </div>\n          <div class=\"chart-label\"\n            style=\"font-size: 11px; font-weight: 500; color: var(--text-primary); text-align: center; margin-top: 12px; height: 40px; display: flex; align-items: center; justify-content: center; line-height: 1.3;\">\n            Deployment Topo.</div>\n        </div>\n      </div>\n\n      <div class=\"chart-legend\">\n        <div class=\"legend-item\">\n          <div class=\"legend-color\" style=\"background-color: var(--color-openclaw);\"></div>\n          <span>OpenClaw</span>\n        </div>\n        <div class=\"legend-item\">\n          <div class=\"legend-color\" style=\"background-color: var(--color-hermes);\"></div>\n          <span>Hermes Agent</span>\n        </div>\n        <div class=\"legend-item\">\n          <div class=\"legend-color\" style=\"background-color: var(--color-versa);\"></div>\n          <span>Versa AGi</span>\n        </div>\n      </div>\n    </section>\n\n    <h2>Architectural Feature Comparison</h2>\n    <div class=\"table-responsive\">\n      <table>\n        <thead>\n          <tr>\n            <th style=\"width: 15%;\">Dimension</th>\n            <th style=\"width: 25%;\">OpenClaw</th>\n            <th style=\"width: 30%;\">Hermes Agent (Nous Research)</th>\n            <th style=\"width: 30%;\">Versa AGi (VersaVoice AI)</th>\n          </tr>\n        </thead>\n        <tbody>\n          <tr>\n            <td class=\"dimension-name\">uGPN & Human Vision</td>\n            <td>Not a stated goal. Built as a personal AI assistant for individual desktop operations and multi-channel\n              messaging.</td>\n            <td>Not a stated goal. Built as a self-improving computational agent focused on autonomous task execution\n              and procedural learning.</td>\n            <td>The Core Fiber. Places humans and their borderless creative production at the center via a Unified\n              Global Production Network.</td>\n          </tr>\n          <tr>\n            <td class=\"dimension-name\">Humane EQ & Interaction</td>\n            <td>Standard chatbot interface with platform-specific slash commands (/think, /trace, /verbose). Interaction\n              is functional and direct.</td>\n            <td>Primarily background execution with Kanban board monitoring. Maintains USER.md to model communication\n              preferences and adapts responses over time, but interaction is task-focused rather than conversational.\n            </td>\n            <td>Chief Orchestrator Agent paradigm. Deep emotional intelligence (EQ) layer: Versa (COA) provides a warm,\n              high-agency linguistic UX, understanding nuances and dynamically provisioning sub-agents humanely based on\n              user guidelines.</td>\n          </tr>\n          <tr>\n            <td class=\"dimension-name\">Philosophy & Target</td>\n            <td>Self-hosted personal assistant that runs on your own hardware, answers across many channels, with\n              local-first data ownership.</td>\n            <td>Self-improving Agentic OS designed to dynamically accumulate and refine intelligence across sessions via\n              trace-driven procedural generation.</td>\n            <td>Distributed, secure multi-agent framework designed for corporate and production workflows under tight\n              Human-in-the-Loop oversight.</td>\n          </tr>\n          <tr>\n            <td class=\"dimension-name\">Orchestration Core</td>\n            <td>TypeScript Gateway server as a single control plane for sessions, channels, tools, and events.\n              Multi-agent routing with per-agent workspaces.</td>\n            <td>Background scheduling with cron-driven dispatcher, Kanban task board (SQLite-backed), worker process\n              spawning with heartbeat monitoring, and zombie process reaping.</td>\n            <td>Linux-native 1-minute CRON pulse, event buffers, and Python-native LangGraph state graph orchestration\n              with a dedicated pre-graph Triage stage (single-shot classification before the agent graph is\n              constructed). Agents execute via a 15-tool typed CLI surface spanning system, model,\n              agent, task, message, cycle, project, connection, memory, game, awareness, identity, execute, search, and\n              browser domains.</td>\n          </tr>\n          <tr>\n            <td class=\"dimension-name\">Learning & Adaptation</td>\n            <td>Developer-curated skills managed as bundled, managed, or workspace-level Markdown files. No autonomous\n              self-improvement loop; skill updates are community/developer-driven.</td>\n            <td>Self-Refining (Observe-Execute-Reflect). Trace-driven reflection crystallizes successful workflows into\n              reusable SKILL.md files. Weekly consolidation and pruning maintains quality.</td>\n            <td>Structured & Curated. SQLite skill registry with full status lifecycle (draft → ready → synced →\n              updated) managed via <code>agictl skill</code>. COA authors and adapts skills from execution experience.\n              Triage-driven dynamic injection annotates each skill with a purpose explaining why it was included for the\n              current cycle. Environmental Awareness Framework (Game of Life) provides strategic learning through\n              conclusion→action chains across Games, Projects, and Opponents.</td>\n          </tr>\n          <tr>\n            <td class=\"dimension-name\">Memory & Storage</td>\n            <td>Per-agent workspace persistence and session context. Skill files stored locally. Less sophisticated\n              cross-session recall compared to specialized memory systems.</td>\n            <td>3-Tier Local-First: High-signal state files (USER.md, MEMORY.md with strict size caps), Episodic (SQLite\n              FTS5 full-text search with LLM summarization), and Procedural (auto-generated SKILL.md files). Optional\n              external providers (Honcho, mem0).</td>\n            <td>4-Database SQLite Model: Relational schema across agents.db (registry), messages.db (comms), tasks.db\n              (tracker), and cycles.db (telemetry). System-curated deterministic memory — connection memory, project\n              memory, and system memory are auto-injected into each spawn prompt via <code>agictl memory</code>.\n              Cross-cycle session retention with configurable max age and count. Environmental Awareness Framework\n              models strategic intent as a layered graph of Games, Projects, Opponents, and Awareness entries\n              (conclusions + actions) with posture-driven behavior and configurable autonomy levels.</td>\n          </tr>\n          <tr>\n            <td class=\"dimension-name\">Safety & Runaway Controls</td>\n            <td>Basic request queues, timeouts, and tool allow/deny policies. Elevated exec requires explicit\n              authorization. Sandboxing (when enabled) limits blast radius.</td>\n            <td>Retry budgets with configurable failure limits (default: 2 retries), 15-minute stale_lock TTL with\n              heartbeat-based claim extension, zombie process reaping via waitpid, and objective goal anchoring.\n              External proxy (e.g. baar-core) for spend caps.</td>\n            <td>Integrated pre-spawn Circuit Breaker (consecutive + hourly failure thresholds), task auto-freezing with\n              overdue spawn-attempt budgets, message flood guard, and background runaway monitor\n              (line/size/session thresholds). Approval-gated package management (<code>agictl pkg</code> request →\n              Primary User approval) with sudo escalation. Idempotent INI persistence prevents configuration drift. Watchdog is the\n              system's core security mechanism — the protected infrastructure owner mediating all data access; planned\n              future work adds event-driven invocation (spawning Watchdog from system file-monitoring events) for\n              responsive audits.</td>\n          </tr>\n          <tr>\n            <td class=\"dimension-name\">Security & Sandbox</td>\n            <td>Optional Docker-based sandboxing (off by default) with namespace isolation, network controls, and\n              filesystem restrictions. Multi-agent workspace routing provides per-agent session isolation. Historically\n              affected by CVE-2026-25253 (patched in v2026.1.29).</td>\n            <td>Role allow-lists, sandboxed local flows, and API key redaction. Runs within a single OS environment or\n              Docker container. Per-profile workspace separation.</td>\n            <td>Zero-Trust Multi-Tenant Isolation: Every sub-agent is mapped to a distinct OS user with filesystem\n              privilege boundaries and agictl gateway mediation.</td>\n          </tr>\n          <tr>\n            <td class=\"dimension-name\">Provider Routing</td>\n            <td>Supports multiple LLM providers via configuration. Gateway communicates via WebSocket. Docker, SSH, and\n              OpenShell sandbox backends available for tool execution.</td>\n            <td>Highly flexible routing via OpenRouter (300+ models), Anthropic, OpenAI, Ollama, AWS Bedrock, xAI, and\n              direct provider integrations. Load-balances across local and cloud.</td>\n            <td>Native LangChain integrations for 6 provider backends: Google Gemini (cloud), Ollama (local NVIDIA/AMD),\n              Docker SYCL (Intel ARC with Router Mode multi-model loading), xAI Grok, OpenAI GPT, and Anthropic Claude.\n              Split client/server topology via SSH tunnel for remote inference. Per-agent model assignment with\n              dashboard model picker (☁ 🖥 🔀 icons) and COA-approved model gating.</td>\n          </tr>\n          <tr>\n            <td class=\"dimension-name\">Integration & UI</td>\n            <td>Massive reach. Supports 20+ chat channels (WhatsApp, Slack, Telegram, Discord, iMessage, Signal, Teams,\n              Matrix, LINE, and more) with live interactive Canvas rendering and companion apps (macOS, iOS, Android).\n            </td>\n            <td>Supports ~8 messaging channels (Telegram, Discord, Slack, WhatsApp, Signal, Email, and gateway\n              extensions). Kanban board for task visualization and CLI-based interaction.</td>\n            <td>Tightly integrated with the VersaVoice Neural Translation Core (cross-lingual App), a local agitop\n              Textual terminal dashboard, headless browser automation (Playwright Chromium with per-agent provisioning\n              via <code>agictl browser</code>), web search (<code>agictl search</code>), and system package management\n              (<code>agictl pkg</code>).</td>\n          </tr>\n          <tr>\n            <td class=\"dimension-name\">Developer &amp; IDE Surface</td>\n            <td>Chat-channel first. The developer reaches the agent through its messaging integrations and companion\n              apps, with platform slash commands and live Canvas rendering. No documented mode in which the agent runs\n              inside the developer's editor under its own OS identity.</td>\n            <td>CLI and Kanban board. Work is dispatched to background workers and observed on the task board; the\n              developer supervises the queue rather than sharing a working session with the agent.</td>\n            <td><strong>IDE Integration.</strong> The agent runs <em>inside</em> VSCode, Cursor, or Antigravity on the\n              IDE's own inference, attached over loopback SSH as its own <code>coa</code> OS user — same permissions,\n              same four databases, same <code>agictl</code> gateway it has when working alone. The Primary User is\n              present in the chat instead of behind the messaging layer. Autonomous spawning is held for the duration,\n              so a human-driven session and a scheduled cycle can never race the same state. Toggled from the agitop\n              dashboard or <code>agictl agent ide</code>; a mandatory per-turn self-check stands the agent down the\n              moment the mode is switched off.</td>\n          </tr>\n        </tbody>\n      </table>\n    </div>\n\n    <h2>Detailed Landscape Overview</h2>\n    <div class=\"columns-3\">\n      <div class=\"column-card\">\n        <span class=\"card-tag tag-openclaw\">OpenClaw</span>\n        <h3 class=\"card-title\">The Integrator</h3>\n\n        <div class=\"card-bullet\">\n          <div class=\"bullet-label\">Connectivity Champion</div>\n          <p class=\"bullet-desc\">OpenClaw's core strength is its massive platform reach. Supporting over 20 channels\n            with companion apps on macOS, iOS, and Android, it set the standard for personal AI running locally while\n            speaking to users wherever they already are.</p>\n        </div>\n        <div class=\"card-bullet\">\n          <div class=\"bullet-label\">Community-Driven Skills</div>\n          <p class=\"bullet-desc\">Skills in OpenClaw are Markdown-based templates managed at bundled, managed, or\n            workspace levels. While the agent does not autonomously generate new skills, the community ecosystem and\n            skill portability provide breadth of capability.</p>\n        </div>\n      </div>\n\n      <div class=\"column-card\">\n        <span class=\"card-tag tag-hermes\">Hermes Agent</span>\n        <h3 class=\"card-title\">The Evolver</h3>\n\n        <div class=\"card-bullet\">\n          <div class=\"bullet-label\">Closed-Loop Reflection</div>\n          <p class=\"bullet-desc\">Hermes executes trace-driven reflection after complex tasks (typically 5+ tool calls).\n            It analyzes execution traces, discovers successful patterns, and autonomously crystallizes them into\n            reusable SKILL.md files in its procedural memory.</p>\n        </div>\n        <div class=\"card-bullet\">\n          <div class=\"bullet-label\">Tiered Local-First Memory</div>\n          <p class=\"bullet-desc\">Instead of cloud vector databases, Hermes uses high-signal state files plus SQLite FTS5\n            cross-session search with LLM summarization, enabling rapid contextual recall with minimal latency and\n            optional enterprise scaling via external providers.</p>\n        </div>\n      </div>\n\n      <div class=\"column-card\">\n        <span class=\"card-tag tag-versa\">Versa AGi</span>\n        <h3 class=\"card-title\">The Borderless Fortress</h3>\n\n        <div class=\"card-bullet\">\n          <div class=\"bullet-label\">The uGPN Vision</div>\n          <p class=\"bullet-desc\">Versa AGi synthesizes local node execution over a cross-lingual neural routing layer.\n            Edition 2 ships a full Python-native LangGraph orchestration engine with native multi-provider model routing\n            (Gemini, Ollama, Intel SYCL, xAI, OpenAI, Anthropic), triage-driven skill injection, cross-cycle\n            checkpointing, headless browser automation, web search, and an Environmental Awareness Framework (strategic\n            intent graph with Games, Projects, Opponents, and Awareness entries) — creating borderless, secure\n            production networks.</p>\n        </div>\n        <div class=\"card-bullet\">\n          <div class=\"bullet-label\">Warm, High-EQ Delegation UX</div>\n          <p class=\"bullet-desc\">Users interact with Versa (COA) as a high-EQ, cloud-mode Chief Orchestrator Agent.\n            Versa coordinates tasks dynamically, spawning new sub-agents on the fly humanely based on user guidelines\n            and intent.</p>\n        </div>\n        <div class=\"card-bullet\">\n          <div class=\"bullet-label\">Sit Down and Work Together</div>\n          <p class=\"bullet-desc\">IDE Integration puts Versa in the editor beside you — VSCode, Cursor, or Antigravity —\n            running on the IDE's inference as its own OS user, with the same identity and boundaries it has when working\n            alone. Autonomous spawning pauses while you pair, then resumes where it left off. The same agent, met in a\n            different room.</p>\n        </div>\n      </div>\n    </div>\n\n    <h2>Landscape Synthesis</h2>\n    <div class=\"synthesis-section\">\n      <div class=\"collapsible-card\">\n        <div class=\"collapsible-header\">1. Different Visions, Different Priorities</div>\n        <div class=\"collapsible-body\">\n          <strong>OpenClaw</strong> is a personal AI assistant optimized for reach and developer accessibility across\n          20+ messaging platforms. <strong>Hermes Agent</strong> is a self-improving computational agent focused on\n          autonomous task execution and procedural learning. Neither explicitly targets the broader trajectory of human\n          labor networks or cross-lingual global collaboration as a core design goal.\n          <br><br>\n          <strong>Versa AGi</strong> is built on the <strong>Unified Global Production Network (uGPN)</strong>. By\n          integrating a patent-pending cross-lingual translation barrier and secure distributed multi-node connections, it\n          links human creators and their autonomous networks globally. It does not attempt to replace the human or run\n          completely unattended; it elevates individual human production and creative freedom to the center of agentic\n          collaboration.\n        </div>\n      </div>\n\n      <div class=\"collapsible-card\">\n        <div class=\"collapsible-header\">2. Security Approaches (CVE-2026-25253 Case Study)</div>\n        <div class=\"collapsible-body\">\n          <strong>OpenClaw</strong> was affected by CVE-2026-25253 (CVSS 8.8) — a cross-site WebSocket hijacking flaw\n          allowing authentication token theft and remote code execution. This has been patched since v2026.1.29.\n          OpenClaw now offers optional Docker-based sandboxing with namespace isolation, network controls, and\n          filesystem restrictions, though sandboxing remains off by default.\n          <br><br>\n          <strong>Hermes</strong> mitigates risks through role allow-lists, per-profile workspace separation, and\n          sandboxed local flows. It operates within a single OS environment or Docker container.\n          <br><br>\n          <strong>Versa AGi</strong> treats security as an OS-level infrastructure problem from first principles. By\n          routing all agent actions through <code>agictl</code> and mapping each sub-agent to a distinct Unix user with\n          filesystem privilege boundaries, it isolates the blast radius of a compromised loop at the kernel level.\n        </div>\n      </div>\n\n      <div class=\"collapsible-card\">\n        <div class=\"collapsible-header\">3. Where the Human Sits</div>\n        <div class=\"collapsible-body\">\n          All three systems keep a human in the loop, but they place that human differently.\n          <strong>OpenClaw</strong> puts them at the far end of a messaging channel — reachable anywhere, on any of 20+\n          platforms. <strong>Hermes</strong> puts them above a task board, approving and observing a queue that runs\n          itself.\n          <br><br>\n          <strong>Versa AGi</strong> supports both of those positions and adds a third: <strong>next to the\n            agent</strong>. With IDE Integration, the Primary User opens VSCode, Cursor, or Antigravity attached as the\n          agent's own OS user, and the two work the same problem in the same chat, on the same filesystem, against the\n          same databases. The agent does not become a coding assistant for the session — it remains itself, with its\n          poise, memory, tasks, and permissions intact, simply running on the editor's inference and answering the\n          person in front of it instead of sending a message.\n          <br><br>\n          The design consequence is that autonomous execution is <em>held</em>, not merely ignored, for as long as the\n          session lasts. A scheduled cycle and a human-driven one can never touch the same state at the same time, and\n          when the mode is switched off the agent reports what it did on its own in the interim before acting on\n          anything from the conversation. This is the practical shape of the uGPN thesis: not an unattended system that\n          occasionally asks permission, but one a person can step into and out of without losing continuity.\n        </div>\n      </div>\n    </div>\n\n    <section class=\"callout\"\n      style=\"margin-top: 40px; border-left-color: var(--text-tertiary); background-color: rgba(108, 117, 125, 0.05);\">\n      <div class=\"callout-title\" style=\"color: var(--text-secondary);\">Disclosure</div>\n      <p class=\"callout-content\" style=\"font-size: 13px;\">\n        This comparative analysis was prepared by the Versa AGi team. While we have strived for accuracy and fairness,\n        readers should note the inherent interest of the authors. Scores marked with (*) represent domain-specific\n        categories that reflect Versa AGi's unique stated mission and may not be priorities for the other frameworks. We\n        encourage readers to independently verify claims against each project's official documentation. Versa AGi was\n        designed from first principles — following the company's \"Communication First\" principle, the VersaVoice AI\n        communication platform was designed beginning December 2025, and Versa AGi development started January 2026\n        once the comms channel was live. It was not derived from, influenced by, or built upon OpenClaw or Hermes\n        Agent.\n      </p>\n    </section>\n\n    <footer>\n      Comparative landscape prepared June 2026 · Based on OpenClaw v2026.5 (374K+ stars), Hermes Agent 0.13 Tenacity\n      (160K+ stars), and <strong>Versa AGi Patent-Pending Architecture V3.2 (Edition 2 — LangGraph)</strong>\n      (VersaVoice AI designed Dec 2025, Versa AGi dev started Jan 2026) · System ships with COA + Watchdog; unlimited\n      sub-agents provisioned as needed\n    </footer>\n  </div>\n</body>\n\n</html>",
+        "body_format": "page"
+      }
+    },
+    {
+      "key": "page:versa-agi-public-access",
+      "type_api_name": "page",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Public Access",
+      "status": "active",
+      "data": {
+        "body_html": "<div class=\"deck-container\"><div class=\"deck-slide dark-banner\" id=\"public-expectation\" data-slide=\"1\" data-track=\"track-problem\">\n      <div class=\"slide-content\">\n        <h2 style=\"font-family: var(--font-mono); color: var(--text-color);\">> PUBLIC_ACCESS_GRANTED</h2>\n        <div class=\"icon-row\"\n          style=\"margin-top: 1.5rem; border-left: 2px solid var(--accent-color); padding-left: 20px;\">\n          <div class=\"icon-item\" style=\"text-align: left; max-width: 100%;\">\n            <p style=\"font-size: 1.1rem; color: var(--accent-color); font-weight: 600; font-family: var(--font-mono);\">A\n              Massive Global Expectation</p>\n            <p style=\"font-size: 0.95rem; line-height: 1.6; max-width: 700px; color: var(--secondary-text);\">For too\n              long, AI has been something done *to* you. Versa AGi™ flips the paradigm. We are building a secure system\n              that satisfies the global expectation for Artificial Intelligence to fundamentally contribute to society\n              instead of disrupting it. Your family, your friends, and your profession—safeguarded by structural design.\n            </p>\n          </div>\n        </div>\n      </div>\n      </div></div>",
+        "body_format": "page"
+      }
+    },
+    {
+      "key": "driver-pairing:versa-agi-public-access",
+      "type_api_name": "driver_pairing",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Public Access",
+      "status": "active",
+      "data": {
+        "page": "",
+        "driver_id": "rd-page-header",
+        "page_size": "",
+        "filter_json": "[]",
+        "record_mode": "single",
+        "target_kind": "header",
+        "render_option": "html-block",
+        "input_map_json": "{}",
+        "selection_mode": "one",
+        "target_record_id": "{{site:page:versa-agi-public-access}}",
+        "target_record_type": "page"
+      }
+    },
+    {
+      "key": "page:versa-agi-technical-overview",
+      "type_api_name": "page",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Technical Overview",
+      "status": "active",
+      "data": {
+        "body_html": "<div class=\"deck-container\"><div class=\"deck-slide\" id=\"technical-overview\" data-slide=\"2\" data-track=\"track-solution\">\n      <div class=\"slide-content\" style=\"max-width: 1100px;\">\n        <h2 style=\"font-family: var(--font-mono);\">> TECHNICAL_OVERVIEW</h2>\n        <p style=\"max-width: 700px; font-family: var(--font-mono); color: #888;\">\n          The infrastructure built to work alongside you. Deploy agents securely with voice and our terminal dashboard\n          `agitop`.\n        </p>\n\n        <!-- uGPN Infographic -->\n        <div class=\"ugpn-section\">\n          <div class=\"ugpn-section-label\">// Unified Global Production Network</div>\n          <div class=\"ugpn-section-desc\">\n            Localized Versa AGi execution mapped over the cross-lingual VersaVoice routing layer — a completely\n            borderless framework for human and autonomous collaboration.\n          </div>\n          <div class=\"ugpn-diagram\">\n            <!-- Core -->\n            <div class=\"ugpn-core\">\n              <div class=\"ugpn-core-badge\">\n                <span class=\"ugpn-core-title\"><br>🌍 VERSAVOICE NEURAL TRANSLATION CORE</span>\n                <span class=\"ugpn-core-sub\">(Cross-Lingual Routing Barrier)</span>\n              </div>\n            </div>\n            <div class=\"ugpn-api-label\">── Sub-Account API ──</div>\n            <!-- Nodes -->\n            <div class=\"ugpn-nodes\">\n              <div class=\"ugpn-node\">\n                <div class=\"ugpn-node-flag\">🇯🇵</div>\n                <div class=\"ugpn-node-city\">Tokyo Node</div>\n                <div class=\"ugpn-node-actors\">\n                  <span class=\"ugpn-actor human\">👤 Human Architect</span>\n                  <span class=\"ugpn-actor-link\">↕ Local OS Bound</span>\n                  <span class=\"ugpn-actor agent\">🤖 Versa AGi</span>\n                </div>\n              </div>\n              <div class=\"ugpn-node\">\n                <div class=\"ugpn-node-flag\">🇺🇸</div>\n                <div class=\"ugpn-node-city\">New York Node</div>\n                <div class=\"ugpn-node-actors\">\n                  <span class=\"ugpn-actor human\">👤 Dev Lead</span>\n                  <span class=\"ugpn-actor-link\">↕ Local OS Bound</span>\n                  <span class=\"ugpn-actor agent\">🤖 Versa AGi</span>\n                </div>\n              </div>\n              <div class=\"ugpn-node\">\n                <div class=\"ugpn-node-flag\">🇿🇦</div>\n                <div class=\"ugpn-node-city\">South African Node</div>\n                <div class=\"ugpn-node-actors\">\n                  <span class=\"ugpn-actor agent\">🤖 Autonomous AGi</span>\n                  <span class=\"ugpn-actor-link\" style=\"color: #555;\">(Unattended)</span>\n                </div>\n              </div>\n            </div>\n            <!-- Sync -->\n            <div class=\"ugpn-intent\">\n              <div class=\"ugpn-sync-label\">▼ Synchronize towards ▼</div>\n              <div class=\"ugpn-intent-badge\">\n                <span class=\"ugpn-intent-title\">🎯 SHARED HUMAN INTENT</span>\n                <span class=\"ugpn-intent-sub\">(Manifested Locally via Communication)</span>\n              </div>\n            </div>\n          </div>\n        </div>\n\n      </div>\n      </div></div>",
+        "body_format": "page"
+      }
+    },
+    {
+      "key": "driver-pairing:versa-agi-technical-overview",
+      "type_api_name": "driver_pairing",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Technical Overview",
+      "status": "active",
+      "data": {
+        "page": "",
+        "driver_id": "rd-page-header",
+        "page_size": "",
+        "filter_json": "[]",
+        "record_mode": "single",
+        "target_kind": "header",
+        "render_option": "html-block",
+        "input_map_json": "{}",
+        "selection_mode": "one",
+        "target_record_id": "{{site:page:versa-agi-technical-overview}}",
+        "target_record_type": "page"
+      }
+    },
+    {
+      "key": "page:versa-agi-capabilities",
+      "type_api_name": "page",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Capabilities",
+      "status": "active",
+      "data": {
+        "body_html": "<div class=\"deck-container\"><div class=\"deck-slide dark-banner\" id=\"capabilities\" data-slide=\"3\" data-track=\"track-capabilities\">\n      <div class=\"slide-content\" style=\"max-width: 1100px;\">\n        <h2 style=\"font-family: var(--font-mono); color: var(--text-color);\">> CAPABILITIES</h2>\n        <p style=\"max-width: 700px; font-family: var(--font-mono); color: #888;\">\n          Ten pillars of infrastructure designed around secure, human-centric agentic production.\n        </p>\n        <div class=\"capabilities-grid\">\n          <div class=\"feature-card cypher-panel\"\n            style=\"border: 1px solid var(--accent-color); background: rgba(0,0,0,0.8); border-radius: 0;\">\n            <h3 style=\"color: var(--accent-color); font-family: var(--font-mono);\">\n              <span class=\"material-symbols-rounded\">shield</span>\n              OS-Level Sandboxing\n            </h3>\n            <p style=\"font-family: var(--font-mono); font-size: 0.85rem;\">Each agent runs as its own dedicated Linux OS\n              user. Execution boundaries enforced by strict UNIX file permissions, managed by the kernel — not the LLM.\n            </p>\n          </div>\n          <div class=\"feature-card cypher-panel\"\n            style=\"border: 1px solid var(--accent-color); background: rgba(0,0,0,0.8); border-radius: 0;\">\n            <h3 style=\"color: var(--accent-color); font-family: var(--font-mono);\">\n              <span class=\"material-symbols-rounded\">psychology</span>\n              Deterministic Cognitive Ledger\n            </h3>\n            <p style=\"font-family: var(--font-mono); font-size: 0.85rem;\">The LLM acts solely as the cognitive engine.\n              Rigid databases manage the state ledger — physically blocking AI hallucination loops.</p>\n          </div>\n          <div class=\"feature-card cypher-panel\"\n            style=\"border: 1px solid var(--accent-color); background: rgba(0,0,0,0.8); border-radius: 0;\">\n            <h3 style=\"color: var(--accent-color); font-family: var(--font-mono);\">\n              <span class=\"material-symbols-rounded\">engineering</span>\n              Real-World Execution\n            </h3>\n            <p style=\"font-family: var(--font-mono); font-size: 0.85rem;\">Agents write scripts, compile code, run\n              servers, manage git pipelines, and operate virtual environments — exactly as a human developer would.</p>\n          </div>\n          <div class=\"feature-card cypher-panel\"\n            style=\"border: 1px solid var(--accent-color); background: rgba(0,0,0,0.8); border-radius: 0;\">\n            <h3 style=\"color: var(--accent-color); font-family: var(--font-mono);\">\n              <span class=\"material-symbols-rounded\">cable</span>\n              VersaVoice AI Backbone\n            </h3>\n            <p style=\"font-family: var(--font-mono); font-size: 0.85rem;\">Agents communicate over the VersaVoice REST\n              API or locally via SQLite. Zero-trust audit trail on every exchange. VersaVoice is optional — local-only\n              messaging is fully supported.</p>\n          </div>\n          <div class=\"feature-card cypher-panel\"\n            style=\"border: 1px solid var(--accent-color); background: rgba(0,0,0,0.8); border-radius: 0;\">\n            <h3 style=\"color: var(--accent-color); font-family: var(--font-mono);\">\n              <span class=\"material-symbols-rounded\">handshake</span>\n              Agent-Human Collaboration\n            </h3>\n            <p style=\"font-family: var(--font-mono); font-size: 0.85rem;\">A \"two-player game of life.\" Agents actively\n              coordinate with their sponsor for approvals, dependencies, and blockers. The human maintains sovereign\n              control.</p>\n          </div>\n          <div class=\"feature-card cypher-panel\"\n            style=\"border: 1px solid var(--accent-color); background: rgba(0,0,0,0.8); border-radius: 0;\">\n            <h3 style=\"color: var(--accent-color); font-family: var(--font-mono);\">\n              <span class=\"material-symbols-rounded\">favorite</span>\n              Native Emotional Intelligence\n            </h3>\n            <p style=\"font-family: var(--font-mono); font-size: 0.85rem;\">When users speak to their agents via\n              VersaVoice, real-time emotion detection captures how a person feels — not just what they say.\n              LLM-independent.</p>\n          </div>\n          <div class=\"feature-card cypher-panel\"\n            style=\"border: 1px solid var(--accent-color); background: rgba(0,0,0,0.8); border-radius: 0;\">\n            <h3 style=\"color: var(--accent-color); font-family: var(--font-mono);\">\n              <span class=\"material-symbols-rounded\">language</span>\n              Cross-Cultural AI Sync\n            </h3>\n            <p style=\"font-family: var(--font-mono); font-size: 0.85rem;\">Agents communicate through the localized\n              AI-translation pipelines of VersaVoice, enabling seamless collaboration with international users in their\n              native language.</p>\n          </div>\n          <div class=\"feature-card cypher-panel\"\n            style=\"border: 1px solid var(--accent-color); background: rgba(0,0,0,0.8); border-radius: 0;\">\n            <h3 style=\"color: var(--accent-color); font-family: var(--font-mono);\">\n              <span class=\"material-symbols-rounded\">bolt</span>\n              Compute-Zero Efficiency\n            </h3>\n            <p style=\"font-family: var(--font-mono); font-size: 0.85rem;\">Agents consume zero API cost when there's no\n              work. The system verifies actionable work exists before spawning any AI. You only pay for real work.</p>\n          </div>\n          <div class=\"feature-card cypher-panel\"\n            style=\"border: 1px solid var(--accent-color); background: rgba(0,0,0,0.8); border-radius: 0;\">\n            <h3 style=\"color: var(--accent-color); font-family: var(--font-mono);\">\n              <span class=\"material-symbols-rounded\">schedule</span>\n              Deterministic Script Tasks\n            </h3>\n            <p style=\"font-family: var(--font-mono); font-size: 0.85rem;\">Schedule shared `.sh` tools to run on a\n              recurring or once-off basis — executed deterministically by the scheduler with no agent spawned and zero\n              token cost.</p>\n          </div>\n          <div class=\"feature-card cypher-panel\"\n            style=\"grid-column: 1 / -1; border: 1px solid var(--accent-color); background: rgba(0,255,204,0.05); border-radius: 0;\">\n            <h3 style=\"color: var(--accent-color); font-family: var(--font-mono);\">\n              <span class=\"material-symbols-rounded\">code_blocks</span>\n              IDE Integration\n              <span\n                style=\"font-family: var(--font-mono); font-size: 0.6rem; border: 1px solid var(--accent-color); padding: 0.1rem 0.4rem; margin-left: 0.5rem; vertical-align: middle; letter-spacing: 0.1em;\">NEW</span>\n            </h3>\n            <p style=\"font-family: var(--font-mono); font-size: 0.85rem;\">Pair with your agent inside VSCode, Cursor, or\n              Antigravity. It attaches over Remote-SSH as its own OS user, runs on your IDE's inference, and talks to\n              you directly in the chat — same databases, same permissions, same identity it has when working alone.\n              Autonomous spawning is held for the duration, then resumes where it left off. One toggle, either from the\n              dashboard or the command line.</p>\n          </div>\n        </div>\n      </div>\n      </div></div>",
+        "body_format": "page"
+      }
+    },
+    {
+      "key": "driver-pairing:versa-agi-capabilities",
+      "type_api_name": "driver_pairing",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Capabilities",
+      "status": "active",
+      "data": {
+        "page": "",
+        "driver_id": "rd-page-header",
+        "page_size": "",
+        "filter_json": "[]",
+        "record_mode": "single",
+        "target_kind": "header",
+        "render_option": "html-block",
+        "input_map_json": "{}",
+        "selection_mode": "one",
+        "target_record_id": "{{site:page:versa-agi-capabilities}}",
+        "target_record_type": "page"
+      }
+    },
+    {
+      "key": "page:versa-agi-prompt-cache",
+      "type_api_name": "page",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Prompt Cache",
+      "status": "active",
+      "data": {
+        "body_html": "<div class=\"deck-container\"><div class=\"deck-slide dark-banner\" id=\"prompt-caching\" data-slide=\"4\" data-track=\"track-cache\">\n      <div class=\"slide-content\" style=\"max-width: 720px;\">\n        <h2 style=\"font-family: var(--font-mono); color: var(--text-color);\">> PROMPT_TOKEN_CACHE</h2>\n        <p class=\"cache-slide-lede\">\n          Reuse the prefix. Bill the delta.<br />\n          Stable agent context stays warm across steps — only new work hits the meter.\n        </p>\n\n        <div class=\"cache-visual\">\n          <div class=\"cache-stack-label\">// One model call · prompt tokens</div>\n          <div class=\"cache-stack\" aria-label=\"Prompt tokens: mostly cached, small uncached tip\">\n            <div class=\"cache-block cache-block-cached\">\n              <div>\n                <strong>CACHED</strong>\n                <em>System prompt, tools, and unchanged history — reused at cache rate</em>\n              </div>\n            </div>\n            <div class=\"cache-block cache-block-uncached\">\n              <div>\n                <strong>NEW</strong>\n                <em>This step’s wake, tools, and replies — where billing applies</em>\n              </div>\n            </div>\n          </div>\n          <div class=\"cache-meta\">\n            <p class=\"cache-chop\">\n              <strong>CHOPPED</strong> — oldest turns trimmed off the wire so the window fits.\n              Not sent. Not billed.\n            </p>\n            <div class=\"cache-legend\">\n              <span><i class=\"c\"></i>Cached</span>\n              <span><i class=\"u\"></i>Uncached</span>\n              <span><i class=\"x\"></i>Not sent</span>\n            </div>\n          </div>\n        </div>\n      </div>\n      </div></div>",
+        "body_format": "page"
+      }
+    },
+    {
+      "key": "driver-pairing:versa-agi-prompt-cache",
+      "type_api_name": "driver_pairing",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Prompt Cache",
+      "status": "active",
+      "data": {
+        "page": "",
+        "driver_id": "rd-page-header",
+        "page_size": "",
+        "filter_json": "[]",
+        "record_mode": "single",
+        "target_kind": "header",
+        "render_option": "html-block",
+        "input_map_json": "{}",
+        "selection_mode": "one",
+        "target_record_id": "{{site:page:versa-agi-prompt-cache}}",
+        "target_record_type": "page"
+      }
+    },
+    {
+      "key": "page:versa-agi-landscape",
+      "type_api_name": "page",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Landscape",
+      "status": "active",
+      "data": {
+        "body_html": "<div class=\"deck-container\"><div class=\"deck-slide dark-banner\" id=\"agentic-landscape\" data-slide=\"5\" data-track=\"track-landscape\">\n      <div class=\"slide-content\" style=\"max-width: 1000px;\">\n        <h2 style=\"font-family: var(--font-mono); color: var(--text-color);\">> AGENTIC_LANDSCAPE</h2>\n        <p style=\"max-width: 700px; font-family: var(--font-mono); color: #888;\">\n          How Versa AGi compares to the open-source agent landscape.\n        </p>\n\n        <!-- Stat Cards -->\n        <div class=\"comparison-stats\">\n          <div class=\"comp-stat-card\">\n            <div class=\"comp-stat-icon icon-openclaw\">🦞</div>\n            <div>\n              <div class=\"comp-stat-value val-openclaw\">Platform Integration</div>\n              <div class=\"comp-stat-label\">OpenClaw Core Focus</div>\n            </div>\n          </div>\n          <div class=\"comp-stat-card\">\n            <div class=\"comp-stat-icon icon-hermes\">☤</div>\n            <div>\n              <div class=\"comp-stat-value val-hermes\">Self-Improving Loops</div>\n              <div class=\"comp-stat-label\">Hermes Core Focus</div>\n            </div>\n          </div>\n          <div class=\"comp-stat-card\">\n            <div class=\"comp-stat-icon icon-versa\">🛡️</div>\n            <div>\n              <div class=\"comp-stat-value val-versa\">Human-Centric uGPN</div>\n              <div class=\"comp-stat-label\">Versa AGi Core Focus</div>\n            </div>\n          </div>\n        </div>\n\n        <!-- Mini Bar Chart -->\n        <div class=\"mini-chart\">\n          <div class=\"mini-chart-col\">\n            <div class=\"mini-chart-bars\">\n              <div>\n                <div class=\"mini-chart-val\">5</div>\n                <div class=\"mini-bar bar-oc\" style=\"height: 60px;\"></div>\n              </div>\n              <div>\n                <div class=\"mini-chart-val\">4</div>\n                <div class=\"mini-bar bar-hm\" style=\"height: 48px;\"></div>\n              </div>\n              <div>\n                <div class=\"mini-chart-val\">10</div>\n                <div class=\"mini-bar bar-va\" style=\"height: 120px;\"></div>\n              </div>\n            </div>\n            <div class=\"mini-chart-label\">Security &<br>Isolation</div>\n          </div>\n          <div class=\"mini-chart-col\">\n            <div class=\"mini-chart-bars\">\n              <div>\n                <div class=\"mini-chart-val\">4</div>\n                <div class=\"mini-bar bar-oc\" style=\"height: 48px;\"></div>\n              </div>\n              <div>\n                <div class=\"mini-chart-val\">6</div>\n                <div class=\"mini-bar bar-hm\" style=\"height: 72px;\"></div>\n              </div>\n              <div>\n                <div class=\"mini-chart-val\">9</div>\n                <div class=\"mini-bar bar-va\" style=\"height: 108px;\"></div>\n              </div>\n            </div>\n            <div class=\"mini-chart-label\">Safety &<br>Budget</div>\n          </div>\n          <div class=\"mini-chart-col\">\n            <div class=\"mini-chart-bars\">\n              <div>\n                <div class=\"mini-chart-val\">6</div>\n                <div class=\"mini-bar bar-oc\" style=\"height: 72px;\"></div>\n              </div>\n              <div>\n                <div class=\"mini-chart-val\">8</div>\n                <div class=\"mini-bar bar-hm\" style=\"height: 96px;\"></div>\n              </div>\n              <div>\n                <div class=\"mini-chart-val\">10</div>\n                <div class=\"mini-bar bar-va\" style=\"height: 120px;\"></div>\n              </div>\n            </div>\n            <div class=\"mini-chart-label\">Deployment<br>Topology</div>\n          </div>\n        </div>\n\n        <div class=\"chart-legend-mini\">\n          <span><span class=\"legend-dot\" style=\"background: #ff4b4b;\"></span> OpenClaw</span>\n          <span><span class=\"legend-dot\" style=\"background: #ffb300;\"></span> Hermes</span>\n          <span><span class=\"legend-dot\" style=\"background: #2ed573;\"></span> Versa AGi</span>\n        </div>\n\n        <!-- CTA -->\n        <div style=\"margin-top: 2.5rem;\">\n          <a href=\"/p/analysis\"\n            style=\"display: inline-flex; align-items: center; gap: 10px; background: transparent; border: 1.5px solid var(--accent-color); color: var(--accent-color); padding: 12px 28px; font-family: var(--font-mono); font-weight: bold; text-decoration: none; transition: all 0.3s ease;\"\n           \n           >\n            [ READ THE FULL ANALYSIS → ]\n          </a>\n        </div>\n      </div>\n      </div></div>",
+        "body_format": "page"
+      }
+    },
+    {
+      "key": "driver-pairing:versa-agi-landscape",
+      "type_api_name": "driver_pairing",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Landscape",
+      "status": "active",
+      "data": {
+        "page": "",
+        "driver_id": "rd-page-header",
+        "page_size": "",
+        "filter_json": "[]",
+        "record_mode": "single",
+        "target_kind": "header",
+        "render_option": "html-block",
+        "input_map_json": "{}",
+        "selection_mode": "one",
+        "target_record_id": "{{site:page:versa-agi-landscape}}",
+        "target_record_type": "page"
+      }
+    },
+    {
+      "key": "page:versa-agi-deployment",
+      "type_api_name": "page",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Deployment",
+      "status": "active",
+      "data": {
+        "body_html": "<div class=\"deck-container\"><div class=\"deck-slide dark-banner\" id=\"github-installation\" data-slide=\"6\" data-track=\"track-install\">\n      <div class=\"slide-content\" style=\"max-width: 800px;\">\n        <h2 style=\"font-family: var(--font-mono); color: var(--accent-color);\">> SYSTEM_DEPLOYMENT</h2>\n\n        <div class=\"terminal-window\"\n          style=\"background: rgba(0, 0, 0, 0.9); border: 1px solid var(--accent-color); border-radius: 4px; padding: 2rem; margin-top: 2rem; text-align: left; width: 100%;\">\n          <div class=\"terminal-header\" style=\"display: flex; gap: 8px; margin-bottom: 1.5rem;\">\n            <div style=\"width: 12px; height: 12px; border-radius: 50%; background: #EF4444;\"></div>\n            <div style=\"width: 12px; height: 12px; border-radius: 50%; background: #F59E0B;\"></div>\n            <div style=\"width: 12px; height: 12px; border-radius: 50%; background: #22C55E;\"></div>\n          </div>\n          <p style=\"font-family: var(--font-mono); color: #B0B0B0; font-size: 0.9rem; margin-bottom: 0.5rem;\">// Deploy\n            the Versa AGi infrastructure</p>\n          <code\n            style=\"font-family: var(--font-mono); color: #fff; display: block; margin-bottom: 2rem;\">curl -fsSL https://raw.githubusercontent.com/swartzlib7/versa-agi/main/install.sh | sudo bash</code>\n\n          <p style=\"font-family: var(--font-mono); color: #B0B0B0; font-size: 0.9rem; margin-bottom: 0.5rem;\">// Open\n            the Mission Control Dashboard</p>\n          <code style=\"font-family: var(--font-mono); color: #fff; display: block;\">sudo agitop</code>\n        </div>\n\n        <div style=\"margin-top: 3rem;\">\n          <a href=\"https://github.com/swartzlib7/versa-agi\" target=\"_blank\"\n            style=\"display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: transparent; border: 2px solid var(--accent-color); color: var(--accent-color); padding: 12px 30px; font-family: var(--font-mono); font-weight: bold; text-decoration: none; border-radius: 50px; transition: all 0.3s ease;\"\n           \n           >\n            <svg height=\"24\" width=\"24\" viewBox=\"0 0 16 16\" fill=\"currentColor\">\n              <path\n                d=\"M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z\">\n              </path>\n            </svg>\n            [ VIEW ON GITHUB ]\n          </a>\n        </div>\n      </div>\n      </div></div>",
+        "body_format": "page"
+      }
+    },
+    {
+      "key": "driver-pairing:versa-agi-deployment",
+      "type_api_name": "driver_pairing",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Deployment",
+      "status": "active",
+      "data": {
+        "page": "",
+        "driver_id": "rd-page-header",
+        "page_size": "",
+        "filter_json": "[]",
+        "record_mode": "single",
+        "target_kind": "header",
+        "render_option": "html-block",
+        "input_map_json": "{}",
+        "selection_mode": "one",
+        "target_record_id": "{{site:page:versa-agi-deployment}}",
+        "target_record_type": "page"
+      }
+    },
+    {
+      "key": "page:versa-agi-founder",
+      "type_api_name": "page",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Founder",
+      "status": "active",
+      "data": {
+        "body_html": "<div class=\"deck-container\"><div class=\"deck-slide\" id=\"founder-quote\" data-slide=\"7\" data-track=\"track-founder\">\n      <div class=\"slide-content\" style=\"max-width: 800px;\">\n        <p\n          style=\"font-family: var(--font-mono); color: var(--text-color); font-size: 1.1rem; max-width: 800px; margin: 0 auto; line-height: 1.8;\">\n          \"Not AI, YOU. You are the cause, AI is the instrument.<br><br>\n          Be yourself, connect with your people, build your dreams and use AI to push you toward them on your terms.\"\n        </p>\n        <p style=\"font-family: var(--font-mono); color: var(--accent-color); margin-top: 2rem; font-weight: bold;\">\n          - SR Nortje, Founder\n        </p>\n        <div class=\"cta-container\" data-vba-signup style=\"margin-top: 3rem;\">\n          <input type=\"email\" placeholder=\"Enter your email //\" aria-label=\"Email\"\n            style=\"font-family: var(--font-mono); border-radius: 0; border: 1px solid var(--accent-color); background: #000;\"\n            required>\n          <div style=\"display:none;\">\n            <input type=\"text\" name=\"honeypot\" tabindex=\"-1\" autocomplete=\"off\">\n          </div>\n          <div class=\"cta-buttons\">\n            <button type=\"button\"\n              style=\"border-radius: 0; background: var(--accent-color); color: #000; font-family: var(--font-mono); font-weight: bold;\">[ STAY UPDATED ]</button>\n          </div>\n          <div class=\"success-message\" data-vba-signup-done style=\"font-family: var(--font-mono); color: #00FFCC;\">[ ACCESS LOGGED. STANDBY FOR UPDATES. ]</div>\n        </div>\n      </div>\n    </div></div>",
+        "body_format": "page"
+      }
+    },
+    {
+      "key": "driver-pairing:versa-agi-founder",
+      "type_api_name": "driver_pairing",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi — Founder",
+      "status": "active",
+      "data": {
+        "page": "",
+        "driver_id": "rd-page-header",
+        "page_size": "",
+        "filter_json": "[]",
+        "record_mode": "single",
+        "target_kind": "header",
+        "render_option": "html-block",
+        "input_map_json": "{}",
+        "selection_mode": "one",
+        "target_record_id": "{{site:page:versa-agi-founder}}",
+        "target_record_type": "page"
+      }
+    },
+    {
+      "key": "page:versa-agi-styles",
+      "type_api_name": "page",
+      "parent_kind": "environment",
+      "parent_api_name": "custom",
+      "name": "Versa AGi styles",
+      "status": "active",
+      "data": {
+        "body_html": "<link rel=\"stylesheet\"\n    href=\"https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0\" />\n<style>\n    /* Material Symbol styling */\n    .material-symbols-rounded {\n      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;\n      font-size: 32px;\n      vertical-align: middle;\n      margin-right: 8px;\n    }\n\n    :root {\n      --bg-color: #0a0a0d;\n      --text-color: #e0e0e0;\n      --accent-color: #00FFCC;\n      /* Electric Cypher Cyan */\n      --secondary-text: #8c8c8c;\n      --charcoal: #111116;\n      --stroke-color: #005a5a;\n      --font-mono: 'Courier New', Courier, monospace;\n    }\n\n    * {\n      box-sizing: border-box;\n    }\n\n    html,\n    body {\n      margin: 0;\n      padding: 0;\n      font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;\n      color: var(--text-color);\n      line-height: 1.6;\n      overflow-x: hidden;\n      height: 100%;\n    }\n\n    /* V-Rain Canvas - above body background, below content */\n    #v-rain {\n      position: fixed;\n      top: 0;\n      left: 0;\n      width: 100%;\n      height: 100%;\n      z-index: 1;\n      pointer-events: none;\n    }\n\n    /* ========== SCROLL INDICATORS ========== */\n    .scroll-indicator {\n      position: absolute;\n      bottom: 40px;\n      left: 50%;\n      transform: translateX(-50%);\n      color: var(--accent-color);\n      font-size: 2.5rem;\n      opacity: 0.6;\n      text-decoration: none;\n      animation: pulse-bounce 2s infinite cubic-bezier(0.4, 0, 0.2, 1);\n      transition: opacity 0.3s ease, color 0.3s ease;\n      z-index: 10;\n    }\n\n    .scroll-indicator:hover {\n      opacity: 1;\n      color: #FFF;\n      text-shadow: 0 0 15px rgba(0, 212, 255, 0.8);\n    }\n\n    .scroll-indicator .material-symbols-rounded {\n      font-size: 3rem;\n    }\n\n    @keyframes pulse-bounce {\n\n      0%,\n      100% {\n        transform: translate(-50%, 0);\n        opacity: 0.4;\n      }\n\n      50% {\n        transform: translate(-50%, 15px);\n        opacity: 0.9;\n        text-shadow: 0 0 15px rgba(0, 212, 255, 0.6);\n      }\n    }\n\n    /* Scroll to top indicator */\n    .scroll-indicator-top {\n      position: absolute;\n      top: 20px;\n      left: 50%;\n      transform: translateX(-50%);\n      color: var(--accent-color);\n      font-size: 2.5rem;\n      opacity: 0.4;\n      text-decoration: none;\n      animation: pulse-bounce-up 2s infinite cubic-bezier(0.4, 0, 0.2, 1);\n      transition: opacity 0.3s ease, color 0.3s ease;\n      z-index: 10;\n    }\n\n    .scroll-indicator-top:hover {\n      opacity: 1;\n      color: #FFF;\n      text-shadow: 0 0 15px rgba(0, 212, 255, 0.8);\n    }\n\n    .scroll-indicator-top .material-symbols-rounded {\n      font-size: 2rem;\n    }\n\n    @keyframes pulse-bounce-up {\n      0%, 100% {\n        transform: translate(-50%, 0);\n        opacity: 0.3;\n      }\n      50% {\n        transform: translate(-50%, -8px);\n        opacity: 0.6;\n      }\n    }\n\n    /* ========== SLIDESHOW DECK STYLES ========== */\n    .deck-container {\n      position: relative;\n      width: 100%;\n      height: auto;\n      overflow-y: visible;\n      overflow-x: hidden;\n      scroll-behavior: smooth;\n      z-index: 2;\n      background: transparent;\n    }\n\n    .deck-slide {\n      position: relative;\n      width: 100%;\n      min-height: 100vh;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n      padding: 70px 2rem 80px;\n      text-align: center;\n      background-color: transparent;\n      opacity: 1;\n      visibility: visible;\n    }\n\n    .deck-slide.dark-banner {\n      background: transparent;\n    }\n\n    /* Plans slide - scrollable with footer */\n    .deck-slide.plans-slide {\n      \n      justify-content: flex-start;\n      padding-bottom: 20px;\n    }\n\n    .deck-slide.plans-slide .slide-content.plans-content {\n      max-width: 1100px;\n      padding-bottom: 2rem;\n    }\n\n    .plans-footer {\n      margin-top: 3rem;\n      padding-top: 2rem;\n      border-top: 1px solid rgba(255, 255, 255, 0.1);\n      text-align: center;\n      width: 100%;\n    }\n\n    .plans-footer .store-buttons {\n      display: flex;\n      justify-content: center;\n      gap: 1rem;\n      flex-wrap: wrap;\n      margin-top: 1rem;\n    }\n\n    .plans-footer .store-btn {\n      display: flex;\n      align-items: center;\n      gap: 10px;\n      background: rgba(30, 30, 30, 0.9);\n      border: 1px solid rgba(255, 255, 255, 0.2);\n      border-radius: 10px;\n      padding: 10px 16px;\n      color: var(--text-color);\n      text-decoration: none;\n      transition: all 0.3s ease;\n    }\n\n    .plans-footer .store-btn:hover {\n      background: rgba(0, 212, 255, 0.1);\n      border-color: var(--accent-color);\n    }\n\n    .plans-footer .store-btn svg {\n      width: 24px;\n      height: 24px;\n    }\n\n    .plans-footer .store-btn-text {\n      display: flex;\n      flex-direction: column;\n      align-items: flex-start;\n      font-size: 0.7rem;\n      line-height: 1.2;\n    }\n\n    .plans-footer .store-btn-text strong {\n      font-size: 0.9rem;\n    }\n\n    .plans-footer .footer-links {\n      display: flex;\n      justify-content: center;\n      gap: 1.5rem;\n      flex-wrap: wrap;\n      margin-top: 1.5rem;\n      font-size: 0.85rem;\n    }\n\n    .plans-footer .footer-links a {\n      color: var(--secondary-text);\n      text-decoration: none;\n      transition: color 0.3s ease;\n    }\n\n    .plans-footer .footer-links a:hover {\n      color: var(--accent-color);\n    }\n\n    .plans-footer .footer-copyright {\n      display: block;\n      margin-top: 1rem;\n      font-size: 0.75rem;\n      color: #666;\n    }\n\n    /* Progress Dots */\n    .deck-progress {\n      position: fixed;\n      bottom: 30px;\n      left: 50%;\n      transform: translateX(-50%);\n      display: flex;\n      gap: 8px;\n      z-index: 100;\n      padding: 8px 14px;\n      background: rgba(0, 0, 0, 0.6);\n      border-radius: 24px;\n      backdrop-filter: blur(10px);\n    }\n\n    .deck-dot {\n      width: 28px;\n      height: 28px;\n      border-radius: 50%;\n      background: rgba(255, 255, 255, 0.15);\n      border: 1px solid rgba(255, 255, 255, 0.3);\n      cursor: pointer;\n      transition: all 0.3s ease;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      font-size: 0.75rem;\n      font-weight: 600;\n      color: rgba(255, 255, 255, 0.6);\n    }\n\n    .deck-dot:hover {\n      background: rgba(255, 255, 255, 0.25);\n      border-color: rgba(255, 255, 255, 0.5);\n      color: rgba(255, 255, 255, 0.9);\n      transform: scale(1.1);\n    }\n\n    .deck-dot.active {\n      background: var(--accent-color);\n      border-color: var(--accent-color);\n      color: #000;\n      transform: scale(1.15);\n    }\n\n    .deck-dot.visited {\n      background: rgba(0, 212, 255, 0.3);\n      border-color: rgba(0, 212, 255, 0.5);\n      color: rgba(255, 255, 255, 0.8);\n    }\n\n    /* Navigation Arrows - Modern Chevrons */\n    .deck-nav {\n      position: fixed;\n      top: 50%;\n      transform: translateY(-50%);\n      width: 36px;\n      height: 36px;\n      background: rgba(59, 130, 246, 0.15);\n      border: 1.5px solid rgba(59, 130, 246, 0.5);\n      border-radius: 50%;\n      color: #3b82f6;\n      cursor: pointer;\n      z-index: 100;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      transition: all 0.3s ease;\n    }\n\n    .deck-nav:hover {\n      background: rgba(59, 130, 246, 0.3);\n      border-color: #3b82f6;\n      color: #60a5fa;\n      transform: translateY(-50%) scale(1.1);\n    }\n\n    .deck-nav.prev {\n      left: 12px;\n    }\n\n    .deck-nav.next {\n      right: 12px;\n    }\n\n    .deck-nav:disabled {\n      opacity: 0.2;\n      cursor: not-allowed;\n    }\n\n    .deck-nav .material-symbols-rounded {\n      font-size: 1.4rem;\n    }\n\n    /* View Plans Link - In header right */\n    .view-plans-link {\n      color: #FFB74D;\n      text-decoration: none;\n      font-size: 0.8rem;\n      font-weight: 500;\n      letter-spacing: 0.02em;\n      cursor: pointer;\n      transition: all 0.3s ease;\n      position: relative;\n      padding: 4px 0;\n    }\n\n    .view-plans-link::after {\n      content: '';\n      position: absolute;\n      bottom: 0;\n      left: 0;\n      width: 0;\n      height: 1px;\n      background: linear-gradient(90deg, #FF9800, #FFB74D);\n      transition: width 0.3s ease;\n    }\n\n    .view-plans-link:hover {\n      color: #FF9800;\n    }\n\n    .view-plans-link:hover::after {\n      width: 100%;\n    }\n\n    /* When on plans page, show back button in header instead of view plans */\n    .header-back-btn {\n      display: none;\n      color: #FFB74D;\n      text-decoration: none;\n      font-size: 0.8rem;\n      font-weight: 500;\n      cursor: pointer;\n      transition: all 0.3s ease;\n      background: none;\n      border: none;\n      padding: 4px 0;\n    }\n\n    .header-back-btn:hover {\n      color: #FF9800;\n    }\n\n    /* View Plans CTA (bottom of sharing slide) */\n    .view-plans-cta {\n      display: inline-flex;\n      align-items: center;\n      gap: 8px;\n      margin-top: 2rem;\n      padding: 12px 24px;\n      background: transparent;\n      border: 1.5px solid rgba(255, 152, 0, 0.5);\n      border-radius: 25px;\n      color: #FFB74D;\n      text-decoration: none;\n      font-size: 0.95rem;\n      font-weight: 500;\n      cursor: pointer;\n      transition: all 0.3s ease;\n    }\n\n    .view-plans-cta:hover {\n      background: rgba(255, 152, 0, 0.15);\n      border-color: #FF9800;\n      color: #FF9800;\n      transform: translateY(2px);\n    }\n\n    .view-plans-cta .material-symbols-rounded {\n      font-size: 1.1rem;\n      animation: bounce-down 1.5s ease-in-out infinite;\n    }\n\n    @keyframes bounce-down {\n\n      0%,\n      100% {\n        transform: translateY(0);\n      }\n\n      50% {\n        transform: translateY(4px);\n      }\n    }\n\n    /* Speech control hidden until experience activated once */\n    #speech-control {\n      display: none;\n    }\n\n    .audio-activated #speech-control {\n      display: flex;\n    }\n\n    /* Back to Deck Button - Hidden (using header back instead) */\n    .back-to-deck-btn {\n      display: none !important;\n    }\n\n    /* ========== GLOBAL HEADER WITH AUDIO CONTROLS ========== */\n    .global-header {\n      position: fixed;\n      top: 0;\n      left: 0;\n      right: 0;\n      z-index: 1000;\n      display: flex;\n      align-items: center;\n      justify-content: space-between;\n      padding: 12px 20px;\n      background: rgba(0, 0, 0, 0.8);\n      backdrop-filter: blur(12px);\n      border-bottom: 1px solid rgba(255, 255, 255, 0.1);\n    }\n\n    .header-left {\n      flex: 0 0 auto;\n    }\n\n    .header-center {\n      display: flex;\n      align-items: center;\n      gap: 12px;\n      flex: 1;\n      justify-content: center;\n    }\n\n    .header-right-section {\n      display: flex;\n      align-items: center;\n      gap: 16px;\n      flex: 0 0 auto;\n    }\n\n    .audio-controls {\n      display: flex;\n      align-items: center;\n      gap: 12px;\n      flex-shrink: 0;\n    }\n\n    .header-visualizer {\n      width: 96px;\n      height: 32px;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      opacity: 0;\n      transition: opacity 0.3s ease;\n    }\n\n    .header-visualizer.visible {\n      opacity: 1;\n    }\n\n    #header-visualizer-canvas {\n      width: 100%;\n      height: 100%;\n    }\n\n\n    .audio-btn {\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      gap: 6px;\n      padding: 8px 16px;\n      border-radius: 20px;\n      background: rgba(30, 30, 30, 0.9);\n      border: 1px solid rgba(255, 255, 255, 0.2);\n      color: var(--secondary-text);\n      cursor: pointer;\n      transition: all 0.3s ease;\n      font-size: 0.85rem;\n      font-weight: 500;\n      white-space: nowrap;\n    }\n\n    .audio-btn:hover {\n      background: rgba(0, 212, 255, 0.15);\n      border-color: var(--accent-color);\n      color: var(--accent-color);\n    }\n\n    .audio-btn.active {\n      background: rgba(0, 212, 255, 0.2);\n      border-color: var(--accent-color);\n      color: var(--accent-color);\n    }\n\n    .audio-btn .material-symbols-rounded {\n      font-size: 1.1rem;\n      margin: 0;\n    }\n\n    .audio-btn.playing {\n      border-color: var(--accent-color);\n      color: var(--accent-color);\n    }\n\n    @keyframes sound-pulse {\n      0% {\n        box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4);\n      }\n\n      70% {\n        box-shadow: 0 0 0 10px rgba(0, 212, 255, 0);\n      }\n\n      100% {\n        box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);\n      }\n    }\n\n    .audio-btn.pulse {\n      animation: sound-pulse 2s infinite;\n    }\n\n    /* Flash animation for Start Experience button before first tap */\n    @keyframes attention-flash {\n\n      0%,\n      100% {\n        border-color: rgba(255, 255, 255, 0.2);\n        background: rgba(30, 30, 30, 0.9);\n        color: var(--secondary-text);\n      }\n\n      50% {\n        border-color: var(--accent-color);\n        background: rgba(0, 212, 255, 0.2);\n        color: var(--accent-color);\n        box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);\n      }\n    }\n\n    #start-experience.attention {\n      animation: attention-flash 2s ease-in-out infinite;\n    }\n\n    /* Stop flashing once experience has been activated */\n    .audio-activated #start-experience.attention {\n      animation: none;\n    }\n\n    /* Big Start Experience button - replaces soundwave until activated */\n    .hero-start-experience {\n      position: absolute;\n      top: 50%;\n      left: 50%;\n      transform: translate(-50%, -50%);\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      gap: 12px;\n      padding: 18px 36px;\n      font-size: 1.1rem;\n      font-weight: 600;\n      color: var(--text-color);\n      background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 124, 144, 0.25) 100%);\n      border: 2px solid var(--accent-color);\n      border-radius: 50px;\n      cursor: pointer;\n      transition: all 0.3s ease;\n      animation: hero-btn-pulse 2s ease-in-out infinite;\n      z-index: 10;\n    }\n\n    @keyframes hero-btn-pulse {\n\n      0%,\n      100% {\n        box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);\n      }\n\n      50% {\n        box-shadow: 0 0 40px rgba(0, 212, 255, 0.5), 0 0 60px rgba(0, 212, 255, 0.2);\n      }\n    }\n\n    .hero-start-experience:hover {\n      background: linear-gradient(135deg, rgba(0, 212, 255, 0.25) 0%, rgba(0, 124, 144, 0.35) 100%);\n      transform: translate(-50%, -50%) scale(1.05);\n      box-shadow: 0 0 50px rgba(0, 212, 255, 0.4);\n      animation: none;\n    }\n\n    .hero-start-experience .material-symbols-rounded {\n      font-size: 1.8rem;\n      margin: 0;\n    }\n\n    /* Initially hide soundwave canvas, show button */\n    .soundwave-container #knight-rider-canvas {\n      opacity: 0;\n      transition: opacity 0.5s ease;\n    }\n\n    /* On activation: show canvas, hide button */\n    .audio-activated .soundwave-container #knight-rider-canvas {\n      opacity: 1;\n    }\n\n    .audio-activated .hero-start-experience {\n      opacity: 0;\n      pointer-events: none;\n    }\n\n    /* Initially hide header start button until first activation */\n    .header-left #start-experience {\n      opacity: 0;\n      pointer-events: none;\n      transition: opacity 0.3s ease;\n    }\n\n    .audio-activated .header-left #start-experience {\n      opacity: 1;\n      pointer-events: auto;\n    }\n\n    /* Mobile adjustments for hero start button */\n    @media (max-width: 480px) {\n      .hero-start-experience {\n        padding: 14px 24px;\n        font-size: 0.95rem;\n        gap: 8px;\n      }\n\n      .hero-start-experience .material-symbols-rounded {\n        font-size: 1.5rem;\n      }\n    }\n\n    /* Countdown in speech button */\n    .audio-btn .countdown-display {\n      display: none;\n      font-weight: 700;\n      color: var(--accent-color);\n    }\n\n    .audio-btn.counting .btn-icon {\n      display: none;\n    }\n\n    .audio-btn.counting .countdown-display {\n      display: block !important;\n    }\n\n    @keyframes countdown-pulse {\n      0% {\n        transform: scale(1);\n      }\n\n      50% {\n        transform: scale(1.15);\n      }\n\n      100% {\n        transform: scale(1);\n      }\n    }\n\n    .audio-btn.counting .countdown-display {\n      animation: countdown-pulse 1s ease-in-out infinite;\n    }\n\n    /* Audio Equalizer - Center */\n    .audio-equalizer {\n      display: flex;\n      align-items: flex-end;\n      gap: 2px;\n      height: 20px;\n      padding: 0 8px;\n      opacity: 0.4;\n      transition: opacity 0.3s ease;\n    }\n\n    .audio-enabled .audio-equalizer {\n      opacity: 1;\n    }\n\n    .eq-bar {\n      width: 3px;\n      background: var(--accent-color);\n      border-radius: 2px;\n      transition: height 0.1s ease;\n    }\n\n    .audio-equalizer.idle .eq-bar {\n      height: 3px;\n    }\n\n    .audio-equalizer.playing .eq-bar:nth-child(1) {\n      animation: eq-bounce 0.5s ease infinite 0.0s;\n    }\n\n    .audio-equalizer.playing .eq-bar:nth-child(2) {\n      animation: eq-bounce 0.5s ease infinite 0.1s;\n    }\n\n    .audio-equalizer.playing .eq-bar:nth-child(3) {\n      animation: eq-bounce 0.5s ease infinite 0.2s;\n    }\n\n    .audio-equalizer.playing .eq-bar:nth-child(4) {\n      animation: eq-bounce 0.5s ease infinite 0.15s;\n    }\n\n    .audio-equalizer.playing .eq-bar:nth-child(5) {\n      animation: eq-bounce 0.5s ease infinite 0.25s;\n    }\n\n    .audio-equalizer.playing .eq-bar:nth-child(6) {\n      animation: eq-bounce 0.5s ease infinite 0.05s;\n    }\n\n    .audio-equalizer.playing .eq-bar:nth-child(7) {\n      animation: eq-bounce 0.5s ease infinite 0.2s;\n    }\n\n    @keyframes eq-bounce {\n\n      0%,\n      100% {\n        height: 6px;\n      }\n\n      50% {\n        height: 18px;\n      }\n    }\n\n    /* ========== SLIDE CONTENT STYLES ========== */\n    .slide-content {\n      max-width: 900px;\n      width: 100%;\n      padding-top: 0;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: flex-start;\n      /* Start from top to prevent heading cutoff */\n      flex: 0 0 auto;\n      /* Don't stretch - natural height */\n      position: relative;\n    }\n\n    /* Hero specific title positioning */\n    .deck-slide[data-slide=\"0\"] .slide-content h1 {\n      order: 3;\n      /* Move below soundwave (order 2) */\n      margin-top: 1rem;\n      position: relative;\n      top: auto;\n      left: auto;\n      transform: none;\n      margin-bottom: 1.5rem;\n      color: var(--secondary-text);\n      /* Ensure consistent color */\n    }\n\n    /* Hero slide uses flex column with content starting at top */\n    /* Hero slide - center content vertically */\n    .deck-slide[data-slide=\"0\"] {\n      justify-content: center;\n    }\n\n    .deck-slide[data-slide=\"0\"] .slide-content {\n      justify-content: flex-start;\n      padding-top: 20px;\n    }\n\n    .soundwave-container {\n      width: 100%;\n      max-width: 480px;\n      /* 20% narrower */\n      height: 120px;\n      margin: 0 auto 1rem;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      position: relative;\n      z-index: 5;\n      order: 2;\n    }\n\n    .deck-slide[data-slide=\"0\"] .slide-content p {\n      order: 4;\n    }\n\n    .deck-slide[data-slide=\"0\"] .slide-content .cta-container {\n      order: 5;\n    }\n\n    .slide-content h1,\n    .slide-content h2 {\n      margin-top: 0;\n      margin-bottom: 1rem;\n    }\n\n    /* Non-hero slides need space for heading at top */\n    .deck-slide:not([data-slide=\"0\"]) .slide-content {\n      padding-top: 20px;\n    }\n\n    .slide-content h1 {\n      font-size: 1.8rem;\n      /* Match logo font size */\n      margin-bottom: 0.75rem;\n      letter-spacing: -0.5px;\n      white-space: normal;\n      /* Allow wrapping on small screens */\n      font-weight: 600;\n      color: var(--secondary-text);\n      /* Same as other page headings */\n    }\n\n    .slide-content h2 {\n      font-size: 2rem;\n      margin-bottom: 2.5rem;\n    }\n\n    .slide-content p {\n      font-size: 1.05rem;\n      color: var(--secondary-text);\n      max-width: 650px;\n      margin: 0 auto 1rem;\n      line-height: 1.6;\n    }\n\n    /* Hero specific */\n    .hero-logo {\n      display: flex;\n      flex-direction: row;\n      /* Logo and text on the same line */\n      align-items: center;\n      gap: 1.5rem;\n      margin-bottom: 2rem;\n      margin-top: 0;\n      flex-wrap: wrap;\n      justify-content: center;\n    }\n\n    .hero-logo img {\n      filter: drop-shadow(0 0 30px rgba(0, 255, 204, 0.3));\n    }\n\n    .app-name {\n      font-size: 2.5rem;\n      font-weight: 700;\n      letter-spacing: 2px;\n      color: #B0BEC5;\n      background: linear-gradient(110deg, #B0BEC5 0%, #B0BEC5 45%, #FFFFFF 50%, #B0BEC5 55%, #B0BEC5 100%);\n      background-size: 200% auto;\n      background-clip: text;\n      -webkit-background-clip: text;\n      -webkit-text-fill-color: transparent;\n      animation: sheen 4s ease-in-out infinite alternate;\n    }\n\n    @keyframes sheen {\n      0% {\n        background-position: -100% 0;\n      }\n\n      100% {\n        background-position: 100% 0;\n      }\n    }\n\n    .soundwave-container {\n      width: 100%;\n      max-width: 480px;\n      /* 20% narrower */\n      height: 120px;\n      margin: 0 auto 2rem;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      position: relative;\n      z-index: 5;\n    }\n\n    #knight-rider-canvas {\n      width: 100%;\n      height: 100%;\n    }\n\n    .cta-container {\n      display: flex;\n      flex-direction: column;\n      gap: 1rem;\n      width: 100%;\n      max-width: 500px;\n      margin: 0 auto;\n    }\n\n    input[type=\"email\"] {\n      padding: 1rem;\n      border-radius: 8px;\n      border: 1px solid #333;\n      background: #1e1e1e;\n      color: white;\n      font-size: 1rem;\n      width: 100%;\n    }\n\n    button {\n      padding: 0.9rem 1.5rem;\n      background-color: var(--accent-color);\n      color: black;\n      border: none;\n      border-radius: 8px;\n      font-size: 0.95rem;\n      font-weight: bold;\n      cursor: pointer;\n      transition: opacity 0.2s;\n      white-space: nowrap;\n    }\n\n    button:hover {\n      opacity: 0.8;\n    }\n\n    .cta-buttons {\n      display: flex;\n      gap: 12px;\n      justify-content: center;\n      flex-wrap: nowrap;\n      width: 100%;\n    }\n\n    .cta-buttons button,\n    .cta-buttons .launch-app-btn {\n      flex: 1;\n    }\n\n    .philosophy-link {\n      display: inline-flex;\n      align-items: center;\n      gap: 6px;\n      color: var(--secondary-text);\n      text-decoration: none;\n      font-size: 0.85rem;\n      transition: all 0.3s ease;\n      margin-top: 1rem;\n      padding: 8px 16px;\n      border: 1px solid rgba(255, 255, 255, 0.1);\n      border-radius: 20px;\n      background: rgba(255, 255, 255, 0.03);\n    }\n\n    .philosophy-link:hover {\n      color: var(--accent-color);\n      border-color: rgba(0, 212, 255, 0.3);\n      background: rgba(0, 212, 255, 0.05);\n    }\n\n    .philosophy-link .material-symbols-rounded {\n      font-size: 1rem;\n      margin: 0;\n    }\n\n    /* Infinity Animation for Philosophy Slide */\n    @keyframes dash {\n      0% {\n        stroke-dashoffset: 480;\n        opacity: 0;\n      }\n\n      5% {\n        opacity: 1;\n      }\n\n      45% {\n        stroke-dashoffset: 0;\n        opacity: 1;\n      }\n\n      50% {\n        stroke-dashoffset: 0;\n        opacity: 0;\n      }\n\n      100% {\n        stroke-dashoffset: 0;\n        opacity: 0;\n      }\n    }\n\n    .infinity-path {\n      stroke-dasharray: 60 220;\n      stroke-dashoffset: 280;\n      animation: dash 4s ease-in-out infinite;\n    }\n\n    .infinity-glow {\n      filter: drop-shadow(0 0 8px var(--accent-color));\n    }\n\n    .infinity-container {\n      position: relative;\n      width: 100%;\n      max-width: 768px;\n      height: auto;\n      min-height: 200px;\n      margin: 20px auto 3rem auto;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n      overflow: visible;\n    }\n\n    .infinity-svg-wrapper {\n      position: relative;\n      width: 100%;\n      max-width: 768px;\n      height: 140px;\n      margin-top: 0px;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n    }\n\n    .infinity-svg-bg {\n      position: absolute;\n      width: 100%;\n      height: 100%;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      pointer-events: none;\n    }\n\n    .infinity-svg-bg svg {\n      width: 100%;\n      height: auto;\n      max-height: 200px;\n      transform: scale(1.2);\n      transform-origin: center;\n    }\n\n    .infinity-icons-overlay {\n      position: relative;\n      width: 100%;\n      height: 100%;\n      display: flex;\n      align-items: center;\n      justify-content: space-around;\n      padding: 0 0%;\n    }\n\n    .infinity-icon-box {\n      text-align: center;\n      width: 25%;\n      min-width: 60px;\n      z-index: 2;\n      transform: translateY(0px);\n    }\n\n    .infinity-icon-box span {\n      font-size: 2rem !important;\n    }\n\n    .infinity-icon-label {\n      font-size: 0.75rem !important;\n      color: var(--secondary-text);\n      margin-top: 0px;\n      font-weight: 600;\n    }\n\n    .infinity-icon-box.family-box {\n      transform: translateX(25%);\n    }\n\n    .infinity-icon-box.global-box {\n      transform: translateX(-25%);\n    }\n\n    .launch-app-btn {\n      display: inline-flex;\n      align-items: center;\n      gap: 6px;\n      padding: 0.9rem 1.5rem;\n      background: transparent;\n      border: 1px solid var(--stroke-color);\n      border-radius: 8px;\n      color: var(--secondary-text);\n      text-decoration: none;\n      font-size: 0.95rem;\n      font-weight: 500;\n      transition: all 0.3s ease;\n      white-space: nowrap;\n    }\n\n    .launch-app-btn:hover {\n      background: rgba(0, 212, 255, 0.1);\n      border-color: var(--accent-color);\n      color: var(--accent-color);\n    }\n\n    .launch-app-btn.disabled {\n      opacity: 0.4;\n      pointer-events: none;\n      cursor: not-allowed;\n    }\n\n    .success-message {\n      display: none;\n      color: var(--accent-color);\n      margin-top: 1rem;\n    }\n\n    /* Feature Grid */\n    .grid {\n      display: grid;\n      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));\n      gap: 1rem;\n      margin-top: 60px;\n      /* Push down to clear absolute header */\n      width: 100%;\n      max-width: 900px;\n    }\n\n    .feature-card {\n      background: rgba(26, 26, 26, 0.5);\n      padding: 1.25rem;\n      border-radius: 12px;\n      text-align: left;\n      border: 1px solid var(--stroke-color);\n    }\n\n    .feature-card h3 {\n      color: var(--accent-color);\n      margin-bottom: 0.5rem;\n      display: flex;\n      align-items: center;\n      gap: 8px;\n      font-size: 0.95rem;\n    }\n\n    .feature-card h3 .material-symbols-rounded {\n      font-size: 1.3rem;\n    }\n\n    .feature-card p {\n      font-size: 0.85rem;\n      margin: 0;\n      text-align: left;\n      line-height: 1.5;\n    }\n\n    /* Icon Row - Reusable Pattern */\n    .icon-row {\n      display: flex;\n      justify-content: center;\n      align-items: flex-start;\n      gap: 2.5rem;\n      margin: 1.5rem 0;\n      flex-wrap: wrap;\n      margin-top: 60px;\n      /* Push down to clear absolute header */\n    }\n\n    .icon-row.no-wrap {\n      flex-wrap: nowrap;\n    }\n\n    .icon-item {\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      text-align: center;\n      flex-shrink: 0;\n      min-width: 80px;\n    }\n\n    .icon-item svg {\n      width: 44px;\n      height: 44px;\n      flex-shrink: 0;\n    }\n\n    .icon-item .material-symbols-rounded {\n      font-size: 1.8rem;\n      margin: 0;\n    }\n\n    .icon-item p {\n      margin-top: 0.4rem;\n      font-size: 0.7rem;\n      color: #888;\n      line-height: 1.3;\n    }\n\n    /* Icon Grid - For multiple small icons in a row */\n    .icon-grid {\n      display: grid;\n      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));\n      gap: 1rem;\n      max-width: 500px;\n      margin: 1rem auto;\n    }\n\n    .icon-grid .icon-item {\n      min-width: auto;\n    }\n\n    .icon-grid .icon-item .material-symbols-rounded {\n      font-size: 1.5rem;\n    }\n\n    .icon-grid .icon-item p {\n      font-size: 0.7rem;\n    }\n\n    /* Mobile: Stack icon-row vertically */\n    @media (max-width: 600px) {\n      .icon-row {\n        flex-direction: column;\n        gap: 1.2rem;\n        align-items: center;\n      }\n\n      .icon-row .icon-item {\n        flex-direction: row;\n        gap: 1rem;\n        min-width: auto;\n        width: 100%;\n        max-width: 220px;\n        text-align: left;\n      }\n\n      .icon-row .icon-item svg {\n        width: 36px;\n        height: 36px;\n      }\n\n      .icon-row .icon-item p {\n        margin-top: 0;\n        text-align: left;\n      }\n\n      /* Icon grid stays as grid on mobile but adjusts */\n      .icon-grid {\n        grid-template-columns: repeat(2, 1fr);\n        gap: 0.8rem;\n        max-width: 280px;\n      }\n\n      .icon-grid .icon-item {\n        flex-direction: column;\n        min-width: auto;\n        width: auto;\n        max-width: none;\n        text-align: center;\n        gap: 0.3rem;\n      }\n\n      .icon-grid .icon-item p {\n        text-align: center;\n        margin-top: 0.2rem;\n      }\n    }\n\n    /* Infinity Path Animation - Accelerated Pulse (from original) */\n    @keyframes dash {\n      0% {\n        stroke-dashoffset: 480;\n        opacity: 0;\n      }\n\n      5% {\n        opacity: 1;\n      }\n\n      45% {\n        stroke-dashoffset: 0;\n        opacity: 1;\n      }\n\n      50% {\n        stroke-dashoffset: 0;\n        opacity: 0;\n      }\n\n      100% {\n        stroke-dashoffset: 0;\n        opacity: 0;\n      }\n    }\n\n    .infinity-path {\n      stroke-dasharray: 60 220;\n      /* Multiple rays effect */\n      stroke-dashoffset: 280;\n      animation: dash 4s ease-in-out infinite;\n    }\n\n    .infinity-glow {\n      filter: drop-shadow(0 0 8px var(--accent-color));\n    }\n\n    .infinity-container {\n      position: relative;\n      width: 100%;\n      max-width: 768px;\n      height: auto;\n      min-height: 200px;\n      margin: 60px auto 3rem auto;\n      /* Added top margin to clear absolute header */\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n      overflow: visible;\n    }\n\n    .infinity-svg-wrapper {\n      position: relative;\n      width: 100%;\n      max-width: 768px;\n      height: 140px;\n      margin-top: 0px;\n      /* Push the whole SVG and its overlays down */\n      display: flex;\n      align-items: center;\n      justify-content: center;\n    }\n\n    .infinity-svg-bg {\n      position: absolute;\n      width: 100%;\n      height: 100%;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      pointer-events: none;\n    }\n\n    .infinity-svg-bg svg {\n      width: 100%;\n      height: auto;\n      max-height: 200px;\n      /* Reduced height */\n      transform: scale(1.2);\n      /* Scale up by 20% */\n      transform-origin: center;\n    }\n\n    .infinity-icons-overlay {\n      position: relative;\n      width: 100%;\n      height: 100%;\n      display: flex;\n      align-items: center;\n      justify-content: space-around;\n      padding: 0 0%;\n    }\n\n    .infinity-icon-box {\n      text-align: center;\n      width: 25%;\n      min-width: 60px;\n      z-index: 2;\n      transform: translateY(0px);\n      /* Shift icons and labels down 20px */\n    }\n\n    .infinity-icon-box span {\n      font-size: 2rem !important;\n      /* Reduced icon size by ~50% from 3.5rem/4rem */\n    }\n\n    .infinity-icon-label {\n      font-size: 0.75rem !important;\n      color: var(--secondary-text);\n      margin-top: 0px;\n      /* Increased from 24px (+20px) to push text further down */\n      font-weight: 600;\n    }\n\n    .infinity-icon-box.family-box {\n      transform: translateX(25%);\n    }\n\n    .infinity-icon-box.global-box {\n      transform: translateX(-25%);\n    }\n\n    /* Mobile adjustments for the infinity section */\n    @media (max-width: 768px) {\n      .infinity-icon-box.family-box {\n        transform: translateX(-8%);\n      }\n\n      .infinity-icon-box.global-box {\n        transform: translateX(8%);\n      }\n\n      .infinity-container {\n        min-height: 200px;\n        transform: translateY(0px);\n        /* Move entire section down */\n      }\n\n      .infinity-svg-wrapper {\n        height: 100px;\n      }\n\n      .material-symbols-rounded {\n        font-size: 1.5rem !important;\n      }\n\n      .infinity-icon-label {\n        font-size: 0.65rem !important;\n        margin-top: 0px;\n      }\n\n      .infinity-icon-box.top-icon span {\n        font-size: 2.2rem !important;\n      }\n    }\n\n    /* Scroll-content styles removed - plans is now slide 8 */\n\n    .section.dark-banner {\n      background: var(--charcoal);\n      max-width: none;\n      border-top: 1px solid var(--stroke-color);\n      border-bottom: 1px solid var(--stroke-color);\n    }\n\n    .section h2 {\n      font-size: 2.5rem;\n      margin-bottom: 2rem;\n    }\n\n    .section p {\n      font-size: 1.25rem;\n      color: var(--secondary-text);\n      max-width: 800px;\n      margin: 0 auto 2rem;\n    }\n\n    /* Top-up and Efficiency Row */\n    .topup-efficiency-row {\n      display: flex;\n      gap: 1.5rem;\n      align-items: stretch;\n      justify-content: center;\n      flex-wrap: wrap;\n    }\n\n    .topup-card {\n      flex: 0 0 180px;\n      max-width: 180px;\n    }\n\n    .efficiency-box {\n      flex: 1 1 400px;\n      max-width: 500px;\n    }\n\n    @media (max-width: 900px) {\n      .topup-efficiency-row {\n        flex-direction: column;\n        align-items: center;\n      }\n\n      .topup-card {\n        flex: 0 0 auto;\n        max-width: 280px;\n        width: 100%;\n      }\n\n      .efficiency-box {\n        flex: 0 0 auto;\n        max-width: 100%;\n        width: 100%;\n        order: -1;\n      }\n    }\n\n    /* Footer */\n    footer {\n      background: var(--charcoal);\n      border-top: 1px solid var(--stroke-color);\n      padding: 4rem 2rem;\n      display: flex;\n      flex-direction: column;\n      justify-content: center;\n      align-items: center;\n      gap: 2rem;\n      color: var(--secondary-text);\n      font-size: 0.85rem;\n      position: relative;\n      z-index: 2;\n      /* Above v-rain canvas */\n      text-align: center;\n    }\n\n    .store-buttons {\n      display: flex;\n      gap: 1rem;\n      flex-wrap: wrap;\n      justify-content: center;\n    }\n\n    .store-btn {\n      display: flex;\n      align-items: center;\n      gap: 10px;\n      padding: 12px 20px;\n      background: rgba(255, 255, 255, 0.05);\n      border: 1px solid var(--stroke-color);\n      border-radius: 10px;\n      color: var(--text-color);\n      text-decoration: none;\n      transition: all 0.3s ease;\n    }\n\n    .store-btn:hover {\n      background: rgba(0, 212, 255, 0.1);\n      border-color: var(--accent-color);\n    }\n\n    .store-btn svg {\n      width: 28px;\n      height: 28px;\n    }\n\n    .store-btn-text {\n      text-align: left;\n    }\n\n    .store-btn-text span {\n      display: block;\n      font-size: 0.7rem;\n      color: var(--secondary-text);\n    }\n\n    .store-btn-text strong {\n      font-size: 1rem;\n    }\n\n    .footer-links {\n      display: flex;\n      gap: 1.5rem;\n      flex-wrap: wrap;\n      justify-content: center;\n    }\n\n    .footer-links a {\n      color: var(--secondary-text);\n      text-decoration: none;\n      transition: color 0.2s;\n    }\n\n    .footer-links a:hover {\n      color: var(--accent-color);\n    }\n\n    /* reCAPTCHA Badge */\n    .grecaptcha-badge {\n      transform: scale(0.7);\n      transform-origin: bottom right;\n      opacity: 0.6;\n      transition: opacity 0.3s ease;\n    }\n\n    .grecaptcha-badge:hover {\n      opacity: 1;\n    }\n\n    /* Mobile Responsive */\n    @media (max-width: 768px) {\n      .global-header {\n        padding: 8px 12px;\n      }\n\n      .header-center {\n        flex: 1;\n        justify-content: center;\n      }\n\n      .header-right-section {\n        gap: 10px;\n      }\n\n      .audio-btn {\n        padding: 6px 10px;\n        font-size: 0.75rem;\n      }\n\n      .audio-btn .material-symbols-rounded {\n        font-size: 1rem;\n      }\n\n      #start-experience .btn-label {\n        display: inline;\n        font-size: 0.7rem;\n      }\n\n      .header-visualizer {\n        width: 64px;\n        height: 24px;\n      }\n\n      .view-plans-link {\n        font-size: 0.7rem;\n      }\n\n      .audio-equalizer {\n        gap: 2px;\n        height: 16px;\n      }\n\n      .eq-bar {\n        width: 2px;\n      }\n\n      .app-name {\n        font-size: 1.8rem;\n        letter-spacing: 1px;\n      }\n    }\n\n    /* Extra small screens (iPhone SE, etc) */\n    @media (max-width: 375px) {\n      .app-name {\n        font-size: 1.4rem;\n        letter-spacing: 0.5px;\n      }\n\n      .hero-logo img {\n        width: 100px;\n        height: 100px;\n      }\n\n      .slide-content h1 {\n        font-size: 1.8rem;\n      }\n\n      .slide-content h2 {\n        font-size: 1.2rem;\n      }\n\n      .cta-buttons {\n        flex-direction: column;\n        gap: 8px;\n      }\n\n      .cta-buttons .btn {\n        width: 100%;\n      }\n\n      .slide-content h1 {\n        font-size: 2.5rem;\n      }\n\n      .slide-content h2 {\n        font-size: 1.4rem;\n        padding: 0 1rem;\n        margin-bottom: 1.5rem;\n      }\n\n      .slide-content p {\n        font-size: 0.9rem;\n      }\n\n      .deck-nav {\n        width: 32px;\n        height: 32px;\n      }\n\n      .deck-nav .material-symbols-rounded {\n        font-size: 1.2rem;\n      }\n\n      .deck-nav.prev {\n        left: 6px;\n      }\n\n      .deck-nav.next {\n        right: 6px;\n      }\n\n      .deck-progress {\n        bottom: 20px;\n        gap: 8px;\n        padding: 8px 15px;\n      }\n\n      .deck-dot {\n        width: 24px;\n        height: 24px;\n        font-size: 0.65rem;\n      }\n\n      .audio-controls {\n        top: 15px;\n        right: 15px;\n      }\n\n      .start-experience-btn {\n        padding: 8px 14px;\n        font-size: 0.8rem;\n      }\n\n      .icon-row {\n        gap: 1.5rem;\n      }\n\n      .icon-row svg {\n        width: 40px;\n        height: 40px;\n      }\n\n      .grid {\n        grid-template-columns: 1fr;\n        gap: 1.5rem;\n      }\n\n      .feature-card {\n        padding: 1.5rem;\n      }\n\n      .infinity-icon-box .material-symbols-rounded {\n        font-size: 1.4rem;\n      }\n    }\n\n    /* ========== uGPN INFOGRAPHIC ========== */\n    .ugpn-section {\n      width: 100%;\n      max-width: 1100px;\n      margin: 0 auto 2rem;\n    }\n\n    .ugpn-section-label {\n      font-family: var(--font-mono);\n      color: var(--accent-color);\n      font-size: 0.9rem;\n      font-weight: 600;\n      letter-spacing: 2px;\n      text-transform: uppercase;\n      margin-bottom: 0.75rem;\n    }\n\n    .ugpn-section-desc {\n      font-family: var(--font-mono);\n      color: #888;\n      font-size: 1rem;\n      line-height: 1.6;\n      margin-bottom: 2rem;\n      max-width: 800px;\n    }\n\n    .ugpn-diagram {\n      position: relative;\n      width: 100%;\n      padding: 2.5rem;\n      border: 1px solid rgba(0, 255, 204, 0.2);\n      background: rgba(38, 38, 38, 0.6);\n    }\n\n    .ugpn-core {\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      margin-bottom: 2rem;\n    }\n\n    .ugpn-core-badge {\n      position: relative;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      justify-content: center;\n      padding: 20px 40px;\n      background: rgba(0, 255, 204, 0.08);\n      border: 2px solid var(--accent-color);\n      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);\n      min-width: 400px;\n      min-height: 100px;\n      text-align: center;\n      box-shadow: 0 0 40px rgba(0, 255, 204, 0.15);\n    }\n\n    .ugpn-core-title {\n      font-family: var(--font-mono);\n      color: var(--accent-color);\n      font-size: 0.95rem;\n      font-weight: 700;\n      letter-spacing: 1px;\n    }\n\n    .ugpn-core-sub {\n      font-family: var(--font-mono);\n      color: #888;\n      font-size: 0.75rem;\n      margin-top: 4px;\n    }\n\n    .ugpn-api-label {\n      font-family: var(--font-mono);\n      color: var(--accent-color);\n      font-size: 0.8rem;\n      text-align: center;\n      margin: 14px 0;\n      opacity: 0.7;\n    }\n\n    .ugpn-nodes {\n      display: grid;\n      grid-template-columns: repeat(3, 1fr);\n      gap: 16px;\n      margin-bottom: 2rem;\n    }\n\n    .ugpn-node {\n      padding: 20px;\n      border: 1px solid rgba(0, 255, 204, 0.15);\n      background: rgba(10, 10, 13, 0.9);\n      text-align: center;\n    }\n\n    .ugpn-node-flag {\n      font-size: 2rem;\n      margin-bottom: 8px;\n    }\n\n    .ugpn-node-city {\n      font-family: var(--font-mono);\n      color: var(--text-color);\n      font-size: 0.95rem;\n      font-weight: 600;\n      margin-bottom: 12px;\n    }\n\n    .ugpn-node-actors {\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n      gap: 6px;\n    }\n\n    .ugpn-actor {\n      font-family: var(--font-mono);\n      font-size: 0.8rem;\n      padding: 5px 12px;\n      border-radius: 2px;\n    }\n\n    .ugpn-actor.human {\n      color: #a29bfe;\n      border: 1px solid rgba(162, 155, 254, 0.3);\n      background: rgba(31, 0, 65, 0.5);\n    }\n\n    .ugpn-actor.agent {\n      color: #009f77;\n      border: 1px solid rgba(0, 159, 119, 0.3);\n      background: rgba(0, 70, 53, 0.5);\n    }\n\n    .ugpn-actor-link {\n      font-family: var(--font-mono);\n      color: #555;\n      font-size: 0.7rem;\n    }\n\n    .ugpn-intent {\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n    }\n\n    .ugpn-sync-label {\n      font-family: var(--font-mono);\n      color: #d35454;\n      font-size: 0.8rem;\n      margin-bottom: 10px;\n      opacity: 0.8;\n    }\n\n    .ugpn-intent-badge {\n      padding: 14px 32px;\n      background: rgba(124, 6, 6, 0.4);\n      border: 1px solid #d35454;\n      text-align: center;\n    }\n\n    .ugpn-intent-title {\n      font-family: var(--font-mono);\n      color: #d35454;\n      font-size: 0.9rem;\n      font-weight: 700;\n    }\n\n    .ugpn-intent-sub {\n      font-family: var(--font-mono);\n      color: #888;\n      font-size: 0.7rem;\n      margin-top: 4px;\n    }\n\n    /* ========== COMPARISON TEASER ========== */\n    .comparison-stats {\n      display: grid;\n      grid-template-columns: repeat(3, 1fr);\n      gap: 12px;\n      margin: 1.5rem auto;\n      max-width: 900px;\n    }\n\n    .comp-stat-card {\n      padding: 16px;\n      border: 1px solid rgba(255, 255, 255, 0.08);\n      background: rgba(0, 0, 0, 0.7);\n      display: flex;\n      align-items: center;\n      gap: 12px;\n      text-align: left;\n    }\n\n    .comp-stat-icon {\n      font-size: 2rem;\n      line-height: 1;\n      flex-shrink: 0;\n      width: 48px;\n      height: 48px;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      border-radius: 6px;\n    }\n\n    .comp-stat-icon.icon-openclaw {\n      background: rgba(255, 75, 75, 0.1);\n      border: 1px solid rgba(255, 75, 75, 0.2);\n    }\n\n    .comp-stat-icon.icon-hermes {\n      background: rgba(255, 179, 0, 0.1);\n      border: 1px solid rgba(255, 179, 0, 0.2);\n    }\n\n    .comp-stat-icon.icon-versa {\n      background: rgba(46, 213, 115, 0.1);\n      border: 1px solid rgba(46, 213, 115, 0.2);\n    }\n\n    .comp-stat-value {\n      font-family: var(--font-mono);\n      font-size: 0.85rem;\n      font-weight: 700;\n    }\n\n    .comp-stat-value.val-openclaw {\n      color: #ff4b4b;\n    }\n\n    .comp-stat-value.val-hermes {\n      color: #ffb300;\n    }\n\n    .comp-stat-value.val-versa {\n      color: #2ed573;\n    }\n\n    .comp-stat-label {\n      font-family: var(--font-mono);\n      font-size: 0.6rem;\n      color: #888;\n      text-transform: uppercase;\n      letter-spacing: 0.5px;\n      margin-top: 2px;\n    }\n\n    .mini-chart {\n      display: grid;\n      grid-template-columns: repeat(3, 1fr);\n      gap: 20px;\n      max-width: 700px;\n      margin: 2rem auto;\n    }\n\n    .mini-chart-col {\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n    }\n\n    .mini-chart-bars {\n      display: flex;\n      gap: 6px;\n      align-items: flex-end;\n      height: 120px;\n      margin-bottom: 8px;\n    }\n\n    .mini-bar {\n      width: 18px;\n      border-radius: 3px 3px 0 0;\n      transition: height 0.5s ease;\n    }\n\n    .mini-bar.bar-oc {\n      background: #ff4b4b;\n    }\n\n    .mini-bar.bar-hm {\n      background: #ffb300;\n    }\n\n    .mini-bar.bar-va {\n      background: #2ed573;\n    }\n\n    .mini-chart-label {\n      font-family: var(--font-mono);\n      font-size: 0.65rem;\n      color: var(--text-color);\n      text-align: center;\n      line-height: 1.3;\n    }\n\n    .mini-chart-val {\n      font-family: var(--font-mono);\n      font-size: 0.6rem;\n      color: #888;\n      margin-bottom: 3px;\n    }\n\n    .chart-legend-mini {\n      display: flex;\n      gap: 16px;\n      justify-content: center;\n      margin-top: 1rem;\n      font-family: var(--font-mono);\n      font-size: 0.65rem;\n      color: #888;\n    }\n\n    .legend-dot {\n      width: 8px;\n      height: 8px;\n      border-radius: 2px;\n      display: inline-block;\n      margin-right: 4px;\n      vertical-align: middle;\n    }\n\n    /* Scrollable slide override for expanded technical overview */\n    .deck-slide.scrollable-slide {\n      justify-content: flex-start;\n      overflow-y: auto;\n      padding-bottom: 80px;\n    }\n\n    .deck-slide.scrollable-slide .slide-content {\n      padding-top: 30px;\n    }\n\n    .section-divider {\n      width: 60px;\n      height: 1px;\n      background: var(--accent-color);\n      margin: 2rem auto;\n      opacity: 0.3;\n    }\n\n    /* 3x3 Capabilities Grid */\n    .capabilities-grid {\n      display: grid;\n      grid-template-columns: repeat(3, 1fr);\n      gap: 1rem;\n      width: 100%;\n      max-width: 1100px;\n      margin-top: 1.5rem;\n    }\n\n    @media (max-width: 900px) {\n      .capabilities-grid {\n        grid-template-columns: repeat(2, 1fr);\n      }\n    }\n\n    @media (max-width: 560px) {\n      .capabilities-grid {\n        grid-template-columns: 1fr;\n      }\n    }\n\n    /* Mobile responsive for new sections */\n    @media (max-width: 768px) {\n      .ugpn-section-label {\n        font-size: 0.75rem;\n      }\n\n      .ugpn-section-desc {\n        font-size: 0.85rem;\n      }\n\n      .ugpn-diagram {\n        padding: 1.5rem;\n      }\n\n      .ugpn-nodes {\n        grid-template-columns: 1fr;\n        gap: 10px;\n      }\n\n      .ugpn-core-badge {\n        min-width: 260px;\n        min-height: 70px;\n        padding: 14px 24px;\n      }\n\n      .ugpn-core-title {\n        font-size: 0.75rem;\n      }\n\n      .ugpn-node-flag {\n        font-size: 1.5rem;\n      }\n\n      .ugpn-node-city {\n        font-size: 0.8rem;\n      }\n\n      .ugpn-actor {\n        font-size: 0.7rem;\n      }\n\n      .comparison-stats {\n        grid-template-columns: 1fr;\n      }\n\n      .mini-chart {\n        grid-template-columns: 1fr;\n        gap: 24px;\n      }\n\n      .mini-chart-bars {\n        height: 80px;\n        justify-content: center;\n      }\n    }\n\n    /* ========== PROMPT TOKEN CACHING ========== */\n    .cache-slide-lede {\n      max-width: 640px;\n      font-family: var(--font-mono);\n      color: #888;\n      margin: 0 auto 1.75rem;\n    }\n\n    .cache-visual {\n      width: 100%;\n      max-width: 560px;\n      margin: 0 auto;\n      text-align: left;\n    }\n\n    .cache-stack-label {\n      font-family: var(--font-mono);\n      font-size: 0.7rem;\n      letter-spacing: 0.14em;\n      text-transform: uppercase;\n      color: var(--secondary-text);\n      margin-bottom: 0.65rem;\n    }\n\n    .cache-stack {\n      display: flex;\n      flex-direction: column;\n      height: clamp(260px, 38vh, 340px);\n      border: 1px solid rgba(0, 255, 204, 0.25);\n      overflow: hidden;\n      box-shadow: 0 0 40px rgba(0, 255, 204, 0.06);\n    }\n\n    .cache-block {\n      position: relative;\n      display: flex;\n      align-items: flex-end;\n      padding: 1rem 1.15rem;\n      overflow: hidden;\n    }\n\n    .cache-block strong {\n      font-family: var(--font-mono);\n      font-size: clamp(1rem, 3vw, 1.2rem);\n      font-weight: 700;\n      display: block;\n      position: relative;\n      z-index: 1;\n    }\n\n    .cache-block em {\n      font-style: normal;\n      font-family: var(--font-mono);\n      font-size: 0.78rem;\n      opacity: 0.88;\n      display: block;\n      margin-top: 0.25rem;\n      max-width: 34ch;\n      line-height: 1.4;\n      position: relative;\n      z-index: 1;\n    }\n\n    .cache-block-cached {\n      flex: 1;\n      background: linear-gradient(180deg, #f0c45a 0%, #e8b84a 40%, #c49220 100%);\n      color: #1a1204;\n      transform-origin: bottom;\n      animation: cacheGrow 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;\n    }\n\n    .cache-block-cached::after {\n      content: \"\";\n      position: absolute;\n      inset: 0;\n      background: linear-gradient(\n        105deg,\n        transparent 40%,\n        rgba(255, 255, 255, 0.28) 50%,\n        transparent 60%\n      );\n      background-size: 200% 100%;\n      animation: cacheShimmer 3.2s ease-in-out 1.2s infinite;\n      pointer-events: none;\n    }\n\n    .cache-block-uncached {\n      flex: 0 0 15%;\n      min-height: 56px;\n      background: linear-gradient(180deg, #7a8b92 0%, #5a6b72 100%);\n      color: #eef2f4;\n      transform-origin: bottom;\n      animation: cacheGrow 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;\n    }\n\n    @keyframes cacheGrow {\n      from { transform: scaleY(0.08); opacity: 0.35; }\n      to { transform: scaleY(1); opacity: 1; }\n    }\n\n    @keyframes cacheShimmer {\n      0%, 100% { background-position: 120% 0; }\n      50% { background-position: -20% 0; }\n    }\n\n    .cache-meta {\n      display: grid;\n      grid-template-columns: 1fr auto;\n      gap: 0.75rem;\n      align-items: start;\n      margin-top: 0.9rem;\n    }\n\n    .cache-chop {\n      border: 1px dashed rgba(140, 140, 140, 0.45);\n      background: rgba(0, 0, 0, 0.55);\n      padding: 0.75rem 1rem;\n      font-family: var(--font-mono);\n      font-size: 0.8rem;\n      color: var(--secondary-text);\n      line-height: 1.45;\n    }\n\n    .cache-chop strong {\n      color: var(--accent-color);\n      font-weight: 700;\n    }\n\n    .cache-legend {\n      display: flex;\n      flex-direction: column;\n      gap: 0.4rem;\n      font-family: var(--font-mono);\n      font-size: 0.68rem;\n      color: #888;\n      text-align: right;\n      padding-top: 0.2rem;\n    }\n\n    .cache-legend i {\n      display: inline-block;\n      width: 10px;\n      height: 10px;\n      margin-right: 0.35rem;\n      vertical-align: -1px;\n    }\n\n    .cache-legend .c { background: #e8b84a; }\n    .cache-legend .u { background: #5a6b72; }\n    .cache-legend .x {\n      background: transparent;\n      border: 1px dashed #888;\n    }\n\n    @media (max-width: 560px) {\n      .cache-meta {\n        grid-template-columns: 1fr;\n      }\n\n      .cache-legend {\n        text-align: left;\n        flex-direction: row;\n        flex-wrap: wrap;\n        gap: 0.75rem;\n      }\n    }\n  </style>",
+        "body_format": "page"
+      }
+    }
+  ],
+  "settings": {
+    "brand_name": "Versa - Business Admin",
+    "brand_color": "#05ada2",
+    "brand_logo_opacity": 0.75,
+    "brand_logo_glow": 0.35,
+    "brand_logo_glow_color": "#00abad",
+    "brand_logo_glow_spread": 1,
+    "brand_logo_scale_menu": 1,
+    "brand_logo_scale_home": 0.9,
+    "brand_logo_scale_footer": 0.85,
+    "brand_logo_surfaces": {
+      "menu": {
+        "opacity": 1,
+        "glow": 0,
+        "glowColor": "#ffffff",
+        "glowSpread": 0.5,
+        "scale": 1
+      },
+      "home": {
+        "opacity": 0.75,
+        "glow": 0.35,
+        "glowColor": "#00abad",
+        "glowSpread": 1,
+        "scale": 0.9
+      },
+      "footer": {
+        "opacity": 1,
+        "glow": 0,
+        "glowColor": "#ffffff",
+        "glowSpread": 0.5,
+        "scale": 0.85
+      }
+    },
+    "constellation_variant": "realistic",
+    "constellation_density": 0.67,
+    "constellation_zoom": 0.75,
+    "constellation_effects": {
+      "meteors": {
+        "enabled": true,
+        "zoom": 1,
+        "wait": 40,
+        "randomizeSequence": true,
+        "fullScreen": false
+      },
+      "satellites": {
+        "enabled": true,
+        "zoom": 1,
+        "wait": 15,
+        "randomizeSequence": true,
+        "fullScreen": false
+      },
+      "asteroids": {
+        "enabled": true,
+        "zoom": 1,
+        "wait": 60,
+        "randomizeSequence": true,
+        "fullScreen": false
+      },
+      "comets": {
+        "enabled": true,
+        "zoom": 1,
+        "wait": 120,
+        "randomizeSequence": true,
+        "fullScreen": false
+      },
+      "aurora": {
+        "enabled": true,
+        "zoom": 1,
+        "wait": 90,
+        "randomizeSequence": true,
+        "fullScreen": true
+      }
+    },
+    "sky_enabled": true,
+    "hero_headline": "Agentic General infrastructure",
+    "hero_subhead": "- built to fulfill expectations -",
+    "cycle_enabled": true,
+    "cycle_steps": [
+      {
+        "number": "01",
+        "numberEnabled": true,
+        "title": "Observe",
+        "titleEnabled": true,
+        "desc": "See the field as it actually is.",
+        "descEnabled": false,
+        "enabled": true
+      },
+      {
+        "number": "02",
+        "numberEnabled": true,
+        "title": "Plan",
+        "titleEnabled": true,
+        "desc": "Choose the next right move.",
+        "descEnabled": false,
+        "enabled": true
+      },
+      {
+        "number": "03",
+        "numberEnabled": true,
+        "title": "Communicate",
+        "titleEnabled": true,
+        "desc": "Align people and agents.",
+        "descEnabled": false,
+        "enabled": true
+      },
+      {
+        "number": "04",
+        "numberEnabled": true,
+        "title": "Supervise",
+        "titleEnabled": true,
+        "desc": "Hold the standard while work runs.",
+        "descEnabled": false,
+        "enabled": true
+      },
+      {
+        "number": "05",
+        "numberEnabled": true,
+        "title": "Produce",
+        "titleEnabled": true,
+        "desc": "Execute with clear ownership.",
+        "descEnabled": false,
+        "enabled": true
+      },
+      {
+        "number": "06",
+        "numberEnabled": true,
+        "title": "Serve",
+        "titleEnabled": true,
+        "desc": "Deliver and measure the outcome.",
+        "descEnabled": false,
+        "enabled": true
+      }
+    ],
+    "footer_copyright": "VersaVoice AI",
+    "menu_order": [
+      "/dashboard",
+      "/organization",
+      "/collaboration",
+      "/environment",
+      "/records-editor",
+      "/page-builder",
+      "/glossary",
+      "/users",
+      "/settings"
+    ],
+    "menu_enabled": [
+      "/dashboard",
+      "/organization",
+      "/collaboration",
+      "/environment",
+      "/page-builder",
+      "/records-editor",
+      "/glossary",
+      "/users",
+      "/settings"
+    ],
+    "public_menu_order": [
+      "/#facets",
+      "/#integrations",
+      "/#schedules",
+      "/#inspections-reports",
+      "/#projects",
+      "/#statistics",
+      "/#knowledge",
+      "/#contacts",
+      "/terms",
+      "/board"
+    ],
+    "public_menu_enabled": [
+      "/#facets",
+      "/#integrations",
+      "/#schedules",
+      "/#inspections-reports",
+      "/#projects",
+      "/#statistics",
+      "/#knowledge",
+      "/#contacts"
+    ],
+    "public_login_enabled": true,
+    "glossary_in_menu": false,
+    "org_board_enabled": false,
+    "page_builder": {
+      "custom": {
+        "id": "cv-overview",
+        "enabled": true,
+        "slug": "analysis",
+        "slugManual": true,
+        "label": "Analysis",
+        "sections": [
+          {
+            "id": "intro",
+            "label": "Intro",
+            "kind": "empty",
+            "width_pct": 100,
+            "mobile_width_pct": 100,
+            "columns": 1,
+            "collapsed": true,
+            "display_px": 650,
+            "height_unit": "px",
+            "height_px": 650,
+            "height_vh": 40,
+            "enabled": true,
+            "in_menu": true,
+            "idManual": false,
+            "cells": [
+              {
+                "id": "intro-c1",
+                "enabled": true,
+                "kind": "empty"
+              }
+            ]
+          }
+        ],
+        "width_pct": 75,
+        "width_unit": "pct",
+        "width_px": 1200,
+        "margin": 48,
+        "mobile_width_pct": 85,
+        "mobile_width_unit": "pct",
+        "mobile_width_px": 1200,
+        "mobile_margin": 16,
+        "content_mode": "html",
+        "html_page_id": "{{site:page:versa-agi-analysis}}",
+        "style_page_id": "",
+        "menu_enabled": true,
+        "seo": {
+          "title": "The Agentic Landscape: OpenClaw vs. Hermes vs. Versa AGi",
+          "description": "A peer-to-peer comparative review of open-source agent architectures — OpenClaw, Hermes Agent, and Versa AGi. Covering security, orchestration, memory, and the Unified Global Production Network (uGPN).",
+          "og_image_url": "",
+          "noindex": false
+        },
+        "sky": "off",
+        "header_enabled": true,
+        "footer_enabled": true,
+        "columns": 1
+      },
+      "canvases": [
+        {
+          "id": "cv-overview",
+          "enabled": true,
+          "slug": "analysis",
+          "slugManual": true,
+          "label": "Analysis",
+          "sections": [
+            {
+              "id": "intro",
+              "label": "Intro",
+              "kind": "empty",
+              "width_pct": 100,
+              "mobile_width_pct": 100,
+              "columns": 1,
+              "collapsed": true,
+              "display_px": 650,
+              "height_unit": "px",
+              "height_px": 650,
+              "height_vh": 40,
+              "enabled": true,
+              "in_menu": true,
+              "idManual": false,
+              "cells": [
+                {
+                  "id": "intro-c1",
+                  "enabled": true,
+                  "kind": "empty"
+                }
+              ]
+            }
+          ],
+          "width_pct": 75,
+          "width_unit": "pct",
+          "width_px": 1200,
+          "margin": 48,
+          "mobile_width_pct": 85,
+          "mobile_width_unit": "pct",
+          "mobile_width_px": 1200,
+          "mobile_margin": 16,
+          "content_mode": "html",
+          "html_page_id": "{{site:page:versa-agi-analysis}}",
+          "style_page_id": "",
+          "menu_enabled": true,
+          "seo": {
+            "title": "The Agentic Landscape: OpenClaw vs. Hermes vs. Versa AGi",
+            "description": "A peer-to-peer comparative review of open-source agent architectures — OpenClaw, Hermes Agent, and Versa AGi. Covering security, orchestration, memory, and the Unified Global Production Network (uGPN).",
+            "og_image_url": "",
+            "noindex": false
+          },
+          "sky": "off",
+          "header_enabled": true,
+          "footer_enabled": true,
+          "columns": 1
+        }
+      ],
+      "home_section_order": [
+        "public-expectation",
+        "technical-overview",
+        "capabilities",
+        "prompt-caching",
+        "agentic-landscape",
+        "github-installation",
+        "founder-quote"
+      ],
+      "home_sections": [
+        {
+          "id": "public-expectation",
+          "label": "Public Access",
+          "kind": "record",
+          "recordType": "page",
+          "recordId": "{{site:page:versa-agi-public-access}}",
+          "recordMode": "single",
+          "driver": "page-header",
+          "width_pct": 100,
+          "mobile_width_pct": 100,
+          "columns": 1,
+          "collapsed": true,
+          "display_px": 650,
+          "height_unit": "fit",
+          "height_px": 650,
+          "height_vh": 70,
+          "enabled": true,
+          "in_menu": true,
+          "idManual": true,
+          "cells": [
+            {
+              "id": "public-expectation-c1",
+              "enabled": true,
+              "kind": "record",
+              "recordType": "page",
+              "recordId": "{{site:page:versa-agi-public-access}}",
+              "recordMode": "single",
+              "driver": "page-header",
+              "renderOutput": "html-block",
+              "pairingId": "{{site:driver-pairing:versa-agi-public-access}}"
+            }
+          ]
+        },
+        {
+          "id": "technical-overview",
+          "label": "Technical Overview",
+          "kind": "record",
+          "recordType": "page",
+          "recordId": "{{site:page:versa-agi-technical-overview}}",
+          "recordMode": "single",
+          "driver": "page-header",
+          "width_pct": 100,
+          "mobile_width_pct": 100,
+          "columns": 1,
+          "collapsed": true,
+          "display_px": 650,
+          "height_unit": "fit",
+          "height_px": 650,
+          "height_vh": 70,
+          "enabled": true,
+          "in_menu": true,
+          "idManual": true,
+          "cells": [
+            {
+              "id": "technical-overview-c1",
+              "enabled": true,
+              "kind": "record",
+              "recordType": "page",
+              "recordId": "{{site:page:versa-agi-technical-overview}}",
+              "recordMode": "single",
+              "driver": "page-header",
+              "renderOutput": "html-block",
+              "pairingId": "{{site:driver-pairing:versa-agi-technical-overview}}"
+            }
+          ]
+        },
+        {
+          "id": "capabilities",
+          "label": "Capabilities",
+          "kind": "record",
+          "recordType": "page",
+          "recordId": "{{site:page:versa-agi-capabilities}}",
+          "recordMode": "single",
+          "driver": "page-header",
+          "width_pct": 100,
+          "mobile_width_pct": 100,
+          "columns": 1,
+          "collapsed": true,
+          "display_px": 650,
+          "height_unit": "fit",
+          "height_px": 650,
+          "height_vh": 70,
+          "enabled": true,
+          "in_menu": true,
+          "idManual": true,
+          "cells": [
+            {
+              "id": "capabilities-c1",
+              "enabled": true,
+              "kind": "record",
+              "recordType": "page",
+              "recordId": "{{site:page:versa-agi-capabilities}}",
+              "recordMode": "single",
+              "driver": "page-header",
+              "renderOutput": "html-block",
+              "pairingId": "{{site:driver-pairing:versa-agi-capabilities}}"
+            }
+          ]
+        },
+        {
+          "id": "prompt-caching",
+          "label": "Prompt Cache",
+          "kind": "record",
+          "recordType": "page",
+          "recordId": "{{site:page:versa-agi-prompt-cache}}",
+          "recordMode": "single",
+          "driver": "page-header",
+          "width_pct": 100,
+          "mobile_width_pct": 100,
+          "columns": 1,
+          "collapsed": true,
+          "display_px": 650,
+          "height_unit": "fit",
+          "height_px": 650,
+          "height_vh": 70,
+          "enabled": true,
+          "in_menu": true,
+          "idManual": true,
+          "cells": [
+            {
+              "id": "prompt-caching-c1",
+              "enabled": true,
+              "kind": "record",
+              "recordType": "page",
+              "recordId": "{{site:page:versa-agi-prompt-cache}}",
+              "recordMode": "single",
+              "driver": "page-header",
+              "renderOutput": "html-block",
+              "pairingId": "{{site:driver-pairing:versa-agi-prompt-cache}}"
+            }
+          ]
+        },
+        {
+          "id": "agentic-landscape",
+          "label": "Landscape",
+          "kind": "record",
+          "recordType": "page",
+          "recordId": "{{site:page:versa-agi-landscape}}",
+          "recordMode": "single",
+          "driver": "page-header",
+          "width_pct": 100,
+          "mobile_width_pct": 100,
+          "columns": 1,
+          "collapsed": true,
+          "display_px": 650,
+          "height_unit": "fit",
+          "height_px": 650,
+          "height_vh": 70,
+          "enabled": true,
+          "in_menu": true,
+          "idManual": true,
+          "cells": [
+            {
+              "id": "agentic-landscape-c1",
+              "enabled": true,
+              "kind": "record",
+              "recordType": "page",
+              "recordId": "{{site:page:versa-agi-landscape}}",
+              "recordMode": "single",
+              "driver": "page-header",
+              "renderOutput": "html-block",
+              "pairingId": "{{site:driver-pairing:versa-agi-landscape}}"
+            }
+          ]
+        },
+        {
+          "id": "github-installation",
+          "label": "Deployment",
+          "kind": "record",
+          "recordType": "page",
+          "recordId": "{{site:page:versa-agi-deployment}}",
+          "recordMode": "single",
+          "driver": "page-header",
+          "width_pct": 100,
+          "mobile_width_pct": 100,
+          "columns": 1,
+          "collapsed": true,
+          "display_px": 650,
+          "height_unit": "fit",
+          "height_px": 650,
+          "height_vh": 70,
+          "enabled": true,
+          "in_menu": true,
+          "idManual": true,
+          "cells": [
+            {
+              "id": "github-installation-c1",
+              "enabled": true,
+              "kind": "record",
+              "recordType": "page",
+              "recordId": "{{site:page:versa-agi-deployment}}",
+              "recordMode": "single",
+              "driver": "page-header",
+              "renderOutput": "html-block",
+              "pairingId": "{{site:driver-pairing:versa-agi-deployment}}"
+            }
+          ]
+        },
+        {
+          "id": "founder-quote",
+          "label": "Founder",
+          "kind": "record",
+          "recordType": "page",
+          "recordId": "{{site:page:versa-agi-founder}}",
+          "recordMode": "single",
+          "driver": "page-header",
+          "width_pct": 100,
+          "mobile_width_pct": 100,
+          "columns": 1,
+          "collapsed": true,
+          "display_px": 650,
+          "height_unit": "fit",
+          "height_px": 650,
+          "height_vh": 70,
+          "enabled": true,
+          "in_menu": true,
+          "idManual": true,
+          "cells": [
+            {
+              "id": "founder-quote-c1",
+              "enabled": true,
+              "kind": "record",
+              "recordType": "page",
+              "recordId": "{{site:page:versa-agi-founder}}",
+              "recordMode": "single",
+              "driver": "page-header",
+              "renderOutput": "html-block",
+              "pairingId": "{{site:driver-pairing:versa-agi-founder}}"
+            }
+          ]
+        }
+      ],
+      "home_hero_enabled": true,
+      "home_header_enabled": true,
+      "home_footer_enabled": true,
+      "home_content_mode": "rows",
+      "home_html_page_id": "",
+      "home_style_page_id": "{{site:page:versa-agi-styles}}",
+      "home_seo": {
+        "title": "",
+        "description": "",
+        "og_image_url": "",
+        "noindex": false
+      },
+      "home_sky": "on",
+      "home_width_pct": 75,
+      "home_width_unit": "pct",
+      "home_width_px": 1200,
+      "home_margin": 48,
+      "home_mobile_width_pct": 85,
+      "home_mobile_width_unit": "pct",
+      "home_mobile_width_px": 1200,
+      "home_mobile_margin": 16,
+      "home_columns": 1,
+      "home_label": "Home"
+    },
+    "brand_music_loop": true,
+    "brand_music_autoplay": false,
+    "brand_name_in_menu": true
+  }
+}

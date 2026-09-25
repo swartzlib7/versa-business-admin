@@ -18,7 +18,7 @@ Terms in this chapter match Glossary → **Page Builder**.
 2. Operator chrome (zones, listings, Records Editor)  
 3. Organization, Collaboration, Environment  
 4. Statistics (header, lines, graph)  
-5. Settings (Modes + API only)  
+5. Settings (Modes, Appearance, E-Mail Delivery, API). Appearance is your staff theme on this device  
 6. Public homepage (as a visitor)
 
 ## 7. Page Builder
@@ -29,10 +29,9 @@ Sidebar → **Page Builder** (`/page-builder`). Site chrome that used to sit und
 
 | Tab | What you do |
 |-----|-------------|
-| **Appearance** | Visitor theme surfaces |
 | **Branding** | Name, color, logo, Headline (Brand / Logo / Cycle Strip). Headline is the visitor footer title. Cycle Strip is the six homepage steps (number, label, description, on/off). It is not a record |
-| **Menu** | **Operator** sidebar items, or **Public** header/footer links. Off hides the item and turns the route off. Settings stays on |
 | **Canvas** | Compose visitor pages, list pairings, and list Rendering Drivers |
+| **Menu** | **Operator** sidebar items, or **Public** header/footer links. Off hides the item and turns the route off. Settings stays on |
 | **Sky Animation** | Visitor sky. It stays as first rendered until a full page refresh |
 
 ### Canvas

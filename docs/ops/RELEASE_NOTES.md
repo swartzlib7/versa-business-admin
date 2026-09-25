@@ -30,6 +30,9 @@ Canvas menus, SEO, full HTML pages, and visitor sign-up.
 - New canvases start at 75% width and 48px margin, and 85% width and 16px margin on mobile.
 - Renaming a canvas keeps the same canvas.
 - `/sitemap.xml` and `/robots.txt` list full URLs.
+- Page Builder tabs are Branding, Canvas, Menu, Sky Animation. Appearance moved to Settings.
+- The whole public site is stored in Postgres (`site_settings.body`). One database backup carries it. Run `npm run db:migrate` when upgrading.
+- A fresh install opens with the Versa AGi site: Primary slides, the Analysis canvas, styles, and menus.
 
 ## 1.0.3
 

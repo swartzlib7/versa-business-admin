@@ -13,6 +13,7 @@
     "db:status": "pg_isready -h 127.0.0.1 -p 5432",
     "db:seed": "node scripts/seed.mjs",
     "db:provision": "bash scripts/provision-local-postgres.sh",
+    "site:export": "npx --yes tsx scripts/site-export.ts",
     "migrate:agi-org": "node scripts/migrate_agi_org.mjs"
   },
   "dependencies": {

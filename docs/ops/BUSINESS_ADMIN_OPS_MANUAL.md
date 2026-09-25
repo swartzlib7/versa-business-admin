@@ -184,7 +184,11 @@ curl -s localhost:<port>/api/health   # status=ok and database.connected=true
 2. Create a role + database (or run `scripts/provision-local-postgres.sh` if this is a local-socket install).
 3. Put `DATA_SOURCE=postgres` and `DATABASE_URL` in `.env.local`.
 4. `npm run db:migrate && npm run db:seed`
-5. Boot VBA (`npm run build && next start`). Health must show `database.connected=true`.
+5. Boot VBA (`npm run build && next start`). Health must show `database.connected=true`. The first boot installs the site pack (Versa AGi Primary slides, Analysis canvas, styles, menus): log line `Site pack installed: N records.`
+
+**Upgrading to 1.0.4:** run `npm run db:migrate` before the restart (adds `site_settings.body`). The first boot copies `.data/site-settings.json` into Postgres; the site pack does not run on an install that already has a site.
+
+**Changing the shipped site:** edit it on the development instance, run `npm run site:export`, and commit `src/lib/site-pack/site-pack.json`. Installs that already have a site keep theirs.
 6. Then `migrate_agi_org --apply` so Org data is durable.
 
 Do **not** use `scripts/vagrant-postgres.sh` for shipping — that was a Phase-1 knowledgebase VM helper.
@@ -321,7 +325,8 @@ When Versa - Business Admin shares a Versa AGi host with agents:
 |-------|-------------|
 | Git | Remote is source of truth for code |
 | `.env.local` | Host backup only; encrypted |
-| Postgres (DATA_SOURCE=postgres) | Scheduled `pg_dump` — includes `catalog_overlay` + zone tables (`executive_project`, `executive_task`, `production_product`) |
+| Postgres (DATA_SOURCE=postgres) | Scheduled `pg_dump` — includes `catalog_overlay`, zone tables (`executive_project`, `executive_task`, `production_product`), and the whole public site: `site_settings` (Page Builder, menus, modes in `body`) plus Pages records and Elements |
+| `.data/site-settings.json` (Postgres) | A local cache. Boot loads the site from `site_settings.body` and rewrites the file. Do not edit it by hand; not a backup item |
 | Durable catalog overlay (fixture mode) | `.data/catalog.json` IS the tenant customization store when no DB — back up the file |
 | Overlay restore rule | Restore must not re-seed wipe `c_*`; seed∪overlay merge on boot makes system seed re-runnable, overlay must survive |
 | Sample data | Rows tagged `ba_sample:`; insert/delete via Settings → Modes — never hand-delete the Primary Org |

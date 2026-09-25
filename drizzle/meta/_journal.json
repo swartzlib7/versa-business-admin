@@ -127,6 +127,13 @@
       "when": 1789220000000,
       "tag": "0017_i5_6_35_stat_line_stamp",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789300000000,
+      "tag": "0018_site_settings_body",
+      "breakpoints": true
     }
   ]
 }

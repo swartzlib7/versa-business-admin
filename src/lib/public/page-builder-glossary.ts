@@ -17,7 +17,7 @@ export const PAGE_BUILDER_GLOSSARY_SECTION = {
   id: "page-builder",
   name: "Page Builder",
   description:
-    "Visitor canvas composition. Staff tabs: Appearance, Branding, Menu, Canvas, Sky Animation. Canvas sub-tabs: Configuration, Elements, Rendering Drivers.",
+    "Visitor canvas composition. Staff tabs: Branding, Canvas, Menu, Sky Animation. Canvas sub-tabs: Configuration, Elements, Rendering Drivers.",
 };
 
 export type PageBuilderGlossaryRow = {
@@ -38,7 +38,7 @@ export const PAGE_BUILDER_GLOSSARY_ENTRIES: PageBuilderGlossaryRow[] = [
     id: "e-pb-appearance",
     name: "Appearance",
     definition:
-      "Page Builder tab for visitor theme chrome (colors, surfaces). First tab on /page-builder.",
+      "Settings tab for the staff theme (Light, Dusk, Slate, Dark, Architect). The choice is remembered on this device. Not a Page Builder tab.",
   },
   {
     id: "e-pb-branding",
@@ -50,7 +50,7 @@ export const PAGE_BUILDER_GLOSSARY_ENTRIES: PageBuilderGlossaryRow[] = [
     id: "e-pb-sky-animation",
     name: "Sky Animation",
     definition:
-      "Last Page Builder tab, after Canvas. Visitor sky (variant, zoom, density, effects). The sky stays on the first render; it does not reseed when the visitor changes pages.",
+      "Last Page Builder tab, after Menu. Visitor sky (variant, zoom, density, effects). The sky stays on the first render; it does not reseed when the visitor changes pages.",
   },
   {
     id: "e-pb-menu",

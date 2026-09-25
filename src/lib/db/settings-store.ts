@@ -85,6 +85,32 @@ export async function getSiteSettingsDb(): Promise<SiteSettingsShape> {
   };
 }
 
+/** The `body` column: every site setting without a column of its own. `null` when the row or body is empty. */
+export async function getSiteSettingsBodyDb(): Promise<Record<string, unknown> | null> {
+  const db = getDb();
+  const rows = await db
+    .select({ body: siteSettingsTable.body })
+    .from(siteSettingsTable)
+    .where(eq(siteSettingsTable.id, SITE_SETTINGS_ID))
+    .limit(1);
+  const body = rows[0]?.body;
+  if (!body || typeof body !== 'object' || !Object.keys(body).length) return null;
+  return body as Record<string, unknown>;
+}
+
+export async function writeSiteSettingsBodyDb(body: Record<string, unknown>): Promise<void> {
+  const db = getDb();
+  const name = typeof body.brand_name === 'string' && body.brand_name.trim() ? body.brand_name : theme.brand.name;
+  const color = typeof body.brand_color === 'string' && body.brand_color.trim() ? body.brand_color : theme.colors.brand;
+  await db
+    .insert(siteSettingsTable)
+    .values({ id: SITE_SETTINGS_ID, brandName: name, brandColor: color, body })
+    .onConflictDoUpdate({
+      target: siteSettingsTable.id,
+      set: { body, updatedAt: new Date() },
+    });
+}
+
 export async function upsertSiteSettingsDb(
   input: Partial<SiteSettingsShape>,
 ): Promise<SiteSettingsShape> {

@@ -14,6 +14,7 @@ import { applyMenuDefaults, normalizePageBuilder, type PageBuilderState } from "
 import { sanitizeMenuOrder } from "@/lib/nav";
 import { foldPublicHrefs } from "@/lib/catalog/name-aliases";
 import { resolveBrandLogoUrl } from "@/lib/public/brand-seed";
+import { isPostgresDataSource } from "@/lib/db/data-source";
 import {
   EMPTY_EMAIL_DELIVERY,
   normalizeEmailDelivery,
@@ -84,8 +85,15 @@ function writeStore(value: FixtureSiteSettings): void {
 
 function readFile(): FixtureSiteSettings | null {
   try {
-    const raw = fs.readFileSync(FILE_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Partial<FixtureSiteSettings>;
+    return parseSettings(JSON.parse(fs.readFileSync(FILE_PATH, "utf8")));
+  } catch {
+    return null;
+  }
+}
+
+function parseSettings(raw: unknown): FixtureSiteSettings | null {
+  try {
+    const parsed = raw as Partial<FixtureSiteSettings>;
     if (!parsed || typeof parsed !== "object") return null;
     return {
       brand_name:
@@ -195,6 +203,80 @@ function writeFile(value: FixtureSiteSettings): void {
   } catch (err) {
     console.error("Failed to persist site settings:", err);
   }
+}
+
+const HYDRATED_KEY = "__versaSiteSettingsHydrated__";
+const DB_QUEUE_KEY = "__versaSiteSettingsDbQueue__";
+
+async function usesPostgres(): Promise<boolean> {
+  return isPostgresDataSource();
+}
+
+/**
+ * Postgres keeps the site in `site_settings.body`. Writes queue in order and send the
+ * latest memory state, so a burst of saves cannot land out of order. A process that has
+ * not hydrated (a script that skipped `hydrateSiteSettings`) never writes the database,
+ * so it cannot replace the live site with defaults.
+ */
+function persistDb(): void {
+  const g = globalThis as Record<string, unknown>;
+  if (!g[HYDRATED_KEY]) {
+    if (isPostgresDataSource()) {
+      console.warn("Site settings: not hydrated in this process, so the Postgres write was skipped. Call hydrateSiteSettings() first.");
+    }
+    return;
+  }
+  const queue = (g[DB_QUEUE_KEY] as Promise<void> | undefined) ?? Promise.resolve();
+  g[DB_QUEUE_KEY] = queue.then(async () => {
+    if (!(await usesPostgres())) return;
+    const latest = readStore();
+    if (!latest) return;
+    const { writeSiteSettingsBodyDb } = await import("@/lib/db/settings-store");
+    await writeSiteSettingsBodyDb(latest as unknown as Record<string, unknown>);
+  }).catch((err) => {
+    console.error("Failed to persist site settings to Postgres:", err);
+  });
+}
+
+/** Resolves when every queued Postgres write has finished. */
+export async function flushSiteSettings(): Promise<void> {
+  await ((globalThis as Record<string, unknown>)[DB_QUEUE_KEY] as Promise<void> | undefined);
+}
+
+/**
+ * Load site settings into memory once per process. Postgres `body` wins; the JSON file is
+ * the fixture store and a local cache. `fresh` is true when neither holds a site, which is
+ * when the install site pack runs.
+ */
+export async function hydrateSiteSettings(): Promise<{ fresh: boolean }> {
+  const g = globalThis as Record<string, unknown>;
+  const fromFile = readFile();
+  if (!(await usesPostgres())) {
+    g[HYDRATED_KEY] = true;
+    return { fresh: !fromFile };
+  }
+  const { getSiteSettingsBodyDb } = await import("@/lib/db/settings-store");
+  let body: Record<string, unknown> | null;
+  try {
+    body = await getSiteSettingsBodyDb();
+  } catch (err) {
+    console.error("Site settings: Postgres read failed; serving the local file.", err);
+    return { fresh: false };
+  }
+  g[HYDRATED_KEY] = true;
+  const fromDb = body ? parseSettings(body) : null;
+  if (fromDb) {
+    writeStore(fromDb);
+    writeFile(fromDb);
+    return { fresh: false };
+  }
+  if (fromFile) {
+    writeStore(fromFile);
+    persistDb();
+    await flushSiteSettings();
+    return { fresh: false };
+  }
+  return { fresh: true };
 }
 
 function defaults(): FixtureSiteSettings {
@@ -412,6 +494,7 @@ export function upsertSiteSettingsFixture(
   next.brand_logo_scale_footer = surfaces.footer.scale;
   writeStore(next);
   writeFile(next);
+  persistDb();
   return { ...next };
 }
 
@@ -470,4 +553,5 @@ export function upsertBrandLogoFile(url: string | null): void {
   const next = { ...current, brand_logo_url: url };
   writeStore(next);
   writeFile(next);
+  persistDb();
 }
