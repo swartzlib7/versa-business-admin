@@ -24,7 +24,7 @@ import { OrganizationsPanel, OrgTypeListingPanel, PrimaryOrgPanel } from "@/comp
 import { DivisionConfigPanel, RecordRelationsPanel } from "@/components/zones/element-config-panel";
 import { LayoutDrivenForm } from "@/components/catalog/layout-driven-form";
 import { useSavedRuntimeLayouts } from "@/lib/catalog/use-saved-runtime-layouts";
-import { dataTypeToUiKind, helpForField, optionsForField } from "@/lib/catalog/layout-to-fields";
+import { dataTypeToUiKind, helpForField, optionsFromValueSets, type ValueSetOptionSource } from "@/lib/catalog/layout-to-fields";
 import { type ListedRecord } from "@/lib/public/driver-pairings";
 import {
   driverBreakConfirmBody,
@@ -675,6 +675,7 @@ function ListingPanel({
   const isDynamic = !!panel.recordTypeApiName;
   const objectApiName = panel.objectApiName || panel.recordTypeApiName || "";
   const [catalogFields, setCatalogFields] = useState<CatalogField[]>([]);
+  const [valueSets, setValueSets] = useState<ValueSetOptionSource[]>([]);
   const [statHeader, setStatHeader] = useState<StatHeaderConfig | null>(null);
   const runtime = useSavedRuntimeLayouts(
     isDynamic ? objectApiName : "",
@@ -726,17 +727,19 @@ function ListingPanel({
         if (!response.ok) throw new Error("Failed to load field definitions");
         return response.json();
       })
-      .then((payload: { data?: { fields?: CatalogField[] } }) => {
+      .then((payload: { data?: { fields?: CatalogField[]; schema?: { value_sets?: ValueSetOptionSource[] } | null } }) => {
         const next = filterLiveCatalogFields(
           objectApiName,
           (payload.data?.fields ?? []).filter((f) => f.active !== false),
         );
         setCatalogFields(next);
+        setValueSets(payload.data?.schema?.value_sets ?? []);
         setFieldsLoading(false);
       })
       .catch((error: unknown) => {
         if ((error as { name?: string }).name !== "AbortError") {
           setCatalogFields([]);
+          setValueSets([]);
           setFieldsLoading(false);
         }
       });
@@ -805,7 +808,7 @@ function ListingPanel({
       }
       const mapped: ListingField[] = orderedApis.map((api) => {
         const f = byApi.get(api)!;
-        const opts = optionsForField(f);
+        const opts = optionsFromValueSets(f, valueSets);
         return {
           key: f.api_name,
           label: f.label,
@@ -897,7 +900,7 @@ function ListingPanel({
       if (!columns.includes(f.key)) ordered.push({ ...f, column: false });
     }
     return ordered;
-  }, [isDynamic, catalogFields, panel.fields, columns, runtime.edit, viewMode, objectApiName, statHeader]);
+  }, [isDynamic, catalogFields, valueSets, panel.fields, columns, runtime.edit, viewMode, objectApiName, statHeader]);
 
   const seedRows: ZoneListRow[] = useMemo(() => {
     const seed: string[][] =
@@ -1846,6 +1849,7 @@ function FormPanel({
   const isDynamic = !!panel.recordTypeApiName;
   const objectApiName = panel.objectApiName || panel.recordTypeApiName || "";
   const [catalogFields, setCatalogFields] = useState<CatalogField[]>([]);
+  const [valueSets, setValueSets] = useState<ValueSetOptionSource[]>([]);
   const runtime = useSavedRuntimeLayouts(
     isDynamic ? objectApiName : "",
     isDynamic ? catalogFields : undefined,
@@ -1943,12 +1947,13 @@ function FormPanel({
         if (!response.ok) throw new Error("Failed to load field definitions");
         return response.json();
       })
-      .then((payload: { data?: { fields?: CatalogField[] } }) => {
+      .then((payload: { data?: { fields?: CatalogField[]; schema?: { value_sets?: ValueSetOptionSource[] } | null } }) => {
         const next = filterLiveCatalogFields(
           objectApiName,
           (payload.data?.fields ?? []).filter((f) => f.active !== false),
         );
         setCatalogFields(next);
+        setValueSets(payload.data?.schema?.value_sets ?? []);
         setValues((prev) => {
           const draft = { ...prev };
           for (const f of next) {
@@ -1961,6 +1966,7 @@ function FormPanel({
       .catch((error: unknown) => {
         if ((error as { name?: string }).name !== "AbortError") {
           setCatalogFields([]);
+          setValueSets([]);
           setFieldsLoading(false);
         }
       });
@@ -2054,7 +2060,7 @@ function FormPanel({
   const fallbackSections = useMemo(() => {
     const fields = (isDynamic && catalogFields.length > 0
       ? catalogFields.map((f) => {
-          const { options, optionLabels } = optionsForField(f);
+          const { options, optionLabels } = optionsFromValueSets(f, valueSets);
           return {
             key: f.api_name,
             label: f.label,
@@ -2088,7 +2094,7 @@ function FormPanel({
         fields: filterByZoneRole(fields, "header"),
       },
     ];
-  }, [isDynamic, catalogFields, panel.fields, panel.label, objectApiName]);
+  }, [isDynamic, catalogFields, valueSets, panel.fields, panel.label, objectApiName]);
 
   const layoutForMode = editing ? runtime.edit : runtime.detail;
   const sections =

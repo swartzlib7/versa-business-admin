@@ -112,6 +112,28 @@ export function optionsForField(fd: OptionsFieldSource): {
   return {};
 }
 
+export type ValueSetOptionSource = {
+  api_name: string;
+  items?: { api_value: string; label: string; active?: boolean }[];
+};
+
+/** Picklist choices from the live catalog response. Falls back to the bundled seed. */
+export function optionsFromValueSets(
+  fd: OptionsFieldSource,
+  valueSets?: ValueSetOptionSource[],
+): { options?: string[]; optionLabels?: string[] } {
+  const name = fd.value_set_api_name;
+  const vs = name ? valueSets?.find((set) => set.api_name === name) : undefined;
+  if (vs?.items) {
+    const items = vs.items.filter((item) => item.active !== false);
+    return {
+      options: items.map((item) => item.api_value),
+      optionLabels: items.map((item) => item.label),
+    };
+  }
+  return optionsForField(fd);
+}
+
 const FIELD_HELP: Record<string, string> = {
   scale_name: "Shown rotated on the graph next to the scale numbers",
   scale_start: "Lowest expected for period",
