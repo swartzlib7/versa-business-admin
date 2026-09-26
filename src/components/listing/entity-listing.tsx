@@ -28,6 +28,7 @@ import { pairingAllowsTypeLevel } from "@/lib/public/driver-pairings";
 import { ProfilePictureField } from "@/components/users/profile-picture-field";
 import { PasswordField } from "@/components/users/password-field";
 import { ImageUrlField } from "@/components/catalog/image-url-field";
+import { ImageGalleryField } from "@/components/catalog/image-gallery-field";
 import { FrequencyStartField } from "@/components/statistics/frequency-start-field";
 import { HtmlEditor, normalizePageBodyFormat } from "@/components/public/html-editor";
 import { CustomSlotsField } from "@/components/catalog/custom-slots-field";
@@ -65,7 +66,8 @@ export type ListingField = {
     | "email"
     | "url"
     | "phone"
-    | "lookup";
+    | "lookup"
+    | "image_gallery";
   options?: string[];
   /** Display labels (api codes stay as values) */
   optionLabels?: string[];
@@ -483,6 +485,16 @@ function FieldInput({
       />
     );
   }
+  if (kind === "image_gallery") {
+    return (
+      <ImageGalleryField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+      />
+    );
+  }
   if (field.key === "logo_url" || field.key.endsWith("_logo_url")) {
     return (
       <ImageUrlField
@@ -761,7 +773,7 @@ function InlineForm({
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {fields.filter((f) => f.key !== "body_format" && !isSelectionFollowup(f.key)).map((f) => (
-          <div key={f.key} className={(f.span === 2 || f.kind === "textarea" || f.key === "body_html" || f.key === "selection_mode") ? "sm:col-span-2" : undefined}>
+          <div key={f.key} className={(f.span === 2 || f.kind === "textarea" || f.kind === "image_gallery" || f.key === "body_html" || f.key === "selection_mode") ? "sm:col-span-2" : undefined}>
             {f.key === "selection_mode" ? (
               <div className="space-y-3">
                 <FieldInput

@@ -23,7 +23,8 @@ export type CatalogDataType =
   | 'url'
   | 'phone'
   | 'currency'
-  | 'file';
+  | 'file'
+  | 'image_gallery';
 
 export interface ValueSet {
   id: string;
@@ -2365,7 +2366,8 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-dissemination_sales-notes', object_api_name: 'dissemination_sales', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
   { id: 'fld-dissemination_promotion_marketing-name', object_api_name: 'dissemination_promotion_marketing', api_name: 'name', label: 'Campaign name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
   { id: 'fld-dissemination_promotion_marketing-status', object_api_name: 'dissemination_promotion_marketing', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
-  { id: 'fld-dissemination_promotion_marketing-description', object_api_name: 'dissemination_promotion_marketing', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-dissemination_promotion_marketing-description', object_api_name: 'dissemination_promotion_marketing', api_name: 'description', label: 'Content', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
+  { id: 'fld-dissemination_promotion_marketing-images', object_api_name: 'dissemination_promotion_marketing', api_name: 'images', label: 'Images', data_type: 'image_gallery', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 35, active: true },
   { id: 'fld-dissemination_promotion_marketing-notes', object_api_name: 'dissemination_promotion_marketing', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
   { id: 'fld-treasury_transaction-name', object_api_name: 'treasury_transaction', api_name: 'name', label: 'Transaction', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true, zone_role: 'header' },
   { id: 'fld-treasury_transaction-document_kind', object_api_name: 'treasury_transaction', api_name: 'document_kind', label: 'Document kind', data_type: 'picklist', is_system: true, is_required: false, default_value: 'transaction', value_set_api_name: 'document_kind', lookup_object_api_name: null, sort_order: 12, active: true, zone_role: 'header' },
@@ -2879,6 +2881,7 @@ const ALLOWED_DATA_TYPES: CatalogDataType[] = [
   'phone',
   'currency',
   'file',
+  'image_gallery',
 ];
 
 export interface ExtendFieldInput {

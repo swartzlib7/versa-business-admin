@@ -21,6 +21,7 @@ import {
 } from "@/components/catalog/pairing-fields";
 import { pairingAllowsTypeLevel } from "@/lib/public/driver-pairings";
 import { ImageUrlField } from "@/components/catalog/image-url-field";
+import { ImageGalleryField } from "@/components/catalog/image-gallery-field";
 import { FrequencyStartField } from "@/components/statistics/frequency-start-field";
 import { deriveFrequencyStart } from "@/lib/statistics/frequency";
 import { isAuditField } from "@/lib/catalog/audit-fields";
@@ -107,6 +108,16 @@ function FieldInput({
     );
   }
 
+  if (kind === "image_gallery") {
+    return (
+      <ImageGalleryField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+      />
+    );
+  }
   if (field.key === "logo_url" || field.key.endsWith("_logo_url")) {
     return (
       <ImageUrlField
@@ -430,7 +441,7 @@ export function LayoutDrivenForm({
               const span =
                 f.span && f.span > 1
                   ? f.span
-                  : f.kind === "textarea" || f.secret || f.key === "body_html"
+                  : f.kind === "textarea" || f.kind === "image_gallery" || f.secret || f.key === "body_html"
                     ? columns
                     : 1;
               if (f.blank) {

@@ -248,6 +248,27 @@ export const API_RESOURCES: ApiResource[] = [
   },
   {
     group: "Records",
+    method: "POST",
+    path: "/api/records/images",
+    auth: "admin",
+    summary: "Upload one image for an image gallery field. PNG, JPEG, WebP, or GIF. 2 MB.",
+  },
+  {
+    group: "Records",
+    method: "GET",
+    path: "/api/records/images/{id}",
+    auth: "session",
+    summary: "One gallery image.",
+  },
+  {
+    group: "Records",
+    method: "DELETE",
+    path: "/api/records/images/{id}",
+    auth: "admin",
+    summary: "Delete one gallery image file.",
+  },
+  {
+    group: "Records",
     method: "GET",
     path: "/api/records/{id}/relations",
     auth: "session",

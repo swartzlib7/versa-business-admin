@@ -17,7 +17,7 @@ import {
 
 export const CATALOG_OVERLAY_ID = LEGACY_CATALOG_OVERLAY_ID;
 /** D4 v1 — stamp of the product seed pack last merged into this overlay. */
-export const CATALOG_SEED_PACK = "1.0.4-r1";
+export const CATALOG_SEED_PACK = "1.0.4-r2";
 
 export type InstalledAgentPackage = {
   id: string;

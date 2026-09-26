@@ -52,6 +52,7 @@ const DATA_TYPES: SelectOption[] = [
   { value: "picklist", label: "Picklist (single choice)", group: "Choice" },
   { value: "multipicklist", label: "Multi-picklist (multiple choices)", group: "Choice" },
   { value: "lookup", label: "Lookup (link to another record type)", group: "Relation" },
+  { value: "image_gallery", label: "Image gallery (up to 10)", group: "Media" },
 ];
 
 /** J3: UI label for a structure value (API value stays header_lines). */
