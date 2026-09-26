@@ -66,9 +66,9 @@ export function PublicFooter({
       <footer className="border-t border-border bg-background/50 backdrop-blur-md">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-3 md:items-start">
-          <div className="flex flex-col items-start text-left">
+          <div className="flex flex-col items-center text-center md:items-start md:text-left">
             <h4 className="text-sm font-semibold">{heading}</h4>
-            <div className="mt-3 grid w-full grid-cols-2 gap-x-6">
+            <div className="mt-3 grid w-fit max-w-full grid-cols-[repeat(2,minmax(0,max-content))] gap-x-6 md:w-full md:grid-cols-2">
               {linkCols.map((col, colIndex) => (
                 <ul key={colIndex} className="space-y-2 text-left text-sm text-muted-foreground">
                   {col.map((link) => {

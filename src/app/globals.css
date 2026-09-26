@@ -768,9 +768,10 @@ html[data-sky-off] .public-sky {
   }
 }
 
-/* Stable small viewport so the browser toolbar show/hide does not resize sections. */
+/* Stable small viewport so the browser toolbar show/hide does not resize sections.
+   Fit content rows keep their own height. */
 @media (max-width: 1023px) {
-  section[data-public-section] {
+  section[data-public-section]:not([data-public-fit]) {
     height: 100svh;
     min-height: 100svh;
     max-height: 100svh;

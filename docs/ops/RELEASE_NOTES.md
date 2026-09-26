@@ -33,6 +33,7 @@ Canvas menus, SEO, full HTML pages, and visitor sign-up.
 - Page Builder tabs are Branding, Canvas, Menu, Sky Animation. Appearance moved to Settings.
 - The whole public site is stored in Postgres (`site_settings.body`). One database backup carries it. Run `npm run db:migrate` when upgrading.
 - A fresh install opens with the Versa AGi site: Primary slides, the Analysis canvas, styles, and menus.
+- On phones and tablets, Fit content rows show all their content instead of one clipped screen. The footer link columns center on phones.
 
 ## 1.0.3
 
