@@ -185,11 +185,11 @@ curl -s localhost:<port>/api/health   # status=ok and database.connected=true
 3. Put `DATA_SOURCE=postgres` and `DATABASE_URL` in `.env.local`.
 4. `npm run db:migrate && npm run db:seed`
 5. Boot VBA (`npm run build && next start`). Health must show `database.connected=true`. The first boot installs the site pack (Versa AGi Primary slides, Analysis canvas, styles, menus): log line `Site pack installed: N records.`
+6. Then `migrate_agi_org --apply` so Org data is durable.
 
-**Upgrading to 1.0.4:** run `npm run db:migrate` before the restart (adds `site_settings.body`). The first boot copies `.data/site-settings.json` into Postgres; the site pack does not run on an install that already has a site.
+An install that already has a site upgrades by §5.2.1. Do not follow this new-host list for that case.
 
 **Changing the shipped site:** edit it on the development instance, run `npm run site:export`, and commit `src/lib/site-pack/site-pack.json`. Installs that already have a site keep theirs.
-6. Then `migrate_agi_org --apply` so Org data is durable.
 
 Do **not** use `scripts/vagrant-postgres.sh` for shipping — that was a Phase-1 knowledgebase VM helper.
 
@@ -326,7 +326,7 @@ When Versa - Business Admin shares a Versa AGi host with agents:
 | Git | Remote is source of truth for code |
 | `.env.local` | Host backup only; encrypted |
 | Postgres (DATA_SOURCE=postgres) | Scheduled `pg_dump` — includes `catalog_overlay`, zone tables (`executive_project`, `executive_task`, `production_product`), and the whole public site: `site_settings` (Page Builder, menus, modes in `body`) plus Pages records and Elements |
-| `.data/site-settings.json` (Postgres) | A local cache. Boot loads the site from `site_settings.body` and rewrites the file. Do not edit it by hand; not a backup item |
+| `.data/site-settings.json` | Until the first 1.0.4 boot has copied it into `site_settings.body`, this file **is** the live Page Builder, menus, and modes. Back it up and leave it in place (§5.2.1). After that copy it is a cache: boot rewrites it from Postgres. Do not edit it by hand |
 | Durable catalog overlay (fixture mode) | `.data/catalog.json` IS the tenant customization store when no DB — back up the file |
 | Overlay restore rule | Restore must not re-seed wipe `c_*`; seed∪overlay merge on boot makes system seed re-runnable, overlay must survive |
 | Sample data | Rows tagged `ba_sample:`; insert/delete via Settings → Modes — never hand-delete the Primary Org |
@@ -379,6 +379,34 @@ Public GitHub is **`main`**. Do not invent a second published line. Do not promo
 6. Health + smoke (login, one zone list/detail, Records Editor if enabled)  
 7. Confirm tenant `c_*` types/fields and instance rows intact  
 8. Only then: enable new system record types/fields in UI  
+
+### 5.2.1 Existing install to 1.0.4
+
+Use this when the server already runs Business Admin and staff have customized it. The development database is the stock Versa AGi site. Do not restore it onto a customized install.
+
+On the server, from its checkout. `<port>` is the port it already uses. Restart detail is §3.5.
+
+```bash
+pg_dump "$DATABASE_URL" -Fc -f ~/vba-before-1.0.4.dump
+cp .env.local ~/env.local.bak
+cp .data/site-settings.json ~/site-settings.bak
+
+git pull --ff-only
+npm ci
+npm run db:migrate          # adds site_settings.body
+npm run build
+
+ss -tlnp | grep <port>      # kill that exact PID; never pkill -f
+nohup ./node_modules/.bin/next start -p <port> > __tmp/next.log 2>&1 &
+
+curl -s localhost:<port>/api/health    # "version":"1.0.4", then hard-reload the browser
+```
+
+Leave `.data/site-settings.json` in place until that first start finishes. The first start copies it into Postgres. Users, records, Page Builder, menus, and branding stay. The code arrives: tabs, Fit content rows on phones, footer link columns, sign-up, and full HTML canvases.
+
+If `.data/site-settings.json` is missing on that first start, boot treats the install as new and installs the stock site pack over Page Builder, menus, and branding. A database restore from the development machine replaces users and records as well.
+
+The stock Versa AGi slides, Analysis page, and phone styles install only on a new host (§2.8). A customized install does not receive them.
 
 ### 5.3 What v1 must **not** do
 
@@ -487,6 +515,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-09-26 | §5.2.1: upgrade an already-customized install to 1.0.4. Keep `.data/site-settings.json` until the first boot copies it. §3.7 backup row matches. New-host list stays §2.8. |
 | 2026-08-18 | Task #240 opened — Stephen required setup/maintenance/upgrades/ops manual |
 | 2026-08-19 | Initial filled outline: setup, maintenance, gates, seed-only upgrade posture, host port map, troubleshooting; aligned to locked D1–D6 |
 | 2026-09-03 | Outline merged onto this working tree for Stephen's review. Horizon 3 now also includes a Mission Control skill (not authored yet). No TBD runbooks invented. |
