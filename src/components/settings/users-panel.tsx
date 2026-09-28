@@ -32,6 +32,7 @@ export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "a
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const [mailActive, setMailActive] = useState(false);
 
   const catalogFields = useMemo(() => listingFieldsFromCatalog("user"), []);
   const fields: ListingField[] = useMemo(
@@ -52,6 +53,13 @@ export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "a
     ],
     [catalogFields],
   );
+
+  useEffect(() => {
+    fetch("/api/settings/system", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => setMailActive(json?.data?.email_active === true))
+      .catch(() => setMailActive(false));
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -92,10 +100,12 @@ export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "a
 
   const onAdd = async (draft: Record<string, string>) => {
     const created = draft.password?.trim() ?? "";
-    const createdProblem = passwordProblem(created);
-    if (createdProblem) {
-      setNote(createdProblem);
-      return false;
+    if (!mailActive) {
+      const createdProblem = passwordProblem(created);
+      if (createdProblem) {
+        setNote(createdProblem);
+        return false;
+      }
     }
     const res = await fetch("/api/users", {
       method: "POST",
@@ -117,7 +127,7 @@ export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "a
       return false;
     }
     setUsers((prev) => [...prev, json.data]);
-    setNote("User created.");
+    setNote(json.welcome_sent ? "User created. A welcome email has the temporary password." : "User created.");
     return true;
   };
 
@@ -151,7 +161,11 @@ export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "a
       return false;
     }
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...json.data } : u)));
-    setNote("Saved.");
+    setNote(
+      json.email_change_pending
+        ? "Saved. A confirmation link was sent to the new email address. The current address stays until it is confirmed."
+        : "Saved.",
+    );
     return true;
   };
 
@@ -177,9 +191,12 @@ export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "a
     <>
       <EntityListing<LocalUser & Record<string, unknown>>
         summary={
-          typeFilter === "agent"
+          (typeFilter === "agent"
             ? "Agent accounts. Click a row to open or close. Drag headers to reorder."
-            : "Human accounts. Click a row to open or close. Drag headers to reorder."
+            : "Human accounts. Click a row to open or close. Drag headers to reorder.") +
+          (mailActive
+            ? " A new account is emailed a temporary password. Changing an email sends a confirmation link."
+            : " Set the system mailbox before changing an email address. Until then, type a password for each new account.")
         }
         accent={theme.colors.brand}
         fields={fields}

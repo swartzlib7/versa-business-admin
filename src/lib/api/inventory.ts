@@ -226,6 +226,27 @@ export const API_RESOURCES: ApiResource[] = [
     summary: "Create a record (header + lines + optional relations).",
   },
   {
+    group: "Account mail",
+    method: "POST",
+    path: "/api/auth/forgot-password",
+    auth: "open",
+    summary: "Email a one-time password reset link when the system mailbox is active.",
+  },
+  {
+    group: "Account mail",
+    method: "POST",
+    path: "/api/auth/reset-password",
+    auth: "open",
+    summary: "Set a new password from a reset link and sign in.",
+  },
+  {
+    group: "Account mail",
+    method: "POST",
+    path: "/api/auth/confirm-email",
+    auth: "open",
+    summary: "Commit an email change from the confirmation link.",
+  },
+  {
     group: "Records",
     method: "GET",
     path: "/api/records/{id}",

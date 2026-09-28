@@ -372,6 +372,7 @@ export const postgresAdapter: DataAdapter = {
     }
     const data = { ...((row.data ?? {}) as Record<string, unknown>) };
     if (input.data) Object.assign(data, input.data);
+    if (input.password !== undefined && input.password.length > 0) data.must_change_password = false;
     if (input.bio !== undefined) data.bio = input.bio;
     if (input.department !== undefined) data.department = input.department;
     patch.data = data;

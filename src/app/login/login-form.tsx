@@ -20,7 +20,13 @@ export type InstallHints = {
   agent: InstallHintAccount;
 };
 
-export function LoginForm({ installHints }: { installHints: InstallHints | null }) {
+export function LoginForm({
+  installHints,
+  passwordReset,
+}: {
+  installHints: InstallHints | null;
+  passwordReset: boolean;
+}) {
   const brand = useBrand();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -185,6 +191,14 @@ export function LoginForm({ installHints }: { installHints: InstallHints | null 
               {error && (
                 <p className="text-sm text-destructive">{error}</p>
               )}
+
+              {passwordReset ? (
+                <div className="text-right">
+                  <a href="/login/forgot-password" className="text-sm text-muted-foreground hover:text-foreground">
+                    Forgot password
+                  </a>
+                </div>
+              ) : null}
 
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Verifying…" : "Sign In"}

@@ -97,6 +97,18 @@ export const users = pgTable(
   ],
 );
 
+/** Single-use links for password reset and email confirmation. */
+export const authToken = pgTable('auth_token', {
+  id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  purpose: text('purpose').notNull(),
+  tokenHash: text('token_hash').notNull(),
+  payload: jsonb('payload').notNull().default({}),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // Party (Collaboration zone — single table + party_kind)
 export const parties = pgTable(
   'parties',

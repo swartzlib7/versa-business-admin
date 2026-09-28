@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { adapter } from "@/lib/data";
 import { getSessionFromRequest, isAuthenticated, isAdmin } from "@/lib/auth";
 import type { CreateUserInput } from "@/lib/data/adapter";
-import { passwordProblem } from "@/lib/password-policy";
+import { generatePassword, passwordProblem } from "@/lib/password-policy";
+import { mailIsActive, sendSystemMail } from "@/lib/mail/system-mail";
+import { welcomeMessage } from "@/lib/mail/branded-message";
+import { requestOrigin } from "@/lib/public/request-origin";
 
 export async function GET(request: Request) {
   const session = getSessionFromRequest(request);
@@ -56,18 +59,46 @@ export async function POST(request: Request) {
     );
   }
 
-  const createdPassword = typeof body.password === "string" ? body.password : "";
+  const mailOn = await mailIsActive();
+  const createdPassword = mailOn ? generatePassword() : typeof body.password === "string" ? body.password : "";
   const createdProblem = passwordProblem(createdPassword);
   if (createdProblem) {
     return NextResponse.json(
-      { error: { code: "VALIDATION_ERROR", message: createdProblem } },
+      {
+        error: {
+          code: "VALIDATION_ERROR",
+          message: mailOn ? createdProblem : `${createdProblem} A password is required until the system mailbox is active.`,
+        },
+      },
       { status: 400 },
     );
   }
 
   try {
-    const user = await adapter.createUser(body);
-    return NextResponse.json({ data: user }, { status: 201 });
+    const user = await adapter.createUser({
+      ...body,
+      password: createdPassword,
+      data: { ...(body.data ?? {}), ...(mailOn ? { must_change_password: true } : {}) },
+    });
+    if (mailOn) {
+      try {
+        const origin = await requestOrigin();
+        const message = welcomeMessage({
+          to: user.email,
+          password: createdPassword,
+          loginUrl: `${origin}/login`,
+        });
+        await sendSystemMail({ to: user.email, ...message });
+      } catch (err) {
+        if (adapter.deleteUser) await adapter.deleteUser(user.id);
+        console.error("Welcome mail failed", err);
+        return NextResponse.json(
+          { error: { code: "MAIL_FAILED", message: "The welcome email could not be sent. The user was not created." } },
+          { status: 502 },
+        );
+      }
+    }
+    return NextResponse.json({ data: user, welcome_sent: mailOn }, { status: 201 });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.startsWith("VALIDATION:")) {

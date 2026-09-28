@@ -1,9 +1,18 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.4 (2026-09-25)
+**Current:** 1.0.5 (2026-09-28)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.5
+
+Account mail. Run `npm run db:migrate` before restart (`auth_token`).
+
+- Password reset, email confirmation, and a welcome message with a temporary password send once the system mailbox is active.
+- Forgot password is hidden on the sign-in page until a mailbox credential is assigned.
+- An agent administrator can still set a password through the API without the mailbox.
+- Catalog seed pack stays `1.0.4-r2`.
 
 ## 1.0.4
 

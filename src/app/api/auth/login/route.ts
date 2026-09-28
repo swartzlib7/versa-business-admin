@@ -55,7 +55,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const mustChangePassword = isInstallDefaultPassword(body.password);
+  const stored = (user.data ?? {}) as Record<string, unknown>;
+  const mustChangePassword =
+    isInstallDefaultPassword(body.password) || stored.must_change_password === true;
   const token = createSessionToken(user, { mustChangePassword });
   const headers = new Headers();
   headers.append("Set-Cookie", createSessionCookieHeader(token, request));

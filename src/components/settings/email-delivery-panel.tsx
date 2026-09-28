@@ -53,7 +53,7 @@ export function EmailDeliveryPanel() {
 
   return (
     <PanelShell
-      summary="This is the system email delivery credential. The mailbox configuration lives on the Credential record. Sending alerts is not built yet."
+      summary="This is the system email delivery credential. The mailbox configuration lives on the Credential record. Password reset, email confirmation, and the new-user welcome message send only after this credential has SMTP turned on."
       badge="Credential"
     >
       <div className="max-w-lg space-y-4">
@@ -72,7 +72,11 @@ export function EmailDeliveryPanel() {
             ))}
           </select>
         </label>
-        <p className="text-xs text-muted-foreground">This is the system email delivery credential.</p>
+        <p className="text-xs text-muted-foreground">
+          Password reset, confirming an email change, and the welcome message for a new user
+          depend on an active mailbox. Turn SMTP on in the Credential, then save it here.
+          An agent administrator can still set a password through the API without it.
+        </p>
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         {note ? <p className="text-sm text-muted-foreground">{note}</p> : null}
         <Button type="button" size="sm" onClick={() => void save()} disabled={saving}>

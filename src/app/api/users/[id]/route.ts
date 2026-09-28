@@ -3,6 +3,10 @@ import { adapter } from "@/lib/data";
 import { getSessionFromRequest, isAuthenticated, isAdmin } from "@/lib/auth";
 import type { UpdateUserInput } from "@/lib/data/adapter";
 import { passwordProblem } from "@/lib/password-policy";
+import { issueAccountToken } from "@/lib/auth/account-tokens";
+import { confirmEmailMessage, emailChangedNotice } from "@/lib/mail/branded-message";
+import { mailIsActive, sendSystemMail } from "@/lib/mail/system-mail";
+import { requestOrigin } from "@/lib/public/request-origin";
 
 function notFound(id: string) {
   return NextResponse.json(
@@ -90,10 +94,48 @@ export async function PATCH(
     }
   }
 
+  const current = await adapter.getUser(id);
+  if (!current) return notFound(id);
+  const nextEmail = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const emailChanging = nextEmail !== "" && nextEmail !== current.email.toLowerCase();
+  if (emailChanging) {
+    if (!(await mailIsActive())) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "MAIL_NOT_CONFIGURED",
+            message: "Set up the system mailbox in Settings → E-Mail Delivery before changing an email address.",
+          },
+        },
+        { status: 409 },
+      );
+    }
+    delete body.email;
+    const token = await issueAccountToken(id, "email_change", { email: nextEmail });
+    const origin = await requestOrigin();
+    const confirm = confirmEmailMessage({
+      confirmUrl: `${origin}/login/confirm-email?token=${encodeURIComponent(token)}`,
+      nextEmail,
+    });
+    try {
+      await sendSystemMail({ to: nextEmail, ...confirm });
+    } catch (err) {
+      console.error("Email confirmation failed", err);
+      return NextResponse.json(
+        { error: { code: "MAIL_FAILED", message: "The confirmation email could not be sent. The address was not changed." } },
+        { status: 502 },
+      );
+    }
+    const notice = emailChangedNotice({ nextEmail });
+    await sendSystemMail({ to: current.email, ...notice }).catch((err) => {
+      console.error("Email change notice failed", err);
+    });
+  }
+
   try {
     const user = await adapter.updateUser(id, body);
     if (!user) return notFound(id);
-    return NextResponse.json({ data: user });
+    return NextResponse.json({ data: user, email_change_pending: emailChanging });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (msg.startsWith("VALIDATION:")) {

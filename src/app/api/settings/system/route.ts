@@ -60,7 +60,8 @@ export async function GET(request: Request) {
       { status: 401 },
     );
   }
-  return NextResponse.json({ data: modesFromStore() });
+  const { mailIsActive } = await import("@/lib/mail/system-mail");
+  return NextResponse.json({ data: { ...modesFromStore(), email_active: await mailIsActive() } });
 }
 
 export async function PUT(request: Request) {

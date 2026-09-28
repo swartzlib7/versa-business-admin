@@ -17,9 +17,10 @@ function installHintsWhenDemo(): InstallHints | null {
 
 export default function LoginPage() {
   const installHints = installHintsWhenDemo();
+  const passwordReset = Boolean(getSiteSettingsFixture().email_delivery?.credential_id?.trim());
   return (
     <Suspense fallback={null}>
-      <LoginForm installHints={installHints} />
+      <LoginForm installHints={installHints} passwordReset={passwordReset} />
     </Suspense>
   );
 }
