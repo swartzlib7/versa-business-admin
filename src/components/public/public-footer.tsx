@@ -120,15 +120,17 @@ export function PublicFooter({
           <div className="flex flex-col items-center space-y-3 text-center">
             <h4 className="text-sm font-semibold">Contact</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <a
-                  href={`mailto:${business.contactEmail}`}
-                  className="hover:text-foreground"
-                >
-                  {business.contactEmail}
-                </a>
-              </li>
-              <li>{business.contactPhone}</li>
+              {business.contactEmail ? (
+                <li>
+                  <a
+                    href={`mailto:${business.contactEmail}`}
+                    className="hover:text-foreground"
+                  >
+                    {business.contactEmail}
+                  </a>
+                </li>
+              ) : null}
+              {business.contactPhone ? <li>{business.contactPhone}</li> : null}
               {addressLines(business.address).map((line) => (
                 <li key={line}>{line}</li>
               ))}

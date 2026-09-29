@@ -5,6 +5,7 @@
  */
 
 import { foldRecordTypeApiName } from "@/lib/catalog/name-aliases";
+import { isPrimaryAddress, locationOrgKey } from "@/lib/records/location-primary";
 
 export interface RecordInstance {
   id: string;
@@ -158,6 +159,7 @@ export function createInstance(input: CreateInstanceInput): CreateInstanceResult
     created_at: now,
   };
   mutableInstances.push(instance);
+  demoteOtherPrimaryLocations(instance);
   return { ok: true, instance };
 }
 
@@ -221,7 +223,21 @@ export function updateInstance(id: string, input: UpdateInstanceInput): UpdateIn
     lines,
   };
   mutableInstances[idx] = next;
+  demoteOtherPrimaryLocations(next);
   return { ok: true, instance: next };
+}
+
+function demoteOtherPrimaryLocations(keep: RecordInstance): void {
+  if (foldRecordTypeApiName(keep.type_api_name) !== 'location') return;
+  if (!isPrimaryAddress(keep.data.is_primary)) return;
+  const orgKey = locationOrgKey(keep.data, keep.org_id ?? '');
+  if (!orgKey) return;
+  for (const row of mutableInstances) {
+    if (row.id === keep.id || foldRecordTypeApiName(row.type_api_name) !== 'location') continue;
+    if (locationOrgKey(row.data, row.org_id ?? '') !== orgKey) continue;
+    if (!isPrimaryAddress(row.data.is_primary)) continue;
+    row.data = { ...row.data, is_primary: 'false' };
+  }
 }
 
 export function deleteInstance(id: string): boolean {

@@ -2,7 +2,7 @@ import { PublicLayout } from "@/components/public/public-layout";
 import { PublicGlossaryBook } from "@/components/glossary/public-surfaces";
 import { getPublicSiteSettings } from "@/lib/fixtures/site-settings";
 import { adapter } from "@/lib/data";
-import { normalizePublicContent } from "@/lib/public/site-content";
+import { footerContact } from "@/lib/public/footer-location";
 import { gatePublicHref } from "@/lib/nav-server";
 import { PublicMaintenance } from "@/components/public/public-maintenance";
 import { signedInVisitor } from "@/lib/public/visitor-session";
@@ -16,13 +16,13 @@ export default async function PublicTermsPage() {
   if (site.maintenance_mode === true && !(await signedInVisitor())) {
     return <PublicMaintenance brandName={site.brand_name} />;
   }
-  const pub = normalizePublicContent(site);
+  const foot = await footerContact();
   const businessProfile = await adapter.getBusinessProfile();
   const business = {
     ...businessProfile,
-    contactEmail: pub.contact_email,
-    contactPhone: pub.contact_phone,
-    address: pub.contact_address,
+    contactEmail: foot.email,
+    contactPhone: foot.phone,
+    address: foot.address,
   };
   return (
     <PublicLayout business={business} demo={site.demo_mode !== false} maintenance={site.maintenance_mode === true}>

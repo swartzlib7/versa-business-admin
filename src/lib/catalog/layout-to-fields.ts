@@ -163,12 +163,6 @@ export function helpForField(apiName: string): string | undefined {
   return FIELD_HELP[apiName];
 }
 
-export function placeIdLast<T extends { key?: string; api_name?: string }>(fields: T[]): T[] {
-  const id = fields.filter((f) => (f.key ?? f.api_name) === "id");
-  if (!id.length) return fields;
-  return [...fields.filter((f) => (f.key ?? f.api_name) !== "id"), ...id];
-}
-
 export function fieldDefinitionToUi(fd: FieldDefinition): UiListingField {
   const { options, optionLabels } = optionsForField(fd);
   return {
@@ -244,7 +238,7 @@ export function editFieldsFromCatalog(objectApiName: string): {
   const byApi = new Map(all.map((f) => [f.api_name, f]));
 
   if (!layout) {
-    const fields = placeIdLast(all.map(fieldDefinitionToUi));
+    const fields = all.map(fieldDefinitionToUi);
     return {
       layout: undefined,
       fields,
@@ -256,12 +250,10 @@ export function editFieldsFromCatalog(objectApiName: string): {
     id: sec.id,
     label: sec.label,
     columns: sec.columns,
-    fields: placeIdLast(
-      sec.fields
-        .map((k) => byApi.get(k))
-        .filter((fd): fd is FieldDefinition => Boolean(fd))
-        .map(fieldDefinitionToUi),
-    ),
+    fields: sec.fields
+      .map((k) => byApi.get(k))
+      .filter((fd): fd is FieldDefinition => Boolean(fd))
+      .map(fieldDefinitionToUi),
   }));
 
   const fields = sections.flatMap((s) => s.fields);
@@ -280,7 +272,7 @@ export function detailSectionsFromCatalog(objectApiName: string) {
           id: "all",
           label: "Details",
           columns: 2 as const,
-          fields: placeIdLast(all.map(fieldDefinitionToUi)),
+          fields: all.map(fieldDefinitionToUi),
         },
       ],
     };
@@ -291,12 +283,10 @@ export function detailSectionsFromCatalog(objectApiName: string) {
       id: sec.id,
       label: sec.label,
       columns: sec.columns,
-      fields: placeIdLast(
-        sec.fields
-          .map((k) => byApi.get(k))
-          .filter((fd): fd is FieldDefinition => Boolean(fd))
-          .map(fieldDefinitionToUi),
-      ),
+      fields: sec.fields
+        .map((k) => byApi.get(k))
+        .filter((fd): fd is FieldDefinition => Boolean(fd))
+        .map(fieldDefinitionToUi),
     })),
   };
 }

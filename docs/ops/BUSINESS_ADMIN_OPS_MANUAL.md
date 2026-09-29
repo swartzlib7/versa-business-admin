@@ -412,6 +412,10 @@ The stock Versa AGi slides, Analysis page, and phone styles install only on a ne
 
 Same steps as §5.2.1. `npm run db:migrate` adds `auth_token`. Health reports `"version":"1.0.5"`. Leave `.data/site-settings.json` in place. Catalog seed pack stays `1.0.4-r2`.
 
+### 5.2.3 Existing install to 1.0.6
+
+Same steps as §5.2.1. No new migration. Catalog seed pack becomes `1.0.6-r3`. The first start replaces free-text Status fields with picklists and adds Phone and Email on Location. The footer then reads the primary Location. Health reports `"version":"1.0.6"`. Leave `.data/site-settings.json` in place.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -519,6 +523,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-09-29 | §5.2.3: upgrade an already-customized install to 1.0.6. Catalog seed pack `1.0.6-r3` replaces free-text Status fields with picklists and adds Location Phone and Email. |
 | 2026-09-28 | §5.2.2: upgrade an already-customized install to 1.0.5. `db:migrate` adds `auth_token`. |
 | 2026-09-26 | §5.2.1: upgrade an already-customized install to 1.0.4. Keep `.data/site-settings.json` until the first boot copies it. §3.7 backup row matches. New-host list stays §2.8. |
 | 2026-08-18 | Task #240 opened — Stephen required setup/maintenance/upgrades/ops manual |

@@ -1,9 +1,22 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.5 (2026-09-28)
+**Current:** 1.0.6 (2026-09-29)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.6
+
+Status fields are picklists. Catalog seed pack `1.0.6-r3`. The next start rebases system Status fields and adds Phone and Email on Location. No database migration.
+
+- The visitor footer address, phone, and email come from the Location with Primary address on. A Primary location is created when none exists.
+
+- Contacts and Credentials use Record status (Active, Archived).
+- Products use Product status (Available, Beta, Coming soon).
+- Distribution, Executive, Communications, Dissemination, Production, Qualification, and Treasury use Faculty status (Active, Standby, Connected).
+- Vendor uses Vendor status (Active, Standby, Connected).
+- Organization, Customer, Partner, and Branch use Record status.
+- A new record type that does not declare Status receives Record status.
 
 ## 1.0.5
 

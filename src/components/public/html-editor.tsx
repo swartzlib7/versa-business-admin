@@ -74,7 +74,7 @@ export function HtmlEditor({
   value: string;
   onChange?: (html: string) => void;
   format?: PageBodyFormat | "page";
-  onFormatChange?: (format: PageBodyFormat) => void;
+  onFormatChange?: (format: PageBodyFormat | "page") => void;
   readOnly?: boolean;
 }) {
   const mode = normalizePageBodyFormat(format);
@@ -91,7 +91,7 @@ export function HtmlEditor({
       Link.configure({ openOnClick: false, autolink: true }),
       Placeholder.configure({ placeholder: "Write the page…" }),
     ],
-    content: value || "",
+    content: format === "page" ? "" : value || "",
     editorProps: {
       attributes: {
         class: "px-3 py-2.5 text-sm",
@@ -109,24 +109,55 @@ export function HtmlEditor({
   }, [editor, visual]);
 
   useEffect(() => {
-    if (!editor || editor.isFocused || source) return;
+    if (!editor || format === "page" || editor.isFocused || source) return;
     const next = value || "";
     if (editor.getHTML() === next) return;
     editor.commands.setContent(next, { emitUpdate: false });
-  }, [editor, value, source]);
+  }, [editor, value, source, format]);
+
+  const formatBar = (
+    <div className="flex flex-wrap items-center gap-1">
+      <Segment
+        active={format === "text"}
+        disabled={readOnly}
+        onClick={() => {
+          setSource(false);
+          onFormatChange?.("text");
+        }}
+      >
+        <Type className="size-3.5" />
+        Text
+      </Segment>
+      <Segment
+        active={format !== "page" && format !== "text"}
+        disabled={readOnly}
+        onClick={() => onFormatChange?.("html")}
+      >
+        <FileCode className="size-3.5" />
+        HTML
+      </Segment>
+      <Segment active={format === "page"} disabled={readOnly} onClick={() => onFormatChange?.("page")}>
+        <Code2 className="size-3.5" />
+        Full page
+      </Segment>
+    </div>
+  );
 
   if (format === "page") {
     return (
-      <label className="flex flex-col gap-1.5">
-        {label ? <span className="text-xs font-medium text-muted-foreground">{label}</span> : null}
+      <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-background">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30 px-2 py-1.5">
+          <span className="text-xs font-medium text-muted-foreground">{label}</span>
+          {formatBar}
+        </div>
         <textarea
-          className="min-h-[280px] w-full resize-y rounded-md border border-border bg-background px-3 py-2.5 font-mono text-[13px] leading-relaxed focus:outline-none"
+          className="min-h-[280px] w-full resize-y bg-background px-3 py-2.5 font-mono text-[13px] leading-relaxed focus:outline-none"
           value={value}
           readOnly={readOnly}
           placeholder="<style>…</style><h1>Page</h1>"
           onChange={(e) => onChange?.(sanitizeCanvasHtml(e.target.value))}
         />
-      </label>
+      </div>
     );
   }
 
@@ -175,6 +206,10 @@ export function HtmlEditor({
           <Segment active={mode === "html"} onClick={() => onFormatChange?.("html")}>
             <FileCode className="size-3.5" />
             HTML
+          </Segment>
+          <Segment active={false} onClick={() => onFormatChange?.("page")}>
+            <Code2 className="size-3.5" />
+            Full page
           </Segment>
         </div>
       </div>

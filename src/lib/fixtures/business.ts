@@ -1,6 +1,7 @@
 // White-label business profile fixture.
 // VBA public facet template — generic placeholder content any business can adopt.
-// Replace this profile with your own brand and contact details.
+// The visitor footer address, phone, and email are the primary Location record, not these fields.
+// address, contactPhone, and contactEmail are only the starting values when that Location is first created.
 
 export interface BusinessProfile {
   name: string;

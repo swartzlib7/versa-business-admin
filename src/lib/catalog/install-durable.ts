@@ -99,6 +99,9 @@ export function ensureDurableCatalog(): void {
   void import("@/lib/sample-data/apply").then((mod) => {
     void mod.hydrateSampleData();
   });
+  void import("@/lib/public/footer-location").then((mod) => {
+    void mod.ensureFooterLocation();
+  });
   void import("@/lib/public/ensure-cycle-strip").then((mod) => {
     void mod.ensureCycleStripRecords();
   });

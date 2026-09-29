@@ -6,6 +6,7 @@ import { PublicSection } from "@/components/public/public-section";
 import { getPublicSiteSettings } from "@/lib/fixtures/site-settings";
 import { adapter } from "@/lib/data";
 import { loadCycleSteps, normalizePublicContent } from "@/lib/public/site-content";
+import { footerContact } from "@/lib/public/footer-location";
 import {
   canvasForSlug,
   canvasMetricVars,
@@ -89,6 +90,7 @@ export default async function CustomCanvasPage({
     .filter(isRowOn)
     .flatMap((section) => visibleCells(ensureRowCells(section)).filter(isCellOn));
   const paints = await resolveCellPaints(paintCells);
+  const foot = await footerContact();
   let businessProfile: Awaited<ReturnType<typeof adapter.getBusinessProfile>>;
   try {
     businessProfile = await adapter.getBusinessProfile();
@@ -101,17 +103,17 @@ export default async function CustomCanvasPage({
       description: "",
       purpose: "",
       production: "",
-      contactEmail: pub.contact_email ?? "",
-      contactPhone: pub.contact_phone ?? "",
-      address: pub.contact_address ?? "",
+      contactEmail: foot.email,
+      contactPhone: foot.phone,
+      address: foot.address,
       website: "",
     };
   }
   const business = {
     ...businessProfile,
-    contactEmail: pub.contact_email,
-    contactPhone: pub.contact_phone,
-    address: pub.contact_address,
+    contactEmail: foot.email,
+    contactPhone: foot.phone,
+    address: foot.address,
   };
 
   const fullHtml = canvas.content_mode === "html" ? await pageBodyHtml(canvas.html_page_id) : "";

@@ -172,6 +172,8 @@ export const SAMPLE_RECORDS: SampleRecordSeed[] = [
       country: "US",
       is_primary: "true",
       address: "100 Mission Way, Austin, TX 78701",
+      phone: "+1 (555) 010-2000",
+      email: "hq@example.com",
       external_id: sampleExternalId("location", "hq"),
     },
     org_external_id: sampleExternalId("org", "customer"),

@@ -33,6 +33,7 @@ import { CanvasHtmlPage } from "@/components/public/canvas-html-page";
 import { CanvasSkyFlag } from "@/components/public/canvas-sky-flag";
 import { signedInVisitor } from "@/lib/public/visitor-session";
 import { pageBodyHtml } from "@/lib/public/page-record";
+import { footerContact } from "@/lib/public/footer-location";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,7 @@ export default async function HomePage() {
     builder.home_content_mode === "html" ? await pageBodyHtml(builder.home_html_page_id) : "";
   const pageStyles = await pageBodyHtml(builder.home_style_page_id);
 
+  const foot = await footerContact();
   const emptyProfile = {
     name: site.brand_name,
     slogan: "",
@@ -102,9 +104,9 @@ export default async function HomePage() {
     description: "",
     purpose: "",
     production: "",
-    contactEmail: pub.contact_email ?? "",
-    contactPhone: pub.contact_phone ?? "",
-    address: pub.contact_address ?? "",
+    contactEmail: foot.email,
+    contactPhone: foot.phone,
+    address: foot.address,
     website: "",
   };
   let businessProfile = emptyProfile;
@@ -116,9 +118,9 @@ export default async function HomePage() {
   const homeLogo = resolveLogoSurfaces(site as unknown as Record<string, unknown>).home;
   const business = {
     ...businessProfile,
-    contactEmail: pub.contact_email,
-    contactPhone: pub.contact_phone,
-    address: pub.contact_address,
+    contactEmail: foot.email,
+    contactPhone: foot.phone,
+    address: foot.address,
   };
 
   if (site.maintenance_mode === true && !(await signedInVisitor())) {

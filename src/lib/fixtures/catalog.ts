@@ -2260,7 +2260,7 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-production_product-category', object_api_name: 'production_product', api_name: 'category', label: 'Category', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'product_category', lookup_object_api_name: null, sort_order: 20, active: true , zone_role: 'header' },
   { id: 'fld-production_product-description', object_api_name: 'production_product', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true , zone_role: 'header' },
   { id: 'fld-production_product-features', object_api_name: 'production_product', api_name: 'features', label: 'Features', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 32, active: true, zone_role: 'header' },
-  { id: 'fld-production_product-status', object_api_name: 'production_product', api_name: 'status', label: 'Status', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true , zone_role: 'header' },
+  { id: 'fld-production_product-status', object_api_name: 'production_product', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'product_status', lookup_object_api_name: null, sort_order: 40, active: true , zone_role: 'header' },
   { id: 'fld-production_service-name', object_api_name: 'production_service', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true , zone_role: 'header' },
   { id: 'fld-production_service-status', object_api_name: 'production_service', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'service_status', lookup_object_api_name: null, sort_order: 20, active: true , zone_role: 'header' },
   { id: 'fld-production_service-description', object_api_name: 'production_service', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true , zone_role: 'header' },
@@ -2408,6 +2408,7 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-qualification_certifications_awards-status', object_api_name: 'qualification_certifications_awards', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-qualification_certifications_awards-notes', object_api_name: 'qualification_certifications_awards', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-contact-name', object_api_name: 'contact', api_name: 'name', label: 'Contact name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-contact-status', object_api_name: 'contact', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 15, active: true },
   { id: 'fld-contact-contact_kind', object_api_name: 'contact', api_name: 'contact_kind', label: 'Contact kind', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'contact_kind', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-contact-email', object_api_name: 'contact', api_name: 'email', label: 'Email', data_type: 'email', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-contact-phone', object_api_name: 'contact', api_name: 'phone', label: 'Phone', data_type: 'phone', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
@@ -2439,6 +2440,8 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-location-city', object_api_name: 'location', api_name: 'city', label: 'City', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 26, active: true },
   { id: 'fld-location-state', object_api_name: 'location', api_name: 'state', label: 'State', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 28, active: true },
   { id: 'fld-location-postal_code', object_api_name: 'location', api_name: 'postal_code', label: 'Postal code', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 29, active: true },
+  { id: 'fld-location-phone', object_api_name: 'location', api_name: 'phone', label: 'Phone', data_type: 'phone', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 31, active: true },
+  { id: 'fld-location-email', object_api_name: 'location', api_name: 'email', label: 'Email', data_type: 'email', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 33, active: true },
   { id: 'fld-location-is_primary', object_api_name: 'location', api_name: 'is_primary', label: 'Primary address', data_type: 'boolean', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 32, active: true },
   { id: 'fld-location-organization_id', object_api_name: 'location', api_name: 'organization_id', label: 'Organization', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 35, active: true },
   { id: 'fld-location-external_id', object_api_name: 'location', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
@@ -2498,6 +2501,7 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
 
   // Collaboration / Vendor / {Credentials | Integrations | Exchange}
   { id: 'fld-vendor_credential-name', object_api_name: 'vendor_credential', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-vendor_credential-status', object_api_name: 'vendor_credential', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 25, active: true },
   { id: 'fld-vendor_credential-auth_type', object_api_name: 'vendor_credential', api_name: 'auth_type', label: 'Auth type', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'credential_auth_type', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-vendor_credential-organization_id', object_api_name: 'vendor_credential', api_name: 'organization_id', label: 'Vendor', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 30, active: true },
   { id: 'fld-vendor_credential-configuration', object_api_name: 'vendor_credential', api_name: 'configuration', label: 'Configuration', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true, is_secret: true },
@@ -2522,6 +2526,21 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-vendor_exchange-replicate', object_api_name: 'vendor_exchange', api_name: 'replicate', label: 'Replicate', data_type: 'boolean', is_system: true, is_required: false, default_value: 'false', value_set_api_name: null, lookup_object_api_name: null, sort_order: 100, active: true },
   { id: 'fld-vendor_exchange-error_message', object_api_name: 'vendor_exchange', api_name: 'error_message', label: 'Error message', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 110, active: true },
   { id: 'fld-vendor_exchange-external_id', object_api_name: 'vendor_exchange', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 120, active: true },
+
+  // Status is a picklist. These objects used to receive a free-text Status
+  // from ensureObjectForRecordType. Seed pack 1.0.6-r1 replaces that field.
+  { id: 'fld-public-status', object_api_name: 'public', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'faculty_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-executive-status', object_api_name: 'executive', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'faculty_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-communications-status', object_api_name: 'communications', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'faculty_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-dissemination-status', object_api_name: 'dissemination', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'faculty_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-production-status', object_api_name: 'production', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'faculty_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-qualification-status', object_api_name: 'qualification', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'faculty_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-treasury-status', object_api_name: 'treasury', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'faculty_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-vendor-status', object_api_name: 'vendor', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'vendor_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-customer-status', object_api_name: 'customer', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-partner-status', object_api_name: 'partner', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-branch-status', object_api_name: 'branch', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-organization-status', object_api_name: 'organization', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 15, active: true },
 ];
 
 /** Platform defaults on every seeded faculty/collaboration/environment object. */
@@ -3392,7 +3411,12 @@ export function ensureObjectForRecordType(input: {
     apiName: string,
     label: string,
     sortOrder: number,
-    opts?: { data_type?: FieldDefinition["data_type"]; required?: boolean; lookup?: string | null },
+    opts?: {
+      data_type?: FieldDefinition["data_type"];
+      required?: boolean;
+      lookup?: string | null;
+      value_set?: string | null;
+    },
   ) => {
     const has = catalogLive().fields.some(
       (f) => f.object_api_name === input.api_name && f.api_name === apiName,
@@ -3407,7 +3431,7 @@ export function ensureObjectForRecordType(input: {
       is_system: true,
       is_required: opts?.required ?? apiName === "name",
       default_value: null,
-      value_set_api_name: null,
+      value_set_api_name: opts?.value_set ?? null,
       lookup_object_api_name: opts?.lookup ?? null,
       sort_order: sortOrder,
       active: true,
@@ -3422,7 +3446,7 @@ export function ensureObjectForRecordType(input: {
       lookup: seed.lookup_object_api_name,
     });
   }
-  ensureField("status", "Status", 20);
+  ensureField("status", "Status", 20, { data_type: "picklist", value_set: "record_status" });
   if (changed) persistCatalog();
   return obj;
 }

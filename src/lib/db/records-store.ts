@@ -1,5 +1,6 @@
 import '@/lib/catalog/install-durable';
 import { foldRecordTypeApiName } from '@/lib/catalog/name-aliases';
+import { isPrimaryAddress, locationOrgKey, siblingPrimaryIds } from '@/lib/records/location-primary';
 /**
  * #245 Slice E1 - Horizon 1 core persistence (rev E section 4.2).
  * record_type / record / record_line persistence when DATA_SOURCE is postgres.
@@ -30,6 +31,36 @@ import {
   recordType as recordTypeTable,
   users as usersTable,
 } from './schema';
+
+async function releaseOtherPrimaryAddresses(keepId: string, orgKey: string): Promise<void> {
+  if (!orgKey) return;
+  const db = getDb();
+  const rows = await db
+    .select({ id: recordTable.id, header: recordTable.header, orgId: recordTable.orgId })
+    .from(recordTable)
+    .innerJoin(recordTypeTable, eq(recordTable.recordTypeId, recordTypeTable.id))
+    .where(eq(recordTypeTable.apiName, 'location'));
+  const drop = new Set(
+    siblingPrimaryIds(
+      rows.map((row) => ({
+        id: row.id,
+        org_id: row.orgId,
+        data: headerToStrings(row.header),
+      })),
+      keepId,
+      orgKey,
+    ),
+  );
+  for (const row of rows) {
+    if (!drop.has(row.id)) continue;
+    const header = headerToStrings(row.header);
+    header.is_primary = 'false';
+    await db
+      .update(recordTable)
+      .set({ header, updatedAt: new Date() })
+      .where(eq(recordTable.id, row.id));
+  }
+}
 
 async function scheduleIntegrationTaken(integrationId: string, exceptId?: string): Promise<boolean> {
   const db = getDb();
@@ -539,6 +570,10 @@ export async function createRecordDb(
     }
   }
 
+  if (type.apiName === 'location' && isPrimaryAddress(header.is_primary)) {
+    await releaseOtherPrimaryAddresses(recordId, locationOrgKey(header, orgResolved.orgId));
+  }
+
   const instance = await getRecordDb(recordId);
   return instance
     ? { ok: true, instance }
@@ -617,6 +652,13 @@ export async function updateRecordDb(
       ...(orgUpdate ? { orgId: orgUpdate.orgId } : {}),
     })
     .where(eq(recordTable.id, id));
+
+  if (curType[0]?.apiName === 'location' && isPrimaryAddress(nextHeader.is_primary)) {
+    await releaseOtherPrimaryAddresses(
+      id,
+      locationOrgKey(nextHeader, orgUpdate?.orgId ?? cur[0].orgId),
+    );
+  }
 
   if (input.lines !== undefined) {
     const typeRows = await db
