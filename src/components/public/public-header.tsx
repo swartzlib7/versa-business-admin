@@ -352,20 +352,39 @@ export function PublicHeader() {
                 {canvas.label}
               </Link>
             ))}
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                  onClick={() => setOpen(false)}
-                >
-                  <Icon className="h-4 w-4 shrink-0" aria-hidden />
-                  {link.label}
-                </Link>
-              );
-            })}
+            {(showSubMenu && subCanvas && subCanvas.content_mode !== "html"
+              ? subCanvas.sections.filter((section) => isRowOn(section) && section.in_menu !== false)
+              : homeMenu
+            ).map((section) => (
+              <Link
+                key={section.id}
+                href={
+                  showSubMenu && subCanvas
+                    ? `${customCanvasHref(subCanvas)}#${section.id}`
+                    : `/#${section.id}`
+                }
+                className="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => setOpen(false)}
+              >
+                {section.label}
+              </Link>
+            ))}
+            {navLinks
+              .filter((link) => !link.href.startsWith("/#"))
+              .map((link) => {
+                const Icon = link.icon;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    onClick={() => setOpen(false)}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                    {link.label}
+                  </Link>
+                );
+              })}
             <Button
               type="button"
               variant="outline"

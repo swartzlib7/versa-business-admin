@@ -1,9 +1,15 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.7 (2026-10-02)
+**Current:** 1.0.8 (2026-10-02)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.8
+
+Bug fix. No new migration. Catalog seed pack stays `1.0.6-r3`.
+
+- The phone menu uses the current canvas rows. It no longer keeps old public-link names.
 
 ## 1.0.7
 

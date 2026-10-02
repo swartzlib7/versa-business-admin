@@ -420,6 +420,10 @@ Same steps as §5.2.1. No new migration. Catalog seed pack becomes `1.0.6-r3`. T
 
 Same steps as §5.2.1. No new migration. Catalog seed pack stays `1.0.6-r3`. Health reports `"version":"1.0.7"`. Leave `.data/site-settings.json` in place.
 
+### 5.2.5 Existing install to 1.0.8
+
+Same steps as §5.2.1. No new migration. Catalog seed pack stays `1.0.6-r3`. Health reports `"version":"1.0.8"`. Leave `.data/site-settings.json` in place.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -527,6 +531,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-10-02 | §5.2.5: upgrade an already-customized install to 1.0.8. Phone menu bug fix. No new migration. |
 | 2026-10-02 | §5.2.4: upgrade an already-customized install to 1.0.7. No new migration. Catalog seed pack stays `1.0.6-r3`. |
 | 2026-09-29 | §5.2.3: upgrade an already-customized install to 1.0.6. Catalog seed pack `1.0.6-r3` replaces free-text Status fields with picklists and adds Location Phone and Email. |
 | 2026-09-28 | §5.2.2: upgrade an already-customized install to 1.0.5. `db:migrate` adds `auth_token`. |
