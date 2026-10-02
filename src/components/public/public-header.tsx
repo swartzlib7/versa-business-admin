@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X, Moon, Compass, Cloud, ChevronDown, ChevronRight } from "lucide-react";
+import { Menu, X, Moon, Compass, Cloud, Sun, Sunset, ChevronDown, ChevronRight } from "lucide-react";
 import { PublicBrandMusic } from "@/components/public/public-brand-music";
 import { Button } from "@/components/ui/button";
 import { buttonVariants } from "@/components/ui/button";
@@ -24,12 +24,16 @@ import {
 } from "@/lib/public/page-builder";
 
 function ThemeIcon({ theme }: { theme: UiTheme }) {
+  if (theme === "light") return <Sun className="h-4 w-4" />;
+  if (theme === "dusk") return <Sunset className="h-4 w-4" />;
   if (theme === "architect") return <Compass className="h-4 w-4" />;
   if (theme === "slate") return <Cloud className="h-4 w-4" />;
   return <Moon className="h-4 w-4" />;
 }
 
 function themeLabel(theme: UiTheme): string {
+  if (theme === "light") return "Light";
+  if (theme === "dusk") return "Dusk";
   if (theme === "architect") return "Architect";
   if (theme === "slate") return "Slate";
   return "Dark";

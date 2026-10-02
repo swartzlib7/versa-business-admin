@@ -1,9 +1,21 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.6 (2026-09-29)
+**Current:** 1.0.7 (2026-10-02)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.7
+
+No new migration. Catalog seed pack stays `1.0.6-r3`.
+
+- Remove logo clears the image. Menu, home, and footer show the site icon until a logo is chosen again.
+- The visitor theme button cycles Light, Dusk, Slate, Dark, and Architect. Settings → Appearance sets the default site theme.
+- Home page logo size is 25% to 150%. Menu and footer stay 75% to 125%.
+- Statistics and Pages are Custom Records in the sidebar, above Records Editor.
+- A Pages body opens as Raw HTML in CodeMirror. Rich text asks before TipTap removes tags.
+- A saved layout keeps the ID field where you place it.
+- Only one Location per Organization can have Primary address on. The footer Location belongs to the Primary Org.
 
 ## 1.0.6
 

@@ -20,8 +20,7 @@ import {
   LOGO_PREVIEW_BOX_PX,
   LOGO_PX_MAX,
   LOGO_PX_MIN,
-  LOGO_SCALE_MAX,
-  LOGO_SCALE_MIN,
+  logoScaleLimits,
   LOGO_UPLOAD_HINT,
   SKY_DENSITY_DEFAULT,
   SKY_STARS_ZOOM_DEFAULT,
@@ -247,11 +246,11 @@ function LogoSurfaceColumn({
         </label>
         <input
           type="range"
-          min={LOGO_SCALE_MIN}
-          max={LOGO_SCALE_MAX}
+          min={logoScaleLimits(surfaceId).min}
+          max={logoScaleLimits(surfaceId).max}
           step={0.01}
           value={surface.scale}
-          onChange={(e) => patch({ scale: clampLogoScale(Number(e.target.value)) })}
+          onChange={(e) => patch({ scale: clampLogoScale(Number(e.target.value), surfaceId) })}
           className="w-full"
           style={{ accentColor: draft.color }}
         />
@@ -419,13 +418,13 @@ export function BrandingPanel({
         setDraft({
           name: typeof b.brand_name === "string" ? b.brand_name : brand.brand_name,
           color: typeof b.brand_color === "string" ? b.brand_color : brand.brand_color,
-          logo: typeof b.brand_logo_url === "string" && b.brand_logo_url ? b.brand_logo_url : SEED_BRAND_LOGO_HREF,
+          logo: b.brand_logo_url === "" ? "" : typeof b.brand_logo_url === "string" && b.brand_logo_url ? b.brand_logo_url : SEED_BRAND_LOGO_HREF,
           logoName:
-            b.brand_logo_is_seed !== false
-              ? SEED_BRAND_LOGO_NAME
-              : typeof b.brand_logo_url === "string" && b.brand_logo_url
-                ? "Current logo"
-                : SEED_BRAND_LOGO_NAME,
+            b.brand_logo_url === ""
+              ? "Site icon"
+              : b.brand_logo_is_seed !== false
+                ? SEED_BRAND_LOGO_NAME
+                : "Current logo",
           surfaces: resolveLogoSurfaces(b as Record<string, unknown>),
           variant: resolveConstellationVariant(b.constellation_variant),
           density: typeof b.constellation_density === "number" ? b.constellation_density : SKY_DENSITY_DEFAULT,
@@ -444,7 +443,7 @@ export function BrandingPanel({
           musicFile: null,
           musicRemoved: false,
           musicIsSeed: b.brand_music_is_seed !== false,
-          logoIsSeed: b.brand_logo_is_seed !== false,
+          logoIsSeed: b.brand_logo_url !== "" && b.brand_logo_is_seed !== false,
           nameInMenu: b.brand_name_in_menu !== false,
         });
       })
@@ -509,7 +508,7 @@ export function BrandingPanel({
         body: JSON.stringify({
           brand_name: draft.name.trim(),
           brand_color: draft.color,
-          brand_logo_url: draft.logo || null,
+          brand_logo_url: draft.logo === "" ? "" : draft.logo || null,
           brand_logo_surfaces: draft.surfaces,
           brand_logo_opacity: draft.surfaces.home.opacity,
           brand_logo_glow: draft.surfaces.home.glow,
@@ -735,7 +734,7 @@ export function BrandingPanel({
             <label className="text-sm font-medium">Logo</label>
             <FileField
               accept="image/png,image/jpeg,image/svg+xml,image/webp"
-              filename={draft.logoName || (draft.logo ? "Current logo" : SEED_BRAND_LOGO_NAME)}
+              filename={draft.logoName || (draft.logo ? "Current logo" : "Site icon")}
               chooseLabel="Choose file"
               emptyLabel="No file chosen"
               removeLabel="Remove logo"
@@ -744,14 +743,14 @@ export function BrandingPanel({
                 void handleLogoFile(file);
               }}
               onRemove={
-                draft.logoIsSeed
-                  ? undefined
-                  : () =>
+                draft.logo
+                  ? () =>
                       patch({
-                        logo: SEED_BRAND_LOGO_HREF,
-                        logoName: SEED_BRAND_LOGO_NAME,
-                        logoIsSeed: true,
+                        logo: "",
+                        logoName: "Site icon",
+                        logoIsSeed: false,
                       })
+                  : undefined
               }
             />
           </div>
@@ -768,7 +767,7 @@ export function BrandingPanel({
               <LogoSurfaceColumn
                 label="Home page"
                 surfaceId="home"
-                logoSize={logoPx(LOGO_BASE_PX.homeDesktop, draft.surfaces.home.scale)}
+                logoSize={logoPx(LOGO_BASE_PX.homeDesktop, draft.surfaces.home.scale, "home")}
                 draft={draft}
                 onChange={patchSurface}
               />
@@ -782,7 +781,7 @@ export function BrandingPanel({
             </div>
             <p className="text-xs text-muted-foreground">
               Each well is {LOGO_PREVIEW_BOX_PX}×{LOGO_PREVIEW_BOX_PX} px (home size at 100%).
-              Size sliders are 75% to 125% of the current surface size.
+              Menu and footer size is 75% to 125%. Home page size is 25% to 150%.
             </p>
           </div>
         </div>

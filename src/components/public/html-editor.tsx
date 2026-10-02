@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -8,7 +8,8 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Underline from "@tiptap/extension-underline";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { sanitizeCanvasHtml } from "@/lib/public/sanitize-html";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { HtmlCodeEditor } from "@/components/public/html-code-editor";
 import {
   Bold,
   Code2,
@@ -36,6 +37,16 @@ export function sanitizePublicHtml(raw: string): string {
 export function normalizePageBodyFormat(raw: string | undefined | null): PageBodyFormat {
   return raw === "text" ? "text" : "html";
 }
+
+/** Markup TipTap will drop. Used only to warn before switching into rich text. */
+export function isDocumentHtml(raw: string | undefined | null): boolean {
+  return /<!doctype|<html[\s>]|<head[\s>]|<\/?div[\s>]|<style[\s>]|<link[\s>]|<section[\s>]|<article[\s>]/i.test(
+    raw ?? "",
+  );
+}
+
+const TIPTAP_WARNING =
+  "Rich text uses TipTap. It will remove div, style, section, and other tags it does not support. That change is what gets saved.";
 
 function Segment({
   active,
@@ -78,8 +89,15 @@ export function HtmlEditor({
   readOnly?: boolean;
 }) {
   const mode = normalizePageBodyFormat(format);
+  const rawHtml = format === "page";
   const [source, setSource] = useState(false);
-  const visual = mode === "html" && !source && !readOnly;
+  const [warnOpen, setWarnOpen] = useState(false);
+  const visual = mode === "html" && !source && !readOnly && !rawHtml;
+  const formatRef = useRef(format);
+  const visualRef = useRef(visual);
+  const convertRef = useRef(false);
+  formatRef.current = format;
+  visualRef.current = visual;
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -91,7 +109,7 @@ export function HtmlEditor({
       Link.configure({ openOnClick: false, autolink: true }),
       Placeholder.configure({ placeholder: "Write the page…" }),
     ],
-    content: format === "page" ? "" : value || "",
+    content: rawHtml ? "" : value || "",
     editorProps: {
       attributes: {
         class: "px-3 py-2.5 text-sm",
@@ -99,6 +117,7 @@ export function HtmlEditor({
       },
     },
     onUpdate: ({ editor: current }) => {
+      if (formatRef.current === "page" || !visualRef.current) return;
       onChange?.(sanitizePublicHtml(current.getHTML()));
     },
   });
@@ -109,11 +128,49 @@ export function HtmlEditor({
   }, [editor, visual]);
 
   useEffect(() => {
-    if (!editor || format === "page" || editor.isFocused || source) return;
+    if (!editor || rawHtml || editor.isFocused || source) return;
     const next = value || "";
+    if (!next) return;
     if (editor.getHTML() === next) return;
     editor.commands.setContent(next, { emitUpdate: false });
-  }, [editor, value, source, format]);
+    if (convertRef.current && isDocumentHtml(next)) {
+      convertRef.current = false;
+      const stripped = editor.getHTML();
+      if (stripped && stripped !== next) onChange?.(stripped);
+    }
+  }, [editor, value, source, rawHtml, onChange]);
+
+  const chooseRichText = () => {
+    if (readOnly || (format === "html" && !isDocumentHtml(value))) {
+      setSource(false);
+      return;
+    }
+    if (rawHtml || isDocumentHtml(value)) {
+      setWarnOpen(true);
+      return;
+    }
+    setSource(false);
+    onFormatChange?.("html");
+  };
+
+  const confirmRichText = () => {
+    setWarnOpen(false);
+    convertRef.current = true;
+    setSource(false);
+    onFormatChange?.("html");
+  };
+
+  const tipTapWarning = (
+    <ConfirmDialog
+      open={warnOpen}
+      title="Switch to rich text?"
+      description={TIPTAP_WARNING}
+      confirmLabel="Use rich text"
+      tone="warning"
+      onConfirm={confirmRichText}
+      onCancel={() => setWarnOpen(false)}
+    />
+  );
 
   const formatBar = (
     <div className="flex flex-wrap items-center gap-1">
@@ -131,32 +188,27 @@ export function HtmlEditor({
       <Segment
         active={format !== "page" && format !== "text"}
         disabled={readOnly}
-        onClick={() => onFormatChange?.("html")}
+        onClick={chooseRichText}
       >
         <FileCode className="size-3.5" />
-        HTML
+        Rich text
       </Segment>
       <Segment active={format === "page"} disabled={readOnly} onClick={() => onFormatChange?.("page")}>
         <Code2 className="size-3.5" />
-        Full page
+        Raw HTML
       </Segment>
     </div>
   );
 
-  if (format === "page") {
+  if (rawHtml) {
     return (
       <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-background">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/30 px-2 py-1.5">
           <span className="text-xs font-medium text-muted-foreground">{label}</span>
           {formatBar}
         </div>
-        <textarea
-          className="min-h-[280px] w-full resize-y bg-background px-3 py-2.5 font-mono text-[13px] leading-relaxed focus:outline-none"
-          value={value}
-          readOnly={readOnly}
-          placeholder="<style>…</style><h1>Page</h1>"
-          onChange={(e) => onChange?.(sanitizeCanvasHtml(e.target.value))}
-        />
+        <HtmlCodeEditor value={value} readOnly={readOnly} onChange={onChange} />
+        {tipTapWarning}
       </div>
     );
   }
@@ -203,13 +255,13 @@ export function HtmlEditor({
             <Type className="size-3.5" />
             Text
           </Segment>
-          <Segment active={mode === "html"} onClick={() => onFormatChange?.("html")}>
+          <Segment active={mode === "html"} onClick={chooseRichText}>
             <FileCode className="size-3.5" />
-            HTML
+            Rich text
           </Segment>
           <Segment active={false} onClick={() => onFormatChange?.("page")}>
             <Code2 className="size-3.5" />
-            Full page
+            Raw HTML
           </Segment>
         </div>
       </div>
@@ -275,6 +327,7 @@ export function HtmlEditor({
           <EditorContent editor={editor} />
         </div>
       )}
+      {tipTapWarning}
     </div>
   );
 }

@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Moon, Sun, Compass, Cloud, Sunset } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUiTheme, type UiTheme } from "@/components/shell/theme-provider";
 import { PanelShell } from "@/components/settings/settings-chrome";
+import { isUiTheme } from "@/lib/ui-themes";
 
 const THEME_OPTIONS: {
   id: UiTheme;
@@ -45,12 +47,38 @@ const THEME_OPTIONS: {
 
 export function AppearancePanel() {
   const { theme: uiTheme, setTheme } = useUiTheme();
+  const [siteDefault, setSiteDefault] = useState<UiTheme>("dark");
+  const [savingDefault, setSavingDefault] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings/system", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        const value = json?.data?.public_default_theme;
+        if (typeof value === "string" && isUiTheme(value)) setSiteDefault(value);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const saveDefault = (next: UiTheme) => {
+    setSiteDefault(next);
+    setSavingDefault(true);
+    fetch("/api/settings/system", {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ public_default_theme: next }),
+    })
+      .catch(() => undefined)
+      .finally(() => setSavingDefault(false));
+  };
+
   return (
     <PanelShell
-      summary="Choose how Versa - Business Admin looks. Selection is remembered on this device and survives navigation (including Glossary on the side menu)."
+      summary="The five tiles set this browser. Default site theme is what visitors see until they pick their own."
       badge="Theme"
     >
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-3">
         {THEME_OPTIONS.map((opt) => {
           const Icon = opt.icon;
           const active = uiTheme === opt.id;
@@ -74,6 +102,23 @@ export function AppearancePanel() {
             </button>
           );
         })}
+        <label className="flex flex-col justify-center gap-2 rounded-lg border border-border bg-card p-4">
+          <span className="text-sm font-semibold">Default site theme</span>
+          <select
+            value={siteDefault}
+            disabled={savingDefault}
+            onChange={(e) => {
+              if (isUiTheme(e.target.value)) saveDefault(e.target.value);
+            }}
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          >
+            {THEME_OPTIONS.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
     </PanelShell>
   );

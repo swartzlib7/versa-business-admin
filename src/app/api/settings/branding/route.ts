@@ -13,7 +13,7 @@ import {
 import { parseLogoSurfaces, parseSkyEffects, clampSkyZoom } from '@/lib/brand-display';
 import { isPostgresDataSource } from '@/lib/db/data-source';
 import { clearBrandMusic, presentBrandMusic } from '@/lib/public/brand-music-store';
-import { isSeedBrandLogoUrl, SEED_BRAND_LOGO_HREF } from '@/lib/public/brand-seed';
+import { isSeedBrandLogoUrl, resolveBrandLogoUrl, SEED_BRAND_LOGO_HREF } from '@/lib/public/brand-seed';
 
 // #252 Settings functionality slice (Stephen round-2 item 10): branding
 // persistence singleton. GET is authenticated; writes are admin-only
@@ -24,6 +24,12 @@ const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
 function isPostgres(): boolean {
   return isPostgresDataSource();
+}
+
+function presentLogo(fromSettings: string | null | undefined): string {
+  if (fromSettings === "") return "";
+  if (typeof fromSettings === "string" && fromSettings) return resolveBrandLogoUrl(fromSettings);
+  return getBrandLogoOverlay();
 }
 
 export async function GET(request: Request) {
@@ -41,13 +47,13 @@ export async function GET(request: Request) {
     'brand_logo_url' in settings
       ? (settings as { brand_logo_url?: string | null }).brand_logo_url
       : undefined;
-  const brand_logo_url = fromSettings || getBrandLogoOverlay();
+  const brand_logo_url = presentLogo(fromSettings);
   const fixture = getSiteSettingsFixture();
   const music = presentBrandMusic(fixture);
   return NextResponse.json({
     data: {
       ...settings,
-      brand_logo_url: brand_logo_url ?? SEED_BRAND_LOGO_HREF,
+      brand_logo_url,
       brand_logo_is_seed: isSeedBrandLogoUrl(brand_logo_url),
       brand_music_url: music.brand_music_url,
       brand_music_loop: fixture.brand_music_loop !== false,
@@ -87,7 +93,9 @@ export async function PUT(request: Request) {
   const brandColor =
     body.brand_color != null ? String(body.brand_color).trim() : undefined;
   let brandLogoUrl: string | null | undefined;
-  if (body.brand_logo_url === null || body.brand_logo_url === "" || body.brand_logo_url === SEED_BRAND_LOGO_HREF) {
+  if (body.brand_logo_url === "") {
+    brandLogoUrl = "";
+  } else if (body.brand_logo_url === null || body.brand_logo_url === SEED_BRAND_LOGO_HREF) {
     brandLogoUrl = null;
   } else if (body.brand_logo_url != null) {
     const raw = String(body.brand_logo_url);
@@ -273,15 +281,13 @@ export async function PUT(request: Request) {
         ? (settings as { brand_logo_url?: string | null }).brand_logo_url
         : undefined;
     const brand_logo_url =
-      fromSettings ||
-      (brandLogoUrl !== undefined ? brandLogoUrl : getBrandLogoOverlay()) ||
-      SEED_BRAND_LOGO_HREF;
+      brandLogoUrl !== undefined ? resolveBrandLogoUrl(brandLogoUrl) : presentLogo(fromSettings);
     const fixture = getSiteSettingsFixture();
     const music = presentBrandMusic(fixture);
     return NextResponse.json({
       data: {
         ...settings,
-        brand_logo_url: brand_logo_url ?? SEED_BRAND_LOGO_HREF,
+        brand_logo_url,
         brand_logo_is_seed: isSeedBrandLogoUrl(brand_logo_url),
         brand_music_url: music.brand_music_url,
         brand_music_loop: fixture.brand_music_loop !== false,

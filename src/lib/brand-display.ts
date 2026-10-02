@@ -12,6 +12,8 @@ export const LOGO_BASE_PX = {
 
 export const LOGO_SCALE_MIN = 0.75;
 export const LOGO_SCALE_MAX = 1.25;
+export const LOGO_SCALE_HOME_MIN = 0.25;
+export const LOGO_SCALE_HOME_MAX = 1.5;
 export const LOGO_SCALE_DEFAULT = 1;
 export const DEFAULT_GLOW_COLOR = "#ffffff";
 export const DEFAULT_GLOW_SPREAD = 0.5;
@@ -21,9 +23,18 @@ export function clamp01(n: number): number {
   return Math.max(0, Math.min(1, n));
 }
 
-export function clampLogoScale(n: number | undefined | null): number {
+export function logoScaleLimits(surface: "menu" | "home" | "footer"): { min: number; max: number } {
+  if (surface === "home") return { min: LOGO_SCALE_HOME_MIN, max: LOGO_SCALE_HOME_MAX };
+  return { min: LOGO_SCALE_MIN, max: LOGO_SCALE_MAX };
+}
+
+export function clampLogoScale(
+  n: number | undefined | null,
+  surface: "menu" | "home" | "footer" = "menu",
+): number {
   if (n == null || !Number.isFinite(n)) return LOGO_SCALE_DEFAULT;
-  return Math.max(LOGO_SCALE_MIN, Math.min(LOGO_SCALE_MAX, n));
+  const { min, max } = logoScaleLimits(surface);
+  return Math.max(min, Math.min(max, n));
 }
 
 export function hexToRgb(hex: string): [number, number, number] | null {
@@ -270,6 +281,7 @@ export const DEFAULT_LOGO_SURFACE: LogoSurfaceStyle = {
 export function normalizeLogoSurface(
   raw: unknown,
   fallback: Partial<LogoSurfaceStyle> = {},
+  surface: LogoSurfaceId = "menu",
 ): LogoSurfaceStyle {
   const row = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const color =
@@ -289,6 +301,7 @@ export function normalizeLogoSurface(
     ),
     scale: clampLogoScale(
       typeof row.scale === "number" ? row.scale : fallback.scale,
+      surface,
     ),
   };
 }
@@ -322,15 +335,15 @@ export function resolveLogoSurfaces(
     menu: normalizeLogoSurface(nested.menu, {
       ...legacy,
       scale: scaleFallback("menu", "brand_logo_scale_menu"),
-    }),
+    }, "menu"),
     home: normalizeLogoSurface(nested.home, {
       ...legacy,
       scale: scaleFallback("home", "brand_logo_scale_home"),
-    }),
+    }, "home"),
     footer: normalizeLogoSurface(nested.footer, {
       ...legacy,
       scale: scaleFallback("footer", "brand_logo_scale_footer"),
-    }),
+    }, "footer"),
   };
 }
 
@@ -344,8 +357,12 @@ export function parseLogoSurfaces(raw: unknown): LogoSurfaces | undefined {
   return resolveLogoSurfaces({ brand_logo_surfaces: raw });
 }
 
-export function logoPx(base: number, scale: number | undefined | null): number {
-  return Math.round(base * clampLogoScale(scale));
+export function logoPx(
+  base: number,
+  scale: number | undefined | null,
+  surface: LogoSurfaceId = "menu",
+): number {
+  return Math.round(base * clampLogoScale(scale, surface));
 }
 
 

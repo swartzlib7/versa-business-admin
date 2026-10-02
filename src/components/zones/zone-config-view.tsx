@@ -152,6 +152,8 @@ export type ZoneTab = {
   objectApiName?: string;
   parentKind?: string;
   parentApiName?: string;
+  /** This tab is the listing. Do not add a sub-tab with the same name. */
+  listingOnTab?: boolean;
   /** #248 Slice D (C6): collaboration tabs render organizations of this type. */
   orgTypePanel?: "vendor" | "customer" | "partner" | "branch";
   /** Slice F (D1 cutover): child renders org-attached record_line rows for
@@ -162,7 +164,7 @@ export type ZoneTab = {
 export type ZoneId = "organization" | "collaboration" | "environment";
 
 export type ZoneConfig = {
-  id: ZoneId | "statistics";
+  id: ZoneId | "statistics" | "custom-records";
   title: string;
   subtitle: string;
   accent: string;
@@ -214,6 +216,7 @@ function makeSelfPanel(tab: ZoneTab): ZoneTab {
 }
 
 function zoneSubTabs(tab: ZoneTab): ZoneTab[] {
+  if (tab.listingOnTab) return [];
   if (tab.id === "org-configuration") {
     return [
       {

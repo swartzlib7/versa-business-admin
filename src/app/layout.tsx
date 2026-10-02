@@ -10,6 +10,7 @@ import { getBrandLogoOverlay, getSiteSettingsFixture } from "@/lib/fixtures/site
 import { presentBrandMusic } from "@/lib/public/brand-music-store";
 import { business } from "@/lib/fixtures/business";
 import { SEED_BRAND_LOGO_HREF } from "@/lib/public/brand-seed";
+import { normalizeUiTheme, type UiTheme } from "@/lib/ui-themes";
 import { BRAND_MUSIC_HREF } from "@/lib/public/brand-music";
 import { resolveLogoSurfaces, clampSkyZoom, resolveConstellationVariant, resolveSkyEffects, SKY_DENSITY_DEFAULT, SKY_STARS_ZOOM_DEFAULT, SKY_VARIANT_DEFAULT, type LogoSurfaces, type SkyEffects } from "@/lib/brand-display";
 import { theme } from "@/lib/theme";
@@ -59,7 +60,9 @@ export async function generateMetadata(): Promise<Metadata> {
 // never baked into a static prerender at build time.
 export const dynamic = "force-dynamic";
 
-const themeInitScript = `(function(){try{var path=location.pathname;var isPublic=path==='/'||path===''||path==='/terms'||path==='/board'||path==='/p'||path.indexOf('/p/')===0;var t=localStorage.getItem(isPublic?'versa-public-ui-theme':'versa-ui-theme')||localStorage.getItem('versa-ui-theme');if(isPublic){if(t!=='slate'&&t!=='dark'&&t!=='architect')t='dark';}else if(t!=='light'&&t!=='dusk'&&t!=='dark'&&t!=='architect'&&t!=='slate')t='dark';var r=document.documentElement;r.classList.remove('dark','architect','slate','dusk');if(t==='dark')r.classList.add('dark');if(t==='architect')r.classList.add('architect');if(t==='slate')r.classList.add('slate');if(t==='dusk')r.classList.add('dusk');r.dataset.theme=t;if(localStorage.getItem('ba.sidebarCollapsed')==='1')r.classList.add('sidebar-collapsed');}catch(e){}})();`;
+function themeInitScript(defaultPublic: UiTheme): string {
+  return `(function(){try{var path=location.pathname;var isPublic=path==='/'||path===''||path==='/terms'||path==='/board'||path==='/p'||path.indexOf('/p/')===0;var t=localStorage.getItem(isPublic?'versa-public-ui-theme':'versa-ui-theme');var ok=function(v){return v==='light'||v==='dusk'||v==='slate'||v==='dark'||v==='architect';};if(!ok(t))t=isPublic?'${defaultPublic}':'dark';var r=document.documentElement;r.classList.remove('dark','architect','slate','dusk');if(t==='dark')r.classList.add('dark');if(t==='architect')r.classList.add('architect');if(t==='slate')r.classList.add('slate');if(t==='dusk')r.classList.add('dusk');r.dataset.theme=t;if(localStorage.getItem('ba.sidebarCollapsed')==='1')r.classList.add('sidebar-collapsed');}catch(e){}})();`;
+}
 
 type LoadedSite = {
   brand_name: string;
@@ -92,6 +95,7 @@ type LoadedSite = {
   brand_name_in_menu: boolean;
   hero_headline: string;
   footer_copyright: string;
+  public_default_theme: UiTheme;
 };
 
 async function loadBrand(): Promise<LoadedSite> {
@@ -104,7 +108,12 @@ async function loadBrand(): Promise<LoadedSite> {
       "brand_logo_url" in settings
         ? (settings as { brand_logo_url?: string | null }).brand_logo_url
         : undefined;
-    const logo = fromSettings || getBrandLogoOverlay();
+    const logo =
+      fromSettings === ""
+        ? ""
+        : typeof fromSettings === "string" && fromSettings
+          ? fromSettings
+          : getBrandLogoOverlay();
     const fixture = getSiteSettingsFixture();
     const music = presentBrandMusic(fixture);
     const num = (v: unknown, fallback: number) =>
@@ -123,7 +132,7 @@ async function loadBrand(): Promise<LoadedSite> {
     return {
       brand_name: settings.brand_name,
       brand_color: settings.brand_color,
-      brand_logo_url: typeof logo === "string" && logo ? logo : SEED_BRAND_LOGO_HREF,
+      brand_logo_url: logo === "" ? "" : typeof logo === "string" && logo ? logo : SEED_BRAND_LOGO_HREF,
       brand_logo_opacity: surfaces.home.opacity,
       brand_logo_glow: surfaces.home.glow,
       brand_logo_glow_color: surfaces.home.glowColor,
@@ -151,6 +160,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_name_in_menu: fixture.brand_name_in_menu !== false,
       hero_headline: headline,
       footer_copyright: typeof fixture.footer_copyright === "string" ? fixture.footer_copyright.trim() : "",
+      public_default_theme: normalizeUiTheme(fixture.public_default_theme),
     };
   } catch {
     // Branding must never take the app down - fall back to static defaults.
@@ -185,6 +195,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_name_in_menu: true,
       hero_headline: business.slogan,
       footer_copyright: "",
+      public_default_theme: "dark",
     };
   }
 }
@@ -235,10 +246,10 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript(site.public_default_theme) }} />
       </head>
       <body className="min-h-full bg-background text-foreground">
-        <ThemeProvider>
+        <ThemeProvider defaultPublicTheme={site.public_default_theme}>
           <BrandProvider brand={brand}>
             <SiteModeProvider mode={mode}>
               <PublicSky />

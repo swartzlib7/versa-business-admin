@@ -59,7 +59,7 @@ export const DEMO_HOMEPAGE_SECTIONS = ["inspections-reports"] as const;
 const PUBLIC_MENU_INTRODUCED_HREFS = ["/#facets", "/#inspections-reports", "/#about", "/#schedules", "/#projects"] as const;
 
 /** Page Builder left Settings (2026-09-14). Default On until a saved order has seen it. */
-const OPERATOR_MENU_INTRODUCED_HREFS = ["/page-builder"] as const;
+const OPERATOR_MENU_INTRODUCED_HREFS = ["/page-builder", "/custom-records"] as const;
 
 const HOMEPAGE_SECTION_ORDER = [
   "facets",
@@ -80,6 +80,8 @@ export function defaultPublicNavHrefs(): string[] {
  */
 const OPERATOR_PATH_OWNERS: { prefix: string; href: string }[] = [
   { prefix: "/records-editor", href: "/records-editor" },
+  { prefix: "/custom-records", href: "/custom-records" },
+  { prefix: "/stats", href: "/custom-records" },
   { prefix: "/ui-components", href: "/glossary" },
   { prefix: "/organization", href: "/organization" },
   { prefix: "/collaboration", href: "/collaboration" },
@@ -270,6 +272,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { href: "/organization", label: "Organization", icon: Building2 },
   { href: "/collaboration", label: "Collaboration", icon: Handshake },
   { href: "/environment", label: "Environment", icon: Globe2 },
+  { href: "/custom-records", label: "Custom Records", icon: Library },
   { href: "/records-editor", label: "Records Editor", icon: Database },
   { href: "/page-builder", label: "Page Builder", icon: PanelsTopLeft },
   { href: "/glossary", label: "Glossary", icon: BookOpen },

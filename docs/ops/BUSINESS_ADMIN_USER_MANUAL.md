@@ -46,7 +46,7 @@ HTML Page cells choose a render option. **HTML block** paints the body. **Record
 
 The component gallery is **Glossary → UI Components**, the tab after Org Board. `/ui-components` opens that tab.
 
-Pages and Statistics records stay **Environment → Custom**. Inspections & Reports stay **Faculty → Communications**. Contacts stay **Distribution → Contacts**. Page Builder binds and paints those records; it is not their listing home. Cycle Strip is edited under Branding, not as a Custom record.
+Pages and Statistics records stay **Custom Records** (sidebar, above Records Editor). Inspections & Reports stay **Faculty → Communications**. Contacts stay **Distribution → Contacts**. Page Builder binds and paints those records; it is not their listing home. Cycle Strip is edited under Branding, not as a Custom record.
 
 ### Row height
 

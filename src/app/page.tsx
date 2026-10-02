@@ -151,8 +151,8 @@ export default async function HomePage() {
                 alt={site.brand_name}
                 className="mb-6 h-auto w-[var(--logo-m)] object-contain sm:w-[var(--logo-d)]"
                 style={{
-                  ["--logo-m" as string]: `${logoPx(LOGO_BASE_PX.homeMobile, homeLogo.scale)}px`,
-                  ["--logo-d" as string]: `${logoPx(LOGO_BASE_PX.homeDesktop, homeLogo.scale)}px`,
+                  ["--logo-m" as string]: `${logoPx(LOGO_BASE_PX.homeMobile, homeLogo.scale, "home")}px`,
+                  ["--logo-d" as string]: `${logoPx(LOGO_BASE_PX.homeDesktop, homeLogo.scale, "home")}px`,
                   opacity: homeLogo.opacity,
                   filter: logoSurfaceFilter(homeLogo),
                 }}

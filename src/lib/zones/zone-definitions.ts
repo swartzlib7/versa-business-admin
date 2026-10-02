@@ -780,41 +780,54 @@ export const environmentZone: ZoneConfig = {
         { zone: "Organization", label: "Linked tasks", hint: "Executive project tasks." },
       ],
     },
+  ],
+};
+
+/** Statistics and Pages. Primary tabs on the Custom Records menu, above Records Editor. */
+export const customRecordsZone: ZoneConfig = {
+  id: "custom-records",
+  title: "Custom Records",
+  subtitle: "Statistics and Pages. Page Builder binds and paints these records.",
+  accent: envAccent,
+  accentSoft: soft(envAccent),
+  tabs: [
     {
-      id: "custom",
-      label: "Custom",
-      summary: "Statistics and Pages. Cycle Strip is Page Builder → Branding. Elements and Rendering Drivers stay on Page Builder → Canvas.",
+      id: "statistics",
+      label: "Statistics",
+      summary: "Statistics headers and captured lines. Pair a header on the Page Builder Canvas.",
       presentation: "listing",
-      listColumns: ["Name"],
-      sampleRows: [],
+      structure: "header_lines",
+      listingOnTab: true,
+      recordTypeApiName: "statistics",
+      objectApiName: "statistics",
+      parentKind: "environment",
+      parentApiName: "custom",
+      listColumns: ["Name", "Status"],
       fields: [
         { label: "Name", placeholder: "Name" },
-        { label: "Notes", placeholder: "...", kind: "textarea" },
+        { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
       ],
-      relations: [
-        { zone: "Environment", label: "Knowledge", hint: "Related knowledge assets." },
+      relations: [],
+    },
+    {
+      id: "pages",
+      label: "Pages",
+      summary: "Visitor pages. Body can render as Text or HTML.",
+      presentation: "listing",
+      structure: "list",
+      listingOnTab: true,
+      recordTypeApiName: "page",
+      objectApiName: "page",
+      parentKind: "environment",
+      parentApiName: "custom",
+      listColumns: ["Title", "Status"],
+      fields: [
+        { label: "Title", placeholder: "Title" },
+        { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
       ],
-      // Baked so Statistics is visible. environment_stat is in BAKED_TAB_SYSTEM_TYPES
-      // (`stats`), which excludes it from dynamic Custom children — without this
-      // child the listing disappeared when it left Page Builder.
-      children: [
-        {
-          id: "statistics",
-          label: "Statistics",
-          summary: "Statistics headers and captured lines. Pair a header on the Page Builder Canvas.",
-          presentation: "listing",
-          listColumns: ["Name", "Status"],
-          fields: [
-            { label: "Name", placeholder: "Name" },
-            { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
-          ],
-          relations: [
-            { zone: "Environment", label: "Knowledge", hint: "Related knowledge assets." },
-          ],
-        },
-      ],
+      relations: [],
     },
   ],
 };
 
-/** Retired. Statistics is Environment → Custom → Statistics. /stats redirects. */
+/** Retired. Statistics is Custom Records → Statistics. /stats redirects. */

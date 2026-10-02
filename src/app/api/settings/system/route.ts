@@ -23,6 +23,7 @@ import {
   publicEmailDelivery,
   type EmailDeliverySettings,
 } from "@/lib/settings/email-delivery";
+import { isUiTheme, normalizeUiTheme } from "@/lib/ui-themes";
 
 function modesFromStore() {
   const settings = getSiteSettingsFixture();
@@ -49,6 +50,7 @@ function modesFromStore() {
     org_board_enabled: flags.org_board_enabled,
     page_builder: normalizePageBuilder(settings.page_builder),
     email_delivery: publicEmailDelivery(normalizeEmailDelivery(settings.email_delivery)),
+    public_default_theme: normalizeUiTheme(settings.public_default_theme),
   };
 }
 
@@ -101,6 +103,7 @@ export async function PUT(request: Request) {
     org_board_enabled?: boolean;
     page_builder?: ReturnType<typeof normalizePageBuilder>;
     email_delivery?: EmailDeliverySettings;
+    public_default_theme?: ReturnType<typeof normalizeUiTheme>;
   } = {};
   if (typeof body.demo_mode === "boolean") patch.demo_mode = body.demo_mode;
   if (typeof body.maintenance_mode === "boolean") {
@@ -231,6 +234,20 @@ export async function PUT(request: Request) {
   if (body.page_builder !== undefined) {
     const previous = normalizePageBuilder(getSiteSettingsFixture().page_builder);
     patch.page_builder = keepFirstCustomCanvas(previous, normalizePageBuilder(body.page_builder));
+  }
+  if (typeof body.public_default_theme === "string") {
+    if (!isUiTheme(body.public_default_theme)) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "INVALID_THEME",
+            message: "public_default_theme must be one of the site themes.",
+          },
+        },
+        { status: 400 },
+      );
+    }
+    patch.public_default_theme = body.public_default_theme;
   }
   if (body.email_delivery && typeof body.email_delivery === "object") {
     const incoming = body.email_delivery as Record<string, unknown>;

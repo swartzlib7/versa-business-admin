@@ -10,18 +10,19 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
+import { isUiTheme, UI_THEMES, type UiTheme } from "@/lib/ui-themes";
 
-export type UiTheme = "light" | "dusk" | "slate" | "dark" | "architect";
-export type PublicUiTheme = "architect" | "slate" | "dark";
+export type { UiTheme } from "@/lib/ui-themes";
+export type PublicUiTheme = UiTheme;
 
-export const PUBLIC_THEMES: PublicUiTheme[] = ["architect", "slate", "dark"];
-export const PUBLIC_DEFAULT_THEME: PublicUiTheme = "dark";
+export const PUBLIC_THEMES: UiTheme[] = [...UI_THEMES];
+export const PUBLIC_DEFAULT_THEME: UiTheme = "dark";
 
 const STORAGE_KEY = "versa-ui-theme";
 const PUBLIC_STORAGE_KEY = "versa-public-ui-theme";
 
-function isPublicTheme(theme: string): theme is PublicUiTheme {
-  return theme === "architect" || theme === "slate" || theme === "dark";
+function isPublicTheme(theme: string): theme is UiTheme {
+  return isUiTheme(theme);
 }
 
 function isPublicPath(pathname: string): boolean {
@@ -65,14 +66,14 @@ function readStoredTheme(): UiTheme {
   return "dark";
 }
 
-function readStoredPublicTheme(): PublicUiTheme {
+function readStoredPublicTheme(fallback: UiTheme): UiTheme {
   try {
     const stored = localStorage.getItem(PUBLIC_STORAGE_KEY);
     if (stored && isPublicTheme(stored)) return stored;
   } catch {
     /* ignore */
   }
-  return PUBLIC_DEFAULT_THEME;
+  return fallback;
 }
 
 function persistSurface(next: UiTheme, surface: "public" | "operator") {
@@ -88,13 +89,19 @@ function persistSurface(next: UiTheme, surface: "public" | "operator") {
   }
 }
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
+export function ThemeProvider({
+  children,
+  defaultPublicTheme = PUBLIC_DEFAULT_THEME,
+}: {
+  children: ReactNode;
+  defaultPublicTheme?: UiTheme;
+}) {
   const pathname = usePathname() ?? "";
   const [theme, setThemeState] = useState<UiTheme>("dark");
 
   useEffect(() => {
     if (isPublicPath(pathname)) {
-      const next = readStoredPublicTheme();
+      const next = readStoredPublicTheme(defaultPublicTheme);
       setThemeState(next);
       applyThemeClass(next);
       return;
@@ -102,7 +109,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const initial = readStoredTheme();
     setThemeState(initial);
     applyThemeClass(initial);
-  }, [pathname]);
+  }, [pathname, defaultPublicTheme]);
 
   const setTheme = useCallback((t: UiTheme) => {
     setThemeState(t);
@@ -111,8 +118,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const cycleTheme = useCallback(() => {
     setThemeState((prev) => {
-      const order: UiTheme[] = ["light", "dusk", "slate", "dark", "architect"];
-      const next = order[(order.indexOf(prev) + 1) % order.length];
+      const next = UI_THEMES[(UI_THEMES.indexOf(prev) + 1) % UI_THEMES.length];
       persistSurface(next, "operator");
       return next;
     });
@@ -120,18 +126,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const cyclePublicTheme = useCallback(() => {
     setThemeState((prev) => {
-      const cur = isPublicTheme(prev) ? prev : PUBLIC_DEFAULT_THEME;
-      const next = PUBLIC_THEMES[(PUBLIC_THEMES.indexOf(cur) + 1) % PUBLIC_THEMES.length];
+      const cur = isPublicTheme(prev) ? prev : defaultPublicTheme;
+      const next = UI_THEMES[(UI_THEMES.indexOf(cur) + 1) % UI_THEMES.length];
       persistSurface(next, "public");
       return next;
     });
-  }, []);
+  }, [defaultPublicTheme]);
 
   const ensurePublicTheme = useCallback(() => {
-    const next = readStoredPublicTheme();
+    const next = readStoredPublicTheme(defaultPublicTheme);
     setThemeState(next);
     persistSurface(next, "public");
-  }, []);
+  }, [defaultPublicTheme]);
 
   const value = useMemo(
     () => ({ theme, setTheme, cycleTheme, cyclePublicTheme, ensurePublicTheme }),

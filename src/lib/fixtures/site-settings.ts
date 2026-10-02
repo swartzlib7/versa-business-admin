@@ -14,6 +14,7 @@ import { applyMenuDefaults, normalizePageBuilder, type PageBuilderState } from "
 import { sanitizeMenuOrder } from "@/lib/nav";
 import { foldPublicHrefs } from "@/lib/catalog/name-aliases";
 import { resolveBrandLogoUrl } from "@/lib/public/brand-seed";
+import { normalizeUiTheme, type UiTheme } from "@/lib/ui-themes";
 import { isPostgresDataSource } from "@/lib/db/data-source";
 import {
   EMPTY_EMAIL_DELIVERY,
@@ -65,6 +66,8 @@ export interface FixtureSiteSettings {
   brand_music_autoplay?: boolean;
   brand_music_name?: string | null;
   brand_name_in_menu?: boolean;
+  /** Visitor theme when this browser has not chosen one. */
+  public_default_theme?: UiTheme;
   email_delivery?: EmailDeliverySettings;
 }
 
@@ -105,9 +108,11 @@ function parseSettings(raw: unknown): FixtureSiteSettings | null {
           ? parsed.brand_color
           : theme.colors.brand,
       brand_logo_url:
-        typeof parsed.brand_logo_url === "string" && parsed.brand_logo_url
-          ? parsed.brand_logo_url
-          : null,
+        parsed.brand_logo_url === ""
+          ? ""
+          : typeof parsed.brand_logo_url === "string" && parsed.brand_logo_url
+            ? parsed.brand_logo_url
+            : null,
       brand_logo_opacity:
         typeof parsed.brand_logo_opacity === "number"
           ? parsed.brand_logo_opacity
@@ -173,6 +178,7 @@ function parseSettings(raw: unknown): FixtureSiteSettings | null {
         ? foldPublicHrefs(parsed.public_menu_enabled.filter((href): href is string => typeof href === "string"))
         : undefined,
       public_login_enabled: parsed.public_login_enabled !== false,
+      public_default_theme: normalizeUiTheme(parsed.public_default_theme),
       glossary_in_menu: parsed.glossary_in_menu !== false,
       org_board_enabled: parsed.org_board_enabled !== false,
       page_builder: applyMenuDefaults(
@@ -437,6 +443,10 @@ export function upsertSiteSettingsFixture(
       input.public_login_enabled !== undefined
         ? input.public_login_enabled
         : current.public_login_enabled !== false,
+    public_default_theme:
+      input.public_default_theme !== undefined
+        ? normalizeUiTheme(input.public_default_theme)
+        : normalizeUiTheme(current.public_default_theme),
     glossary_in_menu:
       input.glossary_in_menu !== undefined
         ? input.glossary_in_menu
@@ -541,11 +551,14 @@ export async function getPublicSiteSettings(): Promise<FixtureSiteSettings> {
   }
 }
 
-/** Logo sidecar for postgres mode (name/color stay in the DB). Empty falls back to the shipped shield. */
+/** Logo sidecar for postgres mode (name/color stay in the DB). "" is a removed logo. */
 export function getBrandLogoOverlay(): string {
   const fromMemory = readStore()?.brand_logo_url;
+  if (fromMemory === "") return "";
   if (fromMemory) return resolveBrandLogoUrl(fromMemory);
-  return resolveBrandLogoUrl(readFile()?.brand_logo_url);
+  const fromFile = readFile()?.brand_logo_url;
+  if (fromFile === "") return "";
+  return resolveBrandLogoUrl(fromFile);
 }
 
 export function upsertBrandLogoFile(url: string | null): void {
