@@ -28,6 +28,7 @@ import { outputIdFromTiles, tilesFromOutputId } from "@/lib/public/render-driver
 import { hasSpatialTwin } from "@/lib/zones/spatial-twin";
 import type { TwinPreview } from "@/components/zones/twin-slot-context";
 import { CanvasSlotDriver } from "@/components/public/canvas-slot-drivers";
+import { ProjectGanttPreviewView } from "@/components/zones/project-gantt-preview";
 import { cn } from "@/lib/utils";
 
 /** Footer chrome shared by the Lightbox and Full 3D Hub buttons (same design, side by side). */
@@ -56,7 +57,8 @@ export function SpatialTwinPane({
   /** Override the pane DOM id (the mobile float dock mounts a second pane per zone). */
   paneId?: string;
 }) {
-  const showScene = hasSpatialTwin(focusedNodeId);
+  // Projects sit under the Executive sphere; a published Project Gantt replaces the scene.
+  const showScene = hasSpatialTwin(focusedNodeId) && preview?.kind !== "project-gantt";
   const [lightbox, setLightbox] = useState(false);
   const [layout, setLayout] = useState<GraphLayout>(1);
   const [page, setPage] = useState(0);
@@ -265,6 +267,13 @@ function TwinBody({
         focusedNodeId={focusedNodeId}
         onNodeClick={onNodeClick}
       />
+    );
+  }
+  if (preview?.kind === "project-gantt") {
+    return (
+      <div className={previewClassName}>
+        <ProjectGanttPreviewView preview={preview} />
+      </div>
     );
   }
   if (preview?.kind === "stat-graph") {

@@ -13,6 +13,10 @@ import {
   SpatialTwinPane,
 } from "@/components/zones/spatial-twin-pane";
 import { TwinSlotProvider, useTwinSlot } from "@/components/zones/twin-slot-context";
+import { ProjectTaskLines } from "@/components/zones/project-task-lines";
+import { projectGanttPreview } from "@/components/zones/project-gantt-preview";
+import { projectTaskLines } from "@/lib/records/project-task-lines";
+import type { RecordInstance } from "@/lib/fixtures/record-instances";
 import { twinFocusNodeId } from "@/lib/zones/spatial-twin";
 import { isAuditField } from "@/lib/catalog/audit-fields";
 import { useSession } from "@/lib/auth/use-session";
@@ -652,7 +656,8 @@ function ListingPanel({
   const { setPreview, bumpLines, linesEpoch } = useTwinSlot();
   const publishesTwin =
     panel.recordTypeApiName === "statistics" ||
-    panel.recordTypeApiName === "driver_pairing";
+    panel.recordTypeApiName === "driver_pairing" ||
+    panel.recordTypeApiName === "executive_project";
 
   useEffect(() => {
     return () => {
@@ -773,7 +778,7 @@ function ListingPanel({
           return [frequencyTypeLabel(statHeader?.frequencyType), "Stamp", "Value"];
         }
         return catalogFields
-          .filter((f) => f.zone_role === "list" && f.show_in_column === true)
+          .filter((f) => f.zone_role === "list" && f.show_in_column === true && f.active !== false)
           .map((f) => f.label);
       }
       if (objectApiName === "driver_pairing") {
@@ -938,6 +943,21 @@ function ListingPanel({
     [rows],
   );
   const listingFields = useMemo(() => {
+    if (panel.recordTypeApiName === "executive_project" && viewMode !== "instances") {
+      return fields.map((f) => {
+        if (f.key === "task_parent_id") {
+          return {
+            ...f,
+            kind: "select" as const,
+            options: rows.map((row) => row.id),
+            optionLabels: rows.map((row) => row.cells.task_title || "Task"),
+          };
+        }
+        if (f.key === "task_percent") return { ...f, kind: "slider" as const, step: 5 };
+        if (f.key === "task_notes") return { ...f, kind: "html" as const };
+        return f;
+      });
+    }
     if (
       panel.recordTypeApiName !== "statistics" ||
       viewMode === "instances" ||
@@ -977,7 +997,7 @@ function ListingPanel({
       }
       return f;
     });
-  }, [fields, capturedSlots, panel.recordTypeApiName, viewMode, statHeader]);
+  }, [fields, rows, capturedSlots, panel.recordTypeApiName, viewMode, statHeader]);
   const statCanAdd = useMemo(() => {
     if (panel.recordTypeApiName !== "statistics" || viewMode === "instances") {
       return true;
@@ -999,11 +1019,47 @@ function ListingPanel({
   // list-zone field's api_name prefix (milestone_/subtask_/variant_/rate_)
   // names the group; policy keeps its legacy default group.
   const linesGroupApiName = useMemo(() => {
-    const firstList = catalogFields.find((f) => f.zone_role === "list");
+    const firstList = catalogFields.find((f) => f.zone_role === "list" && f.active !== false);
     if (!firstList) return undefined;
     const prefix = firstList.api_name.split("_")[0];
     return prefix === "line" ? undefined : prefix + "s";
   }, [catalogFields]);
+
+  const showProjectTasks =
+    panel.recordTypeApiName === "executive_project" && viewMode !== "instances" && !!headerRecordId;
+  // Inside an expanded Projects row the list radio owns the Twin.
+  const publishProjectGantt = showProjectTasks && !suppressTwinPreview;
+
+  type ProjectHeader = { name?: string; status?: string; data?: Record<string, string> };
+  const [projectHeader, setProjectHeader] = useState<{ id: string; inst: ProjectHeader } | null>(null);
+
+  useEffect(() => {
+    if (!publishProjectGantt || !headerRecordId) return;
+    const controller = new AbortController();
+    void fetch("/api/records/" + headerRecordId, { credentials: "include", signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        const inst = json?.data as ProjectHeader | undefined;
+        if (inst) setProjectHeader({ id: headerRecordId, inst });
+      })
+      .catch(() => undefined);
+    return () => {
+      controller.abort();
+      setPreview(null);
+    };
+  }, [publishProjectGantt, headerRecordId, setPreview]);
+
+  useEffect(() => {
+    if (!publishProjectGantt || !projectHeader || projectHeader.id !== headerRecordId) return;
+    setPreview(
+      projectGanttPreview(
+        projectHeader.inst,
+        rows
+          .filter((row) => (row.cells.task_title || "") !== "" || row.cells.task_status)
+          .map((row) => ({ id: row.id, data: row.cells })),
+      ),
+    );
+  }, [publishProjectGantt, projectHeader, headerRecordId, rows, setPreview]);
 
   const toCells = useCallback(
     (inst: { id: string; name?: string; status?: string; data?: Record<string, string> }) => {
@@ -1084,6 +1140,28 @@ function ListingPanel({
       });
     return () => controller.abort();
   }, [viewMode, panel.recordTypeApiName, selectedRowId, toCells, setPreview]);
+
+  useEffect(() => {
+    if (
+      viewMode !== "instances" ||
+      panel.recordTypeApiName !== "executive_project" ||
+      !selectedRowId ||
+      suppressTwinPreview
+    ) {
+      return;
+    }
+    const controller = new AbortController();
+    void fetch("/api/records/" + selectedRowId, { credentials: "include", signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : { data: null }))
+      .then((json) => {
+        const inst = json.data as RecordInstance | null;
+        if (inst) setPreview(projectGanttPreview(inst, projectTaskLines(inst)));
+      })
+      .catch(() => {
+        /* keep the last preview */
+      });
+    return () => controller.abort();
+  }, [viewMode, panel.recordTypeApiName, selectedRowId, suppressTwinPreview, setPreview, linesEpoch]);
 
   useEffect(() => {
     if (
@@ -1237,7 +1315,7 @@ function ListingPanel({
         // #185 Slice A (rev E section 4.2): lines carry their group api_name.
         const nextLines = rows
           .filter((r) => r.id !== id)
-          .map((r) => ({ line_group: linesGroupApiName, data: r.cells }));
+          .map((r) => ({ id: r.id, line_group: linesGroupApiName, data: r.cells }));
         const res = await fetch("/api/records/" + headerRecordId, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -1252,6 +1330,7 @@ function ListingPanel({
           cells: toCells({ id: ln.id, data: ln.data ?? {} }),
         }));
         setRows(lineRows);
+        bumpLines();
         return true;
       }
       const res = await fetch("/api/records/" + id, {
@@ -1413,7 +1492,7 @@ function ListingPanel({
           // #185 Slice A (rev E section 4.2): lines carry their group api_name.
           body: JSON.stringify({
             lines: [
-              ...rows.map((r) => ({ line_group: linesGroupApiName, data: r.cells })),
+              ...rows.map((r) => ({ id: r.id, line_group: linesGroupApiName, data: r.cells })),
               { line_group: linesGroupApiName, data },
             ],
           }),
@@ -1426,6 +1505,7 @@ function ListingPanel({
           cells: toCells({ id: ln.id, data: ln.data ?? {} }),
         }));
         setRows(lineRows);
+        bumpLines();
         return true;
       }
       const res = await fetch("/api/records", {
@@ -1592,8 +1672,8 @@ function ListingPanel({
         // #185 Slice A (rev E section 4.2): lines carry their group api_name.
         const nextLines = rows.map((r) =>
           r.id === id
-            ? { line_group: linesGroupApiName, data }
-            : { line_group: linesGroupApiName, data: r.cells },
+            ? { id, line_group: linesGroupApiName, data }
+            : { id: r.id, line_group: linesGroupApiName, data: r.cells },
         );
         const res = await fetch("/api/records/" + headerRecordId, {
           method: "PATCH",
@@ -1609,6 +1689,7 @@ function ListingPanel({
           cells: toCells({ id: ln.id, data: ln.data ?? {} }),
         }));
         setRows(lineRows);
+        bumpLines();
         return true;
       }
       const res = await fetch("/api/records/" + id, {
@@ -1789,8 +1870,46 @@ function ListingPanel({
                 }
               : undefined
           }
-          rowSelectLabel={panel.recordTypeApiName === "driver_pairing" ? "Twin" : "Graph"}
+          rowSelectLabel={
+            panel.recordTypeApiName === "driver_pairing"
+              ? "Twin"
+              : panel.recordTypeApiName === "executive_project"
+                ? "Gantt"
+                : "Graph"
+          }
           badgeLabel={isDynamic ? "Dynamic Record" : "Listing"}
+        />
+      )}
+      {!loading && !fieldsLoading && showProjectTasks && (
+        <ProjectTaskLines
+          rows={rows}
+          onCommit={async (next) => {
+            if (!headerRecordId) return false;
+            const res = await fetch("/api/records/" + headerRecordId, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                lines: next.map((row) => ({
+                  id: row.id,
+                  line_group: linesGroupApiName,
+                  data: row.cells,
+                })),
+              }),
+            });
+            if (!res.ok) return false;
+            const json = await res.json();
+            const inst = json.data;
+            const lineRows: ZoneListRow[] = (inst.lines ?? []).map(
+              (ln: { id: string; data?: Record<string, string> }) => ({
+                id: ln.id,
+                cells: toCells({ id: ln.id, data: ln.data ?? {} }),
+              }),
+            );
+            setRows(lineRows);
+            bumpLines();
+            return true;
+          }}
         />
       )}
       <ConfirmDialog
@@ -2225,7 +2344,9 @@ function FormPanel({
       setEditing(false);
       onEditingChange?.(false);
       onHeaderSaved?.(inst.id);
-      if (panel.recordTypeApiName === "statistics") bumpLines();
+      if (panel.recordTypeApiName === "statistics" || panel.recordTypeApiName === "executive_project") {
+        bumpLines();
+      }
     } catch (e: unknown) {
       setSaveError(e instanceof Error ? e.message : String(e));
     } finally {

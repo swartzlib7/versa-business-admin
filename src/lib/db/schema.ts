@@ -159,34 +159,6 @@ export const projects = pgTable(
   ],
 );
 
-// Task
-export const tasks = pgTable(
-  'tasks',
-  {
-    id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
-    projectId: text('project_id').notNull().references(() => projects.id),
-    title: text('title').notNull(),
-    description: text('description').notNull().default(''),
-    status: text('status').notNull().default('planned'),
-    priority: text('priority').notNull().default('normal'),
-    assigneeUserId: text('assignee_user_id').references(() => users.id),
-    dueDate: date('due_date'),
-    data: jsonb('data').notNull().default({}),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    check(
-      'tasks_status_check',
-      sql`${table.status} IN ('planned', 'in_progress', 'waiting', 'blocked', 'done')`,
-    ),
-    check(
-      'tasks_priority_check',
-      sql`${table.priority} IN ('low', 'normal', 'high', 'urgent')`,
-    ),
-  ],
-);
-
 // Product
 export const products = pgTable(
   'products',

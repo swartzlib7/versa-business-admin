@@ -16,6 +16,15 @@ export type TwinPreview =
       onRenderOutput?: (outputId: string) => void;
     }
   | {
+      kind: "project-gantt";
+      name: string;
+      status: string;
+      owner: string;
+      startDate: string;
+      targetDate: string;
+      lines: import("@/lib/records/project-task-lines").TaskLine[];
+    }
+  | {
       kind: "canvas-driver";
       driver: string;
       label?: string;

@@ -98,30 +98,8 @@ export const organizationZone: ZoneConfig = {
             { label: "Description", placeholder: "...", kind: "textarea" },
           ],
           relations: [
-            { zone: "Organization", label: "Tasks", hint: "Work breakdown under this project." },
+            { zone: "Organization", label: "Tasks", hint: "Task lines on this project." },
             { zone: "Collaboration", label: "External parties", hint: "Customers or partners involved." },
-          ],
-        },
-        {
-          id: "tasks",
-          label: "Tasks",
-          summary: "Executable work items under Executive projects.",
-          presentation: "listing",
-          listColumns: ["Task title", "Status", "Assignee"],
-          fields: [
-            { label: "Task title", placeholder: "Ship I5.6.6" },
-            {
-              label: "Status",
-              placeholder: "Select status",
-              kind: "select",
-              options: getVsOptions("zone_task_status"),
-            },
-            { label: "Assignee", placeholder: "Person or agent" },
-            { label: "Notes", placeholder: "...", kind: "textarea" },
-          ],
-          relations: [
-            { zone: "Organization", label: "Parent project", hint: "Project this task belongs to." },
-            { zone: "Environment", label: "Schedule", hint: "When the task is due." },
           ],
         },
       ],

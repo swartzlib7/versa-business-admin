@@ -23,6 +23,7 @@ import {
   pairingsForDriver,
   preserveDriverHeaderData,
 } from '@/lib/public/render-driver-locks';
+import { TASK_LINE_GROUP, taskLinesProblem } from '@/lib/records/project-task-lines';
 
 // #245 Slice E1 (rev E section 4.2): Horizon 1 persistence. When the adapter
 // implements the record methods (DATA_SOURCE=postgres), reads/writes go through
@@ -98,7 +99,20 @@ export async function PATCH(
   }
   const current = adapter.getRecord ? await adapter.getRecord(id) : getInstance(id);
   const currentData = (current?.data ?? {}) as Record<string, string>;
-  let lines = body.lines as Array<{ line_group?: string; data: Record<string, string> }> | undefined;
+  let lines = body.lines as Array<{ id?: string; line_group?: string; data: Record<string, string> }> | undefined;
+  if (current?.type_api_name === 'executive_project' && Array.isArray(lines)) {
+    const problem = taskLinesProblem(
+      lines
+        .filter((line) => (line.line_group ?? TASK_LINE_GROUP) === TASK_LINE_GROUP)
+        .map((line) => ({ id: line.id ?? '', data: line.data ?? {} })),
+    );
+    if (problem) {
+      return NextResponse.json(
+        { error: { code: 'VALIDATION_ERROR', message: problem } },
+        { status: 400 },
+      );
+    }
+  }
   if (current?.type_api_name === RENDER_DRIVER_TYPE) {
     if (incoming) incoming = preserveDriverHeaderData(currentData, incoming);
     lines = undefined;

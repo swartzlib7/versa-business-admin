@@ -168,6 +168,7 @@ export async function insertSampleData(opts?: { keepCanvas?: boolean }): Promise
   for (const seed of SAMPLE_RECORDS) {
     const data = resolve(seed.data, seed.refs);
     const lines = (seed.lines ?? []).map((line) => ({
+      id: line.id,
       data: resolve(line.data, line.refs),
     }));
     const relations = (seed.relations ?? []).flatMap((rel) => {

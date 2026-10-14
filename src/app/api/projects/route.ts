@@ -15,6 +15,10 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get('status') ?? undefined;
   const q = searchParams.get('q') ?? undefined;
+  if (searchParams.get('lines') === 'overdue') {
+    const data = await adapter.listTasks({ overdue: true, status, q });
+    return NextResponse.json({ data, count: data.length });
+  }
 
   const data = await adapter.listProjects({ status, q });
 

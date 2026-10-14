@@ -147,11 +147,15 @@ export function listPublicOperations() {
     name: p.name,
     status: p.status || p.data.status || "active",
   }));
-  const taskRows = listInstances({ type_api_name: "executive_task" }).map((t) => ({
-    id: t.id,
-    name: t.name,
-    status: t.status || t.data.status || "planned",
-  }));
+  const taskRows = listInstances({ type_api_name: "executive_project" }).flatMap((project) =>
+    (project.lines ?? [])
+      .filter((line) => line.line_group === "tasks")
+      .map((line) => ({
+        id: line.id,
+        name: line.data.task_title || "Task",
+        status: line.data.task_status || "todo",
+      })),
+  );
   return {
     projects: projectRows,
     tasks: taskRows,

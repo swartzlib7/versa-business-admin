@@ -163,9 +163,17 @@ export async function loadPairingTwinPreview(args: {
     }
     const projectsRes = await fetch("/api/records?type=executive_project", { credentials: "include", signal: args.signal });
     const projects = projectsRes.ok ? ((await projectsRes.json()) as { data?: RecordInstance[] }).data ?? [] : [];
-    const tasksRes = await fetch("/api/records?type=executive_task", { credentials: "include", signal: args.signal });
-    const tasks = tasksRes.ok ? ((await tasksRes.json()) as { data?: RecordInstance[] }).data ?? [] : [];
-    return { ...base, project: projectPaint(one ? projects.filter((row) => row.id === targetId) : projects, tasks) };
+    const chosen = one ? projects.filter((row) => row.id === targetId) : projects;
+    const tasks = chosen.flatMap((project) =>
+      (project.lines ?? [])
+        .filter((line) => line.line_group === "tasks")
+        .map((line) => ({
+          name: line.data.task_title,
+          status: line.data.task_status,
+          data: { project_id: project.id, name: line.data.task_title || "", status: line.data.task_status || "" },
+        })),
+    );
+    return { ...base, project: projectPaint(chosen, tasks) };
   }
   return {
     kind: "canvas-driver",

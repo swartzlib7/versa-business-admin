@@ -76,14 +76,14 @@ export async function PATCH(
     );
   }
 
-  // Non-admin assignees can only update status
+  // Non-admin assignees report progress: status and percent complete only
   if (!isAdmin(session)) {
-    const allowed: (keyof UpdateTaskInput)[] = ['status'];
+    const allowed: (keyof UpdateTaskInput)[] = ['status', 'percentComplete'];
     const keys = Object.keys(body) as (keyof UpdateTaskInput)[];
     const disallowed = keys.filter((k) => !allowed.includes(k));
     if (disallowed.length > 0) {
       return NextResponse.json(
-        { error: { code: 'FORBIDDEN', message: 'Assignees can only update task status.' } },
+        { error: { code: 'FORBIDDEN', message: 'Assignees can only update task status and percent complete.' } },
         { status: 403 },
       );
     }

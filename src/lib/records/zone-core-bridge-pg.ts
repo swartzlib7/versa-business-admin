@@ -1,6 +1,6 @@
 /**
  * Postgres path for the typed-core fold: projects / tasks / products are
- * executive_project / executive_task / production_product rows in `record`.
+ * executive_project (task lines) / production_product rows in `record`.
  * Leftover dedicated-table rows are copied once (same ids) then left unused.
  */
 import type { Product, Project, Task } from '@/lib/data/types';
@@ -24,24 +24,26 @@ import {
 import {
   products as productsTable,
   projects as projectsTable,
-  tasks as tasksTable,
   users as usersTable,
 } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import {
   instanceToProduct,
   instanceToProject,
-  instanceToTask,
   PRODUCT_PARENT,
   PROJECT_PARENT,
   productCreatePayload,
   productUpdatePayload,
   projectCreatePayload,
   projectUpdatePayload,
-  TASK_PARENT,
-  taskCreatePayload,
-  taskUpdatePayload,
+  taskLineData,
+  writeTaskLines,
 } from '@/lib/records/zone-core-bridge';
+import {
+  assertParent,
+  projectTaskLines,
+  tasksFromProject,
+} from '@/lib/records/project-task-lines';
 import type { RecordInstance } from '@/lib/fixtures/record-instances';
 
 let migratePromise: Promise<void> | null = null;
@@ -66,7 +68,7 @@ async function copyIfMissing(
   typeApiName: string,
   rows: Array<{
     id: string;
-    parent: typeof PROJECT_PARENT | typeof TASK_PARENT | typeof PRODUCT_PARENT;
+    parent: typeof PROJECT_PARENT | typeof PRODUCT_PARENT;
     name: string;
     status: string;
     orgId?: string;
@@ -121,37 +123,6 @@ async function migrateTypedTablesOnce(): Promise<void> {
     })),
   );
 
-  const taskRows = await db
-    .select({
-      task: tasksTable,
-      projectName: projectsTable.name,
-      assigneeName: usersTable.name,
-    })
-    .from(tasksTable)
-    .leftJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id))
-    .leftJoin(usersTable, eq(tasksTable.assigneeUserId, usersTable.id));
-
-  await copyIfMissing(
-    TASK_PARENT.type_api_name,
-    taskRows.map((row) => ({
-      id: row.task.id,
-      parent: TASK_PARENT,
-      name: row.task.title,
-      status: row.task.status,
-      orgId: undefined,
-      data: {
-        notes: row.task.description ?? '',
-        priority: row.task.priority,
-        project_id: row.task.projectId,
-        project_name: row.projectName ?? '',
-        assignee_id: row.task.assigneeUserId ?? '',
-        assignee_name: row.assigneeName ?? '',
-        due_date: asDateString(row.task.dueDate),
-        updated_at: row.task.updatedAt?.toISOString?.() ?? '',
-      },
-    })),
-  );
-
   const productRows = await db.select().from(productsTable);
   await copyIfMissing(
     PRODUCT_PARENT.type_api_name,
@@ -182,20 +153,6 @@ async function ensureMigrated(): Promise<void> {
   await migratePromise;
 }
 
-function taskCounts(taskRows: RecordInstance[]): Map<string, number> {
-  const counts = new Map<string, number>();
-  for (const row of taskRows) {
-    const pid = row.data.project_id;
-    if (!pid) continue;
-    counts.set(pid, (counts.get(pid) ?? 0) + 1);
-  }
-  return counts;
-}
-
-function projectNames(projectRows: RecordInstance[]): Map<string, string> {
-  return new Map(projectRows.map((row) => [row.id, row.name]));
-}
-
 function applyProjectFilters(rows: Project[], filters?: ProjectFilters): Project[] {
   let next = rows;
   if (filters?.status) next = next.filter((row) => row.status === filters.status);
@@ -218,6 +175,10 @@ function applyTaskFilters(rows: Task[], filters?: TaskFilters): Task[] {
       (row) => row.assigneeUserId === filters.assignee || row.assigneeName === filters.assignee,
     );
   }
+  if (filters?.overdue) {
+    const today = new Date().toISOString().slice(0, 10);
+    next = next.filter((row) => row.dueDate !== '' && row.dueDate < today && row.status !== 'done');
+  }
   if (filters?.q) {
     const q = filters.q.toLowerCase();
     next = next.filter(
@@ -227,15 +188,15 @@ function applyTaskFilters(rows: Task[], filters?: TaskFilters): Task[] {
   return next;
 }
 
+async function projectRows(): Promise<RecordInstance[]> {
+  return listRecordsDb(PROJECT_PARENT);
+}
+
 export async function listPgProjects(filters?: ProjectFilters): Promise<Project[]> {
   await ensureMigrated();
-  const [projectRows, taskRows] = await Promise.all([
-    listRecordsDb(PROJECT_PARENT),
-    listRecordsDb({ type_api_name: TASK_PARENT.type_api_name }),
-  ]);
-  const counts = taskCounts(taskRows);
+  const rows = await projectRows();
   return applyProjectFilters(
-    projectRows.map((inst) => instanceToProject(inst, counts.get(inst.id) ?? 0)),
+    rows.map((inst) => instanceToProject(inst, projectTaskLines(inst).length)),
     filters,
   );
 }
@@ -244,8 +205,10 @@ export async function getPgProject(id: string): Promise<Project | null> {
   await ensureMigrated();
   const inst = await getRecordDb(id);
   if (!inst || inst.type_api_name !== PROJECT_PARENT.type_api_name) return null;
-  const taskRows = await listRecordsDb({ type_api_name: TASK_PARENT.type_api_name });
-  return instanceToProject(inst, taskCounts(taskRows).get(id) ?? 0);
+  return {
+    ...instanceToProject(inst, projectTaskLines(inst).length),
+    tasks: tasksFromProject(inst),
+  };
 }
 
 export async function createPgProject(input: CreateProjectInput): Promise<Project> {
@@ -266,56 +229,58 @@ export async function updatePgProject(
   const packed = projectUpdatePayload(inst, input);
   const result = await updateRecordDb(id, packed);
   if (!result.ok) return null;
-  const taskRows = await listRecordsDb({ type_api_name: TASK_PARENT.type_api_name });
-  return instanceToProject(result.instance, taskCounts(taskRows).get(id) ?? 0);
+  return instanceToProject(result.instance, projectTaskLines(result.instance).length);
 }
 
 export async function listPgTasks(filters?: TaskFilters): Promise<Task[]> {
   await ensureMigrated();
-  const [taskRows, projectRows] = await Promise.all([
-    listRecordsDb(TASK_PARENT),
-    listRecordsDb({ type_api_name: PROJECT_PARENT.type_api_name }),
-  ]);
-  const names = projectNames(projectRows);
-  return applyTaskFilters(
-    taskRows.map((inst) => instanceToTask(inst, names.get(inst.data.project_id) ?? '')),
-    filters,
-  );
+  const rows = await projectRows();
+  return applyTaskFilters(rows.flatMap((project) => tasksFromProject(project)), filters);
+}
+
+async function findPgTaskProject(taskId: string): Promise<RecordInstance | null> {
+  const rows = await projectRows();
+  return rows.find((project) => projectTaskLines(project).some((line) => line.id === taskId)) ?? null;
 }
 
 export async function getPgTask(id: string): Promise<Task | null> {
   await ensureMigrated();
-  const inst = await getRecordDb(id);
-  if (!inst || inst.type_api_name !== TASK_PARENT.type_api_name) return null;
-  const project = inst.data.project_id ? await getRecordDb(inst.data.project_id) : null;
-  return instanceToTask(inst, project?.name ?? '');
+  const project = await findPgTaskProject(id);
+  if (!project) return null;
+  return tasksFromProject(project).find((task) => task.id === id) ?? null;
 }
 
 export async function createPgTask(input: CreateTaskInput): Promise<Task> {
   await ensureMigrated();
-  const project = await getPgProject(input.projectId);
-  if (!project) throw new Error('VALIDATION: projectId does not reference an existing project');
-  const packed = taskCreatePayload(input, project.name);
-  const result = await createRecordDb({ ...TASK_PARENT, ...packed });
+  if (!input.projectId) throw new Error('VALIDATION: projectId is required');
+  const project = await getRecordDb(input.projectId);
+  if (!project || project.type_api_name !== PROJECT_PARENT.type_api_name) {
+    throw new Error('VALIDATION: projectId does not reference an existing project');
+  }
+  const lines = projectTaskLines(project);
+  const id = `task-${Date.now().toString(36)}-${lines.length + 1}`;
+  const data = taskLineData({ ...input, status: input.status ?? 'todo', parentId: input.parentId ?? '' });
+  if (!data.task_title) throw new Error('VALIDATION: title is required');
+  const next = [...lines, { id, data }];
+  assertParent(next, id, data.task_parent_id || '');
+  const result = await updateRecordDb(project.id, { lines: writeTaskLines(project, next) });
   if (!result.ok) throw new Error(`VALIDATION: ${result.message}`);
-  return instanceToTask(result.instance, project.name);
+  return tasksFromProject(result.instance).find((task) => task.id === id)!;
 }
 
 export async function updatePgTask(id: string, input: UpdateTaskInput): Promise<Task | null> {
   await ensureMigrated();
-  const inst = await getRecordDb(id);
-  if (!inst || inst.type_api_name !== TASK_PARENT.type_api_name) return null;
-  let projectName: string | undefined;
-  if (input.projectId !== undefined) {
-    const project = await getPgProject(input.projectId);
-    if (!project) throw new Error('VALIDATION: projectId does not reference an existing project');
-    projectName = project.name;
-  }
-  const packed = taskUpdatePayload(inst, input, projectName);
-  const result = await updateRecordDb(id, packed);
+  const project = await findPgTaskProject(id);
+  if (!project) return null;
+  const lines = projectTaskLines(project);
+  const current = lines.find((line) => line.id === id);
+  if (!current) return null;
+  const data = taskLineData(input, current.data);
+  const next = lines.map((line) => (line.id === id ? { ...line, data } : line));
+  assertParent(next, id, data.task_parent_id || '');
+  const result = await updateRecordDb(project.id, { lines: writeTaskLines(project, next) });
   if (!result.ok) return null;
-  const project = packed.data.project_id ? await getRecordDb(packed.data.project_id) : null;
-  return instanceToTask(result.instance, project?.name ?? packed.data.project_name ?? '');
+  return tasksFromProject(result.instance).find((task) => task.id === id) ?? null;
 }
 
 export async function listPgProducts(): Promise<Product[]> {

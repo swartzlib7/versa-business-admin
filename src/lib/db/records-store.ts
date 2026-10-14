@@ -93,6 +93,57 @@ import {
 import type { StatLineRow } from '@/lib/db/stat-lines-store';
 
 type Header = Record<string, unknown>;
+type LineWrite = { id?: string; line_group?: string; data: Record<string, string> };
+
+/**
+ * Keep line ids across saves. Project task lines look up each other by id.
+ * Statistics lines use their own store and never call this.
+ * An id already on this record is updated. A new id is inserted as given.
+ * Rows missing from the array are deleted. Position follows array order.
+ */
+async function replaceRecordLines(recordId: string, lines: LineWrite[]): Promise<void> {
+  await getDb().transaction(async (db) => {
+    const existing = await db
+      .select({ id: recordLineTable.id })
+      .from(recordLineTable)
+      .where(eq(recordLineTable.recordId, recordId));
+    const owned = new Set(existing.map((row) => row.id));
+    const seen = new Set<string>();
+    for (let idx = 0; idx < lines.length; idx++) {
+      const line = lines[idx];
+      const position = (idx + 1) * 10;
+      const wanted = line.id?.trim() || "";
+      if (wanted && owned.has(wanted) && !seen.has(wanted)) {
+        seen.add(wanted);
+        await db
+          .update(recordLineTable)
+          .set({
+            lineGroup: line.line_group ?? null,
+            position,
+            data: line.data,
+            updatedAt: new Date(),
+          })
+          .where(eq(recordLineTable.id, wanted));
+        continue;
+      }
+      const inserted = await db
+        .insert(recordLineTable)
+        .values({
+          ...(wanted && !owned.has(wanted) && !seen.has(wanted) ? { id: wanted } : {}),
+          recordId,
+          lineGroup: line.line_group ?? null,
+          position,
+          data: line.data,
+        })
+        .returning({ id: recordLineTable.id });
+      seen.add(inserted[0].id);
+    }
+    const drop = existing.map((row) => row.id).filter((id) => !seen.has(id));
+    if (drop.length) {
+      await db.delete(recordLineTable).where(inArray(recordLineTable.id, drop));
+    }
+  });
+}
 
 function headerToStrings(header: unknown): Record<string, string> {
   const out: Record<string, string> = {};
@@ -535,16 +586,7 @@ export async function createRecordDb(
     await seedStatLinesForHeader(recordId);
   } else {
     const lines = input.lines ?? [];
-    if (lines.length) {
-      await db.insert(recordLineTable).values(
-        lines.map((lineData, idx) => ({
-          recordId,
-          lineGroup: lineData.line_group ?? null,
-          position: (idx + 1) * 10,
-          data: lineData.data,
-        })),
-      );
-    }
+    if (lines.length) await replaceRecordLines(recordId, lines);
   }
 
   // #249 Slice E2 (rev E section 3.2): executive one-to-many relations.
@@ -667,18 +709,7 @@ export async function updateRecordDb(
       .where(eq(recordTypeTable.id, cur[0].recordTypeId))
       .limit(1);
     if (typeRows[0]?.apiName !== 'statistics') {
-      // Fixture semantics: the lines array replaces in full.
-      await db.delete(recordLineTable).where(eq(recordLineTable.recordId, id));
-      if (input.lines.length) {
-        await db.insert(recordLineTable).values(
-          input.lines.map((lineData, idx) => ({
-            recordId: id,
-            lineGroup: lineData.line_group ?? null,
-            position: (idx + 1) * 10,
-            data: lineData.data,
-          })),
-        );
-      }
+      await replaceRecordLines(id, input.lines);
     }
   }
 

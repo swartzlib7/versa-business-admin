@@ -72,20 +72,6 @@ export const recordTypes: RecordTypeDefinition[] = [
     object_api_name: 'executive_project',
   },
   {
-    id: 'rt-executive_task',
-    api_name: 'executive_task',
-    label: 'Tasks',
-    description: 'Executable work items under Executive projects.',
-    parent_kind: 'faculty',
-    parent_api_name: 'executive',
-    structure: 'header_lines',
-    show_as_tab: true,
-    sort_order: 30,
-    active: true,
-    is_system: true,
-    object_api_name: 'executive_task',
-  },
-  {
     id: 'rt-production_product',
     api_name: 'production_product',
     label: 'Products',
@@ -714,6 +700,9 @@ export function applyRecordTypeOverlay(overlay: {
     seen.add(row.api_name);
   }
   for (const row of over) {
+    // executive_task was removed (Project task lines, 2026-10-14). A stale
+    // overlay must not bring the tab back.
+    if (row.api_name === "executive_task") continue;
     if (!seen.has(row.api_name)) out.push(row);
   }
   setRecordTypeLive(out);

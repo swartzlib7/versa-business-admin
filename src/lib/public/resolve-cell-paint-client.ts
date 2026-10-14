@@ -128,8 +128,16 @@ export async function fetchCellPaint(cell: PageBuilderCell): Promise<ResolvedCel
     const projectsJson = await fetchJson<{ data?: RecordInstance[] }>("/api/records?type=executive_project");
     const projects = projectsJson?.data ?? [];
     const chosen = fields.selection_mode === "one" && targetId ? projects.filter((row) => row.id === targetId) : projects;
-    const tasksJson = await fetchJson<{ data?: RecordInstance[] }>("/api/records?type=executive_task");
-    out.project = projectPaint(chosen, tasksJson?.data ?? []);
+    const tasks = chosen.flatMap((project) =>
+      (project.lines ?? [])
+        .filter((line) => line.line_group === "tasks")
+        .map((line) => ({
+          name: line.data.task_title,
+          status: line.data.task_status,
+          data: { project_id: project.id, name: line.data.task_title || "", status: line.data.task_status || "" },
+        })),
+    );
+    out.project = projectPaint(chosen, tasks);
   }
 
   if ((kind === "location-card" || kind === "contacts-cards") && targetId) {

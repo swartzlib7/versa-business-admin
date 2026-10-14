@@ -60,7 +60,7 @@ export type SampleRecordSeed = {
   data: Record<string, string>;
   /** Field name → another sample external id, resolved to a record or org id at insert. */
   refs?: Record<string, string>;
-  lines?: Array<{ data: Record<string, string>; refs?: Record<string, string> }>;
+  lines?: Array<{ id?: string; data: Record<string, string>; refs?: Record<string, string> }>;
   relations?: Array<{ relation_kind: string; target_external_id: string }>;
   org_external_id?: string;
 };
@@ -248,7 +248,16 @@ function vendorSchedules(): SampleRecordSeed[] {
   return rows;
 }
 
+/** ISO date a number of days from the day the sample is inserted, so the Gantt stays current. */
+function sampleDay(offset: number): string {
+  return new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+}
+
 function projectSeeds(): SampleRecordSeed[] {
+  const plan = "ba-sample-task-plan";
+  const build = "ba-sample-task-build";
+  const review = "ba-sample-task-review";
+  const train = "ba-sample-task-train";
   return [
     {
       type_api_name: "executive_project",
@@ -258,26 +267,55 @@ function projectSeeds(): SampleRecordSeed[] {
       status: "active",
       data: {
         priority: "high",
+        start_date: sampleDay(-30),
+        target_date: sampleDay(45),
         external_id: sampleExternalId("project", "rollout"),
       },
-    },
-    {
-      type_api_name: "executive_task",
-      parent_kind: "faculty",
-      parent_api_name: "executive",
-      name: "Bind the integrations",
-      status: "in_progress",
-      data: { priority: "high", external_id: sampleExternalId("task", "bind") },
-      refs: { project_id: sampleExternalId("project", "rollout") },
-    },
-    {
-      type_api_name: "executive_task",
-      parent_kind: "faculty",
-      parent_api_name: "executive",
-      name: "Confirm the inspection list",
-      status: "todo",
-      data: { priority: "normal", external_id: sampleExternalId("task", "tickets") },
-      refs: { project_id: sampleExternalId("project", "rollout") },
+      lines: [
+        {
+          id: plan,
+          data: {
+            task_title: "Milestone: plan the rollout",
+            task_status: "done",
+            task_percent: "100",
+            task_due_date: sampleDay(-20),
+            task_parent_id: "",
+          },
+        },
+        {
+          id: build,
+          data: {
+            task_title: "Bind the integrations",
+            task_status: "in_progress",
+            task_percent: "40",
+            task_due_date: sampleDay(-3),
+            task_parent_id: plan,
+            task_notes:
+              "<p>Pair each integration with its <strong>schedule</strong> before go-live.</p><ul><li>Weather feed</li><li>Inspection export</li></ul>",
+          },
+        },
+        {
+          id: review,
+          data: {
+            task_title: "Confirm the inspection list",
+            task_status: "todo",
+            task_percent: "0",
+            task_due_date: sampleDay(12),
+            task_parent_id: build,
+          },
+        },
+        {
+          id: train,
+          data: {
+            task_title: "Train the staff",
+            task_status: "waiting",
+            task_percent: "15",
+            task_due_date: sampleDay(25),
+            task_parent_id: "",
+            task_notes: "<p>Two short sessions. <em>Record both</em> for new hires.</p>",
+          },
+        },
+      ],
     },
   ];
 }

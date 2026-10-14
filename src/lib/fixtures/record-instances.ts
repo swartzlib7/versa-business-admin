@@ -90,8 +90,11 @@ export interface CreateInstanceInput {
   name: string;
   status?: string;
   data?: Record<string, string>;
-  /** #185 Slice A: structured line entries carrying an optional lines-group key. */
-  lines?: Array<{ line_group?: string; data: Record<string, string> }>;
+  /**
+   * Line entries. `id` is kept when present (Project task lines depend on it).
+   * Omitted ids are generated.
+   */
+  lines?: Array<{ id?: string; line_group?: string; data: Record<string, string> }>;
   /**
    * #249 Slice E2 (rev E section 2.5): explicit organization override for the
    * record (auto-preset resolves user default organization when omitted).
@@ -134,7 +137,7 @@ export function createInstance(input: CreateInstanceInput): CreateInstanceResult
   }
   const now = new Date().toISOString();
   const lines: RecordInstanceLine[] = (input.lines || []).map((lineData, idx) => ({
-    id: `rec-line-${nextId++}`,
+    id: lineData.id?.trim() || `rec-line-${nextId++}`,
     record_id: id,
     line_group: lineData.line_group,
     data: lineData.data,
@@ -167,8 +170,11 @@ export interface UpdateInstanceInput {
   name?: string;
   status?: string;
   data?: Record<string, string>;
-  /** #185 Slice A: structured line entries carrying an optional lines-group key. */
-  lines?: Array<{ line_group?: string; data: Record<string, string> }>;
+  /**
+   * Line entries. `id` is kept when present (Project task lines depend on it).
+   * Omitted ids are generated.
+   */
+  lines?: Array<{ id?: string; line_group?: string; data: Record<string, string> }>;
   /**
    * #249 Slice E2: relations replace-in-full (same semantics as lines).
    * Fixture path ignores this (relations persist only in the Horizon 1 store).
@@ -198,13 +204,20 @@ export function updateInstance(id: string, input: UpdateInstanceInput): UpdateIn
   const cur = mutableInstances[idx];
   let lines = cur.lines;
   if (input.lines !== undefined) {
-    lines = input.lines.map((lineData, idx2) => ({
-      id: `rec-line-${nextId++}`,
-      record_id: id,
-      line_group: lineData.line_group,
-      data: lineData.data,
-      sort_order: (idx2 + 1) * 10,
-    }));
+    const owned = new Set((cur.lines ?? []).map((line) => line.id));
+    const seen = new Set<string>();
+    lines = input.lines.map((lineData, idx2) => {
+      const wanted = lineData.id?.trim() || "";
+      const keep = wanted && (owned.has(wanted) || !seen.has(wanted)) ? wanted : `rec-line-${nextId++}`;
+      seen.add(keep);
+      return {
+        id: keep,
+        record_id: id,
+        line_group: lineData.line_group,
+        data: lineData.data,
+        sort_order: (idx2 + 1) * 10,
+      };
+    });
     if (lines.length === 0) lines = undefined;
   }
 

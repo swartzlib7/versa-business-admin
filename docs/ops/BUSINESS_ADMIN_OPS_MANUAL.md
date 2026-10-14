@@ -325,7 +325,7 @@ When Versa - Business Admin shares a Versa AGi host with agents:
 |-------|-------------|
 | Git | Remote is source of truth for code |
 | `.env.local` | Host backup only; encrypted |
-| Postgres (DATA_SOURCE=postgres) | Scheduled `pg_dump` — includes `catalog_overlay`, zone tables (`executive_project`, `executive_task`, `production_product`), and the whole public site: `site_settings` (Page Builder, menus, modes in `body`) plus Pages records and Elements |
+| Postgres (DATA_SOURCE=postgres) | Scheduled `pg_dump` — includes `catalog_overlay`, zone tables (`executive_project` with its task lines, `production_product`), and the whole public site: `site_settings` (Page Builder, menus, modes in `body`) plus Pages records and Elements |
 | `.data/site-settings.json` | Until the first 1.0.4 boot has copied it into `site_settings.body`, this file **is** the live Page Builder, menus, and modes. Back it up and leave it in place (§5.2.1). After that copy it is a cache: boot rewrites it from Postgres. Do not edit it by hand |
 | Durable catalog overlay (fixture mode) | `.data/catalog.json` IS the tenant customization store when no DB — back up the file |
 | Overlay restore rule | Restore must not re-seed wipe `c_*`; seed∪overlay merge on boot makes system seed re-runnable, overlay must survive |
@@ -336,7 +336,7 @@ When Versa - Business Admin shares a Versa AGi host with agents:
 
 ## 4. Change delivery (customer-local enhancement)
 
-Public GitHub is **`main`**. Do not invent a second published line. Do not promote or bump versions unless the Primary User asks.
+Public GitHub is **`main`**. This checkout is pull-only. Do not commit product changes and do not `git push`. The Primary User publishes `main`. Do not invent a second published line. Do not promote or bump versions unless the Primary User asks.
 
 ### 4.1 Quality before claiming done
 
@@ -423,6 +423,10 @@ Same steps as §5.2.1. No new migration. Catalog seed pack stays `1.0.6-r3`. Hea
 ### 5.2.5 Existing install to 1.0.8
 
 Same steps as §5.2.1. No new migration. Catalog seed pack stays `1.0.6-r3`. Health reports `"version":"1.0.8"`. Leave `.data/site-settings.json` in place.
+
+### 5.2.6 Existing install to 1.0.9 (Project task lines)
+
+Same steps as §5.2.1, and run `npm run db:migrate` before the new process serves traffic. Migration `0020` copies Project milestones, Task records, their subtasks, and leftover rows in the old `tasks` table onto Project task lines, then removes the Task records, the Task record type, and that table. A migrated Task keeps its id as the line id. An old `projects` row that a leftover task points at is copied as a Project record with the same id. A Task with no Project lands on a Project named `Unassigned tasks`. The migration stops and rolls back if the new line count differs from the rows it moved. Catalog seed pack becomes `1.0.9-r1`. Health reports `"version":"1.0.9"`.
 
 ### 5.3 What v1 must **not** do
 
@@ -531,6 +535,8 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-10-14 | §5.2.6: upgrade to 1.0.9. Project task lines. Migration `0020`. Catalog seed pack `1.0.9-r1`. |
+| 2026-10-04 | §4: the public GitHub checkout is pull-only. Agents do not commit product changes and do not `git push`. |
 | 2026-10-02 | §5.2.5: upgrade an already-customized install to 1.0.8. Phone menu bug fix. No new migration. |
 | 2026-10-02 | §5.2.4: upgrade an already-customized install to 1.0.7. No new migration. Catalog seed pack stays `1.0.6-r3`. |
 | 2026-09-29 | §5.2.3: upgrade an already-customized install to 1.0.6. Catalog seed pack `1.0.6-r3` replaces free-text Status fields with picklists and adds Location Phone and Email. |

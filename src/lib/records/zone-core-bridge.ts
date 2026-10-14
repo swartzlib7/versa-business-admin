@@ -15,8 +15,16 @@ import type {
   UpdateTaskInput,
 } from '@/lib/data/adapter';
 import { projects as projectFixtures } from '@/lib/fixtures/projects';
-import { tasks as taskFixtures } from '@/lib/fixtures/tasks';
 import { products as productFixtures } from '@/lib/fixtures/products';
+import {
+  TASK_LINE_GROUP,
+  assertParent,
+  assertTaskStatus,
+  isOverdue,
+  projectTaskLines,
+  tasksFromProject,
+  type TaskLine,
+} from '@/lib/records/project-task-lines';
 import {
   createInstance,
   getInstance,
@@ -27,12 +35,6 @@ import {
 
 export const PROJECT_PARENT = {
   type_api_name: 'executive_project',
-  parent_kind: 'faculty',
-  parent_api_name: 'executive',
-} as const;
-
-export const TASK_PARENT = {
-  type_api_name: 'executive_task',
   parent_kind: 'faculty',
   parent_api_name: 'executive',
 } as const;
@@ -51,20 +53,8 @@ function projectStatus(value: string): Project['status'] {
     : 'active';
 }
 
-function taskStatus(value: string): Task['status'] {
-  return ['planned', 'in_progress', 'waiting', 'blocked', 'done'].includes(value)
-    ? (value as Task['status'])
-    : 'planned';
-}
-
 function projectPriority(value: string): Project['priority'] {
   return ['low', 'normal', 'high'].includes(value) ? (value as Project['priority']) : 'normal';
-}
-
-function taskPriority(value: string): Task['priority'] {
-  return ['low', 'normal', 'high', 'urgent'].includes(value)
-    ? (value as Task['priority'])
-    : 'normal';
 }
 
 function productStatus(value: string): Product['status'] {
@@ -147,68 +137,43 @@ export function projectUpdatePayload(
   return { name: input.name, status: input.status, data };
 }
 
-export function taskCreatePayload(
-  input: CreateTaskInput,
-  projectName: string,
-): { name: string; status: string; data: Record<string, string> } {
-  const title = (input.title || '').trim();
-  if (!title) throw new Error('VALIDATION: title is required');
-  if (!input.projectId) throw new Error('VALIDATION: projectId is required');
-  const status = input.status ?? 'planned';
-  const priority = input.priority ?? 'normal';
-  if (!['planned', 'in_progress', 'waiting', 'blocked', 'done'].includes(status)) {
-    throw new Error('VALIDATION: invalid status');
+export function taskLineData(input: {
+  title?: string;
+  description?: string;
+  status?: string;
+  assigneeUserId?: string;
+  assigneeName?: string;
+  dueDate?: string | null;
+  percentComplete?: number | null;
+  parentId?: string;
+}, current?: Record<string, string>): Record<string, string> {
+  const data = { ...(current ?? {}) };
+  if (input.title !== undefined) {
+    const title = input.title.trim();
+    if (!title) throw new Error('VALIDATION: title is required');
+    data.task_title = title;
   }
-  if (!['low', 'normal', 'high', 'urgent'].includes(priority)) {
-    throw new Error('VALIDATION: invalid priority');
+  if (input.description !== undefined) data.task_notes = input.description;
+  if (input.status !== undefined) data.task_status = assertTaskStatus(input.status);
+  if (input.assigneeUserId !== undefined) data.task_assignee_id = input.assigneeUserId;
+  if (input.assigneeName !== undefined) data.task_assignee_name = input.assigneeName;
+  if (input.dueDate !== undefined) data.task_due_date = dateField(input.dueDate);
+  if (input.percentComplete !== undefined) {
+    if (input.percentComplete != null && (input.percentComplete < 0 || input.percentComplete > 100)) {
+      throw new Error('VALIDATION: percent must be from 0 to 100');
+    }
+    data.task_percent = input.percentComplete == null ? '' : String(input.percentComplete);
   }
-  return {
-    name: title,
-    status,
-    data: {
-      notes: input.description ?? '',
-      priority,
-      project_id: input.projectId,
-      project_name: projectName,
-      assignee_id: input.assigneeUserId ?? '',
-      assignee_name: input.assigneeName ?? '',
-      due_date: dateField(input.dueDate),
-      updated_at: new Date().toISOString(),
-    },
-  };
+  if (input.parentId !== undefined) data.task_parent_id = input.parentId;
+  return data;
 }
 
-export function taskUpdatePayload(
-  inst: RecordInstance,
-  input: UpdateTaskInput,
-  projectName?: string,
-): { name?: string; status?: string; data: Record<string, string> } {
-  const data = { ...inst.data };
-  if (input.description !== undefined) data.notes = input.description;
-  if (input.priority !== undefined) {
-    if (!['low', 'normal', 'high', 'urgent'].includes(input.priority)) {
-      throw new Error('VALIDATION: invalid priority');
-    }
-    data.priority = input.priority;
-  }
-  if (input.projectId !== undefined) {
-    data.project_id = input.projectId;
-    if (projectName !== undefined) data.project_name = projectName;
-  }
-  if (input.assigneeUserId !== undefined) data.assignee_id = input.assigneeUserId;
-  if (input.assigneeName !== undefined) data.assignee_name = input.assigneeName;
-  if (input.dueDate !== undefined) data.due_date = dateField(input.dueDate);
-  data.updated_at = new Date().toISOString();
-  if (input.title !== undefined && !input.title.trim()) {
-    throw new Error('VALIDATION: title cannot be empty');
-  }
-  if (
-    input.status !== undefined &&
-    !['planned', 'in_progress', 'waiting', 'blocked', 'done'].includes(input.status)
-  ) {
-    throw new Error('VALIDATION: invalid status');
-  }
-  return { name: input.title, status: input.status, data };
+export function writeTaskLines(inst: RecordInstance, lines: TaskLine[]) {
+  const others = (inst.lines ?? []).filter((line) => (line.line_group || '') !== TASK_LINE_GROUP);
+  return [
+    ...others.map((line) => ({ id: line.id, line_group: line.line_group, data: line.data })),
+    ...lines.map((line) => ({ id: line.id, line_group: TASK_LINE_GROUP, data: line.data })),
+  ];
 }
 
 export function productCreatePayload(input: CreateProductInput): {
@@ -277,23 +242,6 @@ export function ensureTypedCoreRecords(): void {
       },
     });
   }
-  for (const task of taskFixtures) {
-    createInstance({
-      id: task.id,
-      ...TASK_PARENT,
-      name: task.title,
-      status: task.status,
-      data: {
-        notes: task.description,
-        priority: task.priority,
-        project_id: task.projectId,
-        project_name: task.projectName,
-        assignee_id: task.assigneeUserId,
-        assignee_name: task.assigneeName,
-        due_date: task.dueDate,
-      },
-    });
-  }
   for (const product of productFixtures) {
     createInstance({
       id: product.id,
@@ -311,10 +259,8 @@ export function ensureTypedCoreRecords(): void {
   }
 }
 
-function taskCountFor(projectId: string): number {
-  return listInstances({ type_api_name: TASK_PARENT.type_api_name }).filter(
-    (row) => row.data.project_id === projectId,
-  ).length;
+function taskCountFor(inst: RecordInstance): number {
+  return projectTaskLines(inst).length;
 }
 
 export function instanceToProject(inst: RecordInstance, taskCount = 0): Project {
@@ -329,23 +275,6 @@ export function instanceToProject(inst: RecordInstance, taskCount = 0): Project 
     startDate: inst.data.start_date || null,
     targetDate: inst.data.target_date || null,
     taskCount,
-  };
-}
-
-export function instanceToTask(inst: RecordInstance, projectName = ''): Task {
-  return {
-    id: inst.id,
-    title: inst.name,
-    description: inst.data.notes || inst.data.description || '',
-    status: taskStatus(inst.status),
-    priority: taskPriority(inst.data.priority || 'normal'),
-    projectId: inst.data.project_id || '',
-    projectName: projectName || inst.data.project_name || '',
-    assigneeUserId: inst.data.assignee_id || inst.data.assignee_user_id || '',
-    assigneeName: inst.data.assignee_name || '',
-    dueDate: inst.data.due_date || '',
-    createdAt: inst.created_at,
-    updatedAt: inst.data.updated_at || inst.created_at,
   };
 }
 
@@ -367,7 +296,7 @@ export function listBridgedProjects(filters?: ProjectFilters): Project[] {
     type_api_name: PROJECT_PARENT.type_api_name,
     parent_kind: PROJECT_PARENT.parent_kind,
     parent_api_name: PROJECT_PARENT.parent_api_name,
-  }).map((inst) => instanceToProject(inst, taskCountFor(inst.id)));
+  }).map((inst) => instanceToProject(inst, taskCountFor(inst)));
   if (filters?.status) rows = rows.filter((row) => row.status === filters.status);
   if (filters?.q) {
     const q = filters.q.toLowerCase();
@@ -382,7 +311,7 @@ export function getBridgedProject(id: string): Project | null {
   ensureTypedCoreRecords();
   const inst = getInstance(id);
   if (!inst || inst.type_api_name !== PROJECT_PARENT.type_api_name) return null;
-  return instanceToProject(inst, taskCountFor(inst.id));
+  return { ...instanceToProject(inst, taskCountFor(inst)), tasks: tasksFromProject(inst) };
 }
 
 export function createBridgedProject(input: CreateProjectInput): Project {
@@ -400,22 +329,27 @@ export function updateBridgedProject(id: string, input: UpdateProjectInput): Pro
   const packed = projectUpdatePayload(inst, input);
   const result = updateInstance(id, packed);
   if (!result.ok) return null;
-  return instanceToProject(result.instance, taskCountFor(id));
+  return instanceToProject(result.instance, taskCountFor(result.instance));
+}
+
+function projectInstances(): RecordInstance[] {
+  return listInstances({
+    type_api_name: PROJECT_PARENT.type_api_name,
+    parent_kind: PROJECT_PARENT.parent_kind,
+    parent_api_name: PROJECT_PARENT.parent_api_name,
+  });
+}
+
+function findTaskProject(taskId: string): RecordInstance | undefined {
+  return projectInstances().find((project) => projectTaskLines(project).some((line) => line.id === taskId));
 }
 
 export function listBridgedTasks(filters?: TaskFilters): Task[] {
   ensureTypedCoreRecords();
-  const names = new Map(
-    listInstances({ type_api_name: PROJECT_PARENT.type_api_name }).map((row) => [row.id, row.name]),
-  );
-  let rows = listInstances({
-    type_api_name: TASK_PARENT.type_api_name,
-    parent_kind: TASK_PARENT.parent_kind,
-    parent_api_name: TASK_PARENT.parent_api_name,
-  }).map((inst) => instanceToTask(inst, names.get(inst.data.project_id) ?? ''));
+  const today = new Date().toISOString().slice(0, 10);
+  let rows = projectInstances().flatMap((project) => tasksFromProject(project));
   if (filters?.status) rows = rows.filter((row) => row.status === filters.status);
   if (filters?.projectId) rows = rows.filter((row) => row.projectId === filters.projectId);
-  if (filters?.priority) rows = rows.filter((row) => row.priority === filters.priority);
   if (filters?.assignee) {
     rows = rows.filter(
       (row) => row.assigneeUserId === filters.assignee || row.assigneeName === filters.assignee,
@@ -427,42 +361,54 @@ export function listBridgedTasks(filters?: TaskFilters): Task[] {
       (row) => row.title.toLowerCase().includes(q) || row.description.toLowerCase().includes(q),
     );
   }
+  if (filters?.overdue) {
+    rows = rows.filter((row) => {
+      const project = getInstance(row.projectId);
+      const line = project ? projectTaskLines(project).find((item) => item.id === row.id) : undefined;
+      return line ? isOverdue(line, today) : false;
+    });
+  }
   return rows;
 }
 
 export function getBridgedTask(id: string): Task | null {
   ensureTypedCoreRecords();
-  const inst = getInstance(id);
-  if (!inst || inst.type_api_name !== TASK_PARENT.type_api_name) return null;
-  const project = inst.data.project_id ? getInstance(inst.data.project_id) : undefined;
-  return instanceToTask(inst, project?.name ?? '');
+  const project = findTaskProject(id);
+  if (!project) return null;
+  return tasksFromProject(project).find((task) => task.id === id) ?? null;
 }
 
 export function createBridgedTask(input: CreateTaskInput): Task {
   ensureTypedCoreRecords();
-  const project = getBridgedProject(input.projectId);
-  if (!project) throw new Error('VALIDATION: projectId does not reference an existing project');
-  const packed = taskCreatePayload(input, project.name);
-  const result = createInstance({ ...TASK_PARENT, ...packed });
+  if (!input.projectId) throw new Error('VALIDATION: projectId is required');
+  const project = getInstance(input.projectId);
+  if (!project || project.type_api_name !== PROJECT_PARENT.type_api_name) {
+    throw new Error('VALIDATION: projectId does not reference an existing project');
+  }
+  const lines = projectTaskLines(project);
+  const id = `task-${Date.now().toString(36)}-${lines.length + 1}`;
+  const data = taskLineData({ ...input, status: input.status ?? 'todo', parentId: input.parentId ?? '' });
+  if (!data.task_title) throw new Error('VALIDATION: title is required');
+  const next = [...lines, { id, data }];
+  assertParent(next, id, data.task_parent_id || '');
+  const result = updateInstance(project.id, { lines: writeTaskLines(project, next) });
   if (!result.ok) throw new Error(`VALIDATION: ${result.message}`);
-  return instanceToTask(result.instance, project.name);
+  return tasksFromProject(result.instance).find((task) => task.id === id)!;
 }
 
 export function updateBridgedTask(id: string, input: UpdateTaskInput): Task | null {
   ensureTypedCoreRecords();
-  const inst = getInstance(id);
-  if (!inst || inst.type_api_name !== TASK_PARENT.type_api_name) return null;
-  let projectName: string | undefined;
-  if (input.projectId !== undefined) {
-    const project = getBridgedProject(input.projectId);
-    if (!project) throw new Error('VALIDATION: projectId does not reference an existing project');
-    projectName = project.name;
-  }
-  const packed = taskUpdatePayload(inst, input, projectName);
-  const result = updateInstance(id, packed);
+  const project = findTaskProject(id);
+  if (!project) return null;
+  const lines = projectTaskLines(project);
+  const current = lines.find((line) => line.id === id);
+  if (!current) return null;
+  const data = taskLineData(input, current.data);
+  const next = lines.map((line) => (line.id === id ? { ...line, data } : line));
+  assertParent(next, id, data.task_parent_id || '');
+  const result = updateInstance(project.id, { lines: writeTaskLines(project, next) });
   if (!result.ok) return null;
-  const project = packed.data.project_id ? getInstance(packed.data.project_id) : undefined;
-  return instanceToTask(result.instance, project?.name ?? packed.data.project_name ?? '');
+  return tasksFromProject(result.instance).find((task) => task.id === id) ?? null;
 }
 
 export function listBridgedProducts(): Product[] {

@@ -23,19 +23,30 @@ export interface Project {
   startDate: string | null;
   targetDate: string | null;
   taskCount: number;
+  /** Present on GET /api/projects/:id. Task lines of this project. */
+  tasks?: Task[];
 }
+
+export type TaskStatus = "todo" | "in_progress" | "waiting" | "blocked" | "done";
 
 export interface Task {
   id: string;
   title: string;
+  /** Task notes as stored (rich text HTML). */
   description: string;
-  status: "planned" | "in_progress" | "waiting" | "blocked" | "done";
+  /** Task notes with tags removed. */
+  descriptionText: string;
+  status: TaskStatus;
   priority: "low" | "normal" | "high" | "urgent";
   projectId: string;
   projectName: string;
   assigneeUserId: string;
   assigneeName: string;
   dueDate: string;
+  percentComplete: number | null;
+  parentId: string;
+  depth: number;
+  actionable: boolean;
   createdAt: string;
   updatedAt: string;
 }

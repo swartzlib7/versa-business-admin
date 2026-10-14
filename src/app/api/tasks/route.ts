@@ -18,8 +18,9 @@ export async function GET(request: Request) {
   const priority = searchParams.get('priority') ?? undefined;
   const assignee = searchParams.get('assignee') ?? undefined;
   const q = searchParams.get('q') ?? undefined;
+  const overdue = searchParams.get('overdue') === 'true' ? true : undefined;
 
-  const data = await adapter.listTasks({ status, projectId, priority, assignee, q });
+  const data = await adapter.listTasks({ status, projectId, priority, assignee, q, overdue });
 
   return NextResponse.json({
     data,

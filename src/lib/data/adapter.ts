@@ -46,6 +46,8 @@ export interface TaskFilters {
   priority?: string;
   assignee?: string;
   q?: string;
+  /** Due date before today and status is not done. */
+  overdue?: boolean;
 }
 
 /** Phase 3 — create user (password optional; hashed only on postgres path). */
@@ -117,6 +119,8 @@ export interface CreateTaskInput {
   assigneeUserId?: string;
   assigneeName?: string;
   dueDate?: string | null;
+  percentComplete?: number | null;
+  parentId?: string;
   data?: Record<string, unknown>;
 }
 
@@ -130,6 +134,8 @@ export interface UpdateTaskInput {
   assigneeUserId?: string;
   assigneeName?: string;
   dueDate?: string | null;
+  percentComplete?: number | null;
+  parentId?: string;
   data?: Record<string, unknown>;
 }
 
@@ -268,7 +274,7 @@ export function resetProjects(): void {
 }
 
 export function resetTasks(): void {
-  /* executive_task record instances are the store */
+  /* Project task lines are the store */
 }
 
 export const fixtureAdapter: DataAdapter = {

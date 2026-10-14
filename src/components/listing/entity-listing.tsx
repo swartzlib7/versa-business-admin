@@ -31,6 +31,7 @@ import { ImageUrlField } from "@/components/catalog/image-url-field";
 import { ImageGalleryField } from "@/components/catalog/image-gallery-field";
 import { FrequencyStartField } from "@/components/statistics/frequency-start-field";
 import { HtmlEditor, normalizePageBodyFormat } from "@/components/public/html-editor";
+import { htmlToText } from "@/lib/html-text";
 import { CustomSlotsField } from "@/components/catalog/custom-slots-field";
 import { intervalIso, scheduleFieldHidden } from "@/lib/public/schedule-times";
 import { isAuditField } from "@/lib/catalog/audit-fields";
@@ -67,7 +68,11 @@ export type ListingField = {
     | "url"
     | "phone"
     | "lookup"
-    | "image_gallery";
+    | "image_gallery"
+    | "slider"
+    | "html";
+  /** slider: step between 0 and 100 (default 5). */
+  step?: number;
   options?: string[];
   /** Display labels (api codes stay as values) */
   optionLabels?: string[];
@@ -460,6 +465,17 @@ function FieldInput({
       />
     );
   }
+  if (kind === "html") {
+    return (
+      <HtmlEditor
+        label={field.label}
+        value={value}
+        format="html"
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+      />
+    );
+  }
   if (field.key === "body_html") {
     return (
       <HtmlEditor
@@ -685,6 +701,19 @@ function FieldInput({
             </option>
           ))}
         </select>
+      ) : kind === "slider" ? (
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={field.step ?? 5}
+            className="flex-1"
+            value={value === "" ? 0 : Number(value) || 0}
+            onChange={(e) => onChange(e.target.value)}
+          />
+          <span className="w-12 text-right text-sm tabular-nums">{value === "" ? "—" : `${value}%`}</span>
+        </div>
       ) : kind === "boolean" ? (
         <BooleanSwitch
           checked={isChecked}
@@ -773,7 +802,7 @@ function InlineForm({
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {fields.filter((f) => f.key !== "body_format" && !isSelectionFollowup(f.key)).map((f) => (
-          <div key={f.key} className={(f.span === 2 || f.kind === "textarea" || f.kind === "image_gallery" || f.key === "body_html" || f.key === "selection_mode") ? "sm:col-span-2" : undefined}>
+          <div key={f.key} className={(f.span === 2 || f.kind === "textarea" || f.kind === "html" || f.kind === "image_gallery" || f.key === "body_html" || f.key === "selection_mode") ? "sm:col-span-2" : undefined}>
             {f.key === "selection_mode" ? (
               <div className="space-y-3">
                 <FieldInput
@@ -884,7 +913,14 @@ export function EntityListing<T extends Record<string, unknown>>({
     if (renderCell) return renderCell(row, key, raw);
     const field = fields.find((f) => f.key === key);
     if (field?.secret) return maskSecretDisplay(raw);
-    return formatCell ? formatCell(row, key, raw) : raw;
+    if (formatCell) return formatCell(row, key, raw);
+    if (field?.kind === "select" && field.optionLabels) {
+      const i = field.options?.indexOf(raw) ?? -1;
+      if (i >= 0) return field.optionLabels[i] ?? raw;
+    }
+    if (field?.kind === "slider") return raw === "" ? "" : `${raw}%`;
+    if (field?.kind === "html") return htmlToText(raw);
+    return raw;
   };
   const allColumnFields = useMemo(
     () => fields.filter((f) => !f.secret),

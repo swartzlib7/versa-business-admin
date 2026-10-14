@@ -1,9 +1,20 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.8 (2026-10-02)
+**Current:** 1.0.9 (2026-10-14)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.9
+
+Run `npm run db:migrate` before the new process serves traffic. Migration `0020` moves existing Project milestones and Task records onto Project task lines. Upgrade steps are in the Ops Manual, section 5.2.6. Catalog seed pack is `1.0.9-r1`.
+
+- A Project’s lines are its tasks. A task can sit under another task, up to five levels, from the Parent task field or by dragging the row. The old Task record type is removed after the migration copies it.
+- Drag a task by its handle to reorder it, place it under the task above, or move it out. A label shows what letting go will do. Arrow keys work on a focused handle.
+- Percent complete is a slider. Task notes use the rich text editor.
+- Pick a Project in the Projects list with the Gantt button to see its summary and Gantt in the Spatial Twin.
+- The Project Gantt shows a status header, task totals, status-colored bars with progress, overdue tasks, the target date, and today, and it fits a narrow Twin pane.
+- `/api/tasks` returns task notes as `description` (rich text) and `descriptionText` (plain text).
 
 ## 1.0.8
 

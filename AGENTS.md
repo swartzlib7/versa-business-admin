@@ -29,6 +29,7 @@ The first boot also installs the **site pack**: the Versa AGi Primary slides, th
 
 ## Standing product rules
 
+- This checkout is pull-only. Do not commit product changes and do not `git push`. The Primary User publishes `main`.
 - Hide leftover catalog fields (`active: false`). Do not delete system fields or invent a second meaning for an old `api_name`.
 - Agents are a **user type** (`human` | `agent`). No agent-fleet chrome. List agents with `GET /api/users?type=agent`.
 - Talk to VBA over HTTP or Script Tasks. Do not share the host Versa AGi database.

@@ -161,7 +161,7 @@ export const postgresAdapter: DataAdapter = {
     return updatePgProject(id, input);
   },
 
-  // --- Tasks (zone records: executive_task) ---
+  // --- Tasks (lines on executive_project) ---
   async listTasks(filters?: TaskFilters): Promise<Task[]> {
     return listPgTasks(filters);
   },

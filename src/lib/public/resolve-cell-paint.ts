@@ -120,7 +120,15 @@ export async function resolveCellPaint(cell: PageBuilderCell): Promise<ResolvedC
   if ((kind === "project-table" || kind === "project-cards") && adapter.listRecords) {
     const projects = await adapter.listRecords({ type_api_name: "executive_project" }).catch(() => []);
     const chosen = fields.selection_mode === "one" && targetId ? projects.filter((row) => row.id === targetId) : projects;
-    const tasks = await adapter.listRecords({ type_api_name: "executive_task" }).catch(() => []);
+    const tasks = chosen.flatMap((project) =>
+      (project.lines ?? [])
+        .filter((line) => line.line_group === "tasks")
+        .map((line) => ({
+          name: line.data.task_title,
+          status: line.data.task_status,
+          data: { project_id: project.id, name: line.data.task_title, status: line.data.task_status },
+        })),
+    );
     out.project = projectPaint(chosen, tasks);
   }
 

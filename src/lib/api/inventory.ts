@@ -391,7 +391,7 @@ export const API_RESOURCES: ApiResource[] = [
     method: "GET",
     path: "/api/projects",
     auth: "session",
-    summary: "List business projects.",
+    summary: "List business projects. With lines=overdue, lists overdue task lines across Projects instead.",
   },
   {
     group: "Work",
@@ -405,7 +405,7 @@ export const API_RESOURCES: ApiResource[] = [
     method: "GET",
     path: "/api/projects/{id}",
     auth: "session",
-    summary: "One project.",
+    summary: "One project, with its task lines (parent, depth, assignee, due date, percent, status, actionable).",
   },
   {
     group: "Work",
@@ -419,14 +419,14 @@ export const API_RESOURCES: ApiResource[] = [
     method: "GET",
     path: "/api/tasks",
     auth: "session",
-    summary: "List tasks. Filters: status, projectId, priority, assignee, q.",
+    summary: "List Project task lines. Filters: status, projectId, assignee, q, overdue=true. Notes come as description (rich text HTML) and descriptionText (plain).",
   },
   {
     group: "Work",
     method: "POST",
     path: "/api/tasks",
     auth: "admin",
-    summary: "Create a task.",
+    summary: "Add a task line to a Project. projectId is required.",
   },
   {
     group: "Work",
@@ -440,7 +440,7 @@ export const API_RESOURCES: ApiResource[] = [
     method: "PATCH",
     path: "/api/tasks/{id}",
     auth: "admin-or-assignee",
-    summary: "Update a task. Assignee may only change status.",
+    summary: "Update a task line by its id. Assignee may change status and percentComplete only.",
   },
   {
     group: "Work",

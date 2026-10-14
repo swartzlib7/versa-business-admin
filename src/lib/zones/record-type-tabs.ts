@@ -43,7 +43,6 @@ const BAKED_IN_CHILD_IDS = new Set([
 const BAKED_TAB_SYSTEM_TYPES: Record<string, string> = {
   policy: "executive_policy",
   projects: "executive_project",
-  tasks: "executive_task",
   product: "production_product",
   service: "production_service",
   // #246 Slice C (rev E section 3/7.4): new division children. All structure
