@@ -29,6 +29,9 @@ import { ProfilePictureField } from "@/components/users/profile-picture-field";
 import { PasswordField } from "@/components/users/password-field";
 import { ImageUrlField } from "@/components/catalog/image-url-field";
 import { ImageGalleryField } from "@/components/catalog/image-gallery-field";
+import { TextListField } from "@/components/catalog/text-list-field";
+import { RecordMultiLookupField, RecordNames } from "@/components/catalog/record-multi-lookup-field";
+import { parseTextList } from "@/lib/records/list-values";
 import { FrequencyStartField } from "@/components/statistics/frequency-start-field";
 import { HtmlEditor, normalizePageBodyFormat } from "@/components/public/html-editor";
 import { htmlToText } from "@/lib/html-text";
@@ -69,6 +72,8 @@ export type ListingField = {
     | "phone"
     | "lookup"
     | "image_gallery"
+    | "text_list"
+    | "multi_lookup"
     | "slider"
     | "html";
   /** slider: step between 0 and 100 (default 5). */
@@ -511,6 +516,29 @@ function FieldInput({
       />
     );
   }
+  if (kind === "text_list") {
+    return (
+      <TextListField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+        required={field.required}
+      />
+    );
+  }
+  if (kind === "multi_lookup") {
+    return (
+      <RecordMultiLookupField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+        required={field.required}
+        recordType={field.lookupObjectApiName}
+      />
+    );
+  }
   if (field.key === "logo_url" || field.key.endsWith("_logo_url")) {
     return (
       <ImageUrlField
@@ -802,7 +830,7 @@ function InlineForm({
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {fields.filter((f) => f.key !== "body_format" && !isSelectionFollowup(f.key)).map((f) => (
-          <div key={f.key} className={(f.span === 2 || f.kind === "textarea" || f.kind === "html" || f.kind === "image_gallery" || f.key === "body_html" || f.key === "selection_mode") ? "sm:col-span-2" : undefined}>
+          <div key={f.key} className={(f.span === 2 || f.kind === "textarea" || f.kind === "html" || f.kind === "image_gallery" || f.kind === "text_list" || f.key === "body_html" || f.key === "selection_mode") ? "sm:col-span-2" : undefined}>
             {f.key === "selection_mode" ? (
               <div className="space-y-3">
                 <FieldInput
@@ -920,6 +948,13 @@ export function EntityListing<T extends Record<string, unknown>>({
     }
     if (field?.kind === "slider") return raw === "" ? "" : `${raw}%`;
     if (field?.kind === "html") return htmlToText(raw);
+    if (field?.kind === "text_list") {
+      const count = parseTextList(raw).length;
+      return count ? `${count} ${count === 1 ? "item" : "items"}` : "";
+    }
+    if (field?.kind === "multi_lookup") {
+      return raw.trim() ? <RecordNames value={raw} recordType={field.lookupObjectApiName} /> : "";
+    }
     return raw;
   };
   const allColumnFields = useMemo(

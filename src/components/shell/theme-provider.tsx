@@ -25,6 +25,11 @@ function isPublicTheme(theme: string): theme is UiTheme {
   return isUiTheme(theme);
 }
 
+/** Print pages are paper: always the light theme, never stored. */
+function isPrintPath(pathname: string): boolean {
+  return pathname.startsWith("/print/");
+}
+
 function isPublicPath(pathname: string): boolean {
   return (
     pathname === "/" ||
@@ -100,6 +105,11 @@ export function ThemeProvider({
   const [theme, setThemeState] = useState<UiTheme>("dark");
 
   useEffect(() => {
+    if (isPrintPath(pathname)) {
+      setThemeState("light");
+      applyThemeClass("light");
+      return;
+    }
     if (isPublicPath(pathname)) {
       const next = readStoredPublicTheme(defaultPublicTheme);
       setThemeState(next);

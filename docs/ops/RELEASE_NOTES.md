@@ -1,9 +1,20 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.9 (2026-10-14)
+**Current:** 1.0.10 (2026-10-21)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.10
+
+No new migration. Catalog seed pack is `1.0.10-r1`; the next start adds the Hats record type. Upgrade steps are in the Ops Manual, section 5.2.7.
+
+- Executive has a Hats tab next to Projects. A hat holds the purposes, know-how, and duties of a post, the Staff who hold it, and up to 10 images.
+- Purposes, Know-How, and Duties are numbered lists. Add, edit, remove, and drag entries into order.
+- Records Editor has two new field types: Text list and Multi-lookup (link to several records).
+- Every image in a gallery can carry a description.
+- Pick a hat with its row button to see the write-up in the Spatial Twin. Images sit on their own page in a grid that grows with the count, up to 5 rows of 2.
+- The Spatial Twin has a Print button for Hats and Project Gantts. It opens a print-ready page and the print dialog.
 
 ## 1.0.9
 

@@ -17,6 +17,7 @@ export type TwinPreview =
     }
   | {
       kind: "project-gantt";
+      recordId?: string | null;
       name: string;
       status: string;
       owner: string;
@@ -24,6 +25,7 @@ export type TwinPreview =
       targetDate: string;
       lines: import("@/lib/records/project-task-lines").TaskLine[];
     }
+  | ({ kind: "hat-writeup" } & import("@/lib/records/hat-writeup").HatWriteup)
   | {
       kind: "canvas-driver";
       driver: string;

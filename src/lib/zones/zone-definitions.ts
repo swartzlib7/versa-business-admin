@@ -102,6 +102,20 @@ export const organizationZone: ZoneConfig = {
             { zone: "Collaboration", label: "External parties", hint: "Customers or partners involved." },
           ],
         },
+        {
+          id: "hats",
+          label: "Hats",
+          summary: "Write-ups of the purposes, know-how, and duties of each post, trained in on the people who hold it.",
+          presentation: "listing",
+          listColumns: ["Hat name", "Status", "Holders"],
+          fields: [
+            { label: "Hat name", placeholder: "Receptionist" },
+            { label: "Status", placeholder: "Select status", kind: "select", options: getVsOptions("record_status") },
+          ],
+          relations: [
+            { zone: "Organization", label: "Staff", hint: "The people who hold this hat." },
+          ],
+        },
       ],
     },
     {

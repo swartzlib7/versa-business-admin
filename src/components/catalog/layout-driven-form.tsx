@@ -22,6 +22,8 @@ import {
 import { pairingAllowsTypeLevel } from "@/lib/public/driver-pairings";
 import { ImageUrlField } from "@/components/catalog/image-url-field";
 import { ImageGalleryField } from "@/components/catalog/image-gallery-field";
+import { TextListField } from "@/components/catalog/text-list-field";
+import { RecordMultiLookupField } from "@/components/catalog/record-multi-lookup-field";
 import { FrequencyStartField } from "@/components/statistics/frequency-start-field";
 import { deriveFrequencyStart } from "@/lib/statistics/frequency";
 import { isAuditField } from "@/lib/catalog/audit-fields";
@@ -115,6 +117,29 @@ function FieldInput({
         value={value}
         onChange={readOnly ? undefined : onChange}
         readOnly={readOnly}
+      />
+    );
+  }
+  if (kind === "text_list") {
+    return (
+      <TextListField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+        required={field.required}
+      />
+    );
+  }
+  if (kind === "multi_lookup") {
+    return (
+      <RecordMultiLookupField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+        required={field.required}
+        recordType={field.lookupObjectApiName}
       />
     );
   }
@@ -441,7 +466,11 @@ export function LayoutDrivenForm({
               const span =
                 f.span && f.span > 1
                   ? f.span
-                  : f.kind === "textarea" || f.kind === "image_gallery" || f.secret || f.key === "body_html"
+                  : f.kind === "textarea" ||
+                      f.kind === "image_gallery" ||
+                      f.kind === "text_list" ||
+                      f.secret ||
+                      f.key === "body_html"
                     ? columns
                     : 1;
               if (f.blank) {

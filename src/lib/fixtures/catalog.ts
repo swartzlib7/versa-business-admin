@@ -24,7 +24,9 @@ export type CatalogDataType =
   | 'phone'
   | 'currency'
   | 'file'
-  | 'image_gallery';
+  | 'image_gallery'
+  | 'text_list'
+  | 'multi_lookup';
 
 export interface ValueSet {
   id: string;
@@ -2255,6 +2257,15 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-executive_project-target_date', object_api_name: 'executive_project', api_name: 'target_date', label: 'Target date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 36, active: true, zone_role: 'header' },
   { id: 'fld-executive_project-description', object_api_name: 'executive_project', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true , zone_role: 'header' },
   { id: 'fld-executive_project-external_id', object_api_name: 'executive_project', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 45, active: true, zone_role: 'header' },
+  // Hats (1.0.10, state_hats.md § 1.3): list structure; purposes / know-how /
+  // duties are text lists, holders a multi-lookup to Staff.
+  { id: 'fld-executive_hat-name', object_api_name: 'executive_hat', api_name: 'name', label: 'Hat name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
+  { id: 'fld-executive_hat-status', object_api_name: 'executive_hat', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
+  { id: 'fld-executive_hat-holder_ids', object_api_name: 'executive_hat', api_name: 'holder_ids', label: 'Holders', data_type: 'multi_lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'communication_staff', sort_order: 30, active: true },
+  { id: 'fld-executive_hat-purposes', object_api_name: 'executive_hat', api_name: 'purposes', label: 'Purposes', data_type: 'text_list', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
+  { id: 'fld-executive_hat-know_how', object_api_name: 'executive_hat', api_name: 'know_how', label: 'Know-How', data_type: 'text_list', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true },
+  { id: 'fld-executive_hat-duties', object_api_name: 'executive_hat', api_name: 'duties', label: 'Duties', data_type: 'text_list', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
+  { id: 'fld-executive_hat-images', object_api_name: 'executive_hat', api_name: 'images', label: 'Images', data_type: 'image_gallery', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true },
   { id: 'fld-production_product-name', object_api_name: 'production_product', api_name: 'name', label: 'Name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true , zone_role: 'header' },
   { id: 'fld-production_product-tagline', object_api_name: 'production_product', api_name: 'tagline', label: 'Tagline', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 15, active: true, zone_role: 'header' },
   { id: 'fld-production_product-category', object_api_name: 'production_product', api_name: 'category', label: 'Category', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'product_category', lookup_object_api_name: null, sort_order: 20, active: true , zone_role: 'header' },
@@ -2906,6 +2917,8 @@ const ALLOWED_DATA_TYPES: CatalogDataType[] = [
   'currency',
   'file',
   'image_gallery',
+  'text_list',
+  'multi_lookup',
 ];
 
 export interface ExtendFieldInput {
@@ -2975,11 +2988,11 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
       message: `Unknown value_set_api_name '${input.value_set_api_name}'.`,
     };
   }
-  if (input.data_type === 'lookup' && !input.lookup_object_api_name) {
+  if ((input.data_type === 'lookup' || input.data_type === 'multi_lookup') && !input.lookup_object_api_name) {
     return {
       ok: false,
       code: 'LOOKUP_REQUIRED',
-      message: 'lookup fields require lookup_object_api_name.',
+      message: 'lookup and multi_lookup fields require lookup_object_api_name.',
     };
   }
   // Slice F (C2): lookup_delete_rule only applies to lookup fields and must be

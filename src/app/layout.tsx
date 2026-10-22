@@ -61,7 +61,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = "force-dynamic";
 
 function themeInitScript(defaultPublic: UiTheme): string {
-  return `(function(){try{var path=location.pathname;var isPublic=path==='/'||path===''||path==='/terms'||path==='/board'||path==='/p'||path.indexOf('/p/')===0;var t=localStorage.getItem(isPublic?'versa-public-ui-theme':'versa-ui-theme');var ok=function(v){return v==='light'||v==='dusk'||v==='slate'||v==='dark'||v==='architect';};if(!ok(t))t=isPublic?'${defaultPublic}':'dark';var r=document.documentElement;r.classList.remove('dark','architect','slate','dusk');if(t==='dark')r.classList.add('dark');if(t==='architect')r.classList.add('architect');if(t==='slate')r.classList.add('slate');if(t==='dusk')r.classList.add('dusk');r.dataset.theme=t;if(localStorage.getItem('ba.sidebarCollapsed')==='1')r.classList.add('sidebar-collapsed');}catch(e){}})();`;
+  return `(function(){try{var path=location.pathname;var isPublic=path==='/'||path===''||path==='/terms'||path==='/board'||path==='/p'||path.indexOf('/p/')===0;var t=localStorage.getItem(isPublic?'versa-public-ui-theme':'versa-ui-theme');var ok=function(v){return v==='light'||v==='dusk'||v==='slate'||v==='dark'||v==='architect';};if(!ok(t))t=isPublic?'${defaultPublic}':'dark';if(path.indexOf('/print/')===0)t='light';var r=document.documentElement;r.classList.remove('dark','architect','slate','dusk');if(t==='dark')r.classList.add('dark');if(t==='architect')r.classList.add('architect');if(t==='slate')r.classList.add('slate');if(t==='dusk')r.classList.add('dusk');r.dataset.theme=t;if(localStorage.getItem('ba.sidebarCollapsed')==='1')r.classList.add('sidebar-collapsed');}catch(e){}})();`;
 }
 
 type LoadedSite = {

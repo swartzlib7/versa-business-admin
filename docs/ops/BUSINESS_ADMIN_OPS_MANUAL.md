@@ -428,6 +428,10 @@ Same steps as §5.2.1. No new migration. Catalog seed pack stays `1.0.6-r3`. Hea
 
 Same steps as §5.2.1, and run `npm run db:migrate` before the new process serves traffic. Migration `0020` copies Project milestones, Task records, their subtasks, and leftover rows in the old `tasks` table onto Project task lines, then removes the Task records, the Task record type, and that table. A migrated Task keeps its id as the line id. An old `projects` row that a leftover task points at is copied as a Project record with the same id. A Task with no Project lands on a Project named `Unassigned tasks`. The migration stops and rolls back if the new line count differs from the rows it moved. Catalog seed pack becomes `1.0.9-r1`. Health reports `"version":"1.0.9"`.
 
+### 5.2.7 Existing install to 1.0.10 (Hats)
+
+Same steps as §5.2.1. No new migration. Catalog seed pack becomes `1.0.10-r1`. The first start adds the Hats record type (`executive_hat`) under Executive and the Text list and Multi-lookup field types. Existing records and image galleries are unchanged; image descriptions start empty. Health reports `"version":"1.0.10"`. Leave `.data/site-settings.json` in place.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -535,6 +539,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-10-21 | §5.2.7: upgrade to 1.0.10. Hats record type. No new migration. Catalog seed pack `1.0.10-r1`. |
 | 2026-10-14 | §5.2.6: upgrade to 1.0.9. Project task lines. Migration `0020`. Catalog seed pack `1.0.9-r1`. |
 | 2026-10-04 | §4: the public GitHub checkout is pull-only. Agents do not commit product changes and do not `git push`. |
 | 2026-10-02 | §5.2.5: upgrade an already-customized install to 1.0.8. Phone menu bug fix. No new migration. |

@@ -60,6 +60,8 @@ export type SampleRecordSeed = {
   data: Record<string, string>;
   /** Field name → another sample external id, resolved to a record or org id at insert. */
   refs?: Record<string, string>;
+  /** Field name → several sample external ids, written as a JSON array of ids (multi-lookup). */
+  listRefs?: Record<string, string[]>;
   lines?: Array<{ id?: string; data: Record<string, string>; refs?: Record<string, string> }>;
   relations?: Array<{ relation_kind: string; target_external_id: string }>;
   org_external_id?: string;
@@ -320,6 +322,51 @@ function projectSeeds(): SampleRecordSeed[] {
   ];
 }
 
+function staffSeeds(): SampleRecordSeed[] {
+  const row = (key: string, name: string, role: string): SampleRecordSeed => ({
+    type_api_name: "communication_staff",
+    parent_kind: "faculty",
+    parent_api_name: "communications",
+    name,
+    status: "active",
+    data: { role, external_id: sampleExternalId("staff", key) },
+  });
+  return [row("avery", "Avery Clark", "support"), row("jordan", "Jordan Lee", "operations")];
+}
+
+/** A Hat held by both sample Staff (state_hats.md). */
+function hatSeed(): SampleRecordSeed {
+  return {
+    type_api_name: "executive_hat",
+    parent_kind: "faculty",
+    parent_api_name: "executive",
+    name: "Receptionist",
+    status: "active",
+    data: {
+      purposes: JSON.stringify([
+        "Make every visitor and caller feel welcome and expected.",
+        "Route each visitor, call, and delivery to the right person the first time.",
+        "Keep the front of the office calm, tidy, and safe.",
+      ]),
+      know_how: JSON.stringify([
+        "Where the visitor log, badges, and the staff directory live.",
+        "How to transfer, park, and pick up calls on the desk phone.",
+        "Who signs for deliveries, and where parcels wait when they are away.",
+        "The fire exits, the first-aid cabinet, and who to call in an emergency.",
+      ]),
+      duties: JSON.stringify([
+        "Open the front desk at 8:30 and check the day's visitor list.",
+        "Greet and sign in every visitor; issue and collect badges.",
+        "Answer the main line within three rings.",
+        "Log deliveries and tell the recipient the same hour.",
+        "Close the desk at 17:00: badges counted, log filed, lights off.",
+      ]),
+      external_id: sampleExternalId("hat", "receptionist"),
+    },
+    listRefs: { holder_ids: [sampleExternalId("staff", "avery"), sampleExternalId("staff", "jordan")] },
+  };
+}
+
 function inspectionSeeds(): SampleRecordSeed[] {
   const row = (key: string, name: string, status: string, summary: string): SampleRecordSeed => ({
     type_api_name: "inspection_report",
@@ -402,6 +449,8 @@ SAMPLE_RECORDS.push(
   ...vendorIntegrations(),
   ...vendorSchedules(),
   ...projectSeeds(),
+  ...staffSeeds(),
+  hatSeed(),
   ...inspectionSeeds(),
   mailCredential(),
   knowledgeSeed(),

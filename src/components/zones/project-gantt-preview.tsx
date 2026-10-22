@@ -13,6 +13,7 @@ import {
 
 export type ProjectGanttPreview = {
   kind: "project-gantt";
+  recordId?: string | null;
   name: string;
   status: string;
   owner: string;
@@ -23,12 +24,13 @@ export type ProjectGanttPreview = {
 
 /** One builder for the open-Project view and the Projects list radio. */
 export function projectGanttPreview(
-  inst: { name?: string; status?: string; data?: Record<string, string> },
+  inst: { id?: string; name?: string; status?: string; data?: Record<string, string> },
   lines: TaskLine[],
 ): ProjectGanttPreview {
   const data = inst.data ?? {};
   return {
     kind: "project-gantt",
+    recordId: inst.id ?? null,
     name: inst.name || data.name || "",
     status: inst.status || data.status || "",
     owner: data.owner_name || "",

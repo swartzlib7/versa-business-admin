@@ -14,6 +14,7 @@ import {
 } from "@/components/zones/spatial-twin-pane";
 import { TwinSlotProvider, useTwinSlot } from "@/components/zones/twin-slot-context";
 import { ProjectTaskLines } from "@/components/zones/project-task-lines";
+import { loadHatWriteup } from "@/components/zones/hat-writeup-preview";
 import { projectGanttPreview } from "@/components/zones/project-gantt-preview";
 import { projectTaskLines } from "@/lib/records/project-task-lines";
 import type { RecordInstance } from "@/lib/fixtures/record-instances";
@@ -657,7 +658,8 @@ function ListingPanel({
   const publishesTwin =
     panel.recordTypeApiName === "statistics" ||
     panel.recordTypeApiName === "driver_pairing" ||
-    panel.recordTypeApiName === "executive_project";
+    panel.recordTypeApiName === "executive_project" ||
+    panel.recordTypeApiName === "executive_hat";
 
   useEffect(() => {
     return () => {
@@ -781,9 +783,12 @@ function ListingPanel({
           .filter((f) => f.zone_role === "list" && f.show_in_column === true && f.active !== false)
           .map((f) => f.label);
       }
-      if (objectApiName === "driver_pairing") {
+      if (objectApiName === "driver_pairing" || objectApiName === "executive_hat") {
         const byApi = new Map(catalogFields.map((f) => [f.api_name, f.label]));
-        const preferred = ["name", "target_record_type", "driver_id", "target_record_id"];
+        const preferred =
+          objectApiName === "executive_hat"
+            ? ["name", "status", "holder_ids"]
+            : ["name", "target_record_type", "driver_id", "target_record_id"];
         return preferred.map((key) => byApi.get(key)).filter((label): label is string => Boolean(label));
       }
       return catalogFields.slice(0, 4).map((f) => f.label);
@@ -1053,7 +1058,7 @@ function ListingPanel({
     if (!publishProjectGantt || !projectHeader || projectHeader.id !== headerRecordId) return;
     setPreview(
       projectGanttPreview(
-        projectHeader.inst,
+        { ...projectHeader.inst, id: projectHeader.id },
         rows
           .filter((row) => (row.cells.task_title || "") !== "" || row.cells.task_status)
           .map((row) => ({ id: row.id, data: row.cells })),
@@ -1156,6 +1161,30 @@ function ListingPanel({
       .then((json) => {
         const inst = json.data as RecordInstance | null;
         if (inst) setPreview(projectGanttPreview(inst, projectTaskLines(inst)));
+      })
+      .catch(() => {
+        /* keep the last preview */
+      });
+    return () => controller.abort();
+  }, [viewMode, panel.recordTypeApiName, selectedRowId, suppressTwinPreview, setPreview, linesEpoch]);
+
+  useEffect(() => {
+    if (
+      viewMode !== "instances" ||
+      panel.recordTypeApiName !== "executive_hat" ||
+      !selectedRowId ||
+      suppressTwinPreview
+    ) {
+      return;
+    }
+    const controller = new AbortController();
+    void fetch("/api/records/" + selectedRowId, { credentials: "include", signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : { data: null }))
+      .then(async (json) => {
+        const inst = json.data as RecordInstance | null;
+        if (!inst) return;
+        const preview = await loadHatWriteup(inst);
+        if (!controller.signal.aborted) setPreview(preview);
       })
       .catch(() => {
         /* keep the last preview */
@@ -1875,7 +1904,9 @@ function ListingPanel({
               ? "Twin"
               : panel.recordTypeApiName === "executive_project"
                 ? "Gantt"
-                : "Graph"
+                : panel.recordTypeApiName === "executive_hat"
+                  ? "Hat"
+                  : "Graph"
           }
           badgeLabel={isDynamic ? "Dynamic Record" : "Listing"}
         />
@@ -2020,6 +2051,22 @@ function FormPanel({
       values,
       headerId: instanceId ?? detailRecordId ?? null,
     });
+  }, [panel.recordTypeApiName, values, instanceId, detailRecordId, setPreview, publishTwin]);
+
+  useEffect(() => {
+    if (panel.recordTypeApiName !== "executive_hat" || !publishTwin) return;
+    let live = true;
+    void loadHatWriteup({
+      id: instanceId ?? detailRecordId ?? null,
+      name: values.name,
+      status: values.status,
+      data: values,
+    }).then((preview) => {
+      if (live) setPreview(preview);
+    });
+    return () => {
+      live = false;
+    };
   }, [panel.recordTypeApiName, values, instanceId, detailRecordId, setPreview, publishTwin]);
 
   useEffect(() => {
@@ -2344,7 +2391,11 @@ function FormPanel({
       setEditing(false);
       onEditingChange?.(false);
       onHeaderSaved?.(inst.id);
-      if (panel.recordTypeApiName === "statistics" || panel.recordTypeApiName === "executive_project") {
+      if (
+        panel.recordTypeApiName === "statistics" ||
+        panel.recordTypeApiName === "executive_project" ||
+        panel.recordTypeApiName === "executive_hat"
+      ) {
         bumpLines();
       }
     } catch (e: unknown) {
@@ -2640,7 +2691,7 @@ function TabPanel({
             onHeaderRecord={setHeaderRecordId}
           />
         </div>
-      ) : panel.recordTypeApiName === "driver_pairing" ? (
+      ) : panel.recordTypeApiName === "driver_pairing" || panel.recordTypeApiName === "executive_hat" ? (
         <ListingPanel
           panel={panel}
           accent={accent}

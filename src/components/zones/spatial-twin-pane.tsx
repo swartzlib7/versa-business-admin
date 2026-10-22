@@ -16,6 +16,7 @@ import {
   ChevronUp,
   Maximize2,
   Orbit,
+  Printer,
   X,
 } from "lucide-react";
 import { BusinessAdminScene } from "@/components/r3f/business-admin-scene";
@@ -29,9 +30,10 @@ import { hasSpatialTwin } from "@/lib/zones/spatial-twin";
 import type { TwinPreview } from "@/components/zones/twin-slot-context";
 import { CanvasSlotDriver } from "@/components/public/canvas-slot-drivers";
 import { ProjectGanttPreviewView } from "@/components/zones/project-gantt-preview";
+import { HatWriteupPreviewView } from "@/components/zones/hat-writeup-preview";
 import { cn } from "@/lib/utils";
 
-/** Footer chrome shared by the Lightbox and Full 3D Hub buttons (same design, side by side). */
+/** Footer chrome shared by the Lightbox, Print, and Full 3D Hub buttons (same design, side by side). */
 const TWIN_FOOTER_BUTTON =
   "items-center gap-1.5 rounded border border-border bg-background/35 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-muted/50";
 
@@ -57,8 +59,16 @@ export function SpatialTwinPane({
   /** Override the pane DOM id (the mobile float dock mounts a second pane per zone). */
   paneId?: string;
 }) {
-  // Projects sit under the Executive sphere; a published Project Gantt replaces the scene.
-  const showScene = hasSpatialTwin(focusedNodeId) && preview?.kind !== "project-gantt";
+  // Projects and Hats sit under the Executive sphere; their published preview replaces the scene.
+  const showScene =
+    hasSpatialTwin(focusedNodeId) && preview?.kind !== "project-gantt" && preview?.kind !== "hat-writeup";
+  // Print page contract: state_hats.md § 1.8.
+  const printHref =
+    preview?.kind === "hat-writeup" && preview.recordId
+      ? `/print/hat/${encodeURIComponent(preview.recordId)}`
+      : preview?.kind === "project-gantt" && preview.recordId
+        ? `/print/project/${encodeURIComponent(preview.recordId)}`
+        : null;
   const [lightbox, setLightbox] = useState(false);
   const [layout, setLayout] = useState<GraphLayout>(1);
   const [page, setPage] = useState(0);
@@ -148,6 +158,18 @@ export function SpatialTwinPane({
           <Maximize2 className="h-3.5 w-3.5" />
           Lightbox
         </button>
+        {printHref && !showScene ? (
+          <a
+            href={printHref}
+            target="_blank"
+            rel="noopener"
+            className={cn(TWIN_FOOTER_BUTTON, "inline-flex")}
+            title="Open a print-ready page"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            Print
+          </a>
+        ) : null}
         {showScene ? (
           <Link
             href="/dashboard"
@@ -273,6 +295,13 @@ function TwinBody({
     return (
       <div className={previewClassName}>
         <ProjectGanttPreviewView preview={preview} />
+      </div>
+    );
+  }
+  if (preview?.kind === "hat-writeup") {
+    return (
+      <div className={previewClassName}>
+        <HatWriteupPreviewView key={preview.recordId ?? "draft"} preview={preview} />
       </div>
     );
   }

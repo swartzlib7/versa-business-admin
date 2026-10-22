@@ -42,6 +42,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 const DATA_TYPES: SelectOption[] = [
   { value: "text", label: "Text", group: "Text" },
   { value: "long_text", label: "Long text", group: "Text" },
+  { value: "text_list", label: "Text list (numbered entries)", group: "Text" },
   { value: "email", label: "Email", group: "Text" },
   { value: "url", label: "URL", group: "Text" },
   { value: "phone", label: "Phone", group: "Text" },
@@ -52,6 +53,7 @@ const DATA_TYPES: SelectOption[] = [
   { value: "picklist", label: "Picklist (single choice)", group: "Choice" },
   { value: "multipicklist", label: "Multi-picklist (multiple choices)", group: "Choice" },
   { value: "lookup", label: "Lookup (link to another record type)", group: "Relation" },
+  { value: "multi_lookup", label: "Multi-lookup (link to several records)", group: "Relation" },
   { value: "image_gallery", label: "Image gallery (up to 10)", group: "Media" },
 ];
 
@@ -544,7 +546,7 @@ export function RecordsEditor() {
           label: vals.label,
           data_type: vals.data_type || "text",
           value_set_api_name: vals.data_type === "picklist" || vals.data_type === "multipicklist" ? (vals.value_set_api_name || null) : null,
-          lookup_object_api_name: vals.data_type === "lookup" ? (vals.lookup_object_api_name || null) : null,
+          lookup_object_api_name: vals.data_type === "lookup" || vals.data_type === "multi_lookup" ? (vals.lookup_object_api_name || null) : null,
           lookup_delete_rule: vals.lookup_delete_rule || null,
           zone_role: vals.zone_role || null,
           show_in_column: vals.show_in_column === "true" || vals.show_in_column === "on",
@@ -1410,7 +1412,7 @@ export function RecordsEditor() {
                     // I5.6.33 round-2 item 6 - Value set only for picklist/multipicklist;
                     // Lookup object only for lookup (same showWhen pattern as delete rule).
                     { key: "value_set_api_name", label: "Value set", type: "select", options: labeledSorted(valueSets.map((v) => ({ value: v.api_name, label: v.label || v.api_name }))), showWhen: (vals: Record<string, string>) => vals.data_type === "picklist" || vals.data_type === "multipicklist" },
-                    { key: "lookup_object_api_name", label: "Lookup object", type: "select", options: typeOptionsByParent(types, parents, "object_api_name"), showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" },
+                    { key: "lookup_object_api_name", label: "Lookup object", type: "select", options: typeOptionsByParent(types, parents, "object_api_name"), showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" || vals.data_type === "multi_lookup" },
                     { key: "lookup_delete_rule", label: "Lookup delete rule", type: "select", options: [{ value: "orphan", label: "Orphan (plain lookup)" }, { value: "cascade", label: "Cascade (master-detail)" }], showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" },
                   ]}
                   accent={theme.colors.brand}
@@ -1525,7 +1527,7 @@ export function RecordsEditor() {
                                   </div>
                                   <div className="space-y-1.5">
                                     <label className="text-xs font-medium text-muted-foreground">Lookup object</label>
-                                    {f.data_type === "lookup" ? (
+                                    {f.data_type === "lookup" || f.data_type === "multi_lookup" ? (
                                       <select
                                         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                                         value={draft.lookup_object_api_name ?? f.lookup_object_api_name ?? ""}

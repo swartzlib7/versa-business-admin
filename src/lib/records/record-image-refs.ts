@@ -1,8 +1,10 @@
 /** Gallery value stored on a record. No disk access, so forms can import it. */
 
 export const RECORD_IMAGE_MAX = 10;
+export const RECORD_IMAGE_DESCRIPTION_MAX = 200;
 
-export type RecordImageRef = { id: string; name: string };
+/** `description` is optional; galleries saved before 1.0.10 have none (state_hats.md § 1.5). */
+export type RecordImageRef = { id: string; name: string; description?: string };
 
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -21,7 +23,9 @@ export function parseRecordImages(raw: string): RecordImageRef[] {
     const id = String((item as { id?: unknown }).id ?? "");
     if (!ID.test(id)) continue;
     const name = String((item as { name?: unknown }).name ?? "Image").slice(0, 120);
-    images.push({ id, name: name || "Image" });
+    const description = String((item as { description?: unknown }).description ?? "")
+      .slice(0, RECORD_IMAGE_DESCRIPTION_MAX);
+    images.push(description ? { id, name: name || "Image", description } : { id, name: name || "Image" });
     if (images.length >= RECORD_IMAGE_MAX) break;
   }
   return images;

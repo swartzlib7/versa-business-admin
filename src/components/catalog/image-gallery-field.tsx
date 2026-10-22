@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { FileField } from "@/components/ui/file-field";
 import {
+  RECORD_IMAGE_DESCRIPTION_MAX,
   RECORD_IMAGE_MAX,
   parseRecordImages,
   type RecordImageRef,
@@ -12,7 +13,7 @@ function imageSrc(id: string): string {
   return `/api/records/images/${id}`;
 }
 
-/** Thumbnails for an image_gallery field, with a preview that steps through the set. */
+/** Thumbnails with a description each, and a preview that steps through the set. */
 export function ImageGalleryField({
   label,
   value,
@@ -83,20 +84,40 @@ export function ImageGalleryField({
     <div className="flex flex-col gap-2">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       {images.length ? (
-        <div className="flex flex-wrap gap-2">
+        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
           {images.map((image, index) => (
-            <button
-              key={image.id}
-              type="button"
-              className="h-16 w-16 overflow-hidden rounded-md border border-border bg-muted/30"
-              onClick={() => setOpen(index)}
-              aria-label={`Preview ${image.name}`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element -- staff preview of an uploaded record image */}
-              <img src={imageSrc(image.id)} alt="" className="h-full w-full object-cover" />
-            </button>
+            <li key={image.id} className="flex min-w-0 flex-col gap-1.5 rounded-md border border-border bg-card/40 p-1.5">
+              <button
+                type="button"
+                className="h-20 w-full overflow-hidden rounded bg-muted/30"
+                onClick={() => setOpen(index)}
+                aria-label={`Preview ${image.name}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element -- staff preview of an uploaded record image */}
+                <img src={imageSrc(image.id)} alt="" className="h-full w-full object-cover" />
+              </button>
+              {readOnly || !onChange ? (
+                <p className="line-clamp-3 px-0.5 text-xs text-muted-foreground">{image.description || image.name}</p>
+              ) : (
+                <textarea
+                  rows={2}
+                  maxLength={RECORD_IMAGE_DESCRIPTION_MAX}
+                  aria-label={`Description for ${image.name}`}
+                  placeholder="Description"
+                  className="w-full resize-none rounded border border-input bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                  value={image.description ?? ""}
+                  onChange={(event) =>
+                    write(
+                      images.map((item) =>
+                        item.id === image.id ? { ...item, description: event.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+              )}
+            </li>
           ))}
-        </div>
+        </ul>
       ) : (
         <p className="text-sm text-muted-foreground">No images</p>
       )}
@@ -135,6 +156,7 @@ export function ImageGalleryField({
               alt={current.name}
               className="max-h-[75vh] w-full rounded-md bg-black object-contain"
             />
+            {current.description ? <p className="text-sm text-white/90">{current.description}</p> : null}
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-white">
               <span>
                 {open! + 1} of {images.length} · {current.name}

@@ -13,6 +13,7 @@ const CUSTOM_INFRA_TYPES = new Set(["driver_pairing", "render_driver", "page_ele
 const BAKED_IN_CHILD_IDS = new Set([
   "policy",
   "projects",
+  "hats",
   "tasks",
   "product",
   "service",
@@ -43,6 +44,7 @@ const BAKED_IN_CHILD_IDS = new Set([
 const BAKED_TAB_SYSTEM_TYPES: Record<string, string> = {
   policy: "executive_policy",
   projects: "executive_project",
+  hats: "executive_hat",
   product: "production_product",
   service: "production_service",
   // #246 Slice C (rev E section 3/7.4): new division children. All structure

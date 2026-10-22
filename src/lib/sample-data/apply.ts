@@ -156,17 +156,25 @@ export async function insertSampleData(opts?: { keepCanvas?: boolean }): Promise
   );
   const idByExternal = new Map<string, string>(byExternal);
   for (const [externalId, row] of existingByExternal) idByExternal.set(externalId, row.id);
-  const resolve = (data: Record<string, string>, refs?: Record<string, string>) => {
+  const resolve = (
+    data: Record<string, string>,
+    refs?: Record<string, string>,
+    listRefs?: Record<string, string[]>,
+  ) => {
     const next = { ...data };
     for (const [field, externalId] of Object.entries(refs ?? {})) {
       const id = idByExternal.get(externalId);
       if (id) next[field] = id;
     }
+    for (const [field, externalIds] of Object.entries(listRefs ?? {})) {
+      const ids = externalIds.map((externalId) => idByExternal.get(externalId)).filter(Boolean);
+      if (ids.length) next[field] = JSON.stringify(ids);
+    }
     return next;
   };
   let createdRecords = 0;
   for (const seed of SAMPLE_RECORDS) {
-    const data = resolve(seed.data, seed.refs);
+    const data = resolve(seed.data, seed.refs, seed.listRefs);
     const lines = (seed.lines ?? []).map((line) => ({
       id: line.id,
       data: resolve(line.data, line.refs),
@@ -179,7 +187,7 @@ export async function insertSampleData(opts?: { keepCanvas?: boolean }): Promise
     if (already) {
       if (
         adapter.updateRecord &&
-        (seed.type_api_name === "page" || seed.refs || seed.type_api_name === "inspection_report")
+        (seed.type_api_name === "page" || seed.refs || seed.listRefs || seed.type_api_name === "inspection_report")
       ) {
         await adapter.updateRecord(already.id, {
           name: seed.name,

@@ -25,7 +25,9 @@ export type UiFieldKind =
   | "url"
   | "phone"
   | "lookup"
-  | "image_gallery";
+  | "image_gallery"
+  | "text_list"
+  | "multi_lookup";
 
 export type UiListingField = {
   key: string;
@@ -76,6 +78,10 @@ export function dataTypeToUiKind(dt: CatalogDataType): UiFieldKind {
       return "url";
     case "image_gallery":
       return "image_gallery";
+    case "text_list":
+      return "text_list";
+    case "multi_lookup":
+      return "multi_lookup";
     case "lookup":
       return "lookup";
     default:
@@ -196,7 +202,11 @@ export function listingFieldsFromCatalog(objectApiName: string): UiListingField[
       const ui = fieldDefinitionToUi(fd);
       return {
         ...ui,
-        column: fd.data_type !== "long_text" && fd.data_type !== "image_gallery" && !ui.secret,
+        column:
+          fd.data_type !== "long_text" &&
+          fd.data_type !== "image_gallery" &&
+          fd.data_type !== "text_list" &&
+          !ui.secret,
       };
     });
   }
@@ -209,7 +219,10 @@ export function listingFieldsFromCatalog(objectApiName: string): UiListingField[
     const fd = byApi.get(key);
     if (!fd) continue;
     const ui = fieldDefinitionToUi(fd);
-    result.push({ ...ui, column: !ui.secret && fd.data_type !== "image_gallery" });
+    result.push({
+      ...ui,
+      column: !ui.secret && fd.data_type !== "image_gallery" && fd.data_type !== "text_list",
+    });
   }
 
   for (const fd of all) {

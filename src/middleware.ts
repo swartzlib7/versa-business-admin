@@ -18,6 +18,7 @@ const PROTECTED_PAGE_PREFIXES = [
   '/tasks',
   '/integrations',
   '/settings',
+  '/print',
 ];
 
 const PROTECTED_API_PREFIXES = [
