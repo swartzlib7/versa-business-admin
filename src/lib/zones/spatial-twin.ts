@@ -3,9 +3,10 @@ import { businessGraphNodes, HUB_CENTER_ID } from "@/lib/fixtures/business-graph
 /**
  * Spatial Twin is wired to every record type the zone presents — element
  * tabs and the sub-tab strip (child record types). Default hub spheres are
- * the built-in element list. Environment → Custom has no sphere yet, so the
- * 3D hub is hidden there (no Locations fallback). Statistics and Page Builder
- * → Elements still use this same slot for a feature preview (setPreview).
+ * the built-in element list. Custom Records has no sphere yet, so the 3D hub
+ * is hidden there (no Locations fallback). Custom Records → Statistics and
+ * Page Builder → Elements still use this same slot for a feature preview
+ * (setPreview).
  * Other types not on the graph wait for a sphere.
  */
 export function hasSpatialTwin(nodeId: string | null | undefined): boolean {
@@ -25,15 +26,16 @@ const ENVIRONMENT_HUB_TABS = new Set(["locations", "events", "knowledge", "sched
 /**
  * Keep the 3D hub loaded while staff are on a named child (Policies, Contacts, …).
  * Prefer a real sphere id; otherwise the zone’s default hub node.
- * Environment → Custom has no sphere yet — do not fall back to Locations.
- * Preview-only tabs (Statistics / environment_stat) also skip the Locations hub.
+ * Custom Records has no sphere yet — do not fall back to Locations.
+ * Preview-only tabs under Environment (Page Builder → Elements) also skip the
+ * Locations hub.
  */
 export function twinFocusNodeId(
   zoneId: string,
   tabId: string | null | undefined,
   childId: string | null | undefined,
 ): string | null {
-  if (tabId === "custom") return null;
+  if (zoneId === "custom-records") return null;
   if (hasSpatialTwin(childId)) return childId ?? null;
   if (hasSpatialTwin(tabId)) return tabId ?? null;
   if (zoneId === "environment" && tabId && !ENVIRONMENT_HUB_TABS.has(tabId)) {

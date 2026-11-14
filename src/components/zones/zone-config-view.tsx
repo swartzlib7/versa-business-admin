@@ -2834,14 +2834,14 @@ function ZoneConfigViewBody({
   );
 
   const hubZone = isHubZone(config.id) ? config.id : null;
-  /** Custom has no 3D hub. Statistics still gets the stat-graph twin on its home listing. */
-  const customStatsTwin =
-    active === "custom" &&
-    (childId === "rt-environment_stat" ||
-      childId === "statistics" ||
-      childId === "stats");
-  const showHubTwin =
-    showTwin ?? (Boolean(hubZone) && (active !== "custom" || customStatsTwin));
+  /** Custom Records has no 3D hub. Statistics still gets the stat-graph twin on its home listing. */
+  const statsPreviewTwin = config.id === "custom-records" && active === "statistics";
+  /**
+   * Zone the twin pane mounts for. The Statistics preview borrows Environment:
+   * the pane needs a hub zone, and it never draws the 3D scene on this tab.
+   */
+  const twinZone: ZoneId | null = hubZone ?? (statsPreviewTwin ? "environment" : null);
+  const showHubTwin = showTwin ?? Boolean(twinZone);
 
   const twinStorageKey = `mc.spatialTwinOpen.${config.id}`;
   const [twinOpen, setTwinOpen] = useState(true);
@@ -2917,7 +2917,7 @@ function ZoneConfigViewBody({
           )}
         </div>
 
-        {showHubTwin && hubZone ? (
+        {showHubTwin && twinZone ? (
           <div className="sticky top-3 z-20 hidden lg:flex shrink-0 items-start self-start" style={{ paddingLeft: 10 }}>
             <button
               type="button"
@@ -2938,7 +2938,7 @@ function ZoneConfigViewBody({
               <div data-hydrated={twinHydrated ? "1" : "0"}>
                 <SpatialTwinPane
                   zoneId={config.id}
-                  hubZone={hubZone}
+                  hubZone={twinZone}
                   focusedNodeId={focusedNodeId}
                   onNodeClick={handleNodeClick}
                   preview={preview}
@@ -2950,10 +2950,10 @@ function ZoneConfigViewBody({
 
         {/* Mobile (Stephen 23:22): the twin floats in from the bottom edge —
             right-side handle pill, drag/tap to pull up or push away, remembered. */}
-        {showHubTwin && hubZone ? (
+        {showHubTwin && twinZone ? (
           <FloatTwinDock
             zoneId={config.id}
-            hubZone={hubZone}
+            hubZone={twinZone}
             focusedNodeId={focusedNodeId}
             onNodeClick={handleNodeClick}
             preview={preview}

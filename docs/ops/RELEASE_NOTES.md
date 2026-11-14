@@ -1,9 +1,15 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.10 (2026-10-21)
+**Current:** 1.0.11 (2026-11-14)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.11
+
+Bug fix. No new migration. Catalog seed pack stays `1.0.10-r1`. Upgrade steps are in the Ops Manual, section 5.2.8.
+
+- The Spatial Twin is back on Custom Records → Statistics. Click a statistic’s row or its Graph button to see its graph. The panel had been missing there since Statistics moved to Custom Records in 1.0.7. Your statistics and their lines were not affected.
 
 ## 1.0.10
 

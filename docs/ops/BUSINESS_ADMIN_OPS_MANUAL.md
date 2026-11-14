@@ -432,6 +432,10 @@ Same steps as §5.2.1, and run `npm run db:migrate` before the new process serve
 
 Same steps as §5.2.1. No new migration. Catalog seed pack becomes `1.0.10-r1`. The first start adds the Hats record type (`executive_hat`) under Executive and the Text list and Multi-lookup field types. Existing records and image galleries are unchanged; image descriptions start empty. Health reports `"version":"1.0.10"`. Leave `.data/site-settings.json` in place.
 
+### 5.2.8 Existing install to 1.0.11
+
+Same steps as §5.2.1. No new migration. Catalog seed pack stays `1.0.10-r1`. Health reports `"version":"1.0.11"`. Leave `.data/site-settings.json` in place. After the restart, Custom Records → Statistics shows the Spatial Twin again.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -539,6 +543,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-14 | §5.2.8: upgrade to 1.0.11. Spatial Twin bug fix on Custom Records → Statistics. No new migration. Catalog seed pack stays `1.0.10-r1`. |
 | 2026-10-21 | §5.2.7: upgrade to 1.0.10. Hats record type. No new migration. Catalog seed pack `1.0.10-r1`. |
 | 2026-10-14 | §5.2.6: upgrade to 1.0.9. Project task lines. Migration `0020`. Catalog seed pack `1.0.9-r1`. |
 | 2026-10-04 | §4: the public GitHub checkout is pull-only. Agents do not commit product changes and do not `git push`. |
