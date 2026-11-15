@@ -33,6 +33,7 @@ export function NumberScrubInput({
   onCommit,
   onCancel,
   onKeyDown,
+  onFocus,
   min,
   max,
   step = 1,
@@ -51,6 +52,7 @@ export function NumberScrubInput({
   onCommit?: (next: string, via: "enter" | "blur" | "scroller") => void;
   onCancel?: () => void;
   onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
+  onFocus?: () => void;
   min?: number;
   max?: number;
   step?: number;
@@ -197,6 +199,7 @@ export function NumberScrubInput({
           latest.current = e.target.value;
           onChange(e.target.value);
         }}
+        onFocus={onFocus}
         onBlur={() => onCommit?.(latest.current, "blur")}
         onKeyDown={(e) => {
           if (e.key === "ArrowUp" || e.key === "ArrowDown") {

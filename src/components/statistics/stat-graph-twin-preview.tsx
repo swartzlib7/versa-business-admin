@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   frequencyTypeLabel,
   parseStatHeaderConfig,
@@ -27,6 +27,7 @@ export function StatGraphTwinPreview({
   lightbox = false,
   pager = false,
   twin = false,
+  focusSeries,
 }: {
   values: Record<string, string>;
   headerId?: string | null;
@@ -40,12 +41,17 @@ export function StatGraphTwinPreview({
   pager?: boolean;
   /** Drawn in the Spatial Twin rail: one graph uses the taller shape that fills the box. */
   twin?: boolean;
+  /** Page to the graph of this period when it changes (the period being edited). */
+  focusSeries?: number;
 }) {
   const { linesEpoch } = useTwinSlot();
   const [fetched, setFetched] = useState<StatGraphLine[]>([]);
 
+  // Keep the saved lines current even while `lines` overrides them (the values
+  // editor's live typing). When the override ends, the graph shows these at
+  // once instead of blanking out until a fresh read lands (1.0.13).
   useEffect(() => {
-    if (!headerId || linesProp) {
+    if (!headerId) {
       setFetched([]);
       return;
     }
@@ -65,7 +71,7 @@ export function StatGraphTwinPreview({
       })
       .catch(() => setFetched([]));
     return () => controller.abort();
-  }, [headerId, linesProp, linesEpoch]);
+  }, [headerId, linesEpoch]);
 
   const parsed = parseStatHeaderConfig(values);
   const lines = linesProp ?? fetched;
@@ -84,6 +90,17 @@ export function StatGraphTwinPreview({
   useEffect(() => {
     if (page !== safePage) onPageChange?.(safePage);
   }, [page, safePage, onPageChange]);
+
+  // Follow the period being edited, once per change of period.
+  const followed = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (focusSeries === undefined || followed.current === focusSeries) return;
+    const idx = seriesIds.indexOf(focusSeries);
+    if (idx < 0) return;
+    followed.current = focusSeries;
+    const want = Math.floor(idx / layout);
+    if (want !== page) onPageChange?.(want);
+  }, [focusSeries, seriesIds, layout, page, onPageChange]);
 
   const latestSeries = seriesIds[seriesIds.length - 1];
   const single = layout === 1 && !compact && parsed.ok;

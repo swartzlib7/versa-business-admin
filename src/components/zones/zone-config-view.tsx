@@ -1050,9 +1050,9 @@ function ListingPanel({
   const headerRecordId = headerRecordIdProp ?? null;
   const isHeaderLines = panel.structure === "header_lines";
 
-  // 1.0.12 S-18: Statistics values. The header seeds the rows, so the values
-  // editors change values only (no Edit form, no Delete). Table edits the
-  // Value cell in place; Enhanced UI is the one-cell-per-step grid.
+  // 1.0.12 S-18 / 1.0.13: Statistics values. No Edit form: Table edits the
+  // Value cell in place, adds rows with Add row and deletes them with the row
+  // trash icon. Enhanced UI is the grid of every period, one box per step.
   const isStatLines =
     panel.recordTypeApiName === "statistics" && viewMode !== "instances" && isHeaderLines;
   const [statValuesMode, setStatValuesMode] = useStatValuesMode();
@@ -1133,6 +1133,16 @@ function ListingPanel({
       if (!statLiveRef.current) return;
       statLiveRef.current = false;
       setPreview({ ...cur, lines: undefined });
+    },
+    [headerRecordId, setPreview],
+  );
+
+  const onStatFocusPeriod = useCallback(
+    (series: number) => {
+      const cur = twinPreviewRef.current;
+      if (!cur || cur.kind !== "stat-graph" || !headerRecordId || cur.headerId !== headerRecordId) return;
+      if (cur.focusSeries === series) return;
+      setPreview({ ...cur, focusSeries: series });
     },
     [headerRecordId, setPreview],
   );
@@ -1927,6 +1937,7 @@ function ListingPanel({
           accent={accent}
           onSave={saveStatValue}
           onLiveLines={onStatLiveLines}
+          onFocusPeriod={onStatFocusPeriod}
           headerControls={
             <StatValuesModeSwitch mode={statValuesMode} onChange={setStatValuesMode} accent={accent} />
           }
@@ -2013,7 +2024,15 @@ function ListingPanel({
           }
           onAdd={onAdd}
           onUpdate={onUpdate}
-          onDelete={isStatLines ? undefined : onDelete}
+          onDelete={onDelete}
+          deleteIcon={isStatLines}
+          addLabel={isStatLines ? "Add row" : undefined}
+          deleteTitle={isStatLines ? "Delete this row?" : undefined}
+          deleteDescription={
+            isStatLines
+              ? "The step and its value are removed from the statistic and the graph. To keep the step but leave it empty, clear its Value instead."
+              : undefined
+          }
           inlineEdit={isStatLines}
           renderInlineCell={
             isStatLines && statHeader

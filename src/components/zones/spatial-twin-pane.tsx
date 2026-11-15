@@ -313,6 +313,7 @@ function TwinBody({
           values={preview.values}
           headerId={preview.headerId}
           lines={preview.lines}
+          focusSeries={preview.focusSeries}
           layout={layout}
           page={page}
           onPageChange={onPageChange}

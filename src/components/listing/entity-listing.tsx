@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ListingBadge } from "@/components/ui/kind-badge";
 import { theme } from "@/lib/theme";
 import Link from "next/link";
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { BooleanSwitch } from "@/components/ui/boolean-switch";
 import { NumberScrubInput } from "@/components/ui/number-scrub-input";
@@ -154,6 +154,10 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   badgeLabel?: string;
   /** Rows are edited in place (renderInlineCell): no Edit button, no row editor. */
   inlineEdit?: boolean;
+  /** Label for the New Record button and form (e.g. "Add row"). */
+  addLabel?: string;
+  /** Show Delete as a trash icon instead of the word. The confirm dialog is the same. */
+  deleteIcon?: boolean;
   /** An editable control for this cell, or null to show the value as text. */
   renderInlineCell?: (row: T, key: string) => ReactNode | null;
   /** Body for the New Record form (e.g. the Edit layout sections) instead of the flat field list. */
@@ -959,6 +963,8 @@ export function EntityListing<T extends Record<string, unknown>>({
   rowSelectLabel = "Graph",
   badgeLabel = "Listing",
   inlineEdit = false,
+  addLabel = "New Record",
+  deleteIcon = false,
   renderInlineCell,
   renderNewFormBody,
   deleteTitle = "Delete this record?",
@@ -1231,7 +1237,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                   className="rounded-md px-3 py-1.5 text-sm font-medium text-white"
                   style={{ backgroundColor: accent }}
                 >
-                  {editor === "new" ? "Close" : "New Record"}
+                  {editor === "new" ? "Close" : addLabel}
                 </button>
               )}
               {!canAdd && addBlockedHint ? (
@@ -1259,7 +1265,7 @@ export function EntityListing<T extends Record<string, unknown>>({
         />
         {editor === "new" && (
           <InlineForm
-            heading="New Record"
+            heading={addLabel}
             fields={fields}
             draft={draft}
             setDraft={setDraft}
@@ -1382,6 +1388,17 @@ export function EntityListing<T extends Record<string, unknown>>({
                               </button>
                             )}
                             {onDelete && (
+                              deleteIcon ? (
+                                <button
+                                  type="button"
+                                  aria-label="Delete row"
+                                  title="Delete row"
+                                  onClick={() => setPendingDeleteId(id)}
+                                  className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" aria-hidden />
+                                </button>
+                              ) : (
                               <button
                                 type="button"
                                 onClick={() => setPendingDeleteId(id)}
@@ -1389,6 +1406,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                               >
                                 Delete
                               </button>
+                              )
                             )}
                           </div>
                         </td>

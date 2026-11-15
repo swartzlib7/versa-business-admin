@@ -5,21 +5,22 @@
  *
  * The values of a statistic are its stat_line rows: one per (series, slot).
  * Series 1 is pre-seeded empty from the header; Dynamic Series opens the next
- * series when a period is full. The header drives which rows exist, so these
- * editors change VALUES only. They never add or delete steps.
+ * series when a period is full.
  *
  * Two views of the same rows, picked with the mode switch:
  * - Table: the listing table, with the Value column editable in place
- *   (StatValueCell). No Edit form, no Update row / Cancel, no Delete.
- * - Enhanced UI: one cell per step for one period at a time (StatValuesGrid).
- *   Enter saves and moves to the next step. The Spatial Twin redraws while
- *   the operator types or drags.
+ *   (StatValueCell). No Edit form or Update row / Cancel. Rows are added with
+ *   Add row and removed with the row's trash icon (1.0.13).
+ * - Enhanced UI (StatValuesGrid): every period the table holds, stacked and
+ *   labelled, one box per step. A step with no row is a dashed box; typing a
+ *   value adds the row. Enter saves and moves to the next step. The Spatial
+ *   Twin redraws from these values while the operator types or drags.
  *
  * Both save through the parent's `onSave`, which calls the capture API, so
  * the UI and monitoring scripts share one validation layer.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, Sparkles, Table2, Trash2 } from "lucide-react";
+import { Sparkles, Table2, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ListingBadge } from "@/components/ui/kind-badge";
 import { NumberScrubInput } from "@/components/ui/number-scrub-input";
@@ -205,20 +206,23 @@ export function StatValueCell({
 
 const fmtNum = (n: number) => String(Math.round(n * 100) / 100);
 
-/** Enhanced UI: one cell per step for one period. */
+/** Enhanced UI: every period, stacked, one box per step. */
 export function StatValuesGrid({
   config,
   lines,
   accent,
   onSave,
   onLiveLines,
+  onFocusPeriod,
   headerControls,
 }: {
   config: StatHeaderConfig;
   lines: StatValueLine[];
   accent: string;
   onSave: StatValueSave;
-  /** Live graph points (saved values with the typing on top), or null when nothing is typed. */
+  /** The operator moved into a box of this period (the twin pages to it). */
+  onFocusPeriod?: (series: number) => void;
+  /** Graph points for the twin: saved values with the typing on top. null when the grid closes. */
   onLiveLines?: (lines: StatGraphLine[] | null) => void;
   /** Mode switch and anything else for the header's right side. */
   headerControls?: ReactNode;
@@ -242,32 +246,44 @@ export function StatValuesGrid({
       ),
     [lines, qty, config.seriesMode],
   );
+  // Every period that has rows, plus the one still being filled in.
   const periods = useMemo(() => {
-    if (config.seriesMode === "single") return [1];
     const set = new Set<number>(lines.map((ln) => ln.series));
-    set.add(open);
+    if (config.seriesMode === "dynamic" || !set.size) set.add(open);
     return [...set].filter((n) => Number.isInteger(n) && n > 0).sort((a, b) => a - b);
   }, [lines, open, config.seriesMode]);
 
-  const [picked, setPicked] = useState<number | null>(null);
-  const viewed = picked !== null && periods.includes(picked) ? picked : open;
-  const index = periods.indexOf(viewed);
+  const labelsBySeries = useMemo(() => {
+    const map = new Map<number, string[]>();
+    for (const series of periods) map.set(series, frequencySlotLabels(configForSeries(config, series), qty));
+    return map;
+  }, [periods, config, qty]);
+  const labelFor = (series: number, slot: number) => labelsBySeries.get(series)?.[slot] ?? `Step ${slot + 1}`;
 
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   // Saved / error messages sit in the card header, so the boxes never change size.
   const [status, setStatus] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const inflight = useRef(new Set<string>());
-  const inputs = useRef<Array<HTMLInputElement | null>>([]);
-  const focusAfter = useRef<{ series: number; slot: number } | null>(null);
-
+  // Text saved per box until the new rows arrive. Enter saves, then moving to
+  // the next box blurs this one before the screen has the new row; without
+  // this the blur would send the same value again (a second POST is refused).
+  const justSaved = useRef(new Map<string, string>());
   useEffect(() => {
-    const want = focusAfter.current;
-    if (!want || want.series !== viewed) return;
-    focusAfter.current = null;
-    const el = inputs.current[want.slot];
-    el?.focus();
-    el?.select();
+    justSaved.current.clear();
+  }, [lines]);
+  const inputs = useRef(new Map<string, HTMLInputElement>());
+  const focusAfter = useRef<string | null>(null);
+
+  const focusKey = (key: string) => {
+    const el = inputs.current.get(key);
+    if (!el) return false;
+    el.focus();
+    el.select();
+    return true;
+  };
+  useEffect(() => {
+    if (focusAfter.current && focusKey(focusAfter.current)) focusAfter.current = null;
   });
 
   useEffect(() => {
@@ -278,7 +294,7 @@ export function StatValuesGrid({
 
   const savedText = (series: number, slot: number) => shownValue(byKey.get(keyOf(series, slot))?.value ?? "");
 
-  // Saved values with the typing on top, for the twin and the summary.
+  // Saved values with the typing on top, for the twin and the period lines.
   const liveLines = useMemo(() => {
     const map = new Map<string, StatGraphLine>();
     for (const ln of lines) {
@@ -300,10 +316,11 @@ export function StatValuesGrid({
     return [...map.values()];
   }, [lines, drafts, config]);
 
-  const hasDrafts = Object.keys(drafts).length > 0;
+  // The twin draws from these values the whole time the grid is open, so a
+  // save never makes it blank out while it re-reads the lines.
   useEffect(() => {
-    onLiveLines?.(hasDrafts ? liveLines : null);
-  }, [hasDrafts, liveLines, onLiveLines]);
+    onLiveLines?.(liveLines);
+  }, [liveLines, onLiveLines]);
   useEffect(() => () => onLiveLines?.(null), [onLiveLines]);
 
   const dropDraft = (key: string) => {
@@ -321,39 +338,39 @@ export function StatValuesGrid({
     });
   };
 
-  const moveOn = (slot: number, filledNow: boolean) => {
+  const moveOn = (series: number, slot: number, filledNow: boolean) => {
     if (slot + 1 < qty) {
-      inputs.current[slot + 1]?.focus();
-      inputs.current[slot + 1]?.select();
+      focusKey(keyOf(series, slot + 1));
       return;
     }
-    // Last step: a full period opens the next one (Dynamic Series).
-    if (config.seriesMode !== "dynamic") return;
-    let full = true;
-    for (let s = 0; s < qty; s++) {
-      const has = s === slot ? filledNow : savedText(viewed, s) !== "";
-      if (!has) full = false;
+    if (periods.includes(series + 1)) {
+      focusKey(keyOf(series + 1, 0));
+      return;
     }
-    if (!full) return;
-    focusAfter.current = { series: viewed + 1, slot: 0 };
-    setPicked(viewed + 1);
+    // Last step of the last period: a full period opens the next one (Dynamic Series).
+    if (config.seriesMode !== "dynamic") return;
+    for (let s = 0; s < qty; s++) {
+      const has = s === slot ? filledNow : savedText(series, s) !== "";
+      if (!has) return;
+    }
+    focusAfter.current = keyOf(series + 1, 0);
   };
 
-  const commit = async (slot: number, raw: string, via: "enter" | "blur" | "scroller") => {
-    const series = viewed;
+  const commit = async (series: number, slot: number, raw: string, via: "enter" | "blur" | "scroller") => {
     const key = keyOf(series, slot);
     const line = byKey.get(key);
     const text = raw.trim();
     const saved = savedText(series, slot);
-    if (text === saved || (text === "" && !line)) {
+    const label = labelFor(series, slot);
+    if (text === saved || justSaved.current.get(key) === text || (text === "" && !line)) {
       dropDraft(key);
-      if (via === "enter") moveOn(slot, text !== "");
+      if (via === "enter") moveOn(series, slot, text !== "");
       return;
     }
     const problem = valueError(text, config);
     if (problem) {
       setErrors((e) => ({ ...e, [key]: problem }));
-      setStatus({ tone: "error", text: `${labels[slot] ?? "Step"}: ${problem}` });
+      setStatus({ tone: "error", text: `Period ${series}, ${label}: ${problem}` });
       return;
     }
     if (inflight.current.has(key)) return;
@@ -362,90 +379,39 @@ export function StatValuesGrid({
     inflight.current.delete(key);
     if (failed) {
       setErrors((e) => ({ ...e, [key]: failed }));
-      setStatus({ tone: "error", text: `${labels[slot] ?? "Step"}: ${failed}` });
+      setStatus({ tone: "error", text: `Period ${series}, ${label}: ${failed}` });
       return;
     }
+    justSaved.current.set(key, text);
     dropDraft(key);
     setStatus({
       tone: "ok",
-      text: text === "" ? `Cleared ${labels[slot] ?? ""}` : `Saved ${labels[slot] ?? ""} = ${text}`,
+      text: text === "" ? `Cleared period ${series}, ${label}` : `Saved period ${series}, ${label} = ${text}`,
     });
-    if (via === "enter") moveOn(slot, text !== "");
+    if (via === "enter") moveOn(series, slot, text !== "");
   };
 
   /** Trash: the step goes back to empty (a gap), which is not the same as 0. */
-  const clear = (slot: number) => void commit(slot, "", "scroller");
+  const clear = (series: number, slot: number) => void commit(series, slot, "", "scroller");
 
-  const seriesConfig = configForSeries(config, viewed);
-  const labels = frequencySlotLabels(seriesConfig, qty);
   const start = parseStartDatetime(config.startDatetime);
-  let nextEmpty = -1;
-  for (let s = 0; s < qty; s++) {
-    if (savedText(viewed, s) === "") {
-      nextEmpty = s;
-      break;
-    }
-  }
-
-  const progress = statPeriodProgress(
-    config,
-    liveLines.filter((ln) => ln.series === viewed),
-    viewed === open,
-  );
   const stepWord = frequencyTypeLabel(config.frequencyType).toLowerCase();
+  let nextKey = "";
+  for (let s = 0; s < qty && !nextKey; s++) {
+    if (savedText(open, s) === "") nextKey = keyOf(open, s);
+  }
 
   return (
     <Card className="overflow-hidden">
       <CardHeader className="border-b bg-muted/30">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
-            <p className="text-sm font-semibold">Values · {frequencyTypeLabel(config.frequencyType)}</p>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              {periods.length > 1 ? (
-                <span className="inline-flex items-center gap-1">
-                  <button
-                    type="button"
-                    aria-label="Previous period"
-                    disabled={index <= 0}
-                    onClick={() => setPicked(periods[index - 1] ?? viewed)}
-                    className="rounded border border-border p-0.5 hover:bg-muted disabled:opacity-40"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-                  </button>
-                  <span className="tabular-nums">
-                    Period {index + 1} of {periods.length}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label="Next period"
-                    disabled={index >= periods.length - 1}
-                    onClick={() => setPicked(periods[index + 1] ?? viewed)}
-                    className="rounded border border-border p-0.5 hover:bg-muted disabled:opacity-40"
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-                  </button>
-                </span>
-              ) : null}
-              <span>{frequencyWindowCaption(seriesConfig)}</span>
-            </div>
-            {progress ? (
-              <p className="text-xs tabular-nums text-muted-foreground">
-                Met <b className="text-foreground">{fmtNum(progress.met)}</b> of {fmtNum(progress.quota)}
-                {progress.over > 0 ? (
-                  <> · Over <b className="text-foreground">+{fmtNum(progress.over)}</b></>
-                ) : (
-                  <> · Short <b className="text-destructive">{fmtNum(progress.short)}</b></>
-                )}
-                {progress.needed !== null ? (
-                  <>
-                    {" "}· Needed{" "}
-                    <b style={{ color: STAT_PACE_COLOR }}>
-                      {fmtNum(progress.needed)} / {stepWord}
-                    </b>
-                  </>
-                ) : null}
-              </p>
-            ) : null}
+            <p className="text-sm font-semibold">
+              Values · {frequencyTypeLabel(config.frequencyType)}
+              <span className="ml-2 font-normal text-muted-foreground">
+                {periods.length} period{periods.length === 1 ? "" : "s"}
+              </span>
+            </p>
             <p
               role="status"
               aria-live="polite"
@@ -463,81 +429,119 @@ export function StatValuesGrid({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3 p-4">
-        <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(7.5rem,1fr))]">
-          {labels.map((label, slot) => {
-            const key = keyOf(viewed, slot);
-            const saved = savedText(viewed, slot);
-            const error = errors[key];
-            const isNext = slot === nextEmpty;
-            const stamp = start
-              ? formatStamp(stampForSlot(start, config.frequencyType, viewed, slot, qty))
-              : "";
-            const id = `stat-value-${viewed}-${slot}`;
-            return (
-              <div
-                key={key}
-                className={cn(
-                  "grid min-w-0 gap-1 rounded-lg border border-border p-2",
-                  saved !== "" && "bg-muted/40",
-                  error && "border-destructive",
-                )}
-                style={isNext && !error ? { borderColor: accent, boxShadow: `inset 0 0 0 1px ${accent}` } : undefined}
-              >
-                <div className="flex min-w-0 items-start justify-between gap-1">
-                  <label htmlFor={id} className="truncate text-xs font-semibold" title={label}>
-                    {label}
-                  </label>
-                  {saved !== "" ? (
-                    <button
-                      type="button"
-                      aria-label={`Clear ${label}`}
-                      title="Clear this value (leaves a gap; 0 is a value)"
-                      onClick={() => clear(slot)}
-                      className="-mr-1 -mt-0.5 shrink-0 rounded p-0.5 text-muted-foreground opacity-60 hover:bg-destructive/10 hover:text-destructive hover:opacity-100 focus-visible:opacity-100"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                    </button>
-                  ) : (
-                    <span className="h-[1.125rem] w-[1.125rem] shrink-0" aria-hidden />
-                  )}
-                </div>
-                <span className="text-[10px] leading-tight text-muted-foreground">
-                  {stamp}
-                </span>
-                <NumberScrubInput
-                  id={id}
-                  inputRef={(el) => {
-                    inputs.current[slot] = el;
-                  }}
-                  value={drafts[key] ?? saved}
-                  placeholder="–"
-                  ariaLabel={`${label} value`}
-                  min={config.scaleStart}
-                  max={config.scaleEnd}
-                  step={step}
-                  dragStep={dragStep}
-                  invalid={!!error}
-                  onChange={(next) => {
-                    setDrafts((d) => ({ ...d, [key]: next }));
-                    setErrors((e) => {
-                      if (!(key in e)) return e;
-                      const rest = { ...e };
-                      delete rest[key];
-                      return rest;
-                    });
-                  }}
-                  onCommit={(next, via) => void commit(slot, next, via)}
-                  onCancel={() => dropDraft(key)}
-                />
+      <CardContent className="space-y-5 p-4">
+        {periods.map((series) => {
+          const seriesConfig = configForSeries(config, series);
+          const progress = statPeriodProgress(
+            config,
+            liveLines.filter((ln) => ln.series === series),
+            series === open,
+          );
+          return (
+            <section key={series} aria-label={`Period ${series}`} className="space-y-2">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs">
+                <span className="text-sm font-semibold">Period {series}</span>
+                <span className="text-muted-foreground">{frequencyWindowCaption(seriesConfig)}</span>
+                {progress ? (
+                  <span className="tabular-nums text-muted-foreground">
+                    Met <b className="text-foreground">{fmtNum(progress.met)}</b> of {fmtNum(progress.quota)}
+                    {progress.over > 0 ? (
+                      <> · Over <b className="text-foreground">+{fmtNum(progress.over)}</b></>
+                    ) : (
+                      <> · Short <b className="text-destructive">{fmtNum(progress.short)}</b></>
+                    )}
+                    {progress.needed !== null ? (
+                      <>
+                        {" "}· Needed{" "}
+                        <b style={{ color: STAT_PACE_COLOR }}>
+                          {fmtNum(progress.needed)} / {stepWord}
+                        </b>
+                      </>
+                    ) : null}
+                  </span>
+                ) : null}
               </div>
-            );
-          })}
-        </div>
+              <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(7.5rem,1fr))]">
+                {Array.from({ length: qty }, (_, slot) => {
+                  const key = keyOf(series, slot);
+                  const label = labelFor(series, slot);
+                  const line = byKey.get(key);
+                  const saved = savedText(series, slot);
+                  const error = errors[key];
+                  const isNext = key === nextKey;
+                  const stamp = start
+                    ? formatStamp(stampForSlot(start, config.frequencyType, series, slot, qty))
+                    : "";
+                  const id = `stat-value-${series}-${slot}`;
+                  return (
+                    <div
+                      key={key}
+                      title={line ? undefined : "No row for this step yet. Type a value to add it."}
+                      className={cn(
+                        "grid min-w-0 gap-1 rounded-lg border p-2",
+                        line ? "border-border" : "border-dashed border-border/80",
+                        saved !== "" && "bg-muted/40",
+                        error && "border-destructive",
+                      )}
+                      style={isNext && !error ? { borderColor: accent, boxShadow: `inset 0 0 0 1px ${accent}` } : undefined}
+                    >
+                      <div className="flex min-w-0 items-start justify-between gap-1">
+                        <label htmlFor={id} className="truncate text-xs font-semibold" title={label}>
+                          {label}
+                        </label>
+                        {saved !== "" ? (
+                          <button
+                            type="button"
+                            aria-label={`Clear period ${series}, ${label}`}
+                            title="Clear this value (leaves a gap; 0 is a value)"
+                            onClick={() => clear(series, slot)}
+                            className="-mr-1 -mt-0.5 shrink-0 rounded p-0.5 text-muted-foreground opacity-60 hover:bg-destructive/10 hover:text-destructive hover:opacity-100 focus-visible:opacity-100"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                          </button>
+                        ) : (
+                          <span className="h-[1.125rem] w-[1.125rem] shrink-0" aria-hidden />
+                        )}
+                      </div>
+                      <span className="text-[10px] leading-tight text-muted-foreground">{stamp}</span>
+                      <NumberScrubInput
+                        id={id}
+                        inputRef={(el) => {
+                          if (el) inputs.current.set(key, el);
+                          else inputs.current.delete(key);
+                        }}
+                        value={drafts[key] ?? saved}
+                        placeholder="–"
+                        ariaLabel={`Period ${series}, ${label} value`}
+                        min={config.scaleStart}
+                        max={config.scaleEnd}
+                        step={step}
+                        dragStep={dragStep}
+                        invalid={!!error}
+                        onChange={(next) => {
+                          setDrafts((d) => ({ ...d, [key]: next }));
+                          setErrors((e) => {
+                            if (!(key in e)) return e;
+                            const rest = { ...e };
+                            delete rest[key];
+                            return rest;
+                          });
+                        }}
+                        onCommit={(next, via) => void commit(series, slot, next, via)}
+                        onCancel={() => dropDraft(key)}
+                        onFocus={() => onFocusPeriod?.(series)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
         <p className="text-[11px] text-muted-foreground">
           Enter saves and moves to the next {stepWord} · Esc undoes typing · Arrows: click, hold, or drag up and
-          down · Trash clears a value (0 is a value; a cleared step is a gap) · Scale {config.scaleStart} to{" "}
-          {config.scaleEnd}
+          down · Trash clears a value (0 is a value; a cleared step is a gap) · A dashed box has no row yet: type a
+          value to add it · Delete rows in Table · Scale {config.scaleStart} to {config.scaleEnd}
         </p>
       </CardContent>
     </Card>

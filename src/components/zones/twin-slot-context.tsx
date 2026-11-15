@@ -12,6 +12,8 @@ export type TwinPreview =
       values: Record<string, string>;
       headerId?: string | null;
       lines?: StatGraphLine[];
+      /** Period (series) being edited: the twin pages to it (1.0.13). */
+      focusSeries?: number;
       renderOutput?: string;
       onRenderOutput?: (outputId: string) => void;
     }

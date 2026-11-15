@@ -1,9 +1,20 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.12 (2026-11-15)
+**Current:** 1.0.13 (2026-11-15)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.13
+
+No new migration; still run `npm run db:migrate` as on every upgrade. Catalog seed pack stays `1.0.12-r1`. Upgrade steps are in the Ops Manual, section 5.2.10.
+
+- A statistic's **Table** view has **Add row** and a **trash** icon on every row. The trash deletes the row after you confirm, so a step entered by mistake can be removed.
+- **Enhanced UI** shows every period, one under the other, with its dates and Met / Short / Needed. It has a box for every row in the table. A dashed box is a step with no row; typing a value adds it.
+- The Spatial Twin shows the period you are typing in.
+- Fixed: the Spatial Twin graph flickered (went blank, then redrew) each time a value was saved in Enhanced UI.
+- Fixed: Enhanced UI opened on the newest period. When the first period was full, that was an empty second period, so values meant for the first period were saved as new rows in the second.
+- Fixed: pressing Enter in a box with no row saved the value, then showed a false "already seeded" error.
 
 ## 1.0.12
 

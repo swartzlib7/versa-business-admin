@@ -65,8 +65,8 @@ Open the statistic. The values card under the header has two views. Switch with 
 
 | View | How it works |
 |------|--------------|
-| **Table** | One row per step, with the step (e.g. Mon), its Stamp, and a **Value** box. Type in the box, then press **Enter** or click away to save. **Esc** undoes your typing. Filter, Columns and the column headings sort and filter as on every listing. **New Record** lets you pick a step from a list instead |
-| **Enhanced UI** | One box per step for one period, labelled like the graph, with the step's date and time under it. **Enter** saves and moves to the next step. The box with the colored outline is the next empty step. **‹ ›** move between periods. When a Period target is set, the card shows Met, Short and Needed |
+| **Table** | One row per step, with the step (e.g. Mon), its Stamp, and a **Value** box. Type in the box, then press **Enter** or click away to save. **Esc** undoes your typing. Filter, Columns and the column headings sort and filter as on every listing. **Add row** adds a step: pick it from the list and enter its value. The **trash** icon at the end of a row deletes that row, after you confirm |
+| **Enhanced UI** | Every period in the table, one under the other, each headed with its dates (and Met, Short and Needed when a Period target is set). One box per step, labelled like the graph, with the step's date and time under it. **Enter** saves and moves to the next step, into the next period after the last step. The box with the colored outline is the next empty step. A **dashed** box is a step with no row (for example one you deleted): typing a value adds the row |
 
 Every value box has **up and down arrows**:
 
@@ -77,11 +77,15 @@ Every value box has **up and down arrows**:
 
 **0 and empty are different.** 0 is a value: it counts toward Met and is drawn at the bottom of the graph. An empty step is a gap: it is not drawn, and the catch-up pace starts after the last filled step.
 
-To **clear** a value, click the **trash** icon at the top right of its box in Enhanced UI (only boxes with a value have one). In Table, empty the Value box and press Enter. The step stays empty; steps cannot be deleted, because the header controls them.
+To **clear** a value, click the **trash** icon at the top right of its box in Enhanced UI (only boxes with a value have one). In Table, empty the Value box and press Enter. The step stays, empty.
+
+To **delete** a row (a step entered by mistake, or a period you do not want), use the trash icon on that row in **Table**. The step and its value are removed. Use **Add row** to put a step back.
 
 In Enhanced UI, "Saved …" and any error (such as a value outside the scale) show in the card header, so the boxes never change size.
 
-**Periods.** With **Dynamic Series**, filling the last step of a period opens the next period. In Enhanced UI, Enter on the last step takes you there. With **Single Series**, there is one period only.
+**Periods.** With **Dynamic Series**, filling the last step of a period opens the next period: Enhanced UI shows it as a new set of dashed boxes at the bottom. Values typed there belong to that next period, not the first one. With **Single Series**, there is one period only.
+
+While you type in Enhanced UI, the Spatial Twin shows the period you are in and redraws as you type.
 
 Values can also come from a script through the capture API. See the Ops Manual for the endpoint and sign-in.
 
