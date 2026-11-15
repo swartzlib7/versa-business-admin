@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { parseStatHeaderConfig, statRowsToGraphPoints } from "@/lib/statistics/model";
+import {
+  frequencyTypeLabel,
+  parseStatHeaderConfig,
+  statPeriodProgress,
+  statRowsToGraphPoints,
+} from "@/lib/statistics/model";
 import { configForSeries, graphSeriesFromLines } from "@/lib/statistics/frequency";
-import { StatGraph, type StatGraphLine } from "@/components/statistics/stat-graph";
+import { STAT_PACE_COLOR, StatGraph, type StatGraphLine } from "@/components/statistics/stat-graph";
 import { useTwinSlot } from "@/components/zones/twin-slot-context";
 import { cn } from "@/lib/utils";
 import { GRAPH_LAYOUTS, type GraphLayout } from "@/lib/public/render-drivers";
@@ -21,6 +26,7 @@ export function StatGraphTwinPreview({
   compact = false,
   lightbox = false,
   pager = false,
+  twin = false,
 }: {
   values: Record<string, string>;
   headerId?: string | null;
@@ -32,6 +38,8 @@ export function StatGraphTwinPreview({
   lightbox?: boolean;
   /** When on, the Element shows the same previous / next page controls as the Spatial Twin. */
   pager?: boolean;
+  /** Drawn in the Spatial Twin rail: one graph uses the taller shape that fills the box. */
+  twin?: boolean;
 }) {
   const { linesEpoch } = useTwinSlot();
   const [fetched, setFetched] = useState<StatGraphLine[]>([]);
@@ -77,6 +85,17 @@ export function StatGraphTwinPreview({
     if (page !== safePage) onPageChange?.(safePage);
   }, [page, safePage, onPageChange]);
 
+  const latestSeries = seriesIds[seriesIds.length - 1];
+  const single = layout === 1 && !compact && parsed.ok;
+  const progress =
+    single && visible[0] != null
+      ? statPeriodProgress(
+          parsed.config,
+          lines.filter((ln) => ln.series === visible[0]),
+          visible[0] === latestSeries,
+        )
+      : null;
+
   const gridClass =
     layout === 1
       ? "grid-cols-1"
@@ -89,7 +108,9 @@ export function StatGraphTwinPreview({
             : "grid-cols-4 grid-rows-3";
 
   return (
-    <div className="flex h-full min-h-0 flex-col p-3">
+    // In the Spatial Twin the pager and 1 / 2 / 4 / 8 / 12 chrome float at the
+    // bottom of the box; keep that strip clear so it never covers the graph or readout.
+    <div className={cn("flex h-full min-h-0 flex-col p-3", twin && "pb-14")}>
       <div className="mb-2 flex items-center justify-between gap-2">
         <h3 className="text-sm font-semibold tracking-tight">
           {values.name || values.Name || "Graph preview"}
@@ -145,6 +166,8 @@ export function StatGraphTwinPreview({
                       config={configForSeries(parsed.config, series)}
                       lines={lines.filter((ln) => ln.series === series)}
                       className="h-full w-full"
+                      shape={twin && !lightbox && layout === 1 ? "tall" : "wide"}
+                      openPeriod={series === latestSeries}
                     />
                   </div>
                 </div>
@@ -157,6 +180,59 @@ export function StatGraphTwinPreview({
           Fill scale, frequency, and start datetime on the header to preview the graph.
         </p>
       )}
+      {progress && parsed.ok ? (
+        <TargetReadout
+          progress={progress}
+          stepLabel={frequencyTypeLabel(parsed.config.frequencyType).toLowerCase()}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+const fmtNum = (n: number) => String(Math.round(n * 100) / 100);
+
+/** Quota / Met / Short (or Over) / Needed for the period on screen. */
+function TargetReadout({
+  progress,
+  stepLabel,
+}: {
+  progress: NonNullable<ReturnType<typeof statPeriodProgress>>;
+  stepLabel: string;
+}) {
+  const tiles: Array<{ k: string; v: string; s: string; color?: string }> = [
+    { k: "Quota", v: fmtNum(progress.quota), s: "period target" },
+    { k: "Met", v: fmtNum(progress.met), s: "so far" },
+    progress.over > 0
+      ? { k: "Over", v: "+" + fmtNum(progress.over), s: "past the quota" }
+      : {
+          k: "Short",
+          v: fmtNum(progress.short),
+          s: progress.stepsLeft > 0 || progress.lastSlot < 0 ? "to the quota" : "at period close",
+          color: progress.short > 0 ? "#e5484d" : undefined,
+        },
+    progress.short === 0
+      ? { k: "Needed", v: "0", s: "quota met", color: STAT_PACE_COLOR }
+      : progress.needed !== null
+        ? {
+            k: "Needed",
+            v: fmtNum(progress.needed),
+            s: `per ${stepLabel} · ${progress.stepsLeft} left`,
+            color: STAT_PACE_COLOR,
+          }
+        : { k: "Needed", v: "–", s: progress.lastSlot < 0 ? "no values yet" : "period closed" },
+  ];
+  return (
+    <div className="mt-2 grid shrink-0 grid-cols-4 gap-1.5" aria-label="Period target progress">
+      {tiles.map((t) => (
+        <div key={t.k} className="min-w-0 rounded-md border border-border px-2 py-1">
+          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{t.k}</p>
+          <p className="text-sm font-semibold tabular-nums" style={t.color ? { color: t.color } : undefined}>
+            {t.v}
+          </p>
+          <p className="truncate text-[10px] text-muted-foreground">{t.s}</p>
+        </div>
+      ))}
     </div>
   );
 }

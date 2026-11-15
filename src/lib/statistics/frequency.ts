@@ -383,7 +383,7 @@ export function graphSeriesFromLines(
 /** e.g. `7 - Day - 2026-09-10T00:00` under the frequency tick labels. */
 export function frequencyWindowCaption(config: StatHeaderConfig): string {
   const start = parseStartDatetime(config.startDatetime);
-  const stamp = start ? toDatetimeLocalValue(start) : config.startDatetime.trim();
+  const stamp = start ? formatStamp(start) : config.startDatetime.trim();
   const typeLabels: Record<string, string> = {
     sec: "Second",
     min: "Minute",

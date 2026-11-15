@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { foldRecordTypeApiName } from '@/lib/catalog/name-aliases';
+import { deriveStatHeaderData } from '@/lib/statistics/model';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 import {
   listInstances,
@@ -146,6 +148,10 @@ export async function POST(request: Request) {
       relation_kind?: string;
     }> | undefined,
   } satisfies CreateInstanceInput;
+  // Statistics: store the derived Frequency start / Target per step, as the UI does.
+  if (foldRecordTypeApiName(input.type_api_name) === 'statistics') {
+    input.data = deriveStatHeaderData(input.data);
+  }
   if (adapter.createRecord) {
     const result = await adapter.createRecord(input, {
       createdBy: session?.userId ?? null,

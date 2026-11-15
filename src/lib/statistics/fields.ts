@@ -14,6 +14,8 @@ export const STAT_HEADER_FIELD_APIS = [
   "frequency_qty",
   "start_datetime",
   "series_mode",
+  "period_target",
+  "slot_target",
   "created_by",
   "last_modified_by",
 ] as const;

@@ -53,10 +53,11 @@ import {
   openSeriesNumber,
   parseStatHeaderConfig,
   usedSlotsInSeries,
+  applyStatHeaderChange,
+  statValueSteps,
   type StatHeaderConfig,
 } from "@/lib/statistics/model";
 import {
-  applyDerivedFrequencyStart,
   formatStamp,
   frequencySlotLabels,
   parseStartDatetime,
@@ -65,6 +66,15 @@ import {
 } from "@/lib/statistics/frequency";
 import { formatStatLineValue, isLiveStatField } from "@/lib/statistics/fields";
 import { StatGraphPanel } from "@/components/statistics/stat-graph-panel";
+import type { StatGraphLine } from "@/components/statistics/stat-graph";
+import {
+  StatValueCell,
+  StatValuesGrid,
+  StatValuesModeSwitch,
+  useStatValuesMode,
+  type StatValueLine,
+  type StatValueSave,
+} from "@/components/statistics/stat-values-grid";
 import { recordTypeLabel } from "@/lib/public/element-types";
 import { loadPairingTwinPreview } from "@/lib/public/pairing-twin-preview";
 import { pairingFieldRequired } from "@/components/catalog/pairing-fields";
@@ -654,7 +664,7 @@ function ListingPanel({
   suppressTwinPreview?: boolean;
   allowCreate?: boolean;
 }) {
-  const { setPreview, bumpLines, linesEpoch } = useTwinSlot();
+  const { preview, setPreview, bumpLines, linesEpoch } = useTwinSlot();
   const publishesTwin =
     panel.recordTypeApiName === "statistics" ||
     panel.recordTypeApiName === "driver_pairing" ||
@@ -715,9 +725,18 @@ function ListingPanel({
         const data = ((json.data as { data?: Record<string, unknown> } | null)?.data ??
           {}) as Record<string, unknown>;
         const parsed = parseStatHeaderConfig(data);
-        setStatHeader(parsed.ok ? parsed.config : null);
+        const next = parsed.ok ? parsed.config : null;
+        // A value save re-reads the header (linesEpoch). Keep the same object
+        // when nothing changed, so the values editor is not reloaded and the
+        // cursor stays where the operator is typing.
+        setStatHeader((prev) =>
+          prev && next && JSON.stringify(prev) === JSON.stringify(next) ? prev : next,
+        );
       })
-      .catch(() => setStatHeader(null));
+      .catch((e: unknown) => {
+        // A newer read replaced this one (two saves in a row): keep the header.
+        if ((e as { name?: string }).name !== "AbortError") setStatHeader(null);
+      });
     return () => controller.abort();
   }, [panel.recordTypeApiName, headerRecordIdProp, linesEpoch]);
 
@@ -987,6 +1006,16 @@ function ListingPanel({
       if (f.key === "line_slot") {
         return { ...f, disabledOptions: [...used], defaultValue: nextSlot };
       }
+      if (f.key === "line_value") {
+        return {
+          ...f,
+          numberRange: {
+            min: statHeader.scaleStart,
+            max: statHeader.scaleEnd,
+            ...statValueSteps(statHeader),
+          },
+        };
+      }
       if (f.key === "line_stamp") {
         return {
           ...f,
@@ -1020,6 +1049,108 @@ function ListingPanel({
    *  is immediately visible here without a full page refresh. */
   const headerRecordId = headerRecordIdProp ?? null;
   const isHeaderLines = panel.structure === "header_lines";
+
+  // 1.0.12 S-18: Statistics values. The header seeds the rows, so the values
+  // editors change values only (no Edit form, no Delete). Table edits the
+  // Value cell in place; Enhanced UI is the one-cell-per-step grid.
+  const isStatLines =
+    panel.recordTypeApiName === "statistics" && viewMode !== "instances" && isHeaderLines;
+  const [statValuesMode, setStatValuesMode] = useStatValuesMode();
+  const statLines: StatValueLine[] = useMemo(
+    () =>
+      isStatLines
+        ? rows
+            .map((r) => ({
+              id: r.id,
+              series: Number(r.cells.series || 1) || 1,
+              slot: Number(r.cells.line_slot),
+              value: String(r.cells.line_value ?? ""),
+            }))
+            .filter((ln) => Number.isInteger(ln.slot))
+        : [],
+    [isStatLines, rows],
+  );
+  const saveStatValue: StatValueSave = useCallback(
+    async (target, raw) => {
+      if (!headerRecordId) return "Save the header first.";
+      const text = raw.trim();
+      const value = text === "" ? null : Number(text);
+      if (value === null && !target.lineId) return null;
+      try {
+        const res = await fetch("/api/statistics/" + headerRecordId + "/lines", {
+          method: target.lineId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(
+            target.lineId
+              ? { lineId: target.lineId, value, source: "ui" }
+              : { series: target.series, slot: target.slot, value, source: "ui" },
+          ),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) return json?.error?.message ?? "Could not save the value.";
+        const line = json.data as {
+          id: string;
+          slot: number;
+          value: string | null;
+          series?: number;
+          stamp?: string | null;
+        };
+        const cells = {
+          line_slot: String(line.slot),
+          line_value: formatStatLineValue(line.value),
+          line_stamp: line.stamp ?? "",
+          series: String(line.series ?? 1),
+        };
+        setRows((prev) =>
+          prev.some((r) => r.id === line.id)
+            ? prev.map((r) => (r.id === line.id ? { id: line.id, cells } : r))
+            : [...prev, { id: line.id, cells }],
+        );
+        bumpLines();
+        return null;
+      } catch (e: unknown) {
+        return e instanceof Error ? e.message : String(e);
+      }
+    },
+    [headerRecordId, bumpLines],
+  );
+  // Enhanced UI: the twin redraws from the typing while this header is on it.
+  const twinPreviewRef = useRef(preview);
+  useEffect(() => {
+    twinPreviewRef.current = preview;
+  }, [preview]);
+  const statLiveRef = useRef(false);
+  const onStatLiveLines = useCallback(
+    (live: StatGraphLine[] | null) => {
+      const cur = twinPreviewRef.current;
+      if (!cur || cur.kind !== "stat-graph" || !headerRecordId || cur.headerId !== headerRecordId) return;
+      if (live) {
+        statLiveRef.current = true;
+        setPreview({ ...cur, lines: live });
+        return;
+      }
+      if (!statLiveRef.current) return;
+      statLiveRef.current = false;
+      setPreview({ ...cur, lines: undefined });
+    },
+    [headerRecordId, setPreview],
+  );
+
+  // New Record on a list-to-detail type uses the same Edit layout sections as
+  // Edit (Records Editor -> Layout), not one flat list of fields.
+  const newFormSections = useMemo(() => {
+    if (viewMode !== "instances" || !isHeaderLines) return null;
+    const sections = runtime.edit
+      .map((sec) => ({
+        ...sec,
+        fields: filterByZoneRole(sec.fields, "header").filter((f) =>
+          objectApiName === "statistics" ? f.blank === true || isLiveStatField(f.key) : true,
+        ),
+      }))
+      .filter((sec) => sec.fields.length > 0);
+    return sections.length ? sections : null;
+  }, [viewMode, isHeaderLines, runtime.edit, objectApiName]);
   // #185 Slice A (rev E section 4.2): the lines group this tab edits. First
   // list-zone field's api_name prefix (milestone_/subtask_/variant_/rate_)
   // names the group; policy keeps its legacy default group.
@@ -1279,6 +1410,35 @@ function ListingPanel({
       });
   }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, seedRows, catalogFields, isHeaderLines, toCells, onHeaderRecord, viewMode, headerRecordId]);
 
+  // New statistic: the Spatial Twin draws the graph live while the header is
+  // filled in. Closing the new-record form gives the twin back to the selected
+  // statistic. Refs keep the callback stable, so the listing does not re-run it.
+  const publishesStatDraft =
+    panel.recordTypeApiName === "statistics" && viewMode === "instances" && !suppressTwinPreview;
+  const statDraftActiveRef = useRef(false);
+  const statSelectionRef = useRef<{ id: string | null | undefined; rows: ZoneListRow[] }>({
+    id: selectedRowId,
+    rows,
+  });
+  useEffect(() => {
+    statSelectionRef.current = { id: selectedRowId, rows };
+  }, [selectedRowId, rows]);
+  const onStatDraftChange = useCallback(
+    (draft: Record<string, string> | null) => {
+      if (draft) {
+        statDraftActiveRef.current = true;
+        setPreview({ kind: "stat-graph", values: { ...draft }, headerId: null });
+        return;
+      }
+      if (!statDraftActiveRef.current) return;
+      statDraftActiveRef.current = false;
+      const { id, rows: current } = statSelectionRef.current;
+      const row = id ? current.find((r) => r.id === id) : undefined;
+      setPreview(row ? { kind: "stat-graph", values: { ...row.cells }, headerId: row.id } : null);
+    },
+    [setPreview],
+  );
+
   const validateRequired = (draft: Record<string, string>): string => {
     if (!isDynamic) return "";
     for (const f of catalogFields) {
@@ -1388,7 +1548,7 @@ function ListingPanel({
       // #185 Slice A (rev E section 7.3): instances view creates a new header
       // record (list-to-detail), not a line on a shared header.
       if (panel.recordTypeApiName === "statistics") {
-        const statParse = parseStatHeaderConfig(applyDerivedFrequencyStart(draft));
+        const statParse = parseStatHeaderConfig(applyStatHeaderChange(draft));
         if (!statParse.ok) {
           alert(statParse.errors.join(" "));
           return false;
@@ -1397,7 +1557,7 @@ function ListingPanel({
       try {
         const name = draft.name || draft.Name || "New Record";
         const status = draft.status || draft.Status || "active";
-        const data: Record<string, string> = applyDerivedFrequencyStart({ ...draft });
+        const data: Record<string, string> = applyStatHeaderChange({ ...draft });
         delete data.Name;
         delete data.Status;
         const res = await fetch("/api/records", {
@@ -1476,7 +1636,7 @@ function ListingPanel({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ slot, value, source: "ui" }),
+          body: JSON.stringify({ series: open, slot, value, source: "ui" }),
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) {
@@ -1760,7 +1920,19 @@ function ListingPanel({
           {error}
         </div>
       )}
-      {!loading && !fieldsLoading && (
+      {!loading && !fieldsLoading && isStatLines && statHeader && statValuesMode === "enhanced" ? (
+        <StatValuesGrid
+          config={statHeader}
+          lines={statLines}
+          accent={accent}
+          onSave={saveStatValue}
+          onLiveLines={onStatLiveLines}
+          headerControls={
+            <StatValuesModeSwitch mode={statValuesMode} onChange={setStatValuesMode} accent={accent} />
+          }
+        />
+      ) : null}
+      {!loading && !fieldsLoading && !(isStatLines && statHeader && statValuesMode === "enhanced") && (
         <EntityListing
           summary={panel.summary}
           accent={accent}
@@ -1841,7 +2013,46 @@ function ListingPanel({
           }
           onAdd={onAdd}
           onUpdate={onUpdate}
-          onDelete={onDelete}
+          onDelete={isStatLines ? undefined : onDelete}
+          inlineEdit={isStatLines}
+          renderInlineCell={
+            isStatLines && statHeader
+              ? (row, key) => {
+                  if (key !== "line_value") return null;
+                  const line = statLines.find((ln) => ln.id === row.id);
+                  if (!line) return null;
+                  const labels = frequencySlotLabels(statHeader, statHeader.frequencyQty);
+                  return (
+                    <StatValueCell
+                      key={row.id}
+                      line={line}
+                      config={statHeader}
+                      onSave={saveStatValue}
+                      label={labels[line.slot] ?? frequencyTypeLabel(statHeader.frequencyType)}
+                    />
+                  );
+                }
+              : undefined
+          }
+          headerFilters={
+            isStatLines && statHeader ? (
+              <StatValuesModeSwitch mode={statValuesMode} onChange={setStatValuesMode} accent={accent} />
+            ) : undefined
+          }
+          renderNewFormBody={
+            newFormSections
+              ? (draft, setDraft) => (
+                  <LayoutDrivenForm
+                    sections={newFormSections}
+                    values={draft}
+                    onChange={(key, value) =>
+                      setDraft((d) => applyStatHeaderChange({ ...d, [key]: value }, key, d))
+                    }
+                    accent={accent}
+                  />
+                )
+              : undefined
+          }
           canAdd={allowCreate && statCanAdd}
           addBlockedHint={
             !allowCreate
@@ -1909,6 +2120,7 @@ function ListingPanel({
                   : "Graph"
           }
           badgeLabel={isDynamic ? "Dynamic Record" : "Listing"}
+          onDraftChange={publishesStatDraft ? onStatDraftChange : undefined}
         />
       )}
       {!loading && !fieldsLoading && showProjectTasks && (
@@ -2329,7 +2541,7 @@ function FormPanel({
     // ONE layer the capture API also uses) so a malformed header can never be
     // saved from the UI.
     if (panel.recordTypeApiName === "statistics") {
-      const statParse = parseStatHeaderConfig(applyDerivedFrequencyStart(values));
+      const statParse = parseStatHeaderConfig(applyStatHeaderChange(values));
       if (!statParse.ok) {
         setSaveError(statParse.errors.join(" "));
         setSaveStatus("");
@@ -2341,7 +2553,7 @@ function FormPanel({
     setSaveError("");
     setSaveStatus("");
     try {
-      const data: Record<string, string> = applyDerivedFrequencyStart({ ...values });
+      const data: Record<string, string> = applyStatHeaderChange({ ...values });
       const name = data.name || data.Name || panel.label;
       const status = data.status || data.Status || "active";
       delete data.Name;
@@ -2440,7 +2652,8 @@ function FormPanel({
       <CardHeader className="border-b bg-muted/30">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm text-muted-foreground">{panel.summary}</p>
+            {/* Inside an expanded row the tab summary already sits at the top of the listing. */}
+            {panel.summary ? <p className="text-sm text-muted-foreground">{panel.summary}</p> : null}
           </div>
           <ListingBadge label={isDynamic ? "Dynamic Record" : "Configure"} accent={accent} />
         </div>
@@ -2454,12 +2667,7 @@ function FormPanel({
               sections={sections}
               values={values}
               onChange={(key, value) =>
-                setValues((d) => {
-                  const next = { ...d, [key]: value };
-                  return key === "frequency_type" || key === "start_datetime"
-                    ? applyDerivedFrequencyStart(next)
-                    : next;
-                })
+                setValues((d) => applyStatHeaderChange({ ...d, [key]: value }, key, d))
               }
               readOnly={!editing}
               accent={accent}
@@ -2657,16 +2865,16 @@ function TabPanel({
             >
               <FormPanel
                 key={recordId}
-                panel={{ ...panel, id: panel.id + "-detail" }}
+                panel={{ ...panel, id: panel.id + "-detail", summary: "" }}
                 accent={accent}
                 detailRecordId={recordId}
                 startEditing={detailEditing}
                 onEditingChange={setDetailEditing}
                 publishTwin={graphRecordId === recordId}
               />
-              <RecordRelationsPanel key={recordId} recordId={recordId} accent={accent} />
+              <RecordRelationsPanel key={"relations-" + recordId} recordId={recordId} accent={accent} />
               <ListingPanel
-                panel={{ ...panel, id: panel.id + "-detail" }}
+                panel={{ ...panel, id: panel.id + "-detail", summary: "" }}
                 accent={accent}
                 headerRecordId={recordId}
                 suppressTwinPreview
@@ -2719,7 +2927,7 @@ function TabPanel({
             >
               <FormPanel
                 key={recordId}
-                panel={{ ...panel, id: panel.id + "-detail" }}
+                panel={{ ...panel, id: panel.id + "-detail", summary: "" }}
                 accent={accent}
                 detailRecordId={recordId}
                 startEditing={detailEditing}

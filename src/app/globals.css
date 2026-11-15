@@ -678,6 +678,10 @@
   padding: var(--pb-pad-m);
   padding-top: max(var(--pb-pad-m), 4rem);
 }
+/* Home hero: clear the fixed visitor header (about 6rem tall). */
+.pb-section-pad.pb-hero-pad {
+  padding-top: max(var(--pb-pad-m), 7rem);
+}
 .pb-row-width {
   width: var(--pb-row-w-m);
   margin-left: auto;
@@ -762,6 +766,9 @@ html[data-sky-off] .public-sky {
   .pb-section-pad {
     padding: var(--pb-pad);
     padding-top: max(var(--pb-pad), 4rem);
+  }
+  .pb-section-pad.pb-hero-pad {
+    padding-top: max(var(--pb-pad), 7rem);
   }
   .pb-row-width {
     width: var(--pb-row-w);

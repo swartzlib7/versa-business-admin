@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, Fragment, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState, Fragment, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ListingBadge } from "@/components/ui/kind-badge";
@@ -9,6 +9,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { BooleanSwitch } from "@/components/ui/boolean-switch";
+import { NumberScrubInput } from "@/components/ui/number-scrub-input";
 import { SecretValueField, maskSecretDisplay } from "@/components/ui/secret-value-field";
 import { UserLookupField } from "@/components/catalog/user-lookup-field";
 import { OrganizationLookupField } from "@/components/catalog/organization-lookup-field";
@@ -38,8 +39,8 @@ import { htmlToText } from "@/lib/html-text";
 import { CustomSlotsField } from "@/components/catalog/custom-slots-field";
 import { intervalIso, scheduleFieldHidden } from "@/lib/public/schedule-times";
 import { isAuditField } from "@/lib/catalog/audit-fields";
+import { applyStatHeaderChange, deriveSlotTarget, frequencyTypeLabel } from "@/lib/statistics/model";
 import {
-  applyDerivedFrequencyStart,
   deriveFrequencyStart,
   formatStamp,
   parseStartDatetime,
@@ -95,6 +96,8 @@ export type ListingField = {
   lookupObjectApiName?: string | null;
   defaultValue?: string;
   readOnly?: boolean;
+  /** Number with a scroller (arrows, hold, drag) clamped to this range. */
+  numberRange?: { min?: number; max?: number; step?: number; dragStep?: number };
   /** Statistics line stamp: compute from header start + slot. */
   stampConfig?: {
     startDatetime: string;
@@ -149,6 +152,15 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   onDraftChange?: (draft: Record<string, string> | null) => void;
   /** Optional badge text (default Listing) */
   badgeLabel?: string;
+  /** Rows are edited in place (renderInlineCell): no Edit button, no row editor. */
+  inlineEdit?: boolean;
+  /** An editable control for this cell, or null to show the value as text. */
+  renderInlineCell?: (row: T, key: string) => ReactNode | null;
+  /** Body for the New Record form (e.g. the Edit layout sections) instead of the flat field list. */
+  renderNewFormBody?: (
+    draft: Record<string, string>,
+    setDraft: Dispatch<SetStateAction<Record<string, string>>>,
+  ) => ReactNode;
   deleteTitle?: string;
   deleteDescription?: string;
   /** Persist column order under this key. Defaults to title + field keys. */
@@ -506,6 +518,18 @@ function FieldInput({
       />
     );
   }
+  if (field.key === "slot_target") {
+    return (
+      <FrequencyStartField
+        label={"Target per " + frequencyTypeLabel(allValues?.frequency_type)}
+        frequencyType=""
+        value={deriveSlotTarget(allValues ?? {})}
+        required={false}
+        readOnly
+        help="Period target divided by Frequency quantity"
+      />
+    );
+  }
   if (kind === "image_gallery") {
     return (
       <ImageGalleryField
@@ -742,6 +766,17 @@ function FieldInput({
           />
           <span className="w-12 text-right text-sm tabular-nums">{value === "" ? "—" : `${value}%`}</span>
         </div>
+      ) : field.numberRange ? (
+        <NumberScrubInput
+          value={value}
+          onChange={onChange}
+          min={field.numberRange.min}
+          max={field.numberRange.max}
+          step={field.numberRange.step}
+          dragStep={field.numberRange.dragStep}
+          ariaLabel={field.label}
+          placeholder="–"
+        />
       ) : kind === "boolean" ? (
         <BooleanSwitch
           checked={isChecked}
@@ -792,6 +827,7 @@ function InlineForm({
   onCommit,
   onCancel,
   commitLabel,
+  body,
 }: {
   heading: string;
   fields: ListingField[];
@@ -801,6 +837,8 @@ function InlineForm({
   onCommit: () => void;
   onCancel: () => void;
   commitLabel: string;
+  /** Replaces the flat field grid (layout sections). */
+  body?: ReactNode;
 }) {
   const stampsPairingType = fields.some(
     (f) => f.key === "driver_id" || f.key === "target_record_type",
@@ -828,6 +866,7 @@ function InlineForm({
         <p className="text-sm font-medium">{heading}</p>
         <span className="text-xs text-muted-foreground">Inline row editor</span>
       </div>
+      {body ?? (
       <div className="grid gap-3 sm:grid-cols-2">
         {fields.filter((f) => f.key !== "body_format" && !isSelectionFollowup(f.key)).map((f) => (
           <div key={f.key} className={(f.span === 2 || f.kind === "textarea" || f.kind === "html" || f.kind === "image_gallery" || f.kind === "text_list" || f.key === "body_html" || f.key === "selection_mode") ? "sm:col-span-2" : undefined}>
@@ -856,12 +895,7 @@ function InlineForm({
               field={f}
               value={draft[f.key] ?? ""}
               onChange={(v) =>
-                setDraft((d) => {
-                  const next = { ...d, [f.key]: v };
-                  return f.key === "frequency_type" || f.key === "start_datetime"
-                    ? applyDerivedFrequencyStart(next)
-                    : next;
-                })
+                setDraft((d) => applyStatHeaderChange({ ...d, [f.key]: v }, f.key, d))
               }
               allValues={draft}
               onFieldChange={(key, v) => setDraft((d) => ({ ...d, [key]: v }))}
@@ -870,6 +904,7 @@ function InlineForm({
           </div>
         ))}
       </div>
+      )}
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="submit"
@@ -923,6 +958,9 @@ export function EntityListing<T extends Record<string, unknown>>({
   onRowSelect,
   rowSelectLabel = "Graph",
   badgeLabel = "Listing",
+  inlineEdit = false,
+  renderInlineCell,
+  renderNewFormBody,
   deleteTitle = "Delete this record?",
   deleteDescription = "This permanently removes the record. This cannot be undone.",
   columnStorageKey,
@@ -987,8 +1025,10 @@ export function EntityListing<T extends Record<string, unknown>>({
     () => defaultSort ?? { key: defaultColKeys[0] ?? "", dir: "asc" },
   );
   const [dragOver, setDragOver] = useState<string | null>(null);
-  const extraColCount =
-    (onAdd || onUpdate || onDelete || viewHref ? 1 : 0) + (showRowSelect ? 1 : 0);
+  // Edit opens the row editor; in-place tables (inlineEdit) have no Edit button.
+  const hasActions = !!(viewHref || onDelete || (!inlineEdit && (onAdd || onUpdate)));
+  const rowEditable = !inlineEdit && !!(onAdd || onUpdate);
+  const extraColCount = (hasActions ? 1 : 0) + (showRowSelect ? 1 : 0);
   const orderedColumns = useMemo(
     () =>
       colKeys
@@ -997,8 +1037,8 @@ export function EntityListing<T extends Record<string, unknown>>({
     [colKeys, allColumnFields],
   );
   const headerCols = useMemo(
-    () => (onAdd || onUpdate || onDelete || viewHref ? [...colKeys, "actions"] : colKeys),
-    [colKeys, onAdd, onUpdate, onDelete, viewHref],
+    () => (hasActions ? [...colKeys, "actions"] : colKeys),
+    [colKeys, hasActions],
   );
   const toggleColumnVisibility = (key: string) => {
     if (!colKeys.includes(key)) {
@@ -1090,6 +1130,18 @@ export function EntityListing<T extends Record<string, unknown>>({
   }, [filteredRows, activeSort, getCell, formatCell, sortCell, tieBreakKey]);
 
   const [editor, setEditor] = useState<null | "new" | string>(null);
+  // Expanded rows and the row editor match the visible width of the table
+  // viewport, so they never run off the side when the table scrolls (phones).
+  const tableViewportRef = useRef<HTMLDivElement>(null);
+  const [tableViewportWidth, setTableViewportWidth] = useState<number | null>(null);
+  useEffect(() => {
+    const el = tableViewportRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setTableViewportWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const rowPanelStyle = tableViewportWidth ? { width: tableViewportWidth } : undefined;
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -1167,7 +1219,7 @@ export function EntityListing<T extends Record<string, unknown>>({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             {title ? <CardTitle className="text-lg">{title}</CardTitle> : null}
-            <p className="mt-1 text-sm text-muted-foreground">{summary}</p>
+            {summary ? <p className="mt-1 text-sm text-muted-foreground">{summary}</p> : null}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1 whitespace-nowrap">
             <div className="flex flex-nowrap items-center justify-end gap-2">
@@ -1215,10 +1267,11 @@ export function EntityListing<T extends Record<string, unknown>>({
             onCommit={commit}
             onCancel={cancel}
             commitLabel="Add to table"
+            body={renderNewFormBody?.(draft, setDraft)}
           />
         )}
 
-        <div className="min-h-0 flex-1 overflow-auto">
+        <div ref={tableViewportRef} className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[520px] border-collapse text-left text-sm">
             <thead className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
               <ColumnHeaders
@@ -1247,7 +1300,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                     <tr
                       className={cn(
                         "border-b border-border/70 transition-colors hover:bg-muted/30",
-                        (renderExpandedRow || onRowOpen || onAdd || onUpdate) && "cursor-pointer",
+                        (renderExpandedRow || onRowOpen || rowEditable) && "cursor-pointer",
                         (editor === id || expandedRowId === id) && "bg-muted/40",
                       )}
                       onClick={(e) => {
@@ -1258,7 +1311,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                           return;
                         }
                         if (onRowOpen) onRowOpen(row);
-                        else if (onAdd || onUpdate) startEdit(row);
+                        else if (rowEditable) startEdit(row);
                       }}
                     >
                       {showRowSelect ? (
@@ -1278,14 +1331,19 @@ export function EntityListing<T extends Record<string, unknown>>({
                           />
                         </td>
                       ) : null}
-                      {orderedColumns.map((c) => (
-                        <td key={c.key} className="px-4 py-3 align-top text-foreground">
-                          <span className="line-clamp-3 whitespace-pre-wrap">
-                            {displayCell(row, c.key) || "—"}
-                          </span>
-                        </td>
-                      ))}
-                      {(onAdd || onUpdate || onDelete || viewHref) && (
+                      {orderedColumns.map((c) => {
+                        const inline = renderInlineCell?.(row, c.key) ?? null;
+                        return (
+                          <td key={c.key} className="px-4 py-3 align-top text-foreground">
+                            {inline ?? (
+                              <span className="line-clamp-3 whitespace-pre-wrap">
+                                {displayCell(row, c.key) || "—"}
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {hasActions && (
                         <td className="px-4 py-3 text-right align-top" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1.5">
                             {viewHref && (
@@ -1296,7 +1354,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                                 View
                               </Link>
                             )}
-                            {(onAdd || onUpdate || onRowEdit) && (
+                            {!inlineEdit && (onAdd || onUpdate || onRowEdit) && (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1342,7 +1400,9 @@ export function EntityListing<T extends Record<string, unknown>>({
                           colSpan={orderedColumns.length + extraColCount}
                           className="p-0"
                         >
-                          {renderExpandedRow(row)}
+                          <div className="sticky left-0" style={rowPanelStyle}>
+                            {renderExpandedRow(row)}
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -1352,6 +1412,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                           colSpan={orderedColumns.length + extraColCount}
                           className="p-0"
                         >
+                          <div className="sticky left-0" style={rowPanelStyle}>
                           <InlineForm
                             heading="Edit Record"
                             fields={fields}
@@ -1362,6 +1423,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                             onCancel={cancel}
                             commitLabel="Update row"
                           />
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -1375,7 +1437,9 @@ export function EntityListing<T extends Record<string, unknown>>({
                     className="px-4 py-8 text-center text-muted-foreground"
                   >
                     {emptyLabel ??
-                      `No ${title.toLowerCase()} yet — use New to add the first row.`}
+                      `No ${title ? title.toLowerCase() : "records"} yet.${
+                        canAdd && (onAdd || onUpdate || viewHref) ? " Use New Record to add the first one." : ""
+                      }`}
                   </td>
                 </tr>
               )}

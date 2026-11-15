@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { deriveStatHeaderData } from '@/lib/statistics/model';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 import {
   getInstance,
@@ -199,6 +200,10 @@ export async function PATCH(
       relation_kind?: string;
     }> | undefined,
   } satisfies UpdateInstanceInput;
+  // Statistics: store the derived Frequency start / Target per step, as the UI does.
+  if (current?.type_api_name === 'statistics' && input.data) {
+    input.data = deriveStatHeaderData(input.data);
+  }
   if (adapter.updateRecord) {
     const result = await adapter.updateRecord(id, input);
     if (!result.ok) {

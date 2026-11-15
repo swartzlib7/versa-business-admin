@@ -141,7 +141,10 @@ export default async function HomePage() {
       {heroOn ? (
       <PublicSection id="top" nextId={firstSection} className="bg-transparent">
         <div
-          className="pb-section-pad mx-auto flex h-full w-full max-w-7xl items-center"
+          // The visitor header is fixed over the page: the hero clears it, and on a
+          // short screen the logo shrinks so headline and steps still fit.
+          // items-center-safe: if it still overflows, align to the top, never clip it.
+          className="pb-section-pad pb-hero-pad mx-auto flex h-full w-full max-w-7xl items-center-safe"
         >
           <div className="mx-auto flex w-full max-w-5xl flex-col items-center text-center">
             {site.brand_logo_url ? (
@@ -153,6 +156,7 @@ export default async function HomePage() {
                 style={{
                   ["--logo-m" as string]: `${logoPx(LOGO_BASE_PX.homeMobile, homeLogo.scale, "home")}px`,
                   ["--logo-d" as string]: `${logoPx(LOGO_BASE_PX.homeDesktop, homeLogo.scale, "home")}px`,
+                  maxHeight: "max(5rem, calc(100dvh - 29rem))",
                   opacity: homeLogo.opacity,
                   filter: logoSurfaceFilter(homeLogo),
                 }}
@@ -165,7 +169,7 @@ export default async function HomePage() {
                 {site.brand_name.slice(0, 2).toUpperCase() || "VA"}
               </div>
             )}
-            <h1 className="whitespace-nowrap text-[clamp(1.35rem,4.2vw,3.25rem)] font-bold tracking-tight">
+            <h1 className="text-balance text-[clamp(1.35rem,4.2vw,3.25rem)] font-bold tracking-tight sm:whitespace-nowrap">
               {pub.hero_headline}
             </h1>
             <p className="mt-3 text-sm text-muted-foreground sm:text-base">{pub.hero_subhead}</p>

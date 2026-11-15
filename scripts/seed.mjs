@@ -174,7 +174,8 @@ async function main() {
       (SELECT count(*) FROM value_set) as value_sets,
       (SELECT count(*) FROM value_set_item) as value_set_items,
       (SELECT count(*) FROM projects) as projects,
-      (SELECT count(*) FROM tasks) as tasks,
+      -- Tasks are Project task lines since 1.0.9 (migration 0020 dropped the tasks table).
+      (SELECT count(*) FROM record_line WHERE line_group = 'tasks') as tasks,
       (SELECT count(*) FROM products) as products,
       (SELECT count(*) FROM integrations) as integrations
   `;

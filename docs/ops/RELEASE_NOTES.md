@@ -1,9 +1,35 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.11 (2026-11-14)
+**Current:** 1.0.12 (2026-11-15)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.12
+
+No new migration, but still run `npm run db:migrate` before the new process serves traffic: it applies anything the install is missing, such as `0020` on an install below 1.0.9. Catalog seed pack is `1.0.12-r1`; the next start adds the Period target fields to Statistics. Upgrade steps are in the Ops Manual, section 5.2.9.
+
+- A statistic can have a **Period target**: the quota for one period, such as 98 parts a week. It sits in the Frequency section. **Target per Day** (or Week, Month, …) is worked out from it and shown read-only.
+- The graph draws the target as a blue line. On the period you are still filling in, an orange dashed line and dots show what each remaining step needs to reach the quota. A pace above Scale High stays at the top edge with its number printed, so the scale never changes.
+- Under a single graph, the Spatial Twin and lightbox show **Quota**, **Met**, **Short** (or **Over**) and **Needed**. A blank step between filled steps counts as 0 toward Met.
+- Page Builder Statistics Cells draw the same target line and pace.
+- Typing Scale High fills in a suggested Scale Division while that field is empty. Your own value is never replaced.
+- A statistic's values are edited in place. In the **Table** view, type in the Value cell and press Enter (or click away). There is no Edit form, no Update row, and no Delete on a value row, because the statistic's settings decide which rows exist. Empty a value to clear it.
+- New **Enhanced UI** view for a statistic's values, next to **Table** on the values card: one cell per step for one period. Enter saves and moves to the next step, and a full period opens the next one. The Spatial Twin redraws as you type. Your choice of view is remembered.
+- In Enhanced UI, each box with a value has a trash icon at the top right. It clears the value, leaving a gap on the graph. 0 is a value and is drawn as 0. "Saved" and error messages show in the card header, so the boxes keep their size.
+- Value boxes have up and down arrows. Click for one step, hold to keep going, or press and drag up or down to change the number quickly. Arrow keys work too (Shift for ten at a time).
+- **New Record** for a statistic (and the other header-and-lines types) shows the same sections as Edit, instead of one long list of fields.
+- Fixed: on a Dynamic Series statistic, New Record put a value into a new period instead of the empty step you picked.
+- Fixed: a browser warning about a repeated key when a statistic was open.
+- Fixed: on the public homepage, the top of the logo was hidden under the header on shorter screens (for example a laptop or a browser that is not full height). The hero now starts below the header, the logo shrinks to fit a short screen, and on phones the headline wraps instead of running off both sides.
+- Fixed: a statistic created or updated through the record API (`POST /api/records`, `PATCH /api/records/<id>`) was stored without Frequency start and Target per step. The API now fills them in the same way the screen does.
+- Fixed: on a new install, `node scripts/seed.mjs` finished with an error about a missing `tasks` table. Tasks are Project task lines since 1.0.9; the summary now counts those.
+- The User Manual has a Statistics chapter (§4).
+- Fixed: a new statistic shows its live graph in the Spatial Twin again while you fill it in.
+- Fixed: Start datetime and the date under the graph read like `31 Dec 2025 @ 19:00:00` instead of `2025-12-31T19:00`.
+- Fixed: the graph fills the Spatial Twin better, and the last date label under it is no longer cut off.
+- Fixed: on a phone, an open record fits the screen instead of running off the right edge.
+- Fixed: the tab description shows once at the top, not again inside an open record, and an empty table no longer reads "No yet".
 
 ## 1.0.11
 

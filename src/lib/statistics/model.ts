@@ -17,11 +17,13 @@
  *   frequency_qty   - number of steps from the start (>= 1)
  *   start_datetime  - absolute clock that seeds each series window
  *   series_mode     - dynamic | single  (labels: Dynamic Series / Single Series)
+ *   period_target   - optional quota for one period (series), e.g. 98 parts a week
+ *   slot_target     - read-only: period_target / frequency_qty, shown on the form
  *
  * Lines (stat_line rows): header_id, series, slot, value, captured_at, source.
  */
 
-import { deriveFrequencyStart } from './frequency';
+import { applyDerivedFrequencyStart, deriveFrequencyStart } from './frequency';
 
 export const FREQUENCY_TYPES = [
   'sec', 'min', 'hour', 'day', 'week', 'month', 'year', 'decade', 'date', 'datetime',
@@ -68,6 +70,8 @@ export interface StatHeaderConfig {
   frequencyQty: number;
   startDatetime: string;
   seriesMode: SeriesMode;
+  /** Quota for one period (series). null = no target set. */
+  periodTarget: number | null;
 }
 
 export type StatHeaderParse =
@@ -135,6 +139,12 @@ export function parseStatHeaderConfig(data: Record<string, unknown>): StatHeader
 
   const scaleName = String(data.scale_name ?? '').trim();
 
+  const targetRaw = String(data.period_target ?? '').trim();
+  const periodTarget = targetRaw ? toNumber(targetRaw) : null;
+  if (targetRaw && (periodTarget === null || periodTarget < 0)) {
+    errors.push('Period target must be a number of 0 or more.');
+  }
+
   if (errors.length) return { ok: false, errors };
   return {
     ok: true,
@@ -148,8 +158,108 @@ export function parseStatHeaderConfig(data: Record<string, unknown>): StatHeader
       frequencyQty: frequencyQty as number,
       startDatetime,
       seriesMode,
+      periodTarget,
     },
   };
+}
+
+/** Target for one frequency step: the period target spread evenly. */
+export function slotTarget(periodTarget: number | null, frequencyQty: number): number | null {
+  if (periodTarget === null || !Number.isFinite(periodTarget) || frequencyQty < 1) return null;
+  return periodTarget / frequencyQty;
+}
+
+/** Read-only form value for slot_target from raw header values ('' when not set). */
+export function deriveSlotTarget(values: Record<string, unknown>): string {
+  const target = toNumber(values.period_target);
+  const qty = toInt(values.frequency_qty);
+  if (target === null || target < 0 || qty === null || qty < 1) return '';
+  return String(Math.round((target / qty) * 100) / 100);
+}
+
+/**
+ * Server side (record API create / update): fill the derived header fields
+ * the UI fills as the operator types. A statistic written by a script gets
+ * the same stored Frequency start and Target per step as one made on screen.
+ */
+export function deriveStatHeaderData<T extends Record<string, string>>(data: T): T {
+  const out = applyDerivedFrequencyStart(data);
+  if (!('period_target' in out) && !('slot_target' in out)) return out;
+  return { ...out, slot_target: deriveSlotTarget(out) };
+}
+
+export interface StatPeriodProgress {
+  quota: number;
+  /** Sum of captured values. A blank step between captured steps counts as 0. */
+  met: number;
+  short: number;
+  over: number;
+  /** Steps after the last captured step. 0 when the period is closed. */
+  stepsLeft: number;
+  /** Per-step value still needed to reach the quota. null when nothing is left to do. */
+  needed: number | null;
+  /** Last captured slot, -1 when nothing is captured yet. */
+  lastSlot: number;
+}
+
+/**
+ * Target progress for one period. Catch-up only applies to the period still
+ * being captured (open). A closed period reports what it was short at close.
+ */
+export function statPeriodProgress(
+  config: Pick<StatHeaderConfig, 'periodTarget' | 'frequencyQty'>,
+  lines: Array<{ slot: number; value: number }>,
+  open: boolean,
+): StatPeriodProgress | null {
+  if (config.periodTarget === null) return null;
+  const quota = config.periodTarget;
+  let met = 0;
+  let lastSlot = -1;
+  for (const ln of lines) {
+    if (!Number.isFinite(ln.value) || !Number.isInteger(ln.slot)) continue;
+    met += ln.value;
+    if (ln.slot > lastSlot) lastSlot = ln.slot;
+  }
+  const short = Math.max(0, quota - met);
+  const over = Math.max(0, met - quota);
+  const stepsLeft = open && lastSlot >= 0 ? Math.max(0, config.frequencyQty - 1 - lastSlot) : 0;
+  const needed = short > 0 && stepsLeft > 0 ? short / stepsLeft : null;
+  return { quota, met, short, over, stepsLeft, needed, lastSlot };
+}
+
+/**
+ * Suggested Scale Division for a scale range: about eight divisions, rounded
+ * to 1, 2 or 5 times a power of ten. Used only while Scale Division is empty.
+ */
+export function suggestScaleDivision(low: unknown, high: unknown): string {
+  const lo = toNumber(low) ?? 0;
+  const hi = toNumber(high);
+  if (hi === null || hi <= lo) return '';
+  const raw = (hi - lo) / 8;
+  const power = Math.pow(10, Math.floor(Math.log10(raw)));
+  const unit = raw / power;
+  const nice = unit < 1.5 ? 1 : unit < 3.5 ? 2 : unit < 7.5 ? 5 : 10;
+  const step = nice * power;
+  return String(Number(step.toPrecision(6)));
+}
+
+/**
+ * Arrow and drag steps for a value input on this scale. `step` is one arrow
+ * click (whole numbers on most scales, decimals on small ones). `dragStep` is
+ * one notch of a drag, sized so a short drag can cross the whole scale.
+ */
+export function statValueSteps(config: Pick<StatHeaderConfig, 'scaleStart' | 'scaleEnd'>): {
+  step: number;
+  dragStep: number;
+} {
+  const span = Math.abs(config.scaleEnd - config.scaleStart);
+  const step = span >= 20 ? 1 : span >= 2 ? 0.1 : 0.01;
+  const raw = span / 150;
+  if (!(raw > step)) return { step, dragStep: step };
+  const power = Math.pow(10, Math.floor(Math.log10(raw)));
+  const unit = raw / power;
+  const nice = unit < 1.5 ? 1 : unit < 3.5 ? 2 : unit < 7.5 ? 5 : 10;
+  return { step, dragStep: Number((nice * power).toPrecision(6)) };
 }
 
 /** Read a header config from a record instance (header JSONB). */
@@ -210,6 +320,45 @@ export function statRowsToGraphPoints(
       slot,
       value,
     });
+  }
+  return out;
+}
+
+/**
+ * Derived Statistics header values, applied on every form change and before
+ * save. Only touches keys the form already has, so other record types pass
+ * through unchanged:
+ *   - frequency_start from Frequency type + Start datetime
+ *   - slot_target from Period target / Frequency quantity
+ *   - scale_step suggested from Scale Low / High while it is empty or still
+ *     holds the previous suggestion (an operator's own value is never replaced)
+ * `prev` is the form before this change; omit it (and `changedKey`) on save.
+ */
+export function applyStatHeaderChange<T extends Record<string, string>>(
+  next: T,
+  changedKey?: string,
+  prev?: Record<string, string>,
+): T {
+  let out = next;
+  if (!changedKey || changedKey === 'frequency_type' || changedKey === 'start_datetime') {
+    out = applyDerivedFrequencyStart(out);
+  }
+  if (
+    'slot_target' in out &&
+    (!changedKey || changedKey === 'period_target' || changedKey === 'frequency_qty')
+  ) {
+    out = { ...out, slot_target: deriveSlotTarget(out) };
+  }
+  if (
+    prev &&
+    'scale_step' in out &&
+    (changedKey === 'scale_start' || changedKey === 'scale_end')
+  ) {
+    const current = String(out.scale_step ?? '').trim();
+    const previousSuggestion = suggestScaleDivision(prev.scale_start, prev.scale_end);
+    if (!current || current === previousSuggestion) {
+      out = { ...out, scale_step: suggestScaleDivision(out.scale_start, out.scale_end) };
+    }
   }
   return out;
 }

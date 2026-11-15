@@ -145,6 +145,8 @@ const FIELD_HELP: Record<string, string> = {
   scale_start: "Lowest expected for period",
   scale_end: "Highest expected for period",
   frequency_start: "From Start datetime and Frequency type",
+  period_target: "Quota for one period. Drawn as the target line on the graph",
+  slot_target: "Period target divided by Frequency quantity",
   code_key:
     "Identity of the code renderer (html-block, stat-graph, contacts-cards). Owned by product code — not editable. Staff rename the driver; they do not invent a new key.",
   bind_shape:

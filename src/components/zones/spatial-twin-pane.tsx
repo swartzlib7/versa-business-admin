@@ -317,6 +317,7 @@ function TwinBody({
           page={page}
           onPageChange={onPageChange}
           lightbox={lightbox}
+          twin
         />
       </div>
     );

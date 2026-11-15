@@ -26,6 +26,8 @@ import { TextListField } from "@/components/catalog/text-list-field";
 import { RecordMultiLookupField } from "@/components/catalog/record-multi-lookup-field";
 import { FrequencyStartField } from "@/components/statistics/frequency-start-field";
 import { deriveFrequencyStart } from "@/lib/statistics/frequency";
+import { displayDateValue } from "@/lib/datetime-display";
+import { deriveSlotTarget, frequencyTypeLabel } from "@/lib/statistics/model";
 import { isAuditField } from "@/lib/catalog/audit-fields";
 import {
   fieldSpanClass,
@@ -106,6 +108,20 @@ function FieldInput({
         required={false}
         readOnly
         help={field.help ?? "From Start datetime and Frequency type"}
+      />
+    );
+  }
+
+  if (field.key === "slot_target") {
+    // Read-only share of the Period target, same chrome as Frequency start.
+    return (
+      <FrequencyStartField
+        label={"Target per " + frequencyTypeLabel(allValues?.frequency_type)}
+        frequencyType=""
+        value={deriveSlotTarget(allValues ?? {})}
+        required={false}
+        readOnly
+        help={field.help ?? "Period target divided by Frequency quantity"}
       />
     );
   }
@@ -288,7 +304,11 @@ function FieldInput({
 
   if (readOnly) {
     const display =
-      kind === "select" ? resolvePicklistLabel(field, value) : value || "—";
+      kind === "select"
+        ? resolvePicklistLabel(field, value)
+        : kind === "date" || kind === "datetime"
+          ? displayDateValue(value, kind) || "—"
+          : value || "—";
     return (
       <div className="flex flex-col gap-1.5">
         <span className="text-xs font-medium text-muted-foreground">

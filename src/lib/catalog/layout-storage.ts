@@ -122,6 +122,39 @@ export function saveLayoutConfig(config: LayoutConfig): LayoutConfig {
  * Saved overlay if one exists; otherwise the catalog seed used at runtime.
  */
 function ensureStatScaleName(config: LayoutConfig): LayoutConfig {
+  return ensureStatTargetFields(ensureStatScaleNameOnly(config));
+}
+
+/**
+ * 1.0.12: layouts saved before the Period target existed get Period target and
+ * Target per step at the end of their Frequency section (same rule as Scale
+ * Name above). A layout without a Frequency section is left alone.
+ */
+function ensureStatTargetFields(config: LayoutConfig): LayoutConfig {
+  if (config.objectApiName !== "statistics" || config.layoutType === "list") return config;
+  const used = new Set(config.sections.flatMap((s) => s.fields.map((f) => f.api_name)));
+  const missing: LayoutField[] = (
+    [
+      ["period_target", "Period target"],
+      ["slot_target", "Target per step"],
+    ] as const
+  )
+    .filter(([api]) => !used.has(api))
+    .map(([api_name, label]) => ({ api_name, label, visible: true, span: 1 }));
+  if (!missing.length) return config;
+  const frequency = config.sections.find(
+    (s) => s.label === "Frequency" || s.id.includes("frequency"),
+  );
+  if (!frequency) return config;
+  return {
+    ...config,
+    sections: config.sections.map((s) =>
+      s.id === frequency.id ? { ...s, fields: [...s.fields, ...missing] } : s,
+    ),
+  };
+}
+
+function ensureStatScaleNameOnly(config: LayoutConfig): LayoutConfig {
   if (config.objectApiName !== "statistics") return config;
   const used = new Set(config.sections.flatMap((s) => s.fields.map((f) => f.api_name)));
   if (used.has("scale_name")) return config;

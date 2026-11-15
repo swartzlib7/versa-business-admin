@@ -380,6 +380,10 @@ Public GitHub is **`main`**. This checkout is pull-only. Do not commit product c
 7. Confirm tenant `c_*` types/fields and instance rows intact  
 8. Only then: enable new system record types/fields in UI  
 
+**Every upgrade runs `npm run db:migrate`**, even when the version notes below say "No new migration". It only applies migrations the database does not have yet, so on a current database it changes nothing. Run it before the new process serves traffic.
+
+**Skipping versions:** an install that jumps several versions (for example 1.0.8 → 1.0.12) follows every section in between, oldest first. The one `npm run db:migrate` applies all their migrations together (1.0.9 brings `0020`). Check the installed version first: `curl -sS localhost:<port>/api/health`.
+
 ### 5.2.1 Existing install to 1.0.4
 
 Use this when the server already runs Business Admin and staff have customized it. The development database is the stock Versa AGi site. Do not restore it onto a customized install.
@@ -435,6 +439,10 @@ Same steps as §5.2.1. No new migration. Catalog seed pack becomes `1.0.10-r1`. 
 ### 5.2.8 Existing install to 1.0.11
 
 Same steps as §5.2.1. No new migration. Catalog seed pack stays `1.0.10-r1`. Health reports `"version":"1.0.11"`. Leave `.data/site-settings.json` in place. After the restart, Custom Records → Statistics shows the Spatial Twin again.
+
+### 5.2.9 Existing install to 1.0.12 (Statistics target)
+
+Same steps as §5.2.1, including `npm run db:migrate`. 1.0.12 adds no migration of its own; the step applies any earlier one the install is missing (an install below 1.0.9 gets `0020`, see §5.2.6). Catalog seed pack becomes `1.0.12-r1`. The first start adds two Statistics header fields, Period target (`period_target`) and Target per step (`slot_target`, read-only). A Statistics layout saved before 1.0.12 gets both at the end of its Frequency section. Existing statistics have no target until one is entered, and their graphs look as before apart from the date format. Captured values are unchanged. Statistic value rows are now edited in place (Table or Enhanced UI) and can no longer be deleted from the UI; `DELETE /api/statistics/<id>/lines` still works for scripts. Health reports `"version":"1.0.12"`. Leave `.data/site-settings.json` in place.
 
 ### 5.3 What v1 must **not** do
 
@@ -543,6 +551,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-15 | §5.2: every upgrade runs `npm run db:migrate`; skipped versions are applied oldest first. §5.2.9: upgrade to 1.0.12. Statistics Period target, values edited in place (Table / Enhanced UI). No new migration. Catalog seed pack `1.0.12-r1`. |
 | 2026-11-14 | §5.2.8: upgrade to 1.0.11. Spatial Twin bug fix on Custom Records → Statistics. No new migration. Catalog seed pack stays `1.0.10-r1`. |
 | 2026-10-21 | §5.2.7: upgrade to 1.0.10. Hats record type. No new migration. Catalog seed pack `1.0.10-r1`. |
 | 2026-10-14 | §5.2.6: upgrade to 1.0.9. Project task lines. Migration `0020`. Catalog seed pack `1.0.9-r1`. |
