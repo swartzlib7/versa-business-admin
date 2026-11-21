@@ -1,5 +1,10 @@
 "use client";
 
+import { isRecordTypeLookup } from "@/lib/catalog/lookup-targets";
+import { helpForField } from "@/lib/catalog/layout-to-fields";
+import { displayDateValue } from "@/lib/datetime-display";
+import { LineFieldSelect } from "@/components/statistics/line-field-select";
+
 import { useEffect, useMemo, useRef, useState, Fragment, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +17,7 @@ import { BooleanSwitch } from "@/components/ui/boolean-switch";
 import { NumberScrubInput } from "@/components/ui/number-scrub-input";
 import { SecretValueField, maskSecretDisplay } from "@/components/ui/secret-value-field";
 import { UserLookupField } from "@/components/catalog/user-lookup-field";
-import { OrganizationLookupField } from "@/components/catalog/organization-lookup-field";
+import { OrganizationLookupField, OrganizationName } from "@/components/catalog/organization-lookup-field";
 import { RecordTypeLookupField } from "@/components/catalog/record-type-lookup-field";
 import { RenderDriverLookupField } from "@/components/catalog/render-driver-lookup-field";
 import { RecordInstanceLookupField } from "@/components/catalog/record-instance-lookup-field";
@@ -30,6 +35,9 @@ import { ProfilePictureField } from "@/components/users/profile-picture-field";
 import { PasswordField } from "@/components/users/password-field";
 import { ImageUrlField } from "@/components/catalog/image-url-field";
 import { ImageGalleryField } from "@/components/catalog/image-gallery-field";
+import { AttachmentsField } from "@/components/catalog/attachments-field";
+import { SummaryValueField } from "@/components/catalog/summary-value-field";
+import { parseRecordFiles } from "@/lib/records/record-file-refs";
 import { TextListField } from "@/components/catalog/text-list-field";
 import { RecordMultiLookupField, RecordNames } from "@/components/catalog/record-multi-lookup-field";
 import { parseTextList } from "@/lib/records/list-values";
@@ -73,6 +81,9 @@ export type ListingField = {
     | "phone"
     | "lookup"
     | "image_gallery"
+    | "attachments"
+    | "summary"
+    | "formula"
     | "text_list"
     | "multi_lookup"
     | "slider"
@@ -90,6 +101,10 @@ export type ListingField = {
   span?: number;
   /** Mask on screen (Show / Hide). */
   secret?: boolean;
+  /** 1.0.14: a Summary field shown as a percentage. */
+  summaryPercent?: boolean;
+  /** 1.0.15: lookup filter (only target records whose field equals the value). */
+  lookupFilter?: { field: string; value: string } | null;
   /** header_lines placement — listing filters by this; omitted on other tables. */
   zoneRole?: "header" | "list" | null;
   required?: boolean;
@@ -150,6 +165,8 @@ export type EntityListingProps<T extends Record<string, unknown>> = {
   rowSelectLabel?: string;
   /** Live draft for Spatial Twin previews (New / inline edit). */
   onDraftChange?: (draft: Record<string, string> | null) => void;
+  /** 1.0.15: adjust a draft after each change (live preview of formulas). */
+  deriveDraft?: (next: Record<string, string>, changedKey: string, prev: Record<string, string>) => Record<string, string>;
   /** Optional badge text (default Listing) */
   badgeLabel?: string;
   /** Rows are edited in place (renderInlineCell): no Edit button, no row editor. */
@@ -522,6 +539,44 @@ function FieldInput({
       />
     );
   }
+  // 1.0.14: statistics fed from records - pickers that follow the Source record type.
+  if (field.key === "source_record_id") {
+    return (
+      <RecordInstanceLookupField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+        recordType={allValues?.source_record_type}
+        help="Leave empty to use every record of the type"
+      />
+    );
+  }
+  if (
+    field.key === "source_date_field" ||
+    field.key === "source_value_field" ||
+    field.key === "source_filter_field"
+  ) {
+    return (
+      <LineFieldSelect
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+        recordType={allValues?.source_record_type}
+        accept={field.key === "source_date_field" ? "date" : field.key === "source_value_field" ? "number" : "any"}
+        placement={allValues?.source_read_from === "records" ? "header" : "list"}
+        emptyLabel={
+          field.key === "source_date_field"
+            ? "Select the date field…"
+            : field.key === "source_value_field"
+              ? "— (count the lines)"
+              : "— (all lines)"
+        }
+        help={helpForField(field.key)}
+      />
+    );
+  }
   if (field.key === "slot_target") {
     return (
       <FrequencyStartField
@@ -543,6 +598,22 @@ function FieldInput({
         readOnly={locked}
       />
     );
+  }
+  if (kind === "attachments") {
+    return (
+      <AttachmentsField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+      />
+    );
+  }
+  if (kind === "summary") {
+    return <SummaryValueField label={field.label} value={value} percent={field.summaryPercent} />;
+  }
+  if (kind === "formula") {
+    return <SummaryValueField label={field.label} value={value} help="Worked out by a formula" />;
   }
   if (kind === "text_list") {
     return (
@@ -655,6 +726,7 @@ function FieldInput({
     return (
       <OrganizationLookupField
         label={field.label}
+        filter={field.lookupFilter}
         value={value}
         onChange={locked ? undefined : onChange}
         required={field.required}
@@ -663,10 +735,9 @@ function FieldInput({
     );
   }
   if (
-    field.lookupObjectApiName === "vendor_integration" ||
-    field.lookupObjectApiName === "executive_project" ||
-    field.lookupObjectApiName === "location" ||
-    field.lookupObjectApiName === "event"
+    // Any record type (system or custom) gets the record picker (1.0.14).
+    (kind === "lookup" || field.lookupObjectApiName === "location" || field.lookupObjectApiName === "event") &&
+    isRecordTypeLookup(field.lookupObjectApiName)
   ) {
     return (
       <RecordInstanceLookupField
@@ -676,6 +747,7 @@ function FieldInput({
         required={field.required}
         readOnly={locked}
         recordType={field.lookupObjectApiName}
+        filter={field.lookupFilter}
       />
     );
   }
@@ -832,6 +904,7 @@ function InlineForm({
   onCancel,
   commitLabel,
   body,
+  deriveDraft,
 }: {
   heading: string;
   fields: ListingField[];
@@ -843,6 +916,7 @@ function InlineForm({
   commitLabel: string;
   /** Replaces the flat field grid (layout sections). */
   body?: ReactNode;
+  deriveDraft?: (next: Record<string, string>, changedKey: string, prev: Record<string, string>) => Record<string, string>;
 }) {
   const stampsPairingType = fields.some(
     (f) => f.key === "driver_id" || f.key === "target_record_type",
@@ -873,7 +947,7 @@ function InlineForm({
       {body ?? (
       <div className="grid gap-3 sm:grid-cols-2">
         {fields.filter((f) => f.key !== "body_format" && !isSelectionFollowup(f.key)).map((f) => (
-          <div key={f.key} className={(f.span === 2 || f.kind === "textarea" || f.kind === "html" || f.kind === "image_gallery" || f.kind === "text_list" || f.key === "body_html" || f.key === "selection_mode") ? "sm:col-span-2" : undefined}>
+          <div key={f.key} className={(f.span === 2 || f.kind === "textarea" || f.kind === "html" || f.kind === "image_gallery" || f.kind === "attachments" || f.kind === "text_list" || f.key === "body_html" || f.key === "selection_mode") ? "sm:col-span-2" : undefined}>
             {f.key === "selection_mode" ? (
               <div className="space-y-3">
                 <FieldInput
@@ -899,7 +973,10 @@ function InlineForm({
               field={f}
               value={draft[f.key] ?? ""}
               onChange={(v) =>
-                setDraft((d) => applyStatHeaderChange({ ...d, [f.key]: v }, f.key, d))
+                setDraft((d) => {
+                  const next = applyStatHeaderChange({ ...d, [f.key]: v }, f.key, d);
+                  return deriveDraft ? deriveDraft(next, f.key, d) : next;
+                })
               }
               allValues={draft}
               onFieldChange={(key, v) => setDraft((d) => ({ ...d, [key]: v }))}
@@ -967,6 +1044,7 @@ export function EntityListing<T extends Record<string, unknown>>({
   deleteIcon = false,
   renderInlineCell,
   renderNewFormBody,
+  deriveDraft,
   deleteTitle = "Delete this record?",
   deleteDescription = "This permanently removes the record. This cannot be undone.",
   columnStorageKey,
@@ -991,12 +1069,30 @@ export function EntityListing<T extends Record<string, unknown>>({
       if (i >= 0) return field.optionLabels[i] ?? raw;
     }
     if (field?.kind === "slider") return raw === "" ? "" : `${raw}%`;
+    // 1.0.14: checkboxes and dates read like the forms do.
+    if (field?.kind === "boolean") {
+      return raw === "true" || raw === "1" ? "Yes" : raw === "false" || raw === "0" ? "No" : raw;
+    }
+    if ((field?.kind === "date" || field?.kind === "datetime") && raw.trim()) {
+      return displayDateValue(raw, field.kind);
+    }
     if (field?.kind === "html") return htmlToText(raw);
     if (field?.kind === "text_list") {
       const count = parseTextList(raw).length;
       return count ? `${count} ${count === 1 ? "item" : "items"}` : "";
     }
+    if (field?.kind === "attachments") {
+      const count = parseRecordFiles(raw).length;
+      return count ? `${count} ${count === 1 ? "file" : "files"}` : "";
+    }
+    if (field?.kind === "summary" && field.summaryPercent && raw.trim()) return `${raw}%`;
     if (field?.kind === "multi_lookup") {
+      return raw.trim() ? <RecordNames value={raw} recordType={field.lookupObjectApiName} /> : "";
+    }
+    if (field?.kind === "lookup" && field.lookupObjectApiName === "organization") {
+      return raw.trim() ? <OrganizationName id={raw.trim()} /> : "";
+    }
+    if (field?.kind === "lookup" && isRecordTypeLookup(field.lookupObjectApiName)) {
       return raw.trim() ? <RecordNames value={raw} recordType={field.lookupObjectApiName} /> : "";
     }
     return raw;
@@ -1241,7 +1337,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                 </button>
               )}
               {!canAdd && addBlockedHint ? (
-                <p className="max-w-[220px] text-right text-xs text-muted-foreground">
+                <p className="max-w-[220px] whitespace-normal text-right text-xs text-muted-foreground">
                   {addBlockedHint}
                 </p>
               ) : null}
@@ -1273,6 +1369,7 @@ export function EntityListing<T extends Record<string, unknown>>({
             onCommit={commit}
             onCancel={cancel}
             commitLabel="Add to table"
+            deriveDraft={deriveDraft}
             body={renderNewFormBody?.(draft, setDraft)}
           />
         )}
@@ -1440,6 +1537,7 @@ export function EntityListing<T extends Record<string, unknown>>({
                             onCommit={commit}
                             onCancel={cancel}
                             commitLabel="Update row"
+                            deriveDraft={deriveDraft}
                           />
                           </div>
                         </td>

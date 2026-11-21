@@ -319,7 +319,17 @@ When Versa - Business Admin shares a Versa AGi host with agents:
 
 (Operational lesson 2026-08-18: email-access + PH state paths.)
 
-### 3.7 Backups (*TBD deepen with durable catalog*)
+### 3.7 Backups
+
+**`npm run backup`** (1.0.14) writes one folder per run under `backups/` (git-ignored): `db.dump` (`pg_dump -Fc`), `env.local`, `data/` (site-settings, catalog, sample-data JSON) and `uploads.tar.gz`, plus `manifest.json`. Needs `pg_dump` on the PATH. Restore the database with `pg_restore -d "$DATABASE_URL" --clean db.dump` and the uploads with `tar -xzf uploads.tar.gz -C <uploads folder>`.
+
+| Option | Effect |
+|--------|--------|
+| `--out DIR` | Write somewhere else, e.g. an external drive |
+| `--no-uploads` / `--uploads` | Skip or include the uploads folder for this run |
+| `VBA_BACKUP_UPLOADS=false` in `.env.local` | Skip uploads by default (use when the uploads folder is a drive that is already backed up) |
+
+**Uploads folder.** Image gallery pictures (`record-images/`) and Attachments (`record-files/`) are files on disk, **not** in Postgres, so a database dump alone misses them. The folder is `.data/` by default. Set `VBA_UPLOADS_DIR=/path` in `.env.local` to keep uploads elsewhere, for example a mounted drive or a synced Google Drive / OneDrive folder; restart after changing it and move the two subfolders across. `VBA_ATTACHMENT_MAX_MB` (default 20) sets the per-file limit for Attachments; the request-size limit follows it after the next build.
 
 | Asset | v1 guidance |
 |-------|-------------|
@@ -328,6 +338,7 @@ When Versa - Business Admin shares a Versa AGi host with agents:
 | Postgres (DATA_SOURCE=postgres) | Scheduled `pg_dump` — includes `catalog_overlay`, zone tables (`executive_project` with its task lines, `production_product`), and the whole public site: `site_settings` (Page Builder, menus, modes in `body`) plus Pages records and Elements |
 | `.data/site-settings.json` | Until the first 1.0.4 boot has copied it into `site_settings.body`, this file **is** the live Page Builder, menus, and modes. Back it up and leave it in place (§5.2.1). After that copy it is a cache: boot rewrites it from Postgres. Do not edit it by hand |
 | Durable catalog overlay (fixture mode) | `.data/catalog.json` IS the tenant customization store when no DB — back up the file |
+| Uploads (`record-images/`, `record-files/`) | On disk in the uploads folder (`VBA_UPLOADS_DIR`, default `.data`). Included by `npm run backup` unless turned off |
 | Overlay restore rule | Restore must not re-seed wipe `c_*`; seed∪overlay merge on boot makes system seed re-runnable, overlay must survive |
 | Sample data | Rows tagged `ba_sample:`; insert/delete via Settings → Modes — never hand-delete the Primary Org |
 | Fixture-only dev | Disposable; do not treat as production data |
@@ -382,7 +393,7 @@ Public GitHub is **`main`**. This checkout is pull-only. Do not commit product c
 
 **Every upgrade runs `npm run db:migrate`**, even when the version notes below say "No new migration". It only applies migrations the database does not have yet, so on a current database it changes nothing. Run it before the new process serves traffic.
 
-**Skipping versions:** an install that jumps several versions (for example 1.0.8 → 1.0.12) follows every section in between, oldest first. The one `npm run db:migrate` applies all their migrations together (1.0.9 brings `0020`). Check the installed version first: `curl -sS localhost:<port>/api/health`.
+**Skipping versions:** go straight to the newest version in **one** upgrade (back up, pull, `npm ci`, `npm run db:migrate`, build, restart). Do not deploy the versions in between one by one. The one `npm run db:migrate` applies every missing migration (1.0.9 brings `0020`), and the first start rebases the catalog onto the newest seed pack, so all new fields and types arrive together. Then read the §5.2.x section of every skipped version, oldest first, for its notes on existing data. Check the installed version first: `curl -sS localhost:<port>/api/health`.
 
 ### 5.2.1 Existing install to 1.0.4
 
@@ -447,6 +458,50 @@ Same steps as §5.2.1, including `npm run db:migrate`. 1.0.12 adds no migration 
 ### 5.2.10 Existing install to 1.0.13 (Statistics rows)
 
 Same steps as §5.2.1, including `npm run db:migrate`. 1.0.13 adds no migration and no catalog change; seed pack stays `1.0.12-r1`. Health reports `"version":"1.0.13"`. Leave `.data/site-settings.json` in place. Statistic rows typed into a second period by mistake under 1.0.12 are still there after the upgrade: staff remove them with the row trash icon in Custom Records → Statistics → open the statistic → Table.
+
+### 5.2.11 Existing install to 1.0.14 (Attachments, Summary fields, Vehicle Mileage Log)
+
+Same steps as §5.2.1, including `npm run db:migrate` (no new migration). Before stopping the old process, back up with `npm run backup` (§3.7). Catalog seed pack becomes `1.0.14-r1`. The first start adds:
+
+- **Treasury → Records, Assets and Materiel:** Asset category, VIN / Serial number, Purchase date, Purchase price, Business use %, Current odometer, Next service due, and Documents & Photos (Attachments). Existing assets keep their values; the new fields start empty.
+- **Treasury → Vehicle Mileage Logs** (new tab): header Vehicle, Tax year, Starting odometer and the totals Total miles, Business miles, Business use %; one line per trip (Date, Odometers, Miles, Business use, Business, Purpose).
+- **Statistics:** a Source section (fed from records). Statistics layouts saved before 1.0.14 get it at the end.
+- **Value sets:** `asset_category`; `file_mime` gains Word, Excel and HEIC / HEIF.
+
+Optional `.env.local` settings: `VBA_UPLOADS_DIR`, `VBA_ATTACHMENT_MAX_MB`, `VBA_BACKUP_UPLOADS` (§3.7). Run `npm run build` after changing `VBA_ATTACHMENT_MAX_MB`. Health reports `"version":"1.0.14"`. Leave `.data/site-settings.json` in place.
+
+### 5.2.12 Existing install to 1.0.15 (Job costing, Formula fields, Clone / Convert)
+
+Same steps as §5.2.1, including `npm run db:migrate` (no new migration). Back up first with `npm run backup` (§3.7). Catalog seed pack becomes `1.0.15-r1`. The first start adds:
+
+- **Treasury → Transactions:** Project; Cost total, Margin, Margin %; Allocated / Remaining (bills); lines Vendor, Unit cost, Markup %, Line cost, Vendor bill, Actual cost, Variance. **Subtotal** becomes a Summary of the lines; Amount, Unit price and Line total get calculated defaults. Document kind gains **Bill**.
+- **Executive → Projects:** Customer.
+- **Statistics:** Read from (Lines / Records) in the Source section.
+
+What changes for existing data:
+
+- Transactions **with an External ID** (imported from Wave) are not recalculated; their stored amounts stay as imported.
+- Transactions created in VBA are recalculated the next time they are saved: Subtotal becomes the sum of the line totals. A typed Amount, Unit price or Line total that differs from the calculation is kept.
+
+Health reports `"version":"1.0.15"`. Leave `.data/site-settings.json` in place.
+
+### 5.2.13 Existing install to 1.0.16 (Demo tour, new Page Builder drivers)
+
+Same steps as §5.2.1, including `npm run db:migrate` (no new migration). Back up first with `npm run backup` (§3.7). Catalog seed pack becomes `1.0.16-r1`. The first start adds the Rendering Driver records **Transaction**, **Asset** and **Organization board**, and moves **Vehicle Mileage Logs** from Treasury to **Custom Records** (existing logs move with the type; the API type name `treasury_vehicle_mileage_log` does not change). As with every seed-pack change, system record types and fields take the release's settings again.
+
+Build with Demo on is safe: start-up writes (sample pack, driver records, site pack, catalog stamp) now wait for the first real start instead of running in every `next build` worker.
+
+With **Demo on**, the first start:
+
+- adds the new sample records (vendor, product, promotion, review, estimate → invoice → vendor bill, van with three documents saved in the uploads folder, mileage log, Business miles statistic);
+- replaces the Demo canvas with the guided tour and removes the six sample Elements the old Demo canvas used (Facets, Integrations, Inspections & Reports page, About, the Integration and Support Requests tables). Staff canvases and Primary are not touched;
+- keeps sample records that already exist as they are. The existing "Sample monthly visits" statistic keeps its old dates and values, so it shows no target or pace. For the full tour, turn Demo off and on again in Settings → Modes (this deletes and re-adds the sample pack only).
+
+With **Demo off**, no sample data is added.
+
+**Versa AGi site pages:** the first start replaces the site-pack pages that changed (Technical Overview, Capabilities, Deployment, Versa AGi styles) where they are still as an earlier release shipped them. A page edited on this install is kept; the log says `Site pack: <page> edited on this install; left as is.` To take the new version anyway, copy its body from `src/lib/site-pack/site-pack.json` into the page (Custom Records → Pages).
+
+Health reports `"version":"1.0.16"`. Leave `.data/site-settings.json` in place.
 
 ### 5.3 What v1 must **not** do
 
@@ -555,6 +610,9 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-20 | §5.2.13: upgrade to 1.0.16 (Demo canvas guided tour, Transaction / Asset / Organization board drivers, Element filter, row headings, phone fixes; no build-time writes). Seed pack `1.0.16-r1` (Vehicle Mileage Logs under Custom Records). |
+| 2026-11-19 | §5.2.12: upgrade to 1.0.15 (job costing on Transactions, Formula fields, Clone / Convert, Linked from). Seed pack `1.0.15-r1`. |
+| 2026-11-19 | §3.7: `npm run backup`, uploads folder (`VBA_UPLOADS_DIR`), attachment limit. §5.2.11: upgrade to 1.0.14 (Attachments, Summary fields, Vehicle Mileage Log, statistics fed from records). Seed pack `1.0.14-r1`. |
 | 2026-11-15 | §5.2.10: upgrade to 1.0.13. Statistics Table Add row + row delete; Enhanced UI shows every period. No migration, seed pack stays `1.0.12-r1`. |
 | 2026-11-15 | §5.2: every upgrade runs `npm run db:migrate`; skipped versions are applied oldest first. §5.2.9: upgrade to 1.0.12. Statistics Period target, values edited in place (Table / Enhanced UI). No new migration. Catalog seed pack `1.0.12-r1`. |
 | 2026-11-14 | §5.2.8: upgrade to 1.0.11. Spatial Twin bug fix on Custom Records → Statistics. No new migration. Catalog seed pack stays `1.0.10-r1`. |

@@ -117,9 +117,9 @@ export function StatGraphTwinPreview({
     layout === 1
       ? "grid-cols-1"
       : layout === 2
-        ? "grid-cols-2"
+        ? "grid-cols-1 sm:grid-cols-2"
         : layout === 4
-          ? "grid-cols-2 grid-rows-2"
+          ? "grid-cols-1 sm:grid-cols-2 sm:grid-rows-2"
           : layout === 8
             ? "grid-cols-4 grid-rows-2"
             : "grid-cols-4 grid-rows-3";

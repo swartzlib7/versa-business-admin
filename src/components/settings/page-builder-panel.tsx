@@ -64,6 +64,7 @@ import {
   RowCellConfigGrid,
   RowCellStrip,
   RowHeightHandle,
+  RowHeadingEditor,
   RowVisibilityToggle,
   SectionWidthSlider,
   type CellDragSource,
@@ -142,6 +143,7 @@ function CellPaint({
         schedule={paint.schedule}
         inspection={paint.inspection}
         project={paint.project}
+        boards={paint.boards}
         renderOutput={paint.renderOutput}
         pager={cell.showPager !== false}
         pageNumber={cell.pageNumber ?? 1}
@@ -686,6 +688,11 @@ export function PageBuilderPanel() {
         cycleSteps: previewData.cycleSteps,
         html: paint.html,
         contact: paint.contact,
+        integration: paint.integration,
+        schedule: paint.schedule,
+        inspection: paint.inspection,
+        project: paint.project,
+        boards: paint.boards,
         renderOutput: cell.renderOutput,
         onRenderOutput: commit,
       });
@@ -1172,6 +1179,7 @@ export function PageBuilderPanel() {
                       unit={homeRow.height_unit}
                       onChange={(next) => patchHomeSection(id, next)}
                     />
+                    <RowHeadingEditor heading={homeRow.heading} onChange={(heading) => patchHomeSection(id, { heading })} />
                     {isBlankSlotLabel(homeRow.label) ? null : (
                       <ElementConfigSection>
                         <RowCellConfigGrid
@@ -1330,6 +1338,8 @@ export function PageBuilderPanel() {
           onStyle={(id) => commitEdit({ ...editCanvas, style_page_id: id })}
           menuOn={editCanvas.menu_enabled !== false}
           onMenu={(on) => commitEdit({ ...editCanvas, menu_enabled: on })}
+          siteMenuOn={editCanvas.site_menu !== false}
+          onSiteMenu={(on) => commitEdit({ ...editCanvas, site_menu: on })}
           skyOn={editCanvas.sky !== "off"}
           skySiteOn={skySiteOn}
           onSky={(on) => commitEdit({ ...editCanvas, sky: on ? "on" : "off" })}
@@ -1638,6 +1648,7 @@ export function PageBuilderPanel() {
                     unit={row.height_unit}
                     onChange={(next) => setSection(index, next)}
                   />
+                  <RowHeadingEditor heading={row.heading} onChange={(heading) => setSection(index, { heading })} />
                   {blank ? (
                     <p className="text-xs text-muted-foreground">
                       Name this Row before turning it On. Config columns appear under each Cell.

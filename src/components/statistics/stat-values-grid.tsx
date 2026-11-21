@@ -141,11 +141,14 @@ export function StatValueCell({
   config,
   onSave,
   label,
+  readOnly = false,
 }: {
   line: StatValueLine;
   config: StatHeaderConfig;
   onSave: StatValueSave;
   label: string;
+  /** Values fed from records (1.0.14) are shown, not edited. */
+  readOnly?: boolean;
 }) {
   const saved = shownValue(line.value);
   const [draft, setDraft] = useState<string | null>(null);
@@ -176,6 +179,8 @@ export function StatValueCell({
     setDraft(null);
     setError("");
   };
+
+  if (readOnly) return <span className="tabular-nums">{saved || "—"}</span>;
 
   return (
     <div className="w-36 space-y-1">
@@ -215,6 +220,7 @@ export function StatValuesGrid({
   onLiveLines,
   onFocusPeriod,
   headerControls,
+  fedFrom,
 }: {
   config: StatHeaderConfig;
   lines: StatValueLine[];
@@ -226,6 +232,8 @@ export function StatValuesGrid({
   onLiveLines?: (lines: StatGraphLine[] | null) => void;
   /** Mode switch and anything else for the header's right side. */
   headerControls?: ReactNode;
+  /** 1.0.14: label of the record type the values come from; the boxes are read-only. */
+  fedFrom?: string | null;
 }) {
   const qty = config.frequencyQty;
   const { step, dragStep } = statValueSteps(config);
@@ -422,6 +430,11 @@ export function StatValuesGrid({
             >
               {status?.text ?? ""}
             </p>
+            {fedFrom ? (
+              <p className="text-xs text-muted-foreground">
+                Values come from the lines of {fedFrom} and update when those records change.
+              </p>
+            ) : null}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             {headerControls}
@@ -489,7 +502,7 @@ export function StatValuesGrid({
                         <label htmlFor={id} className="truncate text-xs font-semibold" title={label}>
                           {label}
                         </label>
-                        {saved !== "" ? (
+                        {saved !== "" && !fedFrom ? (
                           <button
                             type="button"
                             aria-label={`Clear period ${series}, ${label}`}
@@ -506,6 +519,7 @@ export function StatValuesGrid({
                       <span className="text-[10px] leading-tight text-muted-foreground">{stamp}</span>
                       <NumberScrubInput
                         id={id}
+                        disabled={!!fedFrom}
                         inputRef={(el) => {
                           if (el) inputs.current.set(key, el);
                           else inputs.current.delete(key);

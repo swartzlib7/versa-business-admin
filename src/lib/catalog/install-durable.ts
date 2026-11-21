@@ -84,7 +84,13 @@ export function ensureDurableCatalog(): void {
   const fromFile = readOverlayFile();
   const rebaseFile = !!fromFile && (fromFile.seed_pack ?? "") !== CATALOG_SEED_PACK;
   if (fromFile) applyAll(fromFile, { systemSeedWins: rebaseFile });
+  // 1.0.16: `next build` loads this module in several workers at once. Writes
+  // here (catalog stamp, sample pack, driver records, site pack) wait for the
+  // first real start, or parallel workers duplicate records (e.g. a new sample
+  // organization created once per worker).
+  const building = process.env.NEXT_PHASE === "phase-production-build";
   const stampIfNeeded = (overlay: CatalogOverlay | null) => {
+    if (building) return;
     if ((overlay?.seed_pack ?? "") !== CATALOG_SEED_PACK) persistNow();
   };
   if (isPostgresDataSource()) {
@@ -96,6 +102,7 @@ export function ensureDurableCatalog(): void {
   } else {
     stampIfNeeded(fromFile);
   }
+  if (building) return;
   void import("@/lib/sample-data/apply").then((mod) => {
     void mod.hydrateSampleData();
   });
@@ -109,7 +116,11 @@ export function ensureDurableCatalog(): void {
     void mod
       .ensureRenderDriverRecords()
       .then(() => import("@/lib/public/ensure-pairings").then((pair) => pair.ensureUniquePairings()))
-      .then(() => import("@/lib/site-pack").then((site) => site.installSitePackIfPending()));
+      .then(() => import("@/lib/site-pack").then(async (site) => {
+        await site.installSitePackIfPending();
+        await site.refreshSitePackPages();
+      }))
+      .catch((err) => console.error("Site pack refresh failed:", err));
   });
 }
 

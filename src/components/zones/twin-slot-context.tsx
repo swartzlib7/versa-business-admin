@@ -43,6 +43,7 @@ export type TwinPreview =
       schedule?: import("@/lib/public/board-paint").SchedulePaint;
       inspection?: import("@/lib/public/board-paint").InspectionPaint;
       project?: import("@/lib/public/board-paint").ProjectPaint;
+      boards?: import("@/lib/public/board-resolve").BoardPaints;
     }
   | null;
 

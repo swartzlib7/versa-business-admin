@@ -19,12 +19,15 @@ export function OrganizationLookupField({
   onChange,
   required,
   readOnly,
+  filter,
 }: {
   label: string;
   value: string;
   onChange?: (v: string) => void;
   required?: boolean;
   readOnly?: boolean;
+  /** 1.0.15 lookup filter, e.g. { field: "org_type", value: "vendor" }. */
+  filter?: { field: string; value: string } | null;
 }) {
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
   const base =
@@ -67,12 +70,39 @@ export function OrganizationLookupField({
       </span>
       <select className={cn(base)} value={value} onChange={(e) => onChange?.(e.target.value)}>
         <option value="">Select organization…</option>
-        {orgs.map((o) => (
+        {orgs
+          .filter((o) => !filter || o.id === value || String((o as Record<string, unknown>)[filter.field] ?? "") === filter.value)
+          .map((o) => (
           <option key={o.id} value={o.id}>
             {o.name ?? o.id}
           </option>
-        ))}
+          ))}
       </select>
     </label>
   );
+}
+
+/** Organization names for listings (1.0.15): one fetch per page, shared by every cell. */
+let orgNamesPromise: Promise<Map<string, string>> | null = null;
+function loadOrgNames(): Promise<Map<string, string>> {
+  orgNamesPromise ??= fetch("/api/organizations", { credentials: "include" })
+    .then((r) => (r.ok ? r.json() : { data: [] }))
+    .then((json: { data?: OrgRow[] }) => new Map((json.data ?? []).map((o) => [o.id, o.name ?? o.id])))
+    .catch(() => {
+      orgNamesPromise = null;
+      return new Map<string, string>();
+    });
+  return orgNamesPromise;
+}
+
+export function OrganizationName({ id }: { id: string }) {
+  const [names, setNames] = useState<Map<string, string> | null>(null);
+  useEffect(() => {
+    let live = true;
+    void loadOrgNames().then((map) => live && setNames(map));
+    return () => {
+      live = false;
+    };
+  }, []);
+  return <>{names?.get(id) ?? (names ? id : "…")}</>;
 }

@@ -400,3 +400,54 @@ export async function deleteStatLineDb(lineId: string): Promise<boolean> {
 
 /** Re-export for the API route (parse errors surface in one body). */
 export { parseStatHeaderConfig };
+
+/**
+ * 1.0.14: write values computed from source records (statistics fed from
+ * records). `values` is keyed by step index k = (series - 1) * qty + slot.
+ * Lines get source 'records'. A line this feed wrote before whose step no
+ * longer has a value goes back to empty. Values are stored as computed (no
+ * scale check): the graph pins anything above Scale High to the top edge.
+ */
+export async function writeComputedStatLines(
+  headerId: string,
+  values: Map<number, number>,
+): Promise<{ written: number; cleared: number }> {
+  const header = await loadStatHeaderConfig(headerId);
+  if (!header.ok) return { written: 0, cleared: 0 };
+  const cfg = header.config;
+  const qty = cfg.frequencyQty > 0 ? cfg.frequencyQty : 1;
+  const db = getDb();
+  const rows = await listStatLinesDb(headerId);
+  const byKey = new Map(rows.map((ln) => [(ln.series - 1) * qty + ln.slot, ln]));
+  let written = 0;
+  let cleared = 0;
+  for (const [k, value] of values) {
+    const series = Math.floor(k / qty) + 1;
+    const slot = k % qty;
+    const text = String(value);
+    const existing = byKey.get(k);
+    if (existing) {
+      if (existing.value.trim() !== '' && Number(existing.value) === value && existing.source === 'records') continue;
+      await db
+        .update(statLineTable)
+        .set({ value: text, source: 'records', capturedAt: new Date() })
+        .where(eq(statLineTable.id, existing.id));
+    } else {
+      await db.insert(statLineTable).values({
+        headerId,
+        series,
+        slot,
+        value: text,
+        source: 'records',
+        stamp: resolveStamp(cfg, series, slot),
+      });
+    }
+    written++;
+  }
+  for (const [k, ln] of byKey) {
+    if (values.has(k) || ln.source !== 'records' || ln.value.trim() === '') continue;
+    await db.update(statLineTable).set({ value: null }).where(eq(statLineTable.id, ln.id));
+    cleared++;
+  }
+  return { written, cleared };
+}

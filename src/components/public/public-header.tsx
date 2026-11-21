@@ -39,6 +39,13 @@ function themeLabel(theme: UiTheme): string {
   return "Dark";
 }
 
+/** "Versa - Business Admin" -> "VBA". Empty for a one-word name (it fits). */
+function brandInitials(name: string | undefined): string {
+  const words = (name ?? "").split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  if (words.length < 2) return "";
+  return words.map((word) => word[0].toUpperCase()).join("");
+}
+
 const SEEN_KEY = "vba-custom-canvas-seen";
 const LAST_KEY = "vba-custom-canvas-last";
 
@@ -67,6 +74,9 @@ export function PublicHeader() {
   const customOn = canvases.length > 0;
   const currentCanvas = canvases.find((c) => isCustomCanvasPath(pathname, c)) ?? null;
   const onCustom = currentCanvas !== null;
+  const shortName = brandInitials(brand.brand_name);
+  // 1.0.16: a canvas can hide the site's top menu on its own page (the Demo tour does).
+  const focused = currentCanvas?.site_menu === false;
   const [lastSlug, setLastSlug] = useState<string | null>(null);
   const subCanvas =
     currentCanvas ?? canvases.find((c) => c.slug === lastSlug) ?? null;
@@ -182,13 +192,27 @@ export function PublicHeader() {
       <div className="grid w-full grid-cols-[minmax(0,1fr)_0_auto] gap-x-2 px-3 sm:px-4 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] xl:gap-x-4">
         <Link
           href="/"
+          title={brand.brand_name}
           className="relative z-10 col-start-1 row-start-1 flex h-16 min-w-0 max-w-full items-center gap-2 justify-self-start bg-transparent pr-2 xl:max-w-[min(22rem,28vw)]"
         >
           <BrandMark />
           {brand.brand_name_in_menu !== false ? (
-            <span className="truncate whitespace-nowrap text-base font-semibold tracking-tight sm:text-lg">
-              {brand.brand_name}
-            </span>
+            shortName ? (
+              <>
+                {/* 1.0.16: from xl to 2xl the full menu shows and the full name ran into it; initials there, full name on hover. */}
+                <span className="truncate whitespace-nowrap text-base font-semibold tracking-tight sm:text-lg xl:hidden 2xl:inline">
+                  {brand.brand_name}
+                </span>
+                <span className="hidden whitespace-nowrap text-lg font-semibold tracking-tight xl:inline 2xl:hidden" aria-hidden>
+                  {shortName}
+                </span>
+                <span className="sr-only hidden xl:inline 2xl:hidden">{brand.brand_name}</span>
+              </>
+            ) : (
+              <span className="truncate whitespace-nowrap text-base font-semibold tracking-tight sm:text-lg">
+                {brand.brand_name}
+              </span>
+            )
           ) : (
             <span className="sr-only">{brand.brand_name}</span>
           )}
@@ -243,7 +267,7 @@ export function PublicHeader() {
             ) : null}
           </div>
           <div className="ml-3 flex min-w-0 items-center gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {homeMenu.map((section) => (
+            {(focused ? [] : homeMenu).map((section) => (
               <Link
                 key={section.id}
                 href={`/#${section.id}`}
@@ -252,7 +276,7 @@ export function PublicHeader() {
                 {section.label}
               </Link>
             ))}
-            {navLinks.filter((link) => !link.href.startsWith("/#")).map((link) => (
+            {(focused ? [] : navLinks).filter((link) => !link.href.startsWith("/#")).map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -316,7 +340,7 @@ export function PublicHeader() {
           <div className="hidden xl:block" />
           <div
             className={cn(
-              "col-span-3 flex flex-wrap items-center gap-x-2 gap-y-1 py-2 text-sm xl:hidden",
+              "col-span-3 flex flex-nowrap items-center gap-x-2 overflow-x-auto whitespace-nowrap py-2 text-sm [scrollbar-width:none] xl:hidden [&::-webkit-scrollbar]:hidden",
               showSubMenu && !onCustom && "opacity-50",
             )}
           >
@@ -354,7 +378,7 @@ export function PublicHeader() {
             ))}
             {(showSubMenu && subCanvas && subCanvas.content_mode !== "html"
               ? subCanvas.sections.filter((section) => isRowOn(section) && section.in_menu !== false)
-              : homeMenu
+              : focused ? [] : homeMenu
             ).map((section) => (
               <Link
                 key={section.id}
@@ -369,7 +393,7 @@ export function PublicHeader() {
                 {section.label}
               </Link>
             ))}
-            {navLinks
+            {(focused ? [] : navLinks)
               .filter((link) => !link.href.startsWith("/#"))
               .map((link) => {
                 const Icon = link.icon;

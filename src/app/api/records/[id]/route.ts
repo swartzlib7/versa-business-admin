@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { deriveStatHeaderData } from '@/lib/statistics/model';
+import { afterRecordDelete, afterRecordWrite, prepareRecordWrite } from '@/lib/records/pipeline';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 import {
   getInstance,
@@ -200,9 +200,19 @@ export async function PATCH(
       relation_kind?: string;
     }> | undefined,
   } satisfies UpdateInstanceInput;
-  // Statistics: store the derived Frequency start / Target per step, as the UI does.
-  if (current?.type_api_name === 'statistics' && input.data) {
-    input.data = deriveStatHeaderData(input.data);
+  // 1.0.15 save pipeline: derived fields, formulas, summaries, allocation checks.
+  if (current) {
+    const prepared = await prepareRecordWrite({
+      typeApiName: current.type_api_name,
+      data: input.data ?? { ...(current.data ?? {}) },
+      lines: input.lines,
+      current,
+    });
+    if (!prepared.ok) {
+      return NextResponse.json({ error: { code: prepared.code, message: prepared.message } }, { status: 400 });
+    }
+    input.data = prepared.data as typeof input.data;
+    if (prepared.lines) input.lines = prepared.lines;
   }
   if (adapter.updateRecord) {
     const result = await adapter.updateRecord(id, input);
@@ -213,6 +223,7 @@ export async function PATCH(
         { status },
       );
     }
+    await afterRecordWrite(result.instance, current);
     return NextResponse.json({ data: result.instance, meta: { persistence: 'horizon1_db' } });
   }
   const result = updateInstance(id, input);
@@ -288,6 +299,7 @@ export async function DELETE(
         { status: 404 },
       );
     }
+    if (existing) await afterRecordDelete(existing);
     return NextResponse.json({ data: { deleted: true, id }, meta: { persistence: 'horizon1_db' } });
   }
   const deleted = deleteInstance(id);

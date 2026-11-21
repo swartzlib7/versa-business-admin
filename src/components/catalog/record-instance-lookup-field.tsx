@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { TYPE_LEVEL_TARGET_ID } from "@/lib/public/driver-pairings";
 import { elementTypeById } from "@/lib/public/element-types";
 
-type RecordRow = { id: string; name?: string; status?: string };
+type RecordRow = { id: string; name?: string; status?: string; data?: Record<string, unknown> };
 
 export function RecordInstanceLookupField({
   label,
@@ -16,6 +16,7 @@ export function RecordInstanceLookupField({
   help,
   recordType,
   allowTypeLevel,
+  filter,
 }: {
   label: string;
   value: string;
@@ -25,6 +26,8 @@ export function RecordInstanceLookupField({
   help?: string;
   recordType?: string;
   allowTypeLevel?: boolean;
+  /** 1.0.15 lookup filter: only records whose field equals the value (e.g. document_kind = bill). */
+  filter?: { field: string; value: string } | null;
 }) {
   const [rows, setRows] = useState<RecordRow[]>([]);
   const spec = elementTypeById(recordType);
@@ -88,7 +91,14 @@ export function RecordInstanceLookupField({
         {typeLevel ? (
           <option value={TYPE_LEVEL_TARGET_ID}>All records (type-level)</option>
         ) : null}
-        {rows.map((row) => (
+        {rows
+          .filter(
+            (row) =>
+              !filter ||
+              row.id === value ||
+              String(row.data?.[filter.field] ?? (row as Record<string, unknown>)[filter.field] ?? "") === filter.value,
+          )
+          .map((row) => (
           <option key={row.id} value={row.id}>
             {row.name || row.id}
           </option>

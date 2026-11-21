@@ -17,6 +17,8 @@ import type {
   ProjectPaint,
   SchedulePaint,
 } from "@/lib/public/board-paint";
+import type { BoardPaints } from "@/lib/public/board-resolve";
+import { AssetBoard, GanttBoard, JobMoneyBoard, OrgRecordsBoard } from "@/components/public/board-drivers";
 
 export type CanvasSlotStat = {
   headerId: string;
@@ -131,7 +133,7 @@ function LocationCard({
   return (
     <article className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card text-card-foreground shadow-sm">
       {withMap && mapQuery ? (
-        <div className="relative min-h-0 flex-1 bg-muted/40">
+        <div className="relative min-h-60 flex-1 bg-muted/40">
           <iframe
             title={`Map of ${title}`}
             className="absolute inset-0 h-full w-full border-0"
@@ -194,7 +196,7 @@ function ProjectCards({ project }: { project: ProjectPaint }) {
         ))}
       </div>
       {selected ? (
-        <table className="mt-4">
+        <div className="mt-4 max-w-full overflow-x-auto"><table>
           <thead>
             <tr>
               <th>Task</th>
@@ -209,7 +211,7 @@ function ProjectCards({ project }: { project: ProjectPaint }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       ) : null}
     </Glass>
   );
@@ -226,6 +228,7 @@ export function CanvasSlotDriver({
   schedule,
   inspection,
   project,
+  boards,
   renderOutput,
   compact = false,
   pager = true,
@@ -246,6 +249,8 @@ export function CanvasSlotDriver({
   schedule?: SchedulePaint;
   inspection?: InspectionPaint;
   project?: ProjectPaint;
+  /** 1.0.16: Gantt, Job and money, Asset card, Organization board. */
+  boards?: BoardPaints;
   renderOutput?: string;
   compact?: boolean;
   pager?: boolean;
@@ -300,7 +305,7 @@ export function CanvasSlotDriver({
     if (!integration?.rows.length) return <p className="text-xs text-muted-foreground">Integration — bind a record.</p>;
     return (
       <Glass title="Integrations">
-        <table>
+        <div className="max-w-full overflow-x-auto"><table>
           <thead>
             <tr>
               <th>Vendor</th>
@@ -327,7 +332,7 @@ export function CanvasSlotDriver({
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Glass>
     );
   }
@@ -378,7 +383,7 @@ export function CanvasSlotDriver({
     if (!inspection?.rows.length) return <p className="text-xs text-muted-foreground">Inspections — bind a record.</p>;
     return (
       <Glass title="Support Requests">
-        <table>
+        <div className="max-w-full overflow-x-auto"><table>
           <thead>
             <tr>
               <th>Name</th>
@@ -395,10 +400,14 @@ export function CanvasSlotDriver({
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Glass>
     );
   }
+  if (kind === "project-gantt") return <GanttBoard gantt={boards?.gantt} />;
+  if (kind === "job-money") return <JobMoneyBoard job={boards?.jobMoney} />;
+  if (kind === "asset-card") return <AssetBoard assets={boards?.assets} />;
+  if (kind === "org-records") return <OrgRecordsBoard board={boards?.orgBoard} />;
   if (kind === "project-cards") {
     if (!project?.rows.length) return <p className="text-xs text-muted-foreground">Project — bind a record.</p>;
     return <ProjectCards project={project} />;
@@ -407,7 +416,7 @@ export function CanvasSlotDriver({
     if (!project?.rows.length) return <p className="text-xs text-muted-foreground">Project — bind a record.</p>;
     return (
       <Glass title="Projects">
-        <table>
+        <div className="max-w-full overflow-x-auto"><table>
           <thead>
             <tr>
               <th>Project</th>
@@ -430,7 +439,7 @@ export function CanvasSlotDriver({
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Glass>
     );
   }

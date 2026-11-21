@@ -26,6 +26,9 @@ export type UiFieldKind =
   | "phone"
   | "lookup"
   | "image_gallery"
+  | "attachments"
+  | "summary"
+  | "formula"
   | "text_list"
   | "multi_lookup";
 
@@ -45,6 +48,10 @@ export type UiListingField = {
   zoneRole?: "header" | "list" | null;
   /** Mask on screen; Show / Hide in the form. */
   secret?: boolean;
+  /** 1.0.14: a Summary field shown as a percentage. */
+  summaryPercent?: boolean;
+  /** 1.0.15: lookup filter (only target records whose field equals the value). */
+  lookupFilter?: { field: string; value: string } | null;
   lookupObjectApiName?: string | null;
   /** Empty grid cell from the Layout Editor (`__blank__*`). */
   blank?: boolean;
@@ -78,6 +85,14 @@ export function dataTypeToUiKind(dt: CatalogDataType): UiFieldKind {
       return "url";
     case "image_gallery":
       return "image_gallery";
+    case "attachments":
+      return "attachments";
+    case "summary":
+      return "summary";
+    case "formula":
+      return "formula";
+    case "currency":
+      return "number";
     case "text_list":
       return "text_list";
     case "multi_lookup":
@@ -147,14 +162,19 @@ const FIELD_HELP: Record<string, string> = {
   frequency_start: "From Start datetime and Frequency type",
   period_target: "Quota for one period. Drawn as the target line on the graph",
   slot_target: "Period target divided by Frequency quantity",
+  source_record_type: "Optional. Fill the values from the lines of this record type instead of entering them",
+  source_read_from: "Lines totals the lines of the records; Records reads the records' own fields (e.g. invoice Date and Amount)",
+  source_record_id: "Lines only. Leave empty to use every record of the type",
+  source_date_field: "Each line counts in the step its date falls in",
+  source_value_field: "Total this field per step. Empty counts the lines",
+  source_filter_field: "Optional. Only lines where this field equals the value below",
+  source_filter_value: "true for a ticked checkbox",
   code_key:
     "Identity of the code renderer (html-block, stat-graph, contacts-cards). Owned by product code — not editable. Staff rename the driver; they do not invent a new key.",
   bind_shape:
     "Paint binding from the code catalog (header, header + lines, or lines). Not the record type Structure. One record type can have more than one driver shape.",
   compatible_record_type:
     "Records Editor type this driver paints. Editable. Existing Elements keep the type they were saved with.",
-  status:
-    "Active is required for the Canvas type picker and visitor paint. Leaving Active while pairings exist needs confirm.",
   driver_id:
     "The Rendering Driver this Element configures. Display style and record type live on the driver.",
   render_option:
@@ -167,8 +187,16 @@ const FIELD_HELP: Record<string, string> = {
     "Which records to include when Selection Type is Filter. Conditions are combined with AND.",
 };
 
-export function helpForField(apiName: string): string | undefined {
-  return FIELD_HELP[apiName];
+/** Help that only applies to one record type (1.0.14: Status help was showing on every type). */
+const OBJECT_FIELD_HELP: Record<string, Record<string, string>> = {
+  render_driver: {
+    status:
+      "Active is required for the Canvas type picker and visitor paint. Leaving Active while pairings exist needs confirm.",
+  },
+};
+
+export function helpForField(apiName: string, objectApiName?: string): string | undefined {
+  return (objectApiName ? OBJECT_FIELD_HELP[objectApiName]?.[apiName] : undefined) ?? FIELD_HELP[apiName];
 }
 
 export function fieldDefinitionToUi(fd: FieldDefinition): UiListingField {
@@ -176,7 +204,7 @@ export function fieldDefinitionToUi(fd: FieldDefinition): UiListingField {
   return {
     key: fd.api_name,
     label: fd.label,
-    help: FIELD_HELP[fd.api_name],
+    help: helpForField(fd.api_name, fd.object_api_name),
     kind: dataTypeToUiKind(fd.data_type),
     options,
     optionLabels,
@@ -186,11 +214,14 @@ export function fieldDefinitionToUi(fd: FieldDefinition): UiListingField {
     zoneRole: fd.zone_role ?? null,
     lookupObjectApiName: fd.lookup_object_api_name ?? null,
     readOnly:
+      fd.read_only === true ||
       isDriverCodeOwnedField(fd.object_api_name, fd.api_name) ||
       isPairingStampField(fd.object_api_name, fd.api_name),
+    lookupFilter: fd.lookup_filter ?? null,
     secret:
       fd.is_secret === true ||
       (fd.object_api_name === "vendor_credential" && fd.api_name === "configuration"),
+    summaryPercent: !!fd.summary?.percent_of,
   };
 }
 
@@ -207,6 +238,7 @@ export function listingFieldsFromCatalog(objectApiName: string): UiListingField[
         column:
           fd.data_type !== "long_text" &&
           fd.data_type !== "image_gallery" &&
+          fd.data_type !== "attachments" &&
           fd.data_type !== "text_list" &&
           !ui.secret,
       };
@@ -223,7 +255,11 @@ export function listingFieldsFromCatalog(objectApiName: string): UiListingField[
     const ui = fieldDefinitionToUi(fd);
     result.push({
       ...ui,
-      column: !ui.secret && fd.data_type !== "image_gallery" && fd.data_type !== "text_list",
+      column:
+        !ui.secret &&
+        fd.data_type !== "image_gallery" &&
+        fd.data_type !== "attachments" &&
+        fd.data_type !== "text_list",
     });
   }
 

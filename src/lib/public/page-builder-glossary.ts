@@ -182,7 +182,19 @@ export const PAGE_BUILDER_GLOSSARY_ENTRIES: PageBuilderGlossaryRow[] = [
     id: "e-pb-visitor-height",
     name: "Visitor height",
     definition:
-      "Pixels or a viewport percent on a Row, chosen with Use. The visitor Row is always one viewport tall (the ceiling) so the next control stays at the bottom. A pixel value taller than that screen is cut down to it. A viewport percent is a share of the screen and is not cut again. Default pixels 240 (range 140–900). Default percent 40 (range 10–100). Builder drag does not change this.",
+      "Pixels, a viewport percent, or Fit content on a Row, chosen with Use. Fit content makes the Row as tall as what it shows. Otherwise the visitor Row is one viewport tall (the ceiling) so the next control stays at the bottom. A pixel value taller than that screen is cut down to it. A viewport percent is a share of the screen and is not cut again. Default pixels 240 (range 140–900). Default percent 40 (range 10–100). Builder drag does not change this.",
+  },
+  {
+    id: "e-pb-element-filter",
+    name: "Element filter",
+    definition:
+      "An Element in Filter mode paints only the records that match every condition in its Filter (JSON: field, op, value). The Demo canvas uses external_id starts_with ba_sample: so only sample records show.",
+  },
+  {
+    id: "e-pb-row-heading",
+    name: "Row heading",
+    definition:
+      "Optional text above a Row's Cells on the visitor page: kicker, headline, lead line, note. Set under the Row's height settings.",
   },
   {
     id: "e-pb-element-configuration",

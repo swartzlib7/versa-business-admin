@@ -67,6 +67,8 @@ import {
 import { formatStatLineValue, isLiveStatField } from "@/lib/statistics/fields";
 import { StatGraphPanel } from "@/components/statistics/stat-graph-panel";
 import type { StatGraphLine } from "@/components/statistics/stat-graph";
+import { hasCalculatedFields, previewCalculations, type CalcFieldLike } from "@/lib/records/calculated-fields";
+import { LinkedFromPanel } from "@/components/zones/linked-from-panel";
 import {
   StatValueCell,
   StatValuesGrid,
@@ -850,7 +852,11 @@ function ListingPanel({
           required: f.is_required,
           lookupObjectApiName: (f as { lookup_object_api_name?: string | null }).lookup_object_api_name ?? null,
           defaultValue: (f as { default_value?: string | null }).default_value ?? undefined,
-          readOnly: isAuditField(f.api_name) || isDriverCodeOwnedField(objectApiName, f.api_name),
+          readOnly:
+            isAuditField(f.api_name) ||
+            isDriverCodeOwnedField(objectApiName, f.api_name) ||
+            (f as { read_only?: boolean }).read_only === true,
+          lookupFilter: (f as { lookup_filter?: { field: string; value: string } | null }).lookup_filter ?? null,
           column:
             (colSet.has(f.label) || colSet.has(f.api_name)) &&
             !isAuditField(f.api_name) &&
@@ -859,6 +865,7 @@ function ListingPanel({
           span: spanByApi.get(api) ?? 1,
           secret: f.is_secret === true || f.api_name === "configuration",
           zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
+          summaryPercent: !!(f as { summary?: { percent_of?: string | null } | null }).summary?.percent_of,
         };
       });
       // Instances list = header + platform fields. Lines table = list + platform.
@@ -1056,6 +1063,28 @@ function ListingPanel({
   const isStatLines =
     panel.recordTypeApiName === "statistics" && viewMode !== "instances" && isHeaderLines;
   const [statValuesMode, setStatValuesMode] = useStatValuesMode();
+  // 1.0.14: a statistic fed from records shows its values but does not edit them.
+  const statSourceType = isStatLines ? (statHeader?.sourceRecordType ?? null) : null;
+  const [statSourceLabel, setStatSourceLabel] = useState<{ type: string; label: string } | null>(null);
+  useEffect(() => {
+    if (!statSourceType) return;
+    const controller = new AbortController();
+    void fetch("/api/catalog/record-types/" + encodeURIComponent(statSourceType), {
+      credentials: "include",
+      signal: controller.signal,
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: { data?: { type?: { label?: string } } } | null) =>
+        setStatSourceLabel({ type: statSourceType, label: json?.data?.type?.label || statSourceType }),
+      )
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [statSourceType]);
+  const statFedFrom = statSourceType
+    ? statSourceLabel?.type === statSourceType
+      ? statSourceLabel.label
+      : recordTypeLabel(statSourceType)
+    : null;
   const statLines: StatValueLine[] = useMemo(
     () =>
       isStatLines
@@ -1146,6 +1175,15 @@ function ListingPanel({
     },
     [headerRecordId, setPreview],
   );
+
+  // 1.0.15: live preview of Formula fields and calculated defaults while typing.
+  const calcPlacement: "header" | "list" = viewMode !== "instances" && isHeaderLines ? "list" : "header";
+  const deriveDraft = useMemo(() => {
+    const defs = catalogFields as unknown as CalcFieldLike[];
+    if (!hasCalculatedFields(defs)) return undefined;
+    return (next: Record<string, string>, _key: string, prev: Record<string, string>) =>
+      previewCalculations(defs, calcPlacement, next, prev);
+  }, [catalogFields, calcPlacement]);
 
   // New Record on a list-to-detail type uses the same Edit layout sections as
   // Edit (Records Editor -> Layout), not one flat list of fields.
@@ -1938,6 +1976,7 @@ function ListingPanel({
           onSave={saveStatValue}
           onLiveLines={onStatLiveLines}
           onFocusPeriod={onStatFocusPeriod}
+          fedFrom={statFedFrom}
           headerControls={
             <StatValuesModeSwitch mode={statValuesMode} onChange={setStatValuesMode} accent={accent} />
           }
@@ -2024,7 +2063,7 @@ function ListingPanel({
           }
           onAdd={onAdd}
           onUpdate={onUpdate}
-          onDelete={onDelete}
+          onDelete={statFedFrom ? undefined : onDelete}
           deleteIcon={isStatLines}
           addLabel={isStatLines ? "Add row" : undefined}
           deleteTitle={isStatLines ? "Delete this row?" : undefined}
@@ -2034,6 +2073,7 @@ function ListingPanel({
               : undefined
           }
           inlineEdit={isStatLines}
+          deriveDraft={deriveDraft}
           renderInlineCell={
             isStatLines && statHeader
               ? (row, key) => {
@@ -2048,6 +2088,7 @@ function ListingPanel({
                       config={statHeader}
                       onSave={saveStatValue}
                       label={labels[line.slot] ?? frequencyTypeLabel(statHeader.frequencyType)}
+                      readOnly={!!statFedFrom}
                     />
                   );
                 }
@@ -2065,20 +2106,25 @@ function ListingPanel({
                     sections={newFormSections}
                     values={draft}
                     onChange={(key, value) =>
-                      setDraft((d) => applyStatHeaderChange({ ...d, [key]: value }, key, d))
+                      setDraft((d) => {
+                        const next = applyStatHeaderChange({ ...d, [key]: value }, key, d);
+                        return deriveDraft ? deriveDraft(next, key, d) : next;
+                      })
                     }
                     accent={accent}
                   />
                 )
               : undefined
           }
-          canAdd={allowCreate && statCanAdd}
+          canAdd={allowCreate && statCanAdd && !statFedFrom}
           addBlockedHint={
             !allowCreate
               ? "Rendering Drivers come from the released catalog. One driver per Shape and Record type."
-              : !statCanAdd
-                ? "Single Series is full — one series of points only."
-                : undefined
+              : statFedFrom
+                ? `Values come from the lines of ${statFedFrom}.`
+                : !statCanAdd
+                  ? "Single Series is full — one series of points only."
+                  : undefined
           }
           columnStorageKey={
             panel.recordTypeApiName === "driver_pairing"
@@ -2216,6 +2262,7 @@ function FormPanel({
   startEditing = false,
   onEditingChange,
   publishTwin = true,
+  onRecordCreated,
 }: {
   panel: ZoneTab;
   accent: string;
@@ -2228,6 +2275,8 @@ function FormPanel({
   onEditingChange?: (editing: boolean) => void;
   /** When false, do not overwrite Spatial Twin (another header is the graph target). */
   publishTwin?: boolean;
+  /** 1.0.15: Clone / Convert made a new record - reload the list and open it. */
+  onRecordCreated?: (id: string) => void;
 }) {
   type CatalogField = { api_name: string; label: string; data_type: string; value_set_api_name?: string | null; active?: boolean; is_required?: boolean; is_secret?: boolean; zone_role?: "header" | "list" | null; lookup_object_api_name?: string | null };
   const isDynamic = !!panel.recordTypeApiName;
@@ -2470,8 +2519,11 @@ function FormPanel({
             required: f.is_required,
             zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
             lookupObjectApiName: f.lookup_object_api_name ?? null,
-            readOnly: isDriverCodeOwnedField(objectApiName, f.api_name),
-            help: helpForField(f.api_name),
+            readOnly:
+              isDriverCodeOwnedField(objectApiName, f.api_name) || (f as { read_only?: boolean }).read_only === true,
+            lookupFilter: (f as { lookup_filter?: { field: string; value: string } | null }).lookup_filter ?? null,
+            help: helpForField(f.api_name, objectApiName),
+            summaryPercent: !!(f as { summary?: { percent_of?: string | null } | null }).summary?.percent_of,
           };
         })
       : panel.fields.map((f) => ({
@@ -2484,7 +2536,9 @@ function FormPanel({
           zoneRole: null,
           lookupObjectApiName: null,
           readOnly: false,
+          lookupFilter: null,
           help: undefined,
+          summaryPercent: false,
         })));
     return [
       {
@@ -2686,7 +2740,10 @@ function FormPanel({
               sections={sections}
               values={values}
               onChange={(key, value) =>
-                setValues((d) => applyStatHeaderChange({ ...d, [key]: value }, key, d))
+                setValues((d) => {
+                  const next = applyStatHeaderChange({ ...d, [key]: value }, key, d);
+                  return previewCalculations(catalogFields as unknown as CalcFieldLike[], "header", next, d);
+                })
               }
               readOnly={!editing}
               accent={accent}
@@ -2723,7 +2780,20 @@ function FormPanel({
                 >
                   {isDynamic ? (instanceId ? "Edit" : "Create") : "Edit"}
                 </button>
-              ) : (
+              ) : null}
+              {!editing && isDynamic && (instanceId ?? detailRecordId) ? (
+                <RecordActions
+                  recordId={(instanceId ?? detailRecordId) as string}
+                  values={values}
+                  typeApiName={panel.recordTypeApiName ?? ""}
+                  onCreated={(id, message) => {
+                    setSaveStatus(message);
+                    onRecordCreated?.(id);
+                  }}
+                  onError={setSaveError}
+                />
+              ) : null}
+              {!editing ? null : (
                 <>
                   <button
                     type="button"
@@ -2820,6 +2890,14 @@ function TabPanel({
   const [detailRecordId, setDetailRecordId] = useState<string | null>(null);
   const [detailEditing, setDetailEditing] = useState(false);
   const [graphRecordId, setGraphRecordId] = useState<string | null>(null);
+  // 1.0.15: Clone / Convert made a new record - remount the list (refetch) and open it.
+  const [listReloadKey, setListReloadKey] = useState(0);
+  const openCreatedRecord = (id: string) => {
+    setListReloadKey((k) => k + 1);
+    setDetailRecordId(id);
+    setDetailEditing(false);
+    setGraphRecordId(id);
+  };
 
   // I5.6.34 — sub-tab strip + description in stable position; body only changes
   return (
@@ -2858,6 +2936,7 @@ function TabPanel({
         <OrganizationsPanel accent={accent} />
       ) : isListToDetail ? (
         <ListingPanel
+          key={"list-" + listReloadKey}
           panel={panel}
           accent={accent}
           viewMode="instances"
@@ -2890,8 +2969,10 @@ function TabPanel({
                 startEditing={detailEditing}
                 onEditingChange={setDetailEditing}
                 publishTwin={graphRecordId === recordId}
+                onRecordCreated={openCreatedRecord}
               />
               <RecordRelationsPanel key={"relations-" + recordId} recordId={recordId} accent={accent} />
+              <LinkedFromPanel key={"linked-" + recordId} recordId={recordId} accent={accent} />
               <ListingPanel
                 panel={{ ...panel, id: panel.id + "-detail", summary: "" }}
                 accent={accent}
@@ -2920,6 +3001,7 @@ function TabPanel({
         </div>
       ) : panel.recordTypeApiName === "driver_pairing" || panel.recordTypeApiName === "executive_hat" ? (
         <ListingPanel
+          key={"list-" + listReloadKey}
           panel={panel}
           accent={accent}
           viewMode="instances"
@@ -2952,6 +3034,7 @@ function TabPanel({
                 startEditing={detailEditing}
                 onEditingChange={setDetailEditing}
                 publishTwin={graphRecordId === recordId}
+                onRecordCreated={openCreatedRecord}
               />
             </div>
           )}
@@ -3188,5 +3271,65 @@ function ZoneConfigViewBody({
         ) : null}
       </div>
     </div>
+  );
+}
+
+/**
+ * 1.0.15 record actions beside Edit: Clone (any record) and Convert to invoice
+ * (a quote or estimate made in VBA; integrated records convert in their own
+ * system). Both go through the save pipeline on the server.
+ */
+function RecordActions({
+  recordId,
+  values,
+  typeApiName,
+  onCreated,
+  onError,
+}: {
+  recordId: string;
+  values: Record<string, string>;
+  typeApiName: string;
+  onCreated: (id: string, message: string) => void;
+  onError: (message: string) => void;
+}) {
+  const [busy, setBusy] = useState("");
+  const run = async (action: "clone" | "convert") => {
+    setBusy(action);
+    onError("");
+    try {
+      const res = await fetch(`/api/records/${recordId}/${action}`, { method: "POST", credentials: "include" });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        onError(json?.error?.message ?? "That did not work.");
+        return;
+      }
+      onCreated(json.data.id, action === "clone" ? "Copy created" : "Invoice created");
+    } finally {
+      setBusy("");
+    }
+  };
+  const integrated = String(values.external_id ?? "").trim() !== "";
+  const convertible =
+    typeApiName === "treasury_transaction" &&
+    (values.document_kind === "quote" || values.document_kind === "estimate") &&
+    values.status !== "converted";
+  const cls = "rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50";
+  return (
+    <>
+      {convertible ? (
+        <button
+          type="button"
+          className={cls}
+          disabled={!!busy || integrated}
+          title={integrated ? "This record came from an integration (External ID). Convert it there." : "Copy this estimate into a new invoice"}
+          onClick={() => void run("convert")}
+        >
+          {busy === "convert" ? "Converting…" : "Convert to invoice"}
+        </button>
+      ) : null}
+      <button type="button" className={cls} disabled={!!busy} title="Copy this record and its lines" onClick={() => void run("clone")}>
+        {busy === "clone" ? "Cloning…" : "Clone"}
+      </button>
+    </>
   );
 }

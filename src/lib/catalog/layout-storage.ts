@@ -122,7 +122,53 @@ export function saveLayoutConfig(config: LayoutConfig): LayoutConfig {
  * Saved overlay if one exists; otherwise the catalog seed used at runtime.
  */
 function ensureStatScaleName(config: LayoutConfig): LayoutConfig {
-  return ensureStatTargetFields(ensureStatScaleNameOnly(config));
+  return ensureStatSourceSection(ensureStatTargetFields(ensureStatScaleNameOnly(config)));
+}
+
+/**
+ * 1.0.14: layouts saved before statistics could be fed from records get a
+ * Source section at the end, unless the operator already placed any of its
+ * fields.
+ */
+const STAT_SOURCE_FIELDS: Array<[string, string]> = [
+  ["source_record_type", "Source record type"],
+  ["source_read_from", "Read from"],
+  ["source_record_id", "Source record"],
+  ["source_date_field", "Date field"],
+  ["source_value_field", "Value field"],
+  ["source_filter_field", "Only lines where"],
+  ["source_filter_value", "equals"],
+];
+
+function ensureStatSourceSection(config: LayoutConfig): LayoutConfig {
+  if (config.objectApiName !== "statistics" || config.layoutType === "list") return config;
+  const used = new Set(config.sections.flatMap((s) => s.fields.map((f) => f.api_name)));
+  if (STAT_SOURCE_FIELDS.some(([api]) => used.has(api))) {
+    // 1.0.15: a 1.0.14 Source section gets Read from after Source record type.
+    if (used.has("source_read_from")) return config;
+    return {
+      ...config,
+      sections: config.sections.map((s) => {
+        const at = s.fields.findIndex((f) => f.api_name === "source_record_type");
+        if (at < 0) return s;
+        const fields = [...s.fields];
+        fields.splice(at + 1, 0, { api_name: "source_read_from", label: "Read from", visible: true, span: 1 });
+        return { ...s, fields };
+      }),
+    };
+  }
+  return {
+    ...config,
+    sections: [
+      ...config.sections,
+      {
+        id: "sec-stat-source",
+        label: "Source",
+        columns: 2,
+        fields: STAT_SOURCE_FIELDS.map(([api_name, label]) => ({ api_name, label, visible: true, span: 1 })),
+      },
+    ],
+  };
 }
 
 /**

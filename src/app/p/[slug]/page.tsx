@@ -16,11 +16,12 @@ import {
   isRowOn,
   normalizePageBuilder,
   rowFitsContent,
-  rowHeightCss,
+  rowHeightProps,
   sectionColumnsClass,
   visibleCells,
 } from "@/lib/public/page-builder";
 import { CanvasSlotDriver } from "@/components/public/canvas-slot-drivers";
+import { PublicRowHeading } from "@/components/public/public-row-heading";
 import { CanvasHtmlPage } from "@/components/public/canvas-html-page";
 import { CanvasSkyFlag } from "@/components/public/canvas-sky-flag";
 import { PublicMaintenance } from "@/components/public/public-maintenance";
@@ -139,6 +140,7 @@ export default async function CustomCanvasPage({
         const next = rows[index + 1];
         const cells = visibleCells(ensureRowCells(section));
         const fit = rowFitsContent(section);
+        const rowHeight = rowHeightProps(section);
         return (
           <PublicSection key={section.id} id={section.id} nextId={next?.id} fillViewport={!fit}>
               <div
@@ -148,9 +150,10 @@ export default async function CustomCanvasPage({
                 )}
               >
                 <div className="pb-row-width min-w-0" style={rowWidthVars(section.width_pct, section.mobile_width_pct)}>
+                <PublicRowHeading heading={section.heading} />
                 <div
-                  className={cn("min-h-0", sectionColumnsClass(section.columns))}
-                  style={{ height: rowHeightCss(section) }}
+                  className={cn("min-h-0", sectionColumnsClass(section.columns), rowHeight.className)}
+                  style={rowHeight.style}
                 >
                   {cells.map((cell) => {
                     if (!isCellOn(cell)) {
@@ -165,7 +168,7 @@ export default async function CustomCanvasPage({
                         key={cell.id}
                         className={cn(
                           "min-h-0 min-w-0 max-w-full",
-                          fit ? "overflow-visible" : "h-full overflow-auto",
+                          fit ? "overflow-visible" : cn("h-full overflow-auto", rowHeight.cellClassName),
                         )}
                       >
                         <CanvasSlotDriver
@@ -181,6 +184,7 @@ export default async function CustomCanvasPage({
                           schedule={paint.schedule}
                           inspection={paint.inspection}
                           project={paint.project}
+                          boards={paint.boards}
                           renderOutput={paint.renderOutput}
                           pager={cell.showPager !== false}
                           pageNumber={cell.pageNumber ?? 1}

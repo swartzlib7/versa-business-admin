@@ -1,7 +1,17 @@
 import type { NextConfig } from "next";
 import pkg from "./package.json" with { type: "json" };
 
+// 1.0.14 attachments: every request passes the proxy (src/middleware.ts),
+// which buffers request bodies up to 10 MB by default and cuts off the rest.
+// Allow the attachment limit (VBA_ATTACHMENT_MAX_MB, default 20) plus room
+// for the multipart wrapping. Read at build and at `next start`.
+const attachmentMaxMb = Number(process.env.VBA_ATTACHMENT_MAX_MB) > 0 ? Number(process.env.VBA_ATTACHMENT_MAX_MB) : 20;
+
 const nextConfig: NextConfig = {
+  experimental: {
+    proxyClientMaxBodySize: `${Math.ceil(attachmentMaxMb) + 5}mb`,
+  },
+
   // Allow phone/LAN access during next dev (blank page without this)
   allowedDevOrigins: ["192.168.4.107"],
 

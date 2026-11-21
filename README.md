@@ -1,9 +1,8 @@
 <div align="center">
-  <a href="https://versavoice.ai/versa-agi">
-    <img src="docs/brand/versa-agi/versa-agi-shield-helix_v1-512.png" alt="Versa AGi" width="160">
+  <a href="https://github.com/swartzlib7/versa-business-admin">
+    <img src="docs/brand/versa-business-admin/vba-shield-v1-512.png" alt="Versa - Business Admin Shield" width="400">
   </a>
   <br>
-  <h1>Versa - Business Admin</h1>
   <p>
     <strong>VBA</strong> — a related project that forms part of
     <strong><a href="https://versavoice.ai/versa-agi">Versa AGi</a></strong>
@@ -17,7 +16,7 @@
     <a href="docs/ops/BUSINESS_ADMIN_OPS_MANUAL.md"><strong>Ops Manual</strong></a>
   </p>
   <p>
-    <img src="https://img.shields.io/badge/version-1.0.13-FF9800" alt="Versa - Business Admin version 1.0.13">
+    <img src="https://img.shields.io/badge/version-1.0.16-FF9800" alt="Versa - Business Admin version 1.0.16">
   </p>
   <p align="center">
     <img src="https://img.shields.io/badge/Linux-FCC624?style=flat-square&logo=linux&logoColor=black" alt="Linux">

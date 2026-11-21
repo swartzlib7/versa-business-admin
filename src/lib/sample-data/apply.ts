@@ -20,6 +20,11 @@ import {
 } from "@/lib/sample-data/pack";
 import type { Organization } from "@/lib/data/types";
 import { isInstallUserEmail } from "@/lib/fixtures/users";
+import { listFieldDefinitions } from "@/lib/fixtures/catalog";
+import { afterRecordWrite, objectFor, prepareRecordWrite } from "@/lib/records/pipeline";
+import { deleteRecordFile, saveRecordFile } from "@/lib/records/record-files";
+import { parseRecordFiles, type RecordFileRef } from "@/lib/records/record-file-refs";
+import type { SampleRecordSeed } from "@/lib/sample-data/pack";
 
 const FLAG = "__versaSampleDataHydrated__";
 const FILE_PATH = path.join(process.cwd(), ".data", "sample-data.json");
@@ -177,6 +182,7 @@ export async function insertSampleData(opts?: { keepCanvas?: boolean }): Promise
     const data = resolve(seed.data, seed.refs, seed.listRefs);
     const lines = (seed.lines ?? []).map((line) => ({
       id: line.id,
+      ...(line.line_group ? { line_group: line.line_group } : {}),
       data: resolve(line.data, line.refs),
     }));
     const relations = (seed.relations ?? []).flatMap((rel) => {
@@ -185,16 +191,30 @@ export async function insertSampleData(opts?: { keepCanvas?: boolean }): Promise
     });
     const already = existingByExternal.get(seed.data.external_id);
     if (already) {
-      if (
-        adapter.updateRecord &&
-        (seed.type_api_name === "page" || seed.refs || seed.listRefs || seed.type_api_name === "inspection_report")
-      ) {
+      if (adapter.updateRecord && (seed.type_api_name === "page" || seed.type_api_name === "inspection_report")) {
+        // Sample pages and inspections take the release's content.
         await adapter.updateRecord(already.id, {
           name: seed.name,
           status: seed.status,
           data,
           ...(seed.type_api_name === "inspection_report" ? { lines } : {}),
         });
+      } else if (adapter.updateRecord && (seed.refs || seed.listRefs)) {
+        // 1.0.16: only re-point links (ids can differ between installs). The
+        // rest of the record stays as staff left it, and calculated fields are
+        // worked out again by the pipeline. Before, the whole header was
+        // replaced on every start, wiping totals and staff edits.
+        const linkFields = [...Object.keys(seed.refs ?? {}), ...Object.keys(seed.listRefs ?? {})];
+        const current = (already.data ?? {}) as Record<string, string>;
+        const patch = Object.fromEntries(
+          linkFields.filter((field) => data[field] && data[field] !== current[field]).map((field) => [field, data[field]]),
+        );
+        if (Object.keys(patch).length) {
+          const merged = { ...current, ...patch };
+          const prepared = await prepareRecordWrite({ typeApiName: seed.type_api_name, data: merged, current: already });
+          const result = await adapter.updateRecord(already.id, { data: prepared.ok ? prepared.data : merged });
+          if (result.ok) await afterRecordWrite(result.instance, already).catch(() => undefined);
+        }
       }
       continue;
     }
@@ -212,15 +232,20 @@ export async function insertSampleData(opts?: { keepCanvas?: boolean }): Promise
     if (orgId && seed.type_api_name === "treasury_transaction") {
       data.counterparty_organization_id = orgId;
     }
+    Object.assign(data, await sampleFiles(seed));
+    // 1.0.16: the same save pipeline as any other write, so totals, margins
+    // and bill matching are worked out by VBA rather than typed into the pack.
+    const prepared = await prepareRecordWrite({ typeApiName: seed.type_api_name, data, lines, current: null });
+    if (!prepared.ok) console.warn(`Sample record ${seed.data.external_id}: ${prepared.message}`);
     const input = {
       type_api_name: seed.type_api_name,
       parent_kind: seed.parent_kind,
       parent_api_name: seed.parent_api_name,
       name: seed.name,
       status: seed.status,
-      data,
+      data: prepared.ok ? prepared.data : data,
       org_id: orgId,
-      ...(lines.length ? { lines } : {}),
+      ...(lines.length ? { lines: prepared.ok ? (prepared.lines ?? lines) : lines } : {}),
       ...(relations.length ? { relations } : {}),
     };
     const result = adapter.createRecord
@@ -229,6 +254,9 @@ export async function insertSampleData(opts?: { keepCanvas?: boolean }): Promise
     if (result.ok) {
       createdRecords += 1;
       idByExternal.set(seed.data.external_id, result.instance.id);
+      await afterRecordWrite(result.instance, null).catch((err) =>
+        console.warn(`Sample record ${seed.data.external_id}: after-save step failed`, err),
+      );
     }
   }
   let createdUsers = 0;
@@ -283,6 +311,7 @@ export async function deleteSampleData(): Promise<{
   let deletedRecords = 0;
   for (const rec of await allRecords()) {
     if (!isSampleExternalId(rec.data?.external_id)) continue;
+    removeAttachedFiles(rec);
     const ok = adapter.deleteRecord
       ? await adapter.deleteRecord(rec.id)
       : deleteInstance(rec.id);
@@ -324,6 +353,32 @@ export async function deleteSampleData(): Promise<{
     deleted_records: deletedRecords,
     deleted_users: deletedUsers,
   };
+}
+
+/** Attachments a seed ships under public/ (1.0.16), saved like an upload. */
+async function sampleFiles(seed: SampleRecordSeed): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (const [field, files] of Object.entries(seed.files ?? {})) {
+    const refs: RecordFileRef[] = [];
+    for (const file of files) {
+      try {
+        const bytes = fs.readFileSync(path.join(process.cwd(), file.path));
+        refs.push(await saveRecordFile(new File([bytes], file.name, { type: file.mime })));
+      } catch (err) {
+        console.warn(`Sample file ${file.path} was not saved:`, err);
+      }
+    }
+    if (refs.length) out[field] = JSON.stringify(refs);
+  }
+  return out;
+}
+
+/** Demo off: a sample record's attachment files go with it. */
+function removeAttachedFiles(rec: { type_api_name: string; data?: Record<string, unknown> }): void {
+  for (const field of listFieldDefinitions(objectFor(rec.type_api_name))) {
+    if (field.data_type !== "attachments") continue;
+    for (const file of parseRecordFiles(String(rec.data?.[field.api_name] ?? ""))) deleteRecordFile(file.id);
+  }
 }
 
 export async function hydrateSampleData(): Promise<void> {

@@ -2,7 +2,7 @@
 
 **Product:** Versa - Business Admin (VBA)  
 **Audience:** Staff who **use** VBA after it is installed — Administrators and members working in Records, Organization, Environment, Statistics, Settings, and the public site.  
-**Status:** §4 Statistics and §7 Page Builder are written. Sections 1–3, 5 and 6 stay planned.  
+**Status:** §4 Statistics, §7 Page Builder, §8 Assets, documents and mileage, and §9 Jobs, estimates, invoices and bills are written. Sections 1–3, 5 and 6 stay planned.  
 **Ops (install / configure / maintain / enhance):** [`BUSINESS_ADMIN_OPS_MANUAL.md`](BUSINESS_ADMIN_OPS_MANUAL.md)  
 **Implement / enhance (forms, listings, twin, deploy):** [`WORKING_WITH_VBA.md`](WORKING_WITH_VBA.md)
 
@@ -89,6 +89,20 @@ While you type in Enhanced UI, the Spatial Twin shows the period you are in and 
 
 Values can also come from a script through the capture API. See the Ops Manual for the endpoint and sign-in.
 
+### Fed from records
+
+A statistic can fill its own values from other records, for example **monthly business miles** from the Vehicle Mileage Logs (§8). Open the statistic, click **Edit**, and fill in the **Source** section:
+
+| Field | What it means |
+|-------|---------------|
+| **Source record type** | The "Header and lines" type to read, e.g. Vehicle Mileage Logs |
+| **Source record** | One record of that type (one vehicle's log), or empty for all of them |
+| **Date field** | The lines field with the date. Each line counts in the step its date falls in |
+| **Value field** | The lines field to total per step, e.g. Miles. Empty counts the lines instead |
+| **Only lines where** / **equals** | Optional. Only lines where this field matches, e.g. Business use is ticked (`true`) |
+
+Save. The values appear straight away and update whenever those records change. A step between two steps with data shows 0. While a statistic is fed from records its values card is read-only. Clear Source record type to enter values by hand again.
+
 ### Read the graph
 
 The Spatial Twin (right side; on a phone, the **Spatial twin** tab at the bottom) shows the statistic you picked.
@@ -135,13 +149,49 @@ Sidebar → **Page Builder** (`/page-builder`). Site chrome that used to sit und
 
 HTML Page cells choose a render option. **HTML block** paints the body. **Record card** paints the page title and body inside a card.
 
+### Drivers and what they paint
+
+| Driver | Render outputs | Shows |
+|--------|----------------|-------|
+| **Page header** | HTML block, Record card | One Pages record |
+| **Statistics header** | Grid 1, 2, 4, 8, 12 | One statistic's graph, with its target line and catch-up pace when it has a Period target |
+| **Location** | Location Card, Location with Map | One location |
+| **Integration** | Table | Integrations with their vendor and logo |
+| **Schedule** | Board | Schedules on a month calendar (this month, then any later months with custom or one-time dates) |
+| **Inspections & Reports** | Table | Inspections and reports |
+| **Project** | Table, Cards, **Gantt** | Projects. **Gantt** draws each project's tasks on a timeline, as on the staff Projects screen |
+| **Transaction** | **Job and money** | One estimate or invoice: the estimate it came from (or the invoice made from it), the vendor bills its lines are matched to, the lines (unit cost, markup, price, actual cost, variance) and Subtotal, Cost, Margin, Margin % |
+| **Asset** | **Asset card** | An asset's details, the names of its documents (visitors can't open them), and its latest vehicle mileage log with the latest trips |
+| **Organization board** | **Divisions and records** | The seven divisions as columns, each with its hats (and who holds them), records, and, under Distribution, customers |
+| **Contact** | Sign-up form | An email sign-up that saves a public Contact |
+
+A visitor page shows whatever its Elements select, to anyone. Before binding **Transaction**, **Asset** or **Organization board** on a public canvas, check that those records may be public.
+
+### Elements: One, Filter, All
+
+An Element picks the records its driver paints: **One** record, **All** records of the type, or **Filter**: only records that match every condition in its Filter (JSON). Example, sample records only:
+
+```json
+[{ "field": "external_id", "op": "starts_with", "value": "ba_sample:" }]
+```
+
+`field` is a header field, or `name` / `status`. `op` is `eq` (the default), `ne`, `starts_with`, `contains`, `empty` or `not_empty`. Text matches ignore case. An empty Filter matches every record.
+
+### Site menu
+
+Each canvas has a **Site menu** toggle next to **Menu**. Off hides the site's top menu (the Primary canvas rows and the public links) on that canvas's page; Home, the canvas list and the canvas's own sub-menu stay. It is on by default, including on the Demo canvas.
+
+### Row heading
+
+Under a Row's height settings, **Row heading (visitor page)** adds text above the Row's Cells: a **Kicker** (small label), a **Headline**, a **Lead line**, and a **Note** (for example "Staff edit this in Executive → Projects"). Leave all four empty for no heading.
+
 The component gallery is **Glossary → UI Components**, the tab after Org Board. `/ui-components` opens that tab.
 
 Pages and Statistics records stay **Custom Records** (sidebar, above Records Editor). Inspections & Reports stay **Faculty → Communications**. Contacts stay **Distribution → Contacts**. Page Builder binds and paints those records; it is not their listing home. Cycle Strip is edited under Branding, not as a Custom record.
 
 ### Row height
 
-Each visitor Row is one screen tall so the next control sits at the bottom.
+Each visitor Row is one screen tall so the next control sits at the bottom, unless **Use** is **Fit content**: then the Row is as tall as what it shows.
 
 | Control | What it changes |
 |---------|-----------------|
@@ -150,6 +200,109 @@ Each visitor Row is one screen tall so the next control sits at the bottom.
 
 Pixels taller than the screen are cut down to that screen. A viewport percent is a share of the screen and is not cut again. Those two choices will not match each other. That is expected.
 
+On a phone, a Row with several columns shows them one under the other. A pixel or viewport height then applies from desktop width up; on a phone each Cell gets a minimum height instead, so stacked Cells never overlap.
+
 **Element configuration** under the Row starts collapsed. It opens and closes, and stays spaced below the bar either way. Statistics Cells set Grid (1, 2, 4, 8, 12), Page, and Pagination on display. Grid 8 is four columns by two rows. The date under each graph is that period’s start.
 
+### The Demo canvas
+
+With **Settings → Modes → Demo with Sample data** on, the visitor page `/p/demo` is a guided tour built from the sample records: Overview, Organization, Projects, Jobs and money, Statistics, Assets, Schedules, Knowledge and Contact. Every section says where staff edit those records. Its Elements use the sample-only Filter, so records you add yourself don't appear there. Open it from Page Builder → Canvas → **Demo**, or from the visitor menu.
+
+Sample records are ordinary records: open the Bracket invoice, the van or the Board rollout project and change them, and the tour shows the change. Turning Demo off deletes every sample record, the van's files and the Demo canvas. Your own records, canvases and Primary stay.
+
 When a Driver or Render output changes, update this chapter and Glossary → Page Builder.
+
+## 8. Assets, documents and mileage
+
+### Assets
+
+Sidebar → **Organization** → **Treasury** → **Records, Assets and Materiel**. Besides Name, Status, Description and Notes, an asset has:
+
+| Field | Use |
+|-------|-----|
+| **Asset category** | Vehicle, Equipment, Computer, Furniture or Other (edit the list in Records Editor → value set `asset_category`) |
+| **VIN / Serial number** | The identifier to search by |
+| **Purchase date**, **Purchase price**, **Business use %** | What the tax records need |
+| **Current odometer**, **Next service due** | Kept up to date at each check-in |
+| **Documents & Photos** | The paperwork (see below) |
+
+### Documents & Photos (Attachments)
+
+An Attachments field holds up to **10 files of up to 20 MB** each: PDF, Word, Excel, CSV, text, ZIP and pictures (including iPhone HEIC). Click **Add files** and pick one or more.
+
+- Pictures show as a small thumbnail; other files show an icon with the name and size.
+- Click a file to open it. PDFs and pictures open in the browser; other files download. The download arrow always downloads.
+- The **×** removes the file from this record. The stored file is kept, so cancelling the edit loses nothing.
+
+Admins can add more file types in Records Editor → value set `file_mime`, and add an Attachments field to any record type (data type **Attachments**).
+
+### Vehicle Mileage Logs
+
+Sidebar → **Custom Records** → **Vehicle Mileage Logs** (moved from Treasury in 1.0.16). Each log links to its vehicle in Treasury → Records, Assets and Materiel. Keep **one log per vehicle per tax year**.
+
+1. Click **New Record**. Fill in the **Log** section: Name (e.g. Ranger 2026 log), **Vehicle** (picks from Records, Assets and Materiel), Tax year and Starting odometer.
+2. Open the log and add a line for each trip or day: Date, Start / End odometer (optional), **Miles**, **Business use** (tick for business), **Business** (which organization the trip was for) and **Purpose / destination** (who, where and why, as the tax authority asks).
+3. The **Totals** section works itself out on every save: **Total miles**, **Business miles** and **Business use %**.
+
+Monthly odometer readings can go in as lines too, so the log keeps a reading even in a month with few trips.
+
+### Summary fields
+
+Total miles and the other totals are **Summary** fields. An admin can add one to any "Header and lines" type in Records Editor (data type **Summary**): choose the total (sum, count, smallest, largest, average), the lines field, optionally only lines where a field matches, or show it as a percentage of another Summary field.
+
+### Quick entry by an agent or script
+
+An agent can add a trip without opening the screen: `POST /api/records/<log id>/lines` with `{ "data": { "trip_date": "2026-11-19", "trip_miles": 42, "trip_business": true, "trip_purpose": "Client visit" } }`. The totals and any statistic fed from the log update at once. Settings → API lists every endpoint.
+
+## 9. Jobs, estimates, invoices and bills
+
+A job runs: **customer → project → estimate → invoice**, with the parts bought from vendors on **bills**. Each record stays in its own zone and links to the others.
+
+| Record | Where | Links to |
+|--------|-------|----------|
+| Customer, Vendor | Collaboration (organizations of type Customer or Vendor) | — |
+| Project | Organization → Executive → **Projects** | **Customer** |
+| Estimate, Invoice, Bill | Organization → Treasury → **Transactions** (Document kind) | **Project**, Counterparty (customer or vendor) |
+
+### Estimate with a bill of materials
+
+1. Treasury → Transactions → **New Record**: Document kind **Estimate**, Counterparty = the customer, **Project** = the job.
+2. Open it and add a line per part: Description, Quantity, **Vendor**, **Unit cost** (what the vendor charges you, their tax and shipping included) and, if you like, **Markup %**.
+3. **Unit price** works itself out: Unit cost × (1 + Markup %). Type a price instead and yours stays. **Line total** is Quantity × Unit price, unless you type one. **Line cost** is Quantity × Unit cost.
+4. The header shows **Subtotal** (the line totals), **Cost total** (the line costs), **Margin** and **Margin %**. **Amount** is Subtotal + Tax.
+
+Values update while you type and again when you save.
+
+### Convert to invoice
+
+When the customer approves, open the estimate and click **Convert to invoice**. VBA copies it into a new draft **Invoice** ("Bracket estimate" becomes "Bracket invoice") and marks the estimate **Converted**. The customer's prices are now fixed on the invoice.
+
+An estimate that came from Wave (it has an External ID) can't be converted in VBA; convert it in Wave.
+
+### The vendor's bill
+
+When you order, enter what the vendor actually charged: Treasury → Transactions → **New Record**, Document kind **Bill**, Classification Disbursement, Counterparty = the vendor, the same **Project**, and the **Amount** (their tax included). Lines are optional.
+
+Then open the **invoice** and, on each line the bill covered, pick it in **Vendor bill**. **Actual cost** (this line's share of the bill) starts at the line cost; change it when the bill differs. **Variance** shows Actual cost − Line cost.
+
+The bill shows **Allocated** (the shares taken so far) and **Remaining**. VBA refuses a save that would take a bill past its total ("PrintParts bill 4471 has 1.50 left to allocate…"), and you can't lower a bill's Amount below what is allocated. One bill can cover lines on several invoices.
+
+### Clone
+
+**Clone** (next to Edit, on any record) makes a "Copy of …" with all its lines, ready to edit: a project for a repeat job, last month's bill, an invoice for a similar order. A copied transaction starts as a draft, and its lines are not linked to any bill.
+
+### Linked from
+
+Under an open record, **Linked from** lists the records that point to it. On a project: its estimates, invoices and bills, with totals per kind (estimate, invoice, bill), so quoted and actual cost sit side by side. On a bill: the invoices whose lines it covers.
+
+### Formulas and calculated defaults
+
+The calculations above are ordinary fields an admin can add to any record type in **Records Editor**:
+
+- **Formula** field: always calculated, read-only. Uses fields of the same header (or the same line), numbers, `+ - * /`, brackets, comparisons (`= <> < > <= >=`) and `SUM`, `ROUND`, `MIN`, `MAX`, `IF`, `FIRST`. Example: `IF(subtotal > 0, ROUND(margin / subtotal * 100, 1), 0)`.
+- **Calculated default** on a Number or Currency field: the field follows a formula until someone types a different value; clear it to follow again.
+- **Summary** field: totals a lines field on the header (§8).
+- **Only offer records where…** on a Lookup field: e.g. Vendor offers only organizations of type Vendor.
+
+A statistic can graph money too: in its Source section choose **Read from: Records**, Source record type Transactions, Date field Date, Value field Amount, Only lines where Document kind equals `invoice` - invoiced per month (§4).
+

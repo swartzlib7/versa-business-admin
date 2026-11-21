@@ -25,6 +25,9 @@ export type RuntimeFieldSource = {
   zone_role?: "header" | "list" | null;
   is_secret?: boolean;
   lookup_object_api_name?: string | null;
+  summary?: { percent_of?: string | null } | null;
+  lookup_filter?: { field: string; value: string } | null;
+  read_only?: boolean;
 };
 
 /** Converts a server-supplied dynamic field into a UI field. */
@@ -33,7 +36,7 @@ function runtimeFieldToUi(field: RuntimeFieldSource, objectApiName: string): UiL
   return {
     key: field.api_name,
     label: field.label,
-    help: helpForField(field.api_name),
+    help: helpForField(field.api_name, objectApiName),
     kind: dataTypeToUiKind(field.data_type as CatalogDataType),
     options,
     optionLabels,
@@ -42,7 +45,9 @@ function runtimeFieldToUi(field: RuntimeFieldSource, objectApiName: string): UiL
     zoneRole: field.zone_role ?? null,
     secret: field.is_secret === true || field.api_name === "configuration",
     lookupObjectApiName: field.lookup_object_api_name ?? null,
-    readOnly: isDriverCodeOwnedField(objectApiName, field.api_name),
+    readOnly: field.read_only === true || isDriverCodeOwnedField(objectApiName, field.api_name),
+    summaryPercent: !!field.summary?.percent_of,
+    lookupFilter: field.lookup_filter ?? null,
   };
 }
 

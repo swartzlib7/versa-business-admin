@@ -519,6 +519,69 @@
   display: grid;
   gap: 0.65rem;
 }
+/* 1.0.16 Demo canvas opening section */
+.page-html .demo-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+  gap: 2rem;
+  align-items: center;
+  padding: 1rem 0;
+}
+.page-html .demo-hero::before {
+  content: "";
+  position: absolute;
+  inset: -30% -5% auto 35%;
+  height: 140%;
+  background: radial-gradient(closest-side, color-mix(in srgb, #14b8a6 26%, transparent), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.page-html .demo-hero > * { position: relative; z-index: 1; }
+.page-html .demo-hero-logo {
+  width: 96px;
+  height: auto;
+  margin: 0 0 1rem;
+  filter: drop-shadow(0 6px 24px color-mix(in srgb, #14b8a6 40%, transparent));
+}
+.page-html .demo-hero :where(h1) {
+  margin: 0.4rem 0 0.9rem;
+  font-size: clamp(1.9rem, 4.4vw, 3.1rem);
+  line-height: 1.06;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.page-html .demo-hero :where(h1 em) { font-style: normal; color: #14b8a6; }
+.page-html .demo-hero .demo-kicker { color: #14b8a6; }
+.page-html .demo-hero .demo-lead { max-width: 34rem; font-size: 0.98rem; line-height: 1.6; opacity: 0.85; }
+.page-html .demo-hero-cta { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.4rem; }
+.page-html .demo-btn {
+  display: inline-block;
+  border-radius: 0.55rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.85rem;
+  text-decoration: none;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+.page-html .demo-btn-primary { background: #14b8a6; border-color: #14b8a6; color: #04130f; font-weight: 700; }
+.page-html .demo-hero-proof { display: grid; gap: 0.6rem; }
+.page-html .demo-hero-proof > div {
+  display: grid;
+  grid-template-columns: 5.2rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.7rem;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  background: color-mix(in srgb, currentColor 4%, transparent);
+}
+.page-html .demo-hero-proof b { font-size: 1.35rem; color: #14b8a6; font-variant-numeric: tabular-nums; }
+.page-html .demo-hero-proof span { font-size: 0.8rem; opacity: 0.75; }
+@media (max-width: 1023px) {
+  .page-html .demo-hero { grid-template-columns: minmax(0, 1fr); gap: 1.4rem; }
+}
 .page-html .demo-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .page-html .demo-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .page-html .demo-stack {

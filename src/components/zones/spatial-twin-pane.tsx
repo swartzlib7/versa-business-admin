@@ -341,6 +341,7 @@ function TwinBody({
             schedule={preview.schedule}
             inspection={preview.inspection}
             project={preview.project}
+            boards={preview.boards}
             renderOutput={preview.renderOutput}
           />
         </div>

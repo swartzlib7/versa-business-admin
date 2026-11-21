@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { ZoneConfigView, type ZoneConfig } from "@/components/zones/zone-config-view";
-import { applyRecordTypesToZoneTabs, type ZoneRecordType } from "@/lib/zones/record-type-tabs";
+import { appendCustomRecordTypeTabs, applyRecordTypesToZoneTabs, type ZoneRecordType } from "@/lib/zones/record-type-tabs";
 
 type ParentKind = "faculty" | "collaboration" | "environment";
 type Props = { config: ZoneConfig; parentKind: ParentKind };
@@ -22,5 +22,8 @@ export function DynamicZonePage({ config, parentKind }: Props) {
     return () => controller.abort();
   }, [parentKind]);
 
-  return <AppShell><ZoneConfigView config={{ ...config, tabs: applyRecordTypesToZoneTabs(config.tabs, parentKind, recordTypes) }} /></AppShell>;
+  let tabs = applyRecordTypesToZoneTabs(config.tabs, parentKind, recordTypes);
+  // 1.0.16: Custom Records also lists types filed under Custom (e.g. Vehicle Mileage Logs).
+  if (config.id === "custom-records") tabs = appendCustomRecordTypeTabs(tabs, recordTypes);
+  return <AppShell><ZoneConfigView config={{ ...config, tabs }} /></AppShell>;
 }

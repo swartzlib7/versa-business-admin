@@ -16,6 +16,14 @@ export const STAT_HEADER_FIELD_APIS = [
   "series_mode",
   "period_target",
   "slot_target",
+  // 1.0.14: fed from records (source-values.ts)
+  "source_record_type",
+  "source_read_from",
+  "source_record_id",
+  "source_date_field",
+  "source_value_field",
+  "source_filter_field",
+  "source_filter_value",
   "created_by",
   "last_modified_by",
 ] as const;

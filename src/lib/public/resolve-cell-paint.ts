@@ -1,6 +1,9 @@
 import { adapter } from "@/lib/data";
 import { pairingFromRecord } from "@/lib/public/driver-pairings";
 import { foldLegacyDriver, paintKind } from "@/lib/public/render-drivers";
+import { selectPairedRecords } from "@/lib/public/pairing-filter";
+import { resolveBoardPaint, type BoardFetchers, type BoardPaints } from "@/lib/public/board-resolve";
+import { getRecordType } from "@/lib/fixtures/record-types";
 import type { PageBuilderCell } from "@/lib/public/page-builder";
 import type { CanvasSlotStat } from "@/components/public/canvas-slot-drivers";
 import { listStatLinesDb } from "@/lib/db/stat-lines-store";
@@ -33,6 +36,8 @@ export type ResolvedCellPaint = {
   schedule?: SchedulePaint;
   inspection?: InspectionPaint;
   project?: ProjectPaint;
+  /** 1.0.16: Gantt, Job and money, Asset card, Organization board. */
+  boards?: BoardPaints;
 };
 
 function codeKeyFromDriverId(driverId: string): string {
@@ -92,7 +97,7 @@ export async function resolveCellPaint(cell: PageBuilderCell): Promise<ResolvedC
 
   if (kind === "integration-table" && adapter.listRecords) {
     const recs = await adapter.listRecords({ type_api_name: "vendor_integration" }).catch(() => []);
-    const chosen = fields.selection_mode === "one" && targetId ? recs.filter((row) => row.id === targetId) : recs;
+    const chosen = selectPairedRecords(recs, fields);
     const vendorById = new Map<string, { name: string; logoUrl: string }>();
     if (adapter.getOrganization) {
       for (const rec of chosen) {
@@ -107,19 +112,19 @@ export async function resolveCellPaint(cell: PageBuilderCell): Promise<ResolvedC
 
   if (kind === "schedule-board" && adapter.listRecords) {
     const recs = await adapter.listRecords({ type_api_name: "schedule" }).catch(() => []);
-    const chosen = fields.selection_mode === "one" && targetId ? recs.filter((row) => row.id === targetId) : recs;
+    const chosen = selectPairedRecords(recs, fields);
     out.schedule = scheduleBoard(chosen);
   }
 
   if (kind === "inspection-tickets" && adapter.listRecords) {
     const recs = await adapter.listRecords({ type_api_name: "inspection_report" }).catch(() => []);
-    const chosen = fields.selection_mode === "one" && targetId ? recs.filter((row) => row.id === targetId) : recs;
+    const chosen = selectPairedRecords(recs, fields);
     out.inspection = inspectionPaint(chosen);
   }
 
   if ((kind === "project-table" || kind === "project-cards") && adapter.listRecords) {
     const projects = await adapter.listRecords({ type_api_name: "executive_project" }).catch(() => []);
-    const chosen = fields.selection_mode === "one" && targetId ? projects.filter((row) => row.id === targetId) : projects;
+    const chosen = selectPairedRecords(projects, fields);
     const tasks = chosen.flatMap((project) =>
       (project.lines ?? [])
         .filter((line) => line.line_group === "tasks")
@@ -131,6 +136,16 @@ export async function resolveCellPaint(cell: PageBuilderCell): Promise<ResolvedC
     );
     out.project = projectPaint(chosen, tasks);
   }
+
+  const fetchers: BoardFetchers = {
+    listRecords: async (type) =>
+      adapter.listRecords ? await adapter.listRecords(type ? { type_api_name: type } : {}).catch(() => []) : [],
+    listOrganizations: async () =>
+      adapter.listOrganizations ? await adapter.listOrganizations().catch(() => []) : [],
+    typeLabel: (type) => getRecordType(type)?.label ?? type,
+  };
+  const boards = await resolveBoardPaint(kind, fields, fetchers);
+  if (boards) out.boards = boards;
 
   if ((kind === "location-card" || kind === "contacts-cards") && targetId) {
     const contact = await resolvePublicContactFromRecord(fields.target_record_type, targetId);

@@ -65,7 +65,25 @@ export type PageBuilderSection = {
   height_vh?: number;
   /** True when staff typed the hash; blanking it returns to auto-from-label. */
   idManual?: boolean;
+  /** 1.0.16: optional heading painted above the row's cells on the visitor page. */
+  heading?: RowHeading;
 };
+
+/** A row's visitor heading: small kicker, headline, one lead line, and a note (e.g. where staff edit it). */
+export type RowHeading = { kicker?: string; title?: string; lede?: string; note?: string };
+
+const HEADING_LIMITS: Record<keyof RowHeading, number> = { kicker: 48, title: 120, lede: 320, note: 160 };
+
+export function normalizeRowHeading(raw: unknown): RowHeading | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const rec = raw as Record<string, unknown>;
+  const out: RowHeading = {};
+  for (const key of Object.keys(HEADING_LIMITS) as Array<keyof RowHeading>) {
+    const value = typeof rec[key] === "string" ? (rec[key] as string).trim().slice(0, HEADING_LIMITS[key]) : "";
+    if (value) out[key] = value;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
 
 export type PageBuilderRow = PageBuilderSection;
 
@@ -111,6 +129,12 @@ export type CustomCanvas = {
   style_page_id?: string;
   /** Public menu entry for this canvas. Default on. */
   menu_enabled?: boolean;
+  /**
+   * 1.0.16: the site's top menu (Primary rows and public links) on this
+   * canvas's own page. Off keeps Home, the canvas list and this canvas's
+   * sub-menu only, e.g. the Demo tour. Default on.
+   */
+  site_menu?: boolean;
   seo?: CanvasSeo;
   /** Per-canvas sky. Site sky_enabled off wins. */
   sky?: CanvasSkyChoice;
@@ -1092,6 +1116,28 @@ export function rowHeightCss(row: {
   return `min(${clampRowHeight(row.height_px)}px, 100svh)`;
 }
 
+/**
+ * Visitor row height (1.0.16, DM-17). Columns stack below `lg`, so a fixed
+ * height applies from `lg` up; stacked cells keep a minimum instead, or they
+ * would overlap inside the fixed box on a phone.
+ */
+export function rowHeightProps(row: {
+  columns?: number;
+  height_px?: number;
+  height_vh?: number;
+  height_unit?: unknown;
+}): { className: string; style: Record<string, string>; cellClassName: string } {
+  const height = rowHeightCss(row);
+  if (height === "auto" || clampSectionColumns(row.columns) < 2) {
+    return { className: "", style: { height }, cellClassName: "" };
+  }
+  return {
+    className: "lg:h-[var(--pb-row-h)]",
+    style: { "--pb-row-h": height },
+    cellClassName: "max-lg:min-h-80",
+  };
+}
+
 export const DEFAULT_CUSTOM_CANVAS: CustomCanvas = {
   id: "cv-overview",
   enabled: true,
@@ -1272,6 +1318,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
   const enabled = rec.enabled !== false && !isBlankSlotLabel(label);
   const in_menu = rec.in_menu === false ? false : rec.in_menu === true ? true : undefined;
   const cells = Array.isArray(rec.cells) ? rec.cells : undefined;
+  const heading = normalizeRowHeading(rec.heading);
   const idManual =
     rec.idManual === true
       ? true
@@ -1294,6 +1341,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
       enabled,
       in_menu,
       idManual,
+      ...(heading ? { heading } : {}),
       cells: cells as PageBuilderCell[] | undefined,
     });
   }
@@ -1315,6 +1363,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
       enabled,
       in_menu,
       idManual,
+      ...(heading ? { heading } : {}),
       cells: cells as PageBuilderCell[] | undefined,
     });
   }
@@ -1339,6 +1388,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
       enabled,
       in_menu,
       idManual,
+      ...(heading ? { heading } : {}),
       cells: cells as PageBuilderCell[] | undefined,
     });
   }
@@ -1357,6 +1407,7 @@ function normalizeSection(rec: Record<string, unknown>, used: Set<string>): Page
     enabled,
     in_menu,
     idManual,
+    ...(heading ? { heading } : {}),
     cells: cells as PageBuilderCell[] | undefined,
   });
 }
@@ -1410,6 +1461,7 @@ function normalizeCanvas(
     html_page_id: typeof rec.html_page_id === "string" ? rec.html_page_id.trim().slice(0, 80) : "",
     style_page_id: typeof rec.style_page_id === "string" ? rec.style_page_id.trim().slice(0, 80) : "",
     menu_enabled: rec.menu_enabled !== false,
+    site_menu: rec.site_menu !== false,
     seo: normalizeSeo(rec.seo),
     sky: normalizeSkyChoice(rec.sky),
     header_enabled: rec.header_enabled !== false,

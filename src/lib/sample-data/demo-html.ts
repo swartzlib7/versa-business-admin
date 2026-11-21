@@ -62,14 +62,31 @@ export const DEMO_INSPECTIONS_HTML = stage(
 export const DEMO_KNOWLEDGE_HTML = stage(
   "violet",
   [
-    '<p class="demo-kicker">How the work runs</p>',
-    "<h2>Two notes the staff keep open.</h2>",
-    '<div class="demo-fill demo-cols-2">',
-    '<article class="demo-card"><span class="demo-index">Onboarding</span><h3>The first week</h3><ol><li>Access and the Primary canvas</li><li>Who owns the next reply</li><li>Where the record lives</li></ol></article>',
-    '<article class="demo-card"><span class="demo-index">Escalation</span><h3>When it leaves the desk</h3><ol><li>Name the owner</li><li>Write the next step</li><li>Keep the thread on the record</li></ol></article>',
+    '<div class="demo-fill demo-cols-3">',
+    '<article class="demo-card"><span class="demo-index">Onboarding</span><h3>The first week</h3><ol><li>Read your hat: purposes, know-how, duties</li><li>Find your division on the org board</li><li>Open the records you own</li></ol></article>',
+    '<article class="demo-card"><span class="demo-index">Money</span><h3>Pricing a job</h3><ol><li>Unit cost and markup give the price</li><li>Convert the estimate to an invoice</li><li>Match the vendor bill to the lines</li></ol></article>',
+    '<article class="demo-card"><span class="demo-index">Agents</span><h3>Working over the API</h3><ol><li>Sign in like staff do</li><li>Add a mileage trip or a job line in one call</li><li>The same totals and checks apply</li></ol></article>',
     "</div>",
   ].join(""),
 );
+
+/** 1.0.16: the opening section of the Demo canvas. */
+export const DEMO_HERO_HTML = [
+  '<div class="demo-hero">',
+  '<div class="demo-hero-copy">',
+  '<img class="demo-hero-logo" src="/seed/demo/vba-shield-256.png" alt="Versa Business Admin shield" width="96" height="96">',
+  '<p class="demo-kicker">Versa - Business Admin</p>',
+  "<h1>Run the whole business from <em>one org board.</em></h1>",
+  '<p class="demo-lead">Divisions, projects, jobs and money, statistics and assets in one place. Your staff use the screens. Your agents use the same records over the API.</p>',
+  '<p class="demo-hero-cta"><a class="demo-btn demo-btn-primary" href="#organization">Take the tour</a><a class="demo-btn" href="/login">Sign in to the sample</a></p>',
+  "</div>",
+  '<div class="demo-hero-proof">',
+  "<div><b>7</b><span>divisions on one org board, each with its own records and hats</span></div>",
+  "<div><b>1 click</b><span>from estimate to invoice, with vendor bills matched to job lines</span></div>",
+  "<div><b>Pace</b><span>drawn against each statistic&#39;s target, so a gap shows early</span></div>",
+  "</div>",
+  "</div>",
+].join("");
 
 export const DEMO_ABOUT_HTML = stage(
   "emerald",

@@ -55,3 +55,6 @@ next-env.d.ts
 
 # persisted fixture branding (logo + name/color)
 .data/
+
+# 1.0.14: npm run backup writes here (database dumps and secrets)
+/backups/

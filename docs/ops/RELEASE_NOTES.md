@@ -1,9 +1,65 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.13 (2026-11-15)
+**Current:** 1.0.16 (2026-11-20)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.16
+
+No new migration; still run `npm run db:migrate` as on every upgrade. Catalog seed pack is `1.0.16-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.13.
+
+- **The Demo canvas (`/p/demo`) is a guided tour** of what VBA does, one section per capability: an opening section, the **Organization board** (divisions, hats and who holds them, records), **Projects** as a Gantt chart, **Jobs and money** (estimate → invoice → vendor bill, lines, margin), **Statistics** (target and catch-up pace, and one statistic filled from the mileage log), **Assets and mileage** (a van with its documents and trips), **Schedules**, **Knowledge** and **Contact**. Each section says where staff edit it.
+- New per-canvas setting **Site menu** (Page Builder → Canvas, next to Menu): Off hides the site's top menu on that canvas's page, keeping Home, the canvas list and the canvas's own sub-menu. On by default, including on the Demo canvas.
+- **The demo shows sample records only.** A project or schedule you add yourself no longer appears on the Demo canvas.
+- **More sample data** with Demo on: a vendor (Acme Metal Supply), a product, a promotion, a review, a converted estimate with its invoice and a vendor bill matched to the job lines, a van with three documents, a mileage log, and a "Business miles" statistic read from it. Sample records go through the same save pipeline as any other record, so their totals and margins are worked out by VBA. Dates follow the install date, so the project, trips and statistics always look current. Demo off removes all of it, including the van's files.
+- **New Page Builder drivers:** **Organization board** (divisions with their hats and records), **Transaction → Job and money** (one estimate or invoice with its source, its vendor bills, lines and totals), **Asset → Asset card** (details, document names, latest mileage log), and **Project → Gantt** (the staff Gantt chart on the visitor page). They show in the Spatial Twin and the Cell previews too.
+- **Vehicle Mileage Logs moved to Custom Records** (sidebar → Custom Records), next to Pages and Statistics. Custom Records now shows a tab for every type filed there, not only Statistics and Pages. A log is a pre-configured record that points at its vehicle in Treasury → Records, Assets and Materiel; it is not a Treasury tab. Existing logs move with it; nothing else changes (same fields, same API type `treasury_vehicle_mileage_log`, same statistics sources).
+- **Technical Overview tells the Versa story.** It opens with the three chapters, in the order the products were built: **the communicator** (VersaVoice AI), **the ecosystem** (Versa AGi) and **the Unified Global Production Network** (both together), each linking to its page on versavoice.ai, with a link to the whole story. Chapter 3 follows up close: the network diagram of four nodes (Tokyo, New York, São Paulo, Johannesburg) meeting in VersaVoice AI and converging on shared human intent, and the three points it rests on.
+- **Other Versa AGi pages follow the website.** **Capabilities** now says a VersaVoice account is required. **Deployment** shows the two-step install command and links to the Versa AGi and VersaVoice AI manuals. The styles page carries the new diagram styles.
+- **Existing installs get these pages too.** At start-up, a Versa AGi page still exactly as an earlier release shipped it is replaced with this release's version. A page edited on the install is left as it is, and the server log names it.
+- **Elements can filter.** An Element in **Filter** mode shows only the records that match its Filter, for example sample records only: `[{"field":"external_id","op":"starts_with","value":"ba_sample:"}]`. Ops: `eq`, `ne`, `starts_with`, `contains`, `empty`, `not_empty`. Integration, Schedule, Inspections, Project, Asset and Organization board Elements accept it, and the Element form's filter builder offers the new comparisons. Before, a saved Filter was ignored and every record showed.
+- **Row headings.** A canvas Row can have a visitor heading: a kicker, a headline, a lead line and a note. Edit it under the Row's height settings (**Row heading (visitor page)**).
+- **Phone fixes on visitor pages:** the canvas sub-menu is one line that scrolls sideways instead of wrapping over the page; tables scroll inside their card instead of being cut off; Cells in a fixed-height row with several columns no longer overlap when they stack; a Statistics grid of 2 or 4 stacks to one graph per line.
+- Fixed: Schedule boards listed extra months out of order (this month first, then older ones). Months are now in calendar order.
+- Fixed: sample statistics showed the month before their start in timezones west of UTC (the start was stored as UTC midnight).
+- Fixed: `next build` with Demo on could add the sample pack to the database once per build worker (duplicate sample organizations). Start-up writes now wait for the first real start.
+- Fixed: with Demo on, every restart rewrote sample records that link to other records (e.g. the Receptionist hat), undoing staff edits to them. A restart now only re-points those links.
+- A Location map keeps a usable height in a row set to **Fit content**.
+- Visitor header: between 1280 and 1536 pixels wide, where the full menu shows, a multi-word site name shows as its initials (e.g. **VBA**) so it no longer runs into the menu; hovering shows the full name.
+
+## 1.0.15
+
+No new migration; still run `npm run db:migrate` as on every upgrade. Catalog seed pack is `1.0.15-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.12.
+
+- **Projects, estimates, invoices and bills are linked.** A Project has a **Customer**; a Transaction has a **Project** (one project, many transactions).
+- **Bill of materials on Transactions.** Each line can carry Vendor, Unit cost and Markup %. **Unit price** follows Unit cost × (1 + Markup %) until you type a price; **Line total** follows Quantity × Unit price until you type a total; **Line cost** = Quantity × Unit cost. The header shows **Subtotal**, **Cost total**, **Margin** and **Margin %**. **Amount** follows Subtotal + Tax until you type an amount (a bill without lines).
+- **Vendor bills.** New Document kind **Bill**. On an invoice line, pick the **Vendor bill** that covered it; **Actual cost** (that line's share of the bill) starts at the estimated cost, and **Variance** shows the difference. The bill shows **Allocated** and **Remaining**. A save that would take a bill past its total is refused, and a bill's Amount can't drop below what is allocated.
+- **Convert to invoice** on a quote or estimate made in VBA: copies it into a draft invoice and marks the estimate Converted.
+- **Clone** on any record: a "Copy of …" with its lines, ready to edit. A copy never takes another share of a bill.
+- **Linked from** under every open record: the records that point to it, by type, with amounts totalled per document kind. On a project you see its estimates, invoices and bills; on a bill, the invoices that used it.
+- New field type **Formula** (Records Editor): calculates from fields of the same header or line with + − × ÷, comparisons and SUM, ROUND, MIN, MAX, IF, FIRST. Number fields can have a **Calculated default** that follows a formula until someone types a value. Lookup fields can **only offer** records where a field matches (Vendor shows vendors only).
+- Forms show calculated values **while you type**; the server works them out again on every save, for the screen, the API and agents alike.
+- **Integrated records** (with an External ID, e.g. from Wave) keep what the integration wrote: no recalculation and no Convert. Clone is allowed and clears the External ID.
+- A statistic **fed from records** can read the records' own fields (**Read from: Records**), e.g. invoiced amount per month by invoice date.
+- Currency fields take numbers. Organization lookups show the organization's name in tables.
+- **API:** `POST /api/records/<id>/clone`, `POST /api/records/<id>/convert`, `GET /api/records/<id>/linked`.
+
+## 1.0.14
+
+No new migration; still run `npm run db:migrate` as on every upgrade. Catalog seed pack is `1.0.14-r1`. Back up first with the new `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.11.
+
+- New field type **Attachments**: any file type in the `file_mime` list (PDF, Word, Excel, CSV, text, ZIP, pictures including iPhone HEIC), up to 10 files of 20 MB each per field. Pictures show as thumbnails; other files show an icon, name and size, and open or download. Removing a file from a record keeps the stored file, so cancelling an edit never loses a document.
+- New field type **Summary** for "Header and lines" records: a read-only total of a lines field (sum, count, smallest, largest, average), optionally only for lines where a field matches, or as a percentage of another summary. VBA works it out on every save.
+- A **Lookup** field can point to any record type, system or custom. Forms show a record picker and tables show the record's name. Before, most targets fell back to a list of users.
+- **Treasury → Records, Assets and Materiel** has Asset category, VIN / Serial number, Purchase date, Purchase price, Business use %, Current odometer, Next service due, and Documents & Photos.
+- New **Treasury → Vehicle Mileage Logs**: one log per vehicle and tax year, one line per trip or day. Total miles, Business miles and Business use % are worked out from the lines.
+- A statistic can be **fed from records**: in its new Source section, pick a record type, its date field and the field to total (or count lines), optionally only lines where a field matches. The values fill themselves per step and update when those records change; the values card is then read-only. Example: monthly business miles from the mileage logs.
+- **API:** `POST /api/records/<id>/lines` adds lines to a record without resending the whole list (quick entry from an agent or script). `POST /api/statistics/<id>/refresh` recomputes a fed statistic. `POST /api/records/files` uploads an attachment.
+- **Backups:** `npm run backup` saves the database, settings and (optionally) the uploads folder. The uploads folder can live anywhere (`VBA_UPLOADS_DIR`), for example a synced drive.
+- Tables show dates as "18 Nov 2026" and checkboxes as Yes / No.
+- A statistic graph with many steps (e.g. 12 months in the narrow Spatial Twin) shows every other date under it instead of overlapping them.
+- Fixed: the Status help text for Rendering Drivers showed under Status on every record type.
 
 ## 1.0.13
 

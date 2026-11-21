@@ -122,6 +122,10 @@ const FILTER_OPS = [
   { id: "eq", label: "equals" },
   { id: "ne", label: "does not equal" },
   { id: "contains", label: "contains" },
+  // 1.0.16 (pairing-filter.ts): the Demo canvas filters on external_id starts with ba_sample:
+  { id: "starts_with", label: "starts with" },
+  { id: "empty", label: "is empty" },
+  { id: "not_empty", label: "is not empty" },
 ] as const;
 
 type FilterRow = { field: string; op: string; value: string };

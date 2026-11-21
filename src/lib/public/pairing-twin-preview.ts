@@ -3,6 +3,9 @@ import type { Organization } from "@/lib/data/types";
 import { codeKeyFromDriverRecord } from "@/lib/public/driver-pairings";
 import { contactCardFromSeed } from "@/lib/public/resolve-contact-card";
 import { paintKind } from "@/lib/public/render-drivers";
+import { pairingFromRecord } from "@/lib/public/driver-pairings";
+import { selectPairedRecords } from "@/lib/public/pairing-filter";
+import { BOARD_PAINT_KINDS, browserBoardFetchers, resolveBoardPaint } from "@/lib/public/board-resolve";
 import type { RecordInstance } from "@/lib/fixtures/record-instances";
 import { pageRecordCardFrom } from "@/lib/public/page-record-card";
 import {
@@ -126,6 +129,13 @@ export async function loadPairingTwinPreview(args: {
       contact: contactCardFromSeed(typed, org),
     };
   }
+  if (BOARD_PAINT_KINDS.has(kind)) {
+    const fields = pairingFromRecord({ id: args.pairingId, name: name ?? "", data });
+    const boards = fields
+      ? await resolveBoardPaint(kind, fields, await browserBoardFetchers(kind, args.signal))
+      : undefined;
+    return { kind: "canvas-driver", driver: codeKey || kind, label: name, renderOutput: renderOption, boards };
+  }
   if (
     kind === "integration-table" ||
     kind === "schedule-board" ||
@@ -140,15 +150,18 @@ export async function loadPairingTwinPreview(args: {
       renderOutput: renderOption,
     };
     const one = targetId && targetId !== "*";
+    const fields = pairingFromRecord({ id: args.pairingId, name: name ?? "", data });
+    const pick = <T extends { id: string; name?: string; status?: string; data?: Record<string, unknown> }>(rows: T[]): T[] =>
+      fields ? selectPairedRecords(rows, fields) : one ? rows.filter((row) => row.id === targetId) : rows;
     if (kind === "schedule-board") {
       const list = await fetch("/api/records?type=schedule", { credentials: "include", signal: args.signal });
       const rows = list.ok ? ((await list.json()) as { data?: RecordInstance[] }).data ?? [] : [];
-      return { ...base, schedule: scheduleBoard(one ? rows.filter((row) => row.id === targetId) : rows) };
+      return { ...base, schedule: scheduleBoard(pick(rows)) };
     }
     if (kind === "integration-table") {
       const list = await fetch("/api/records?type=vendor_integration", { credentials: "include", signal: args.signal });
       const rows = list.ok ? ((await list.json()) as { data?: RecordInstance[] }).data ?? [] : [];
-      const chosen = one ? rows.filter((row) => row.id === targetId) : rows;
+      const chosen = pick(rows);
       const orgRes = await fetch("/api/organizations", { credentials: "include", signal: args.signal });
       const orgJson = orgRes.ok ? ((await orgRes.json()) as { data?: Organization[] }) : {};
       const vendorById = new Map(
@@ -159,11 +172,11 @@ export async function loadPairingTwinPreview(args: {
     if (kind === "inspection-tickets") {
       const list = await fetch("/api/records?type=inspection_report", { credentials: "include", signal: args.signal });
       const rows = list.ok ? ((await list.json()) as { data?: RecordInstance[] }).data ?? [] : [];
-      return { ...base, inspection: inspectionPaint(one ? rows.filter((row) => row.id === targetId) : rows) };
+      return { ...base, inspection: inspectionPaint(pick(rows)) };
     }
     const projectsRes = await fetch("/api/records?type=executive_project", { credentials: "include", signal: args.signal });
     const projects = projectsRes.ok ? ((await projectsRes.json()) as { data?: RecordInstance[] }).data ?? [] : [];
-    const chosen = one ? projects.filter((row) => row.id === targetId) : projects;
+    const chosen = pick(projects);
     const tasks = chosen.flatMap((project) =>
       (project.lines ?? [])
         .filter((line) => line.line_group === "tasks")

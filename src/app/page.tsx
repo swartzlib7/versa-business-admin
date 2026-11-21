@@ -23,12 +23,13 @@ import {
   isRowOn,
   normalizePageBuilder,
   rowFitsContent,
-  rowHeightCss,
+  rowHeightProps,
   sectionColumnsClass,
   visibleCells,
 } from "@/lib/public/page-builder";
 import { resolveCellPaints } from "@/lib/public/resolve-cell-paint";
 import { CanvasSlotDriver, CycleStrip } from "@/components/public/canvas-slot-drivers";
+import { PublicRowHeading } from "@/components/public/public-row-heading";
 import { CanvasHtmlPage } from "@/components/public/canvas-html-page";
 import { CanvasSkyFlag } from "@/components/public/canvas-sky-flag";
 import { signedInVisitor } from "@/lib/public/visitor-session";
@@ -195,6 +196,7 @@ export default async function HomePage() {
         const row = ensureRowCells(slot);
         const cells = visibleCells(row);
         const fit = rowFitsContent(row);
+        const rowHeight = rowHeightProps({ ...row, columns: slot.columns });
         const clearHeader = index === 0 && !heroOn && builder.home_header_enabled !== false;
         return (
           <Fragment key={id}>
@@ -211,9 +213,10 @@ export default async function HomePage() {
                 )}
               >
                 <div className="pb-row-width min-w-0" style={rowWidthVars(slot.width_pct, slot.mobile_width_pct)}>
+                  <PublicRowHeading heading={row.heading} />
                   <div
-                    className={cn("min-h-0", sectionColumnsClass(slot.columns))}
-                    style={{ height: rowHeightCss(row) }}
+                    className={cn("min-h-0", sectionColumnsClass(slot.columns), rowHeight.className)}
+                    style={rowHeight.style}
                   >
                     {cells.map((cell) => {
                       if (!isCellOn(cell)) {
@@ -228,7 +231,7 @@ export default async function HomePage() {
                           key={cell.id}
                           className={cn(
                             "min-h-0 min-w-0 max-w-full",
-                            fit ? "overflow-visible" : "h-full overflow-auto",
+                            fit ? "overflow-visible" : cn("h-full overflow-auto", rowHeight.cellClassName),
                           )}
                         >
                           <CanvasSlotDriver
@@ -244,6 +247,7 @@ export default async function HomePage() {
                             schedule={paint.schedule}
                             inspection={paint.inspection}
                             project={paint.project}
+                            boards={paint.boards}
                             renderOutput={paint.renderOutput}
                             pager={cell.showPager !== false}
                             pageNumber={cell.pageNumber ?? 1}

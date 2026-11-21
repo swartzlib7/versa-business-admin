@@ -307,6 +307,24 @@ export const recordTypes: RecordTypeDefinition[] = [
     object_api_name: 'treasury_records_assets_materiel',
   },
   {
+    // 1.0.14: one log per vehicle per tax year; each line is a trip or a day.
+    // 1.0.16: a Custom Records type (Primary User), not a Treasury tab. It is a
+    // pre-configured log built from generic features; its Vehicle lookup points
+    // at Treasury → Records, Assets and Materiel. The api_name keeps its prefix.
+    id: 'rt-treasury_vehicle_mileage_log',
+    api_name: 'treasury_vehicle_mileage_log',
+    label: 'Vehicle Mileage Logs',
+    description: 'Mileage per vehicle and tax year: one line per trip or day, with business use. Totals and business-use % are worked out from the lines. Each log links to its vehicle in Treasury → Records, Assets and Materiel.',
+    parent_kind: 'environment',
+    parent_api_name: 'custom',
+    structure: 'header_lines',
+    show_as_tab: true,
+    sort_order: 45,
+    active: true,
+    is_system: true,
+    object_api_name: 'treasury_vehicle_mileage_log',
+  },
+  {
     id: 'rt-qualification_examination',
     api_name: 'qualification_examination',
     label: 'Examinations',

@@ -10,6 +10,7 @@ import type { OrgType } from "@/lib/data/types";
 import {
   DEMO_ABOUT_HTML,
   DEMO_FACETS_HTML,
+  DEMO_HERO_HTML,
   DEMO_INSPECTIONS_HTML,
   DEMO_INTEGRATIONS_HTML,
   DEMO_KNOWLEDGE_HTML,
@@ -62,7 +63,9 @@ export type SampleRecordSeed = {
   refs?: Record<string, string>;
   /** Field name → several sample external ids, written as a JSON array of ids (multi-lookup). */
   listRefs?: Record<string, string[]>;
-  lines?: Array<{ id?: string; data: Record<string, string>; refs?: Record<string, string> }>;
+  lines?: Array<{ id?: string; line_group?: string; data: Record<string, string>; refs?: Record<string, string> }>;
+  /** Attachments field → files shipped under public/ (1.0.16), saved to the uploads folder at insert. */
+  files?: Record<string, Array<{ path: string; name: string; mime: string }>>;
   relations?: Array<{ relation_kind: string; target_external_id: string }>;
   org_external_id?: string;
 };
@@ -83,6 +86,7 @@ export const SAMPLE_ORGS: SampleOrgSeed[] = [
   { name: "Google Analytics", org_type: "vendor", external_id: sampleExternalId("org", "google-analytics"), logo_url: "/seed/vendors/google-analytics.svg" },
   { name: "AWS", org_type: "vendor", external_id: sampleExternalId("org", "aws"), logo_url: "/seed/vendors/aws.svg" },
   { name: "Buffer", org_type: "vendor", external_id: sampleExternalId("org", "buffer"), logo_url: "/seed/vendors/buffer.svg" },
+  { name: "Acme Metal Supply", org_type: "vendor", external_id: sampleExternalId("org", "acme-metal"), email: "orders@acme-metal.example" },
 ];
 
 const PAGE = {
@@ -93,6 +97,16 @@ const PAGE = {
 };
 
 export const SAMPLE_RECORDS: SampleRecordSeed[] = [
+  {
+    ...PAGE,
+    name: "Welcome",
+    data: {
+      slot: "welcome",
+      body_format: "html",
+      body_html: DEMO_HERO_HTML,
+      external_id: sampleExternalId("page", "welcome"),
+    },
+  },
   {
     ...PAGE,
     name: "Facets",
@@ -156,7 +170,9 @@ export const SAMPLE_RECORDS: SampleRecordSeed[] = [
       scale_step: "5",
       frequency_type: "month",
       frequency_qty: "6",
-      start_datetime: "2026-01-01T00:00:00.000Z",
+      // 1.0.16: the period is open at install (three months in), so the graph shows the target and the catch-up pace.
+      start_datetime: sampleMonthStart(-3),
+      period_target: "150",
       series_mode: "single",
       external_id: sampleExternalId("stat", "visits"),
     },
@@ -239,7 +255,8 @@ function vendorSchedules(): SampleRecordSeed[] {
     status: "active",
     data: {
       kind: "custom",
-      custom_slots: customSlotsJson(["2026-04-02T09:00", "2026-05-14T15:30", "2026-06-01T11:00"]),
+      // 1.0.16: launch windows in the coming weeks, so the board shows them next to this month.
+      custom_slots: customSlotsJson([`${sampleDay(9)}T09:00`, `${sampleDay(23)}T15:30`, `${sampleDay(41)}T11:00`]),
       external_id: sampleExternalId("schedule", "buffer"),
     },
     refs: {
@@ -253,6 +270,22 @@ function vendorSchedules(): SampleRecordSeed[] {
 /** ISO date a number of days from the day the sample is inserted, so the Gantt stays current. */
 function sampleDay(offset: number): string {
   return new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
+ * First day of a month relative to now (0 = this month), as the statistics
+ * start: local midnight ("YYYY-MM-01T00:00"), so the axis reads the same month
+ * in every timezone. A UTC "Z" start shows as the previous evening west of UTC.
+ */
+function sampleMonthStart(offsetMonths: number): string {
+  return `${sampleMonthDay(offsetMonths, 1)}T00:00`;
+}
+
+/** A day in a month relative to now, as YYYY-MM-DD. */
+function sampleMonthDay(offsetMonths: number, day: number): string {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + offsetMonths, day);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function projectSeeds(): SampleRecordSeed[] {
@@ -445,6 +478,260 @@ function mailCredential(): SampleRecordSeed {
   };
 }
 
+
+// ── 1.0.16 premium demo: a job with money, a van with paperwork, more divisions ──
+
+/** One record per division that had none, so the org board is full. */
+function divisionSeeds(): SampleRecordSeed[] {
+  return [
+    {
+      type_api_name: "production_product",
+      parent_kind: "faculty",
+      parent_api_name: "production",
+      name: "Display bracket",
+      status: "active",
+      data: {
+        tagline: "Steel shelf bracket for retail displays.",
+        sku: "BRK-200",
+        variant_price: "25",
+        currency: "USD",
+        product_kind: "product",
+        is_active: "true",
+        external_id: sampleExternalId("product", "bracket"),
+      },
+    },
+    {
+      type_api_name: "dissemination_promotion_marketing",
+      parent_kind: "faculty",
+      parent_api_name: "dissemination",
+      name: "Winter display offer",
+      status: "active",
+      data: {
+        description: "Mail and social posts offering the display bracket to retail customers.",
+        external_id: sampleExternalId("promotion", "winter"),
+      },
+    },
+    {
+      type_api_name: "qualification_review",
+      parent_kind: "faculty",
+      parent_api_name: "qualification",
+      name: "Bracket fit check",
+      status: "active",
+      data: {
+        notes: "Check each bracket against the shelf spec before it ships.",
+        external_id: sampleExternalId("review", "bracket-fit"),
+      },
+    },
+  ];
+}
+
+const ACME = sampleExternalId("org", "acme-metal");
+const NORTHWIND = sampleExternalId("org", "northwind");
+const HARBOR = sampleExternalId("org", "harbor");
+
+/** Estimate (converted) -> invoice, with the vendor bill matched to the job lines. */
+function jobSeeds(): SampleRecordSeed[] {
+  const project = sampleExternalId("project", "rollout");
+  const product = sampleExternalId("product", "bracket");
+  const bill = sampleExternalId("transaction", "acme-bill");
+  const estimate = sampleExternalId("transaction", "bracket-estimate");
+  const jobLines = (withBill: boolean) => [
+    {
+      data: {
+        line_description: "Display bracket, steel",
+        line_quantity: "3",
+        line_unit_cost: "20",
+        line_markup_pct: "25",
+        ...(withBill ? { line_actual_cost: "58.5" } : {}),
+      },
+      refs: { line_vendor_org_id: ACME, line_product_id: product, ...(withBill ? { line_vendor_bill_id: bill } : {}) },
+    },
+    {
+      data: {
+        line_description: "Fastener kit",
+        line_quantity: "1",
+        line_unit_cost: "10",
+        // Typed over the worked-out price (10 at no markup).
+        line_unit_price: "15",
+        ...(withBill ? { line_actual_cost: "10" } : {}),
+      },
+      refs: { line_vendor_org_id: ACME, ...(withBill ? { line_vendor_bill_id: bill } : {}) },
+    },
+  ];
+  const doc = { type_api_name: "treasury_transaction", parent_kind: "faculty", parent_api_name: "treasury" } as const;
+  return [
+    {
+      ...doc,
+      name: "Acme Metal Supply #4471",
+      status: "sent",
+      data: {
+        document_kind: "bill",
+        document_number: "4471",
+        status: "sent",
+        transaction_date: sampleDay(-14),
+        due_date: sampleDay(16),
+        amount: "70",
+        tax_total: "0",
+        currency: "USD",
+        external_id: bill,
+      },
+      org_external_id: ACME,
+    },
+    {
+      ...doc,
+      name: "Bracket estimate",
+      status: "converted",
+      data: {
+        document_kind: "estimate",
+        status: "converted",
+        transaction_date: sampleDay(-21),
+        expiry_date: sampleDay(9),
+        tax_total: "0",
+        currency: "USD",
+        external_id: estimate,
+      },
+      refs: { project_id: project },
+      lines: jobLines(false),
+      org_external_id: NORTHWIND,
+    },
+    {
+      ...doc,
+      name: "Bracket invoice",
+      status: "sent",
+      data: {
+        document_kind: "invoice",
+        status: "sent",
+        transaction_date: sampleDay(-7),
+        due_date: sampleDay(23),
+        tax_total: "0",
+        currency: "USD",
+        external_id: sampleExternalId("transaction", "bracket-invoice"),
+      },
+      refs: { project_id: project, converted_from_id: estimate },
+      lines: jobLines(true),
+      org_external_id: NORTHWIND,
+    },
+  ];
+}
+
+/** [months back, day, purpose, miles, business, customer] - the current month only up to today. */
+const TRIPS: Array<[number, number, string, number, boolean, string?]> = [
+  [-5, 4, "Northwind delivery", 96, true, NORTHWIND],
+  [-5, 12, "Acme Metal pickup", 64, true],
+  [-5, 19, "Harbor Clinic visit", 50, true, HARBOR],
+  [-5, 23, "Weekend", 58, false],
+  [-4, 5, "Northwind delivery", 110, true, NORTHWIND],
+  [-4, 14, "Trade show", 150, true],
+  [-4, 26, "Family trip", 120, false],
+  [-3, 6, "Acme Metal pickup", 88, true],
+  [-3, 15, "Harbor Clinic install", 152, true, HARBOR],
+  [-3, 22, "Weekend", 44, false],
+  [-2, 3, "Northwind delivery", 126, true, NORTHWIND],
+  [-2, 11, "Supplier visit", 95, true],
+  [-2, 20, "Harbor Clinic service", 84, true, HARBOR],
+  [-2, 27, "Weekend", 70, false],
+  [-1, 7, "Acme Metal pickup", 88, true],
+  [-1, 16, "Northwind delivery", 120, true, NORTHWIND],
+  [-1, 24, "Harbor Clinic install", 82, true, HARBOR],
+  [-1, 28, "Weekend", 52, false],
+  [0, 3, "Northwind delivery", 126, true, NORTHWIND],
+  [0, 7, "Acme Metal pickup", 88, true],
+  [0, 12, "Weekend", 74, false],
+  [0, 17, "Harbor Clinic install", 124, true, HARBOR],
+];
+
+const START_ODOMETER = 46_000;
+
+/** The van, its paperwork, its mileage log, and a statistic read from the log. */
+function vehicleSeeds(): SampleRecordSeed[] {
+  const van = sampleExternalId("asset", "van");
+  const today = new Date().getDate();
+  const trips = TRIPS.filter(([month, day]) => month < 0 || day <= today);
+  let odometer = START_ODOMETER;
+  const lines = trips.map(([month, day, purpose, miles, business, customer]) => {
+    const start = odometer;
+    odometer += miles;
+    return {
+      line_group: "trips",
+      data: {
+        trip_date: sampleMonthDay(month, day),
+        trip_start_odometer: String(start),
+        trip_end_odometer: String(odometer),
+        trip_miles: String(miles),
+        trip_business: business ? "true" : "false",
+        trip_purpose: purpose,
+      },
+      ...(customer ? { refs: { trip_business_org_id: customer } } : {}),
+    };
+  });
+  const doc = (file: string, mime: string) => ({ path: `public/seed/demo/${file}`, name: file, mime });
+  return [
+    {
+      type_api_name: "statistics",
+      parent_kind: "environment",
+      parent_api_name: "custom",
+      name: "Business miles",
+      status: "active",
+      data: {
+        scale_name: "Miles",
+        scale_start: "0",
+        scale_end: "400",
+        scale_step: "100",
+        frequency_type: "month",
+        frequency_qty: "6",
+        start_datetime: sampleMonthStart(-5),
+        series_mode: "single",
+        source_record_type: "treasury_vehicle_mileage_log",
+        source_read_from: "lines",
+        source_date_field: "trip_date",
+        source_value_field: "trip_miles",
+        source_filter_field: "trip_business",
+        source_filter_value: "true",
+        external_id: sampleExternalId("stat", "business-miles"),
+      },
+    },
+    {
+      type_api_name: "treasury_records_assets_materiel",
+      parent_kind: "faculty",
+      parent_api_name: "treasury",
+      name: "2021 Ford Transit Connect",
+      status: "active",
+      data: {
+        asset_category: "vehicle",
+        serial_number: "NM0LS7E2XM1234567",
+        purchase_date: "2024-03-14",
+        purchase_price: "28400",
+        business_use_pct: "80",
+        current_odometer: String(odometer),
+        next_service_due: sampleDay(26),
+        description: "Delivery van for bracket orders and installs.",
+        external_id: van,
+      },
+      files: {
+        documents: [
+          doc("registration-2026.pdf", "application/pdf"),
+          doc("insurance-card.pdf", "application/pdf"),
+          doc("service-receipt.jpg", "image/jpeg"),
+        ],
+      },
+    },
+    {
+      type_api_name: "treasury_vehicle_mileage_log",
+      parent_kind: "environment",
+      parent_api_name: "custom",
+      name: "Van mileage log",
+      status: "active",
+      data: {
+        tax_year: String(new Date().getFullYear()),
+        starting_odometer: String(START_ODOMETER),
+        external_id: sampleExternalId("mileage", "van"),
+      },
+      refs: { vehicle_id: van },
+      lines,
+    },
+  ];
+}
+
 SAMPLE_RECORDS.push(
   ...vendorIntegrations(),
   ...vendorSchedules(),
@@ -455,4 +742,7 @@ SAMPLE_RECORDS.push(
   mailCredential(),
   knowledgeSeed(),
   ...eventSeeds(),
+  ...divisionSeeds(),
+  ...jobSeeds(),
+  ...vehicleSeeds(),
 );

@@ -2,6 +2,8 @@
 
 import { pairingFromRecord } from "@/lib/public/driver-pairings";
 import { foldLegacyDriver, paintKind } from "@/lib/public/render-drivers";
+import { selectPairedRecords } from "@/lib/public/pairing-filter";
+import { BOARD_PAINT_KINDS, browserBoardFetchers, resolveBoardPaint } from "@/lib/public/board-resolve";
 import type { PageBuilderCell } from "@/lib/public/page-builder";
 import type { ResolvedCellPaint } from "@/lib/public/resolve-cell-paint";
 import { contactCardFromSeed } from "@/lib/public/resolve-contact-card";
@@ -102,7 +104,7 @@ export async function fetchCellPaint(cell: PageBuilderCell): Promise<ResolvedCel
   if (kind === "integration-table") {
     const list = await fetchJson<{ data?: RecordInstance[] }>("/api/records?type=vendor_integration");
     const recs = list?.data ?? [];
-    const chosen = fields.selection_mode === "one" && targetId ? recs.filter((row) => row.id === targetId) : recs;
+    const chosen = selectPairedRecords(recs, fields);
     const orgJson = await fetchJson<{ data?: Organization[] }>("/api/organizations");
     const vendorById = new Map(
       (orgJson?.data ?? []).map((org) => [org.id, { name: org.name, logoUrl: String(org.data?.logo_url ?? "") }] as const),
@@ -113,21 +115,21 @@ export async function fetchCellPaint(cell: PageBuilderCell): Promise<ResolvedCel
   if (kind === "schedule-board") {
     const list = await fetchJson<{ data?: RecordInstance[] }>("/api/records?type=schedule");
     const recs = list?.data ?? [];
-    const chosen = fields.selection_mode === "one" && targetId ? recs.filter((row) => row.id === targetId) : recs;
+    const chosen = selectPairedRecords(recs, fields);
     out.schedule = scheduleBoard(chosen);
   }
 
   if (kind === "inspection-tickets") {
     const list = await fetchJson<{ data?: RecordInstance[] }>("/api/records?type=inspection_report");
     const recs = list?.data ?? [];
-    const chosen = fields.selection_mode === "one" && targetId ? recs.filter((row) => row.id === targetId) : recs;
+    const chosen = selectPairedRecords(recs, fields);
     out.inspection = inspectionPaint(chosen);
   }
 
   if (kind === "project-table" || kind === "project-cards") {
     const projectsJson = await fetchJson<{ data?: RecordInstance[] }>("/api/records?type=executive_project");
     const projects = projectsJson?.data ?? [];
-    const chosen = fields.selection_mode === "one" && targetId ? projects.filter((row) => row.id === targetId) : projects;
+    const chosen = selectPairedRecords(projects, fields);
     const tasks = chosen.flatMap((project) =>
       (project.lines ?? [])
         .filter((line) => line.line_group === "tasks")
@@ -139,6 +141,10 @@ export async function fetchCellPaint(cell: PageBuilderCell): Promise<ResolvedCel
     );
     out.project = projectPaint(chosen, tasks);
   }
+
+  const fetchers = BOARD_PAINT_KINDS.has(kind) ? await browserBoardFetchers(kind) : null;
+  const boards = fetchers ? await resolveBoardPaint(kind, fields, fetchers) : undefined;
+  if (boards) out.boards = boards;
 
   if ((kind === "location-card" || kind === "contacts-cards") && targetId) {
     const recJson = await fetchJson<{ data?: RecordInstance }>(

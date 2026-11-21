@@ -39,6 +39,10 @@ Host skills (Versa AGi, not this repo): `business_admin` (install) and `business
 
 - `data_type=lookup` renders as a **lookup control**, never a free-text box.
 - `lookup_object_api_name=user` → user picker (name + email), value stored as the user id.
+- Any record type (system or custom `c_`) → record picker; listings show the record's name (1.0.14, `isRecordTypeLookup`). `organization`, `record_type`, `render_driver` and `record` keep their own pickers.
+- **Save pipeline (1.0.15).** Every records write (create, update, add line, clone, convert) goes through `src/lib/records/pipeline.ts`: derived fields → Formula fields and calculated defaults (lines, then Summary, then header) → allocation checks → save → bills and fed statistics refresh. Never compute a stored value only in the browser; the browser preview (`previewCalculations`) must use the same functions. **Integrated records** (External ID set) skip the calculations and cannot be converted.
+- **Formula** fields (1.0.15) are read-only and calculated from fields in the same place (header or line); a **calculated default** follows its formula until a different value is typed. Loops and unknown fields are refused when the field is saved.
+- **Summary** fields (1.0.14) are read-only totals of a lines field on a "Header and lines" type. The server recomputes them on every records API write; never write them from the client. **Attachments** fields hold up to 10 files from the `file_mime` list; removing one keeps the stored file.
 - Created By / Last Modified By are **session-stamped audit fields**, not pickers. The logged-in user (UI or API) is the value: create stamps both; every save restamps Last Modified By. The operator cannot assign another user. Show them read-only with the person’s name.
 - Created Date / Last Modified Date / ID are the same class: stamped, read-only. ID is auto-assigned and sits at the **bottom** of every form. External ID is operator-editable.
 - Do not show raw ids in the listing when a display name is available.

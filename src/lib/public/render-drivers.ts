@@ -99,28 +99,48 @@ export const DRIVER_RENDER_CATALOG: Record<string, DriverCatalogEntry> = {
   "inspection-header": entry("inspection-header", "Inspections & Reports", "header", "inspection_report", [
     { id: "tickets", label: "Table" },
   ], {
-    elementModes: ["one", "all"],
+    elementModes: ["one", "filter", "all"],
     inputs: CARD_INPUTS,
     description: "Inspections and reports as a table.",
   }),
   "integration-header": entry("integration-header", "Integration", "header", "vendor_integration", [
     { id: "table", label: "Table" },
   ], {
-    elementModes: ["one", "all"],
+    elementModes: ["one", "filter", "all"],
     description: "Integrations in a table with the vendor and its logo.",
   }),
   "schedule-header": entry("schedule-header", "Schedule", "header", "schedule", [
     { id: "board", label: "Board" },
   ], {
-    elementModes: ["one", "all"],
+    elementModes: ["one", "filter", "all"],
     description: "A calendar board of planned points on the frequency spectrum.",
   }),
   "project-header": entry("project-header", "Project", "header", "executive_project", [
     { id: "table", label: "Table" },
     { id: "cards", label: "Cards" },
+    { id: "gantt", label: "Gantt" },
   ], {
-    elementModes: ["one", "all"],
-    description: "Projects as a table with task counts, or as cards that open the tasks.",
+    elementModes: ["one", "filter", "all"],
+    description: "Projects as a table with task counts, as cards that open the tasks, or as a Gantt chart of the tasks.",
+  }),
+  "transaction-header": entry("transaction-header", "Transaction", "header", "treasury_transaction", [
+    { id: "job-money", label: "Job and money" },
+  ], {
+    elementModes: ["one"],
+    description: "One job: the estimate, the invoice, the vendor bills matched to its lines, the lines and the margin.",
+  }),
+  "asset-header": entry("asset-header", "Asset", "header", "treasury_records_assets_materiel", [
+    { id: "asset-card", label: "Asset card" },
+  ], {
+    elementModes: ["one", "filter", "all"],
+    description: "An asset with its details, document names, and its latest vehicle mileage log.",
+  }),
+  "org-board-header": entry("org-board-header", "Organization board", "header", "*", [
+    { id: "org-records", label: "Divisions and records" },
+  ], {
+    elementModes: ["filter", "all"],
+    compatibleTypes: ["*"],
+    description: "The divisions as columns, each with its hats (and who holds them) and records.",
   }),
   "inspection-lines": entry("inspection-lines", "Inspections lines", "lines_list", "inspection_report", [
     { id: "lines-list", label: "Lines list" },
@@ -169,6 +189,9 @@ export const PAIRABLE_DRIVER_IDS = [
   "inspection-header",
   "project-header",
   "contact-header",
+  "transaction-header",
+  "asset-header",
+  "org-board-header",
 ] as const;
 
 export type FoldedDriverRef = { id: string; output?: string; recordType?: string };
@@ -247,7 +270,10 @@ export function paintKind(codeKey: string | undefined, renderOutput?: string): s
   if (folded.id === "integration-header") return "integration-table";
   if (folded.id === "schedule-header") return "schedule-board";
   if (folded.id === "inspection-header") return "inspection-tickets";
-  if (folded.id === "project-header") return out === "cards" ? "project-cards" : "project-table";
+  if (folded.id === "project-header") return out === "cards" ? "project-cards" : out === "gantt" ? "project-gantt" : "project-table";
+  if (folded.id === "transaction-header") return "job-money";
+  if (folded.id === "asset-header") return "asset-card";
+  if (folded.id === "org-board-header") return "org-records";
   if (folded.id === "contact-header") return "signup-form";
   if (folded.id === "cycle-strip") return "cycle-strip";
   if (folded.id === "embed-header") return out || "glossary-book";
@@ -315,6 +341,7 @@ export function pairableDriversForType(recordType: string, bindShape?: DriverBin
   return pairableDriverList().filter((row) => {
     if (row.recordType === "*") {
       if (recordType !== "*" && recordType !== "glossary" && recordType !== "org_board") return false;
+      if (row.id === "org-board-header" && recordType !== "*") return false;
     } else if (!row.compatibleTypes.includes(recordType) && row.recordType !== recordType) {
       return false;
     }

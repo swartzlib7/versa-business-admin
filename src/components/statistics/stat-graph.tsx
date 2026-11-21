@@ -73,11 +73,20 @@ export function StatGraph({
     targetLabel ? Math.ceil(targetLabel.length * TICK_FONT * CHAR_W) + 8 : 0,
   );
 
+  // Thin the frequency labels when they would run into each other
+  // (e.g. 12 months in the narrow Spatial Twin): show every Nth.
+  const plotWidth = W - PAD_L - PAD_R;
+  const widestLabel = Math.max(1, ...slotLabels.map((l) => l.length));
+  const slotGap = plotWidth / Math.max(slotLabels.length - 1, 1);
+  const labelEvery = Math.max(1, Math.ceil((widestLabel * TICK_FONT * CHAR_W + 6) / slotGap));
+
   const span = config.scaleEnd - config.scaleStart || 1;
   const yFor = (v: number) => {
     const t = (v - config.scaleStart) / span;
     return PAD_T + (1 - t) * (H - PAD_T - PAD_B);
   };
+  // Values outside the scale (e.g. totals fed from records) sit on the edge.
+  const yPlot = (v: number) => yFor(Math.min(Math.max(v, config.scaleStart), config.scaleEnd));
   const xFor = (slot: number) => {
     const n = Math.max(config.frequencyQty - 1, 1);
     return PAD_L + (slot / n) * (W - PAD_L - PAD_R);
@@ -98,7 +107,7 @@ export function StatGraph({
       let prevSlot: number | null = null;
       for (const ln of sorted) {
         const x = xFor(ln.slot).toFixed(1);
-        const y = yFor(ln.value).toFixed(1);
+        const y = yPlot(ln.value).toFixed(1);
         if (prevSlot === null || ln.slot !== prevSlot + 1) d += ` M ${x} ${y}`;
         else d += ` L ${x} ${y}`;
         prevSlot = ln.slot;
@@ -110,7 +119,7 @@ export function StatGraph({
   }, [lines, config, PAD_R, W, H]);
 
   const dots = useMemo(
-    () => lines.map((ln) => ({ x: xFor(ln.slot), y: yFor(ln.value), series: ln.series })),
+    () => lines.map((ln) => ({ x: xFor(ln.slot), y: yPlot(ln.value), series: ln.series })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [lines, config, PAD_R, W, H],
   );
@@ -128,7 +137,7 @@ export function StatGraph({
     const first = progress.lastSlot + 1;
     const slots = Array.from({ length: config.frequencyQty - first }, (_, i) => first + i);
     return {
-      d: `M ${xFor(last.slot).toFixed(1)} ${yFor(last.value).toFixed(1)} L ${xFor(first).toFixed(1)} ${y.toFixed(1)} L ${xFor(config.frequencyQty - 1).toFixed(1)} ${y.toFixed(1)}`,
+      d: `M ${xFor(last.slot).toFixed(1)} ${yPlot(last.value).toFixed(1)} L ${xFor(first).toFixed(1)} ${y.toFixed(1)} L ${xFor(config.frequencyQty - 1).toFixed(1)} ${y.toFixed(1)}`,
       y,
       slots,
       label: pinned
@@ -183,9 +192,11 @@ export function StatGraph({
         return (
           <g key={"s" + i}>
             <line x1={x} x2={x} y1={PAD_T} y2={H - PAD_B} stroke="currentColor" strokeOpacity={0.05} />
-            <text x={x} y={H - PAD_B + 13} textAnchor="middle" fontSize={TICK_FONT} fill="currentColor" fillOpacity={0.55}>
-              {label}
-            </text>
+            {i % labelEvery === 0 ? (
+              <text x={x} y={H - PAD_B + 13} textAnchor="middle" fontSize={TICK_FONT} fill="currentColor" fillOpacity={0.55}>
+                {label}
+              </text>
+            ) : null}
           </g>
         );
       })}

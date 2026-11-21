@@ -1,0 +1,34 @@
+{
+  "about": "sha256 of Pages bodies earlier site packs shipped. At start-up a site-pack page whose body still matches one of these is replaced with the current pack's body; an edited page is left alone. scripts/site-export.ts appends to this file.",
+  "pages": {
+    "page:versa-agi-analysis": [
+      "18528ae9f185ee3e9c2615b763887aa65095d5e03e5ed6d5be290b59e0a5eee8"
+    ],
+    "page:versa-agi-capabilities": [
+      "ee022bdfa711ffafa2a9692b9ad804ab24482de36b036b99aec12df64bb5caff",
+      "4245500c05bb87041339b596f2f2733d5f2416cc3709ca7abc66c16b8f215d72"
+    ],
+    "page:versa-agi-deployment": [
+      "37be15ba193136ae581bea8573cb545a69945f65660fec5492636a3cfe00fab4",
+      "6552236951903e73319ea15a818bf7b6ab18593b514372bd0b0e3df4885d9c1d"
+    ],
+    "page:versa-agi-landscape": [
+      "ff52aab65c5a8b94519e2fb75b75b8614b2a6103bb48b2ce2b4b88229d8d0501",
+      "67c5a605511c58f6d9a6cafb53d64d0fb2ab49255b8fad287d049297062936c3"
+    ],
+    "page:versa-agi-prompt-cache": [
+      "3fc46f4f5d7a75656e62ce2ac76e97982d54c693185378234e96748af6a0f37a"
+    ],
+    "page:versa-agi-public-access": [
+      "aa8f040ef6fa1d0e0ca286cc144cb0b3f96f3dbaf32905485a6c73228dbd277f"
+    ],
+    "page:versa-agi-styles": [
+      "2e697532445a5331a3e815cc1f0c40796a83be9e021c5d27e9efc93c0b80df2a",
+      "decfcc64bb63d29fe591329b3114996bd59948d226d19bbb93dbf4cac08be9f8"
+    ],
+    "page:versa-agi-technical-overview": [
+      "d6dcca7e0be4497acf4a1eb24a97f8f4967344858df02f82c4832ebf69a55d6f",
+      "935b1a92c956d28351e6dc1482ffdab1e64ffd406bc9db927394897703d1c6b0"
+    ]
+  }
+}

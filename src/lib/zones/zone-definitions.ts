@@ -775,11 +775,11 @@ export const environmentZone: ZoneConfig = {
   ],
 };
 
-/** Statistics and Pages. Primary tabs on the Custom Records menu, above Records Editor. */
+/** Statistics and Pages, then any other type filed under Custom (appendCustomRecordTypeTabs). Above Records Editor. */
 export const customRecordsZone: ZoneConfig = {
   id: "custom-records",
   title: "Custom Records",
-  subtitle: "Statistics and Pages. Page Builder binds and paints these records.",
+  subtitle: "Statistics, Pages and other custom record types such as Vehicle Mileage Logs.",
   accent: envAccent,
   accentSoft: soft(envAccent),
   tabs: [

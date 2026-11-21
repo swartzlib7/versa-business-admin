@@ -4,7 +4,8 @@
  * Element targets. Record ids become `{{site:<key>}}` tokens. Demo canvases and the settings in
  * SITE_PACK_EXCLUDED_SETTINGS stay out.
  *
- * Usage: npm run site:export   (reads DATABASE_URL from .env.local), then commit the JSON.
+ * Usage: npm run site:export   (reads DATABASE_URL from .env.local), then commit the JSON
+ * and site-pack-history.json (hashes of page bodies the previous pack shipped).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -100,6 +101,26 @@ async function main() {
   const version = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version as string;
   const out = path.join(root, "src/lib/site-pack/site-pack.json");
   const pack = { version, exported_at: new Date().toISOString(), records, settings };
+
+  // 1.0.16: remember the bodies the previous pack shipped, so existing installs
+  // replace a page only while it is still exactly as shipped (refreshSitePackPages).
+  const historyPath = path.join(root, "src/lib/site-pack/site-pack-history.json");
+  const history = fs.existsSync(historyPath)
+    ? (JSON.parse(fs.readFileSync(historyPath, "utf8")) as { about?: string; pages: Record<string, string[]> })
+    : { pages: {} as Record<string, string[]> };
+  if (fs.existsSync(out)) {
+    const { bodyHash } = await import(`${root}/src/lib/site-pack/page-refresh.ts`);
+    const previous = JSON.parse(fs.readFileSync(out, "utf8")) as { records: Array<{ key: string; type_api_name: string; data: Record<string, string> }> };
+    const next = new Map(records.map((record) => [record.key, record.data.body_html]));
+    for (const old of previous.records) {
+      if (old.type_api_name !== "page" || typeof old.data.body_html !== "string") continue;
+      if (next.get(old.key) === old.data.body_html) continue;
+      const hash = bodyHash(old.data.body_html);
+      const list = (history.pages[old.key] ??= []);
+      if (!list.includes(hash)) list.push(hash);
+    }
+    fs.writeFileSync(historyPath, `${JSON.stringify(history, null, 2)}\n`);
+  }
   fs.writeFileSync(out, `${JSON.stringify(pack, null, 2)}\n`);
   console.log(`Site pack ${version}: ${records.length} records -> ${path.relative(root, out)}`);
   for (const record of records) console.log(`  ${record.key}`);

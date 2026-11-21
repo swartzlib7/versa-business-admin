@@ -1,5 +1,8 @@
 "use client";
 
+import { isRecordTypeLookup } from "@/lib/catalog/lookup-targets";
+import { LineFieldSelect } from "@/components/statistics/line-field-select";
+
 import { cn } from "@/lib/utils";
 import type { UiListingField } from "@/lib/catalog/layout-to-fields";
 import { resolvePicklistLabel } from "@/lib/catalog/layout-to-fields";
@@ -22,6 +25,8 @@ import {
 import { pairingAllowsTypeLevel } from "@/lib/public/driver-pairings";
 import { ImageUrlField } from "@/components/catalog/image-url-field";
 import { ImageGalleryField } from "@/components/catalog/image-gallery-field";
+import { AttachmentsField } from "@/components/catalog/attachments-field";
+import { SummaryValueField } from "@/components/catalog/summary-value-field";
 import { TextListField } from "@/components/catalog/text-list-field";
 import { RecordMultiLookupField } from "@/components/catalog/record-multi-lookup-field";
 import { FrequencyStartField } from "@/components/statistics/frequency-start-field";
@@ -112,6 +117,44 @@ function FieldInput({
     );
   }
 
+  // 1.0.14: statistics fed from records - pickers that follow the Source record type.
+  if (field.key === "source_record_id") {
+    return (
+      <RecordInstanceLookupField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+        recordType={allValues?.source_record_type}
+        help={field.help ?? "Leave empty to use every record of the type"}
+      />
+    );
+  }
+  if (
+    field.key === "source_date_field" ||
+    field.key === "source_value_field" ||
+    field.key === "source_filter_field"
+  ) {
+    return (
+      <LineFieldSelect
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+        recordType={allValues?.source_record_type}
+        accept={field.key === "source_date_field" ? "date" : field.key === "source_value_field" ? "number" : "any"}
+        placement={allValues?.source_read_from === "records" ? "header" : "list"}
+        emptyLabel={
+          field.key === "source_date_field"
+            ? "Select the date field…"
+            : field.key === "source_value_field"
+              ? "— (count the lines)"
+              : "— (all lines)"
+        }
+        help={field.help}
+      />
+    );
+  }
   if (field.key === "slot_target") {
     // Read-only share of the Period target, same chrome as Frequency start.
     return (
@@ -135,6 +178,22 @@ function FieldInput({
         readOnly={readOnly}
       />
     );
+  }
+  if (kind === "attachments") {
+    return (
+      <AttachmentsField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+      />
+    );
+  }
+  if (kind === "summary") {
+    return <SummaryValueField label={field.label} value={value} percent={field.summaryPercent} help={field.help} />;
+  }
+  if (kind === "formula") {
+    return <SummaryValueField label={field.label} value={value} help={field.help ?? "Worked out by a formula"} />;
   }
   if (kind === "text_list") {
     return (
@@ -253,6 +312,7 @@ function FieldInput({
     return (
       <OrganizationLookupField
         label={field.label}
+        filter={field.lookupFilter}
         value={value}
         onChange={readOnly ? undefined : onChange}
         required={field.required}
@@ -262,10 +322,9 @@ function FieldInput({
   }
 
   if (
-    field.lookupObjectApiName === "vendor_integration" ||
-    field.lookupObjectApiName === "executive_project" ||
-    field.lookupObjectApiName === "location" ||
-    field.lookupObjectApiName === "event"
+    // Any record type (system or custom) gets the record picker (1.0.14).
+    (kind === "lookup" || field.lookupObjectApiName === "location" || field.lookupObjectApiName === "event") &&
+    isRecordTypeLookup(field.lookupObjectApiName)
   ) {
     return (
       <RecordInstanceLookupField
@@ -275,6 +334,7 @@ function FieldInput({
         required={field.required}
         readOnly={readOnly}
         recordType={field.lookupObjectApiName}
+        filter={field.lookupFilter}
       />
     );
   }
@@ -488,6 +548,7 @@ export function LayoutDrivenForm({
                   ? f.span
                   : f.kind === "textarea" ||
                       f.kind === "image_gallery" ||
+                      f.kind === "attachments" ||
                       f.kind === "text_list" ||
                       f.secret ||
                       f.key === "body_html"

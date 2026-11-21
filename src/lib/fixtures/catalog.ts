@@ -4,7 +4,10 @@
  * HTTP: GET/POST under /api/catalog (auth). Custom fields, layouts, and value sets
  * persist through the durable catalog overlay (seed ∪ overlay).
  */
+import { normalizeSummaryConfig, summaryConfigProblem, type SummaryConfig } from "@/lib/records/summary-fields";
+import { compileFormula, orderFormulas } from "@/lib/records/formula";
 import { listInstances } from './record-instances';
+import { getRecordType } from './record-types';
 import { validateTenantApiName } from '@/lib/catalog/custom-namespace';
 import { PLATFORM_DEFAULT_FIELDS } from '@/lib/catalog/platform-fields';
 import { foldRecordTypeApiName } from '@/lib/catalog/name-aliases';
@@ -26,7 +29,13 @@ export type CatalogDataType =
   | 'file'
   | 'image_gallery'
   | 'text_list'
-  | 'multi_lookup';
+  | 'multi_lookup'
+  /** 1.0.14: files of the types in the file_mime value set, up to 10. */
+  | 'attachments'
+  /** 1.0.14: read-only total of a lines field (header of a header_lines type). */
+  | 'summary'
+  /** 1.0.15: read-only calculation over fields of the same header or line (formula.ts). */
+  | 'formula';
 
 export interface ValueSet {
   id: string;
@@ -67,6 +76,30 @@ export interface FieldDefinition {
   show_in_column?: boolean;
   /** Mask on screen (Show / Hide). Stored value is unchanged. */
   is_secret?: boolean;
+  /** 1.0.14: data_type 'summary' - how to total the lines (summary-fields.ts). */
+  summary?: SummaryConfig | null;
+  /** 1.0.15: data_type 'formula' - the expression (formula.ts). */
+  formula?: string | null;
+  /**
+   * 1.0.15: a calculated default for a typed field. The field follows this
+   * formula until someone types a different value; clearing it follows again.
+   */
+  default_formula?: string | null;
+  /** 1.0.15: lookup fields - only offer target records whose `field` equals `value`. */
+  lookup_filter?: { field: string; value: string } | null;
+  /**
+   * 1.0.15: lookup fields on lines - each line takes a portion (`amount_field`)
+   * of the target record's `target_total_field`; the sum may not exceed it.
+   * The target's `target_allocated_field` holds the running total.
+   */
+  allocation?: {
+    amount_field: string;
+    target_total_field: string;
+    target_allocated_field: string;
+    target_remaining_field?: string;
+  } | null;
+  /** 1.0.15: worked out by VBA (e.g. an allocation total); shown read-only. */
+  read_only?: boolean;
 }
 
 export interface LayoutDefinition {
@@ -315,7 +348,19 @@ export const valueSets: ValueSet[] = [
     id: 'vs-file-mime',
     api_name: 'file_mime',
     label: 'File MIME type',
-    description: 'Extendable MIME list for catalog data_type=file.',
+    description: 'File types an Attachments field accepts (1.0.14). Add a type here to allow it.',
+  },
+  {
+    id: 'vs-stat-source-read',
+    api_name: 'stat_source_read',
+    label: 'Statistic source: read from',
+    description: 'Statistics fed from records: total the lines, or the records themselves (1.0.15).',
+  },
+  {
+    id: 'vs-asset-category',
+    api_name: 'asset_category',
+    label: 'Asset category',
+    description: 'Kind of asset on Records, Assets and Materiel (1.0.14).',
   },
   {
     id: 'vs-credential-auth-type',
@@ -1314,6 +1359,8 @@ export const valueSetItems: ValueSetItem[] = [
   { id: 'vsi-dk-quote', value_set_id: 'vs-document-kind', api_value: 'quote', label: 'Quote', sort_order: 20, active: true },
   { id: 'vsi-dk-estimate', value_set_id: 'vs-document-kind', api_value: 'estimate', label: 'Estimate', sort_order: 30, active: true },
   { id: 'vsi-dk-invoice', value_set_id: 'vs-document-kind', api_value: 'invoice', label: 'Invoice', sort_order: 40, active: true },
+  // 1.0.15: a vendor's bill (Classification Disbursement); BOM lines are matched to it.
+  { id: 'vsi-dk-bill', value_set_id: 'vs-document-kind', api_value: 'bill', label: 'Bill', sort_order: 45, active: true },
   { id: 'vsi-iu-minute', value_set_id: 'vs-interval-unit', api_value: 'minute', label: 'Minutes', sort_order: 10, active: true },
   { id: 'vsi-iu-hour', value_set_id: 'vs-interval-unit', api_value: 'hour', label: 'Hours', sort_order: 20, active: true },
   { id: 'vsi-iu-day', value_set_id: 'vs-interval-unit', api_value: 'day', label: 'Days', sort_order: 30, active: true },
@@ -1329,6 +1376,20 @@ export const valueSetItems: ValueSetItem[] = [
   { id: 'vsi-fm-csv', value_set_id: 'vs-file-mime', api_value: 'text/csv', label: 'CSV', sort_order: 70, active: true },
   { id: 'vsi-fm-json', value_set_id: 'vs-file-mime', api_value: 'application/json', label: 'JSON', sort_order: 80, active: true },
   { id: 'vsi-fm-zip', value_set_id: 'vs-file-mime', api_value: 'application/zip', label: 'ZIP', sort_order: 90, active: true },
+  // 1.0.14: Attachments accept office documents and phone photos too.
+  { id: 'vsi-fm-docx', value_set_id: 'vs-file-mime', api_value: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', label: 'Word (.docx)', sort_order: 100, active: true },
+  { id: 'vsi-fm-doc', value_set_id: 'vs-file-mime', api_value: 'application/msword', label: 'Word (.doc)', sort_order: 110, active: true },
+  { id: 'vsi-fm-xlsx', value_set_id: 'vs-file-mime', api_value: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', label: 'Excel (.xlsx)', sort_order: 120, active: true },
+  { id: 'vsi-fm-xls', value_set_id: 'vs-file-mime', api_value: 'application/vnd.ms-excel', label: 'Excel (.xls)', sort_order: 130, active: true },
+  { id: 'vsi-fm-heic', value_set_id: 'vs-file-mime', api_value: 'image/heic', label: 'HEIC (iPhone photo)', sort_order: 140, active: true },
+  { id: 'vsi-fm-heif', value_set_id: 'vs-file-mime', api_value: 'image/heif', label: 'HEIF', sort_order: 150, active: true },
+  { id: 'vsi-ssr-lines', value_set_id: 'vs-stat-source-read', api_value: 'lines', label: 'Lines', sort_order: 10, active: true },
+  { id: 'vsi-ssr-records', value_set_id: 'vs-stat-source-read', api_value: 'records', label: 'Records (header fields)', sort_order: 20, active: true },
+  { id: 'vsi-ac-vehicle', value_set_id: 'vs-asset-category', api_value: 'vehicle', label: 'Vehicle', sort_order: 10, active: true },
+  { id: 'vsi-ac-equipment', value_set_id: 'vs-asset-category', api_value: 'equipment', label: 'Equipment', sort_order: 20, active: true },
+  { id: 'vsi-ac-computer', value_set_id: 'vs-asset-category', api_value: 'computer', label: 'Computer', sort_order: 30, active: true },
+  { id: 'vsi-ac-furniture', value_set_id: 'vs-asset-category', api_value: 'furniture', label: 'Furniture', sort_order: 40, active: true },
+  { id: 'vsi-ac-other', value_set_id: 'vs-asset-category', api_value: 'other', label: 'Other', sort_order: 50, active: true },
   { id: 'vsi-cat-apikey', value_set_id: 'vs-credential-auth-type', api_value: 'api_key', label: 'API key', sort_order: 10, active: true },
   { id: 'vsi-cat-oauth2', value_set_id: 'vs-credential-auth-type', api_value: 'oauth2', label: 'OAuth 2', sort_order: 20, active: true },
   { id: 'vsi-cat-basic', value_set_id: 'vs-credential-auth-type', api_value: 'basic', label: 'Basic', sort_order: 30, active: true },
@@ -2126,6 +2187,42 @@ export const layoutDefinitions: LayoutDefinition[] = [
       ],
     },
   },
+  // 1.0.14: Records, Assets and Materiel - sections for the asset fields.
+  {
+    id: 'lay-treasury_records_assets_materiel-edit-default',
+    object_api_name: 'treasury_records_assets_materiel',
+    api_name: 'treasury_records_assets_materiel_edit_default',
+    label: 'Asset edit (default)',
+    layout_type: 'edit',
+    version: 1,
+    is_default: true,
+    body: {
+      sections: [
+        { id: 'sec-asset-identity', label: 'Asset', columns: 2, fields: ['name', 'status', 'asset_category', 'serial_number'] },
+        { id: 'sec-asset-purchase', label: 'Purchase', columns: 2, fields: ['purchase_date', 'purchase_price', 'business_use_pct'] },
+        { id: 'sec-asset-service', label: 'Service', columns: 2, fields: ['current_odometer', 'next_service_due'] },
+        { id: 'sec-asset-documents', label: 'Documents', columns: 1, fields: ['documents', 'file'] },
+        { id: 'sec-asset-notes', label: 'Notes', columns: 1, fields: ['description', 'notes'] },
+      ],
+    },
+  },
+  // 1.0.14: Vehicle Mileage Log - header sections (the lines are the trips).
+  ...(['detail', 'edit'] as const).map((layoutType): LayoutDefinition => ({
+    id: `lay-treasury_vehicle_mileage_log-${layoutType}-default`,
+    object_api_name: 'treasury_vehicle_mileage_log',
+    api_name: `treasury_vehicle_mileage_log_${layoutType}_default`,
+    label: `Mileage log ${layoutType} (default)`,
+    layout_type: layoutType,
+    version: 1,
+    is_default: true,
+    body: {
+      sections: [
+        { id: 'sec-mileage-log', label: 'Log', columns: 2, fields: ['name', 'status', 'vehicle_id', 'tax_year', 'starting_odometer'] },
+        { id: 'sec-mileage-totals', label: 'Totals', columns: 2, fields: ['total_miles', 'business_miles', 'business_use_pct'] },
+        { id: 'sec-mileage-notes', label: 'Notes', columns: 1, fields: ['notes'] },
+      ],
+    },
+  })),
   {
     id: 'lay-environment_stat-detail-default',
     object_api_name: 'statistics',
@@ -2153,6 +2250,12 @@ export const layoutDefinitions: LayoutDefinition[] = [
           label: 'Frequency',
           columns: 2,
           fields: ['frequency_type', 'frequency_start', 'frequency_qty', 'start_datetime', 'period_target', 'slot_target'],
+        },
+        {
+          id: 'sec-stat-source',
+          label: 'Source',
+          columns: 2,
+          fields: ['source_record_type', 'source_read_from', 'source_record_id', 'source_date_field', 'source_value_field', 'source_filter_field', 'source_filter_value'],
         },
         {
           id: 'sec-stat-audit',
@@ -2190,6 +2293,12 @@ export const layoutDefinitions: LayoutDefinition[] = [
           label: 'Frequency',
           columns: 2,
           fields: ['frequency_type', 'frequency_start', 'frequency_qty', 'start_datetime', 'period_target', 'slot_target'],
+        },
+        {
+          id: 'sec-stat-source',
+          label: 'Source',
+          columns: 2,
+          fields: ['source_record_type', 'source_read_from', 'source_record_id', 'source_date_field', 'source_value_field', 'source_filter_field', 'source_filter_value'],
         },
         {
           id: 'sec-stat-audit',
@@ -2252,6 +2361,8 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-executive_project-status', object_api_name: 'executive_project', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'zone_project_status', lookup_object_api_name: null, sort_order: 20, active: true , zone_role: 'header' },
   { id: 'fld-executive_project-owner', object_api_name: 'executive_project', api_name: 'owner', label: 'Owner (text)', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: false, zone_role: 'header' },
   { id: 'fld-executive_project-owner_id', object_api_name: 'executive_project', api_name: 'owner_id', label: 'Owner', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'communication_staff', sort_order: 31, active: true, zone_role: 'header' },
+  // 1.0.15: one customer per project; a project has many transactions (Transaction -> Project).
+  { id: 'fld-executive_project-customer_org_id', object_api_name: 'executive_project', api_name: 'customer_org_id', label: 'Customer', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 15, active: true, zone_role: 'header', lookup_filter: { field: 'org_type', value: 'customer' } },
   { id: 'fld-executive_project-priority', object_api_name: 'executive_project', api_name: 'priority', label: 'Priority', data_type: 'picklist', is_system: true, is_required: false, default_value: 'normal', value_set_api_name: 'project_priority', lookup_object_api_name: null, sort_order: 25, active: true, zone_role: 'header' },
   { id: 'fld-executive_project-start_date', object_api_name: 'executive_project', api_name: 'start_date', label: 'Start date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 35, active: true, zone_role: 'header' },
   { id: 'fld-executive_project-target_date', object_api_name: 'executive_project', api_name: 'target_date', label: 'Target date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 36, active: true, zone_role: 'header' },
@@ -2393,8 +2504,9 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-treasury_transaction-due_date', object_api_name: 'treasury_transaction', api_name: 'due_date', label: 'Due date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 16, active: true, zone_role: 'header' },
   { id: 'fld-treasury_transaction-paid_date', object_api_name: 'treasury_transaction', api_name: 'paid_date', label: 'Paid date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 17, active: true, zone_role: 'header' },
   { id: 'fld-treasury_transaction-expiry_date', object_api_name: 'treasury_transaction', api_name: 'expiry_date', label: 'Expiry date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 18, active: true, zone_role: 'header' },
-  { id: 'fld-treasury_transaction-amount', object_api_name: 'treasury_transaction', api_name: 'amount', label: 'Amount', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true, zone_role: 'header' },
-  { id: 'fld-treasury_transaction-subtotal', object_api_name: 'treasury_transaction', api_name: 'subtotal', label: 'Subtotal', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 31, active: true, zone_role: 'header' },
+  { id: 'fld-treasury_transaction-amount', object_api_name: 'treasury_transaction', api_name: 'amount', label: 'Amount', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true, zone_role: 'header', default_formula: 'subtotal + tax_total' },
+  // 1.0.15: Subtotal is the total of the lines (Summary); Amount follows Subtotal + Tax until typed (a bill without lines).
+  { id: 'fld-treasury_transaction-subtotal', object_api_name: 'treasury_transaction', api_name: 'subtotal', label: 'Subtotal', data_type: 'summary', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 31, active: true, zone_role: 'header', summary: { aggregate: 'sum', source_field: 'line_total' } },
   { id: 'fld-treasury_transaction-tax_total', object_api_name: 'treasury_transaction', api_name: 'tax_total', label: 'Tax', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 32, active: true, zone_role: 'header' },
   { id: 'fld-treasury_transaction-currency', object_api_name: 'treasury_transaction', api_name: 'currency', label: 'Currency', data_type: 'text', is_system: true, is_required: false, default_value: 'USD', value_set_api_name: null, lookup_object_api_name: null, sort_order: 35, active: true, zone_role: 'header' },
   { id: 'fld-treasury_transaction-category', object_api_name: 'treasury_transaction', api_name: 'category', label: 'Category', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 25, active: true, zone_role: 'header' },
@@ -2406,14 +2518,54 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-treasury_transaction-external_id', object_api_name: 'treasury_transaction', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true, zone_role: 'header' },
   { id: 'fld-treasury_transaction-line_description', object_api_name: 'treasury_transaction', api_name: 'line_description', label: 'Line description', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true, zone_role: 'list', show_in_column: true },
   { id: 'fld-treasury_transaction-line_quantity', object_api_name: 'treasury_transaction', api_name: 'line_quantity', label: 'Quantity', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 71, active: true, zone_role: 'list', show_in_column: true },
-  { id: 'fld-treasury_transaction-line_unit_price', object_api_name: 'treasury_transaction', api_name: 'line_unit_price', label: 'Unit price', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 72, active: true, zone_role: 'list', show_in_column: true },
-  { id: 'fld-treasury_transaction-line_total', object_api_name: 'treasury_transaction', api_name: 'line_total', label: 'Line total', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 73, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-treasury_transaction-line_unit_price', object_api_name: 'treasury_transaction', api_name: 'line_unit_price', label: 'Unit price', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 72, active: true, zone_role: 'list', show_in_column: true, default_formula: 'line_unit_cost * (1 + line_markup_pct / 100)' },
+  { id: 'fld-treasury_transaction-line_total', object_api_name: 'treasury_transaction', api_name: 'line_total', label: 'Line total', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 73, active: true, zone_role: 'list', show_in_column: true, default_formula: 'line_quantity * line_unit_price' },
   { id: 'fld-treasury_transaction-line_product_id', object_api_name: 'treasury_transaction', api_name: 'line_product_id', label: 'Product', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'production_product', sort_order: 74, active: true, zone_role: 'list', show_in_column: true },
+  // 1.0.15: project link, BOM costing and vendor-bill matching (state_records_pipeline.md).
+  { id: 'fld-treasury_transaction-project_id', object_api_name: 'treasury_transaction', api_name: 'project_id', label: 'Project', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'executive_project', sort_order: 46, active: true, zone_role: 'header' },
+  { id: 'fld-treasury_transaction-cost_total', object_api_name: 'treasury_transaction', api_name: 'cost_total', label: 'Cost total', data_type: 'summary', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 33, active: true, zone_role: 'header', summary: { aggregate: 'sum', source_field: 'line_cost' } },
+  { id: 'fld-treasury_transaction-margin', object_api_name: 'treasury_transaction', api_name: 'margin', label: 'Margin', data_type: 'formula', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 34, active: true, zone_role: 'header', formula: 'subtotal - cost_total' },
+  { id: 'fld-treasury_transaction-margin_pct', object_api_name: 'treasury_transaction', api_name: 'margin_pct', label: 'Margin %', data_type: 'formula', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 35, active: true, zone_role: 'header', formula: 'IF(subtotal > 0, ROUND(margin / subtotal * 100, 1), 0)' },
+  { id: 'fld-treasury_transaction-allocated_total', object_api_name: 'treasury_transaction', api_name: 'allocated_total', label: 'Allocated', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 36, active: true, zone_role: 'header', read_only: true },
+  { id: 'fld-treasury_transaction-allocated_remaining', object_api_name: 'treasury_transaction', api_name: 'allocated_remaining', label: 'Remaining', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 37, active: true, zone_role: 'header', read_only: true },
+  { id: 'fld-treasury_transaction-line_vendor_org_id', object_api_name: 'treasury_transaction', api_name: 'line_vendor_org_id', label: 'Vendor', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 75, active: true, zone_role: 'list', show_in_column: true, lookup_filter: { field: 'org_type', value: 'vendor' } },
+  { id: 'fld-treasury_transaction-line_unit_cost', object_api_name: 'treasury_transaction', api_name: 'line_unit_cost', label: 'Unit cost', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 76, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-treasury_transaction-line_markup_pct', object_api_name: 'treasury_transaction', api_name: 'line_markup_pct', label: 'Markup %', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 77, active: true, zone_role: 'list' },
+  { id: 'fld-treasury_transaction-line_cost', object_api_name: 'treasury_transaction', api_name: 'line_cost', label: 'Line cost', data_type: 'formula', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 78, active: true, zone_role: 'list', formula: 'line_quantity * line_unit_cost' },
+  { id: 'fld-treasury_transaction-line_vendor_bill_id', object_api_name: 'treasury_transaction', api_name: 'line_vendor_bill_id', label: 'Vendor bill', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'treasury_transaction', sort_order: 79, active: true, zone_role: 'list', lookup_filter: { field: 'document_kind', value: 'bill' }, allocation: { amount_field: 'line_actual_cost', target_total_field: 'amount', target_allocated_field: 'allocated_total', target_remaining_field: 'allocated_remaining' } },
+  { id: 'fld-treasury_transaction-line_actual_cost', object_api_name: 'treasury_transaction', api_name: 'line_actual_cost', label: 'Actual cost', data_type: 'currency', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 80, active: true, zone_role: 'list', default_formula: 'line_cost' },
+  { id: 'fld-treasury_transaction-line_variance', object_api_name: 'treasury_transaction', api_name: 'line_variance', label: 'Variance', data_type: 'formula', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 81, active: true, zone_role: 'list', formula: 'line_actual_cost - line_cost' },
   { id: 'fld-treasury_records_assets_materiel-name', object_api_name: 'treasury_records_assets_materiel', api_name: 'name', label: 'Item', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
   { id: 'fld-treasury_records_assets_materiel-status', object_api_name: 'treasury_records_assets_materiel', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-treasury_records_assets_materiel-description', object_api_name: 'treasury_records_assets_materiel', api_name: 'description', label: 'Description', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
   { id: 'fld-treasury_records_assets_materiel-notes', object_api_name: 'treasury_records_assets_materiel', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true },
   { id: 'fld-treasury_records_assets_materiel-file', object_api_name: 'treasury_records_assets_materiel', api_name: 'file', label: 'File', data_type: 'file', is_system: true, is_required: false, default_value: null, value_set_api_name: 'file_mime', lookup_object_api_name: null, sort_order: 50, active: true },
+  // 1.0.14: asset fields (vehicles, equipment, computers...) and paperwork.
+  { id: 'fld-treasury_records_assets_materiel-asset_category', object_api_name: 'treasury_records_assets_materiel', api_name: 'asset_category', label: 'Asset category', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'asset_category', lookup_object_api_name: null, sort_order: 22, active: true },
+  { id: 'fld-treasury_records_assets_materiel-serial_number', object_api_name: 'treasury_records_assets_materiel', api_name: 'serial_number', label: 'VIN / Serial number', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 24, active: true },
+  { id: 'fld-treasury_records_assets_materiel-purchase_date', object_api_name: 'treasury_records_assets_materiel', api_name: 'purchase_date', label: 'Purchase date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true },
+  { id: 'fld-treasury_records_assets_materiel-purchase_price', object_api_name: 'treasury_records_assets_materiel', api_name: 'purchase_price', label: 'Purchase price', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 62, active: true },
+  { id: 'fld-treasury_records_assets_materiel-business_use_pct', object_api_name: 'treasury_records_assets_materiel', api_name: 'business_use_pct', label: 'Business use %', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 64, active: true },
+  { id: 'fld-treasury_records_assets_materiel-current_odometer', object_api_name: 'treasury_records_assets_materiel', api_name: 'current_odometer', label: 'Current odometer', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 66, active: true },
+  { id: 'fld-treasury_records_assets_materiel-next_service_due', object_api_name: 'treasury_records_assets_materiel', api_name: 'next_service_due', label: 'Next service due', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 68, active: true },
+  { id: 'fld-treasury_records_assets_materiel-documents', object_api_name: 'treasury_records_assets_materiel', api_name: 'documents', label: 'Documents & Photos', data_type: 'attachments', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 45, active: true },
+  // 1.0.14: Vehicle Mileage Log (header + one line per trip or day). Summary fields total the lines.
+  { id: 'fld-treasury_vehicle_mileage_log-name', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'name', label: 'Log name', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true, zone_role: 'header' },
+  { id: 'fld-treasury_vehicle_mileage_log-status', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true, zone_role: 'header' },
+  { id: 'fld-treasury_vehicle_mileage_log-vehicle_id', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'vehicle_id', label: 'Vehicle', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'treasury_records_assets_materiel', sort_order: 30, active: true, zone_role: 'header' },
+  { id: 'fld-treasury_vehicle_mileage_log-tax_year', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'tax_year', label: 'Tax year', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true, zone_role: 'header' },
+  { id: 'fld-treasury_vehicle_mileage_log-starting_odometer', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'starting_odometer', label: 'Starting odometer', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true, zone_role: 'header' },
+  { id: 'fld-treasury_vehicle_mileage_log-total_miles', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'total_miles', label: 'Total miles', data_type: 'summary', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true, zone_role: 'header', summary: { aggregate: 'sum', source_field: 'trip_miles' } },
+  { id: 'fld-treasury_vehicle_mileage_log-business_miles', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'business_miles', label: 'Business miles', data_type: 'summary', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 62, active: true, zone_role: 'header', summary: { aggregate: 'sum', source_field: 'trip_miles', filter_field: 'trip_business', filter_value: 'true' } },
+  { id: 'fld-treasury_vehicle_mileage_log-business_use_pct', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'business_use_pct', label: 'Business use %', data_type: 'summary', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 64, active: true, zone_role: 'header', summary: { aggregate: 'sum', source_field: 'trip_miles', filter_field: 'trip_business', filter_value: 'true', percent_of: 'total_miles' } },
+  { id: 'fld-treasury_vehicle_mileage_log-notes', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true, zone_role: 'header' },
+  { id: 'fld-treasury_vehicle_mileage_log-trip_date', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'trip_date', label: 'Date', data_type: 'date', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 100, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-treasury_vehicle_mileage_log-trip_start_odometer', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'trip_start_odometer', label: 'Start odometer', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 110, active: true, zone_role: 'list' },
+  { id: 'fld-treasury_vehicle_mileage_log-trip_end_odometer', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'trip_end_odometer', label: 'End odometer', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 120, active: true, zone_role: 'list' },
+  { id: 'fld-treasury_vehicle_mileage_log-trip_miles', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'trip_miles', label: 'Miles', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 130, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-treasury_vehicle_mileage_log-trip_business', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'trip_business', label: 'Business use', data_type: 'boolean', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 140, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-treasury_vehicle_mileage_log-trip_business_org_id', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'trip_business_org_id', label: 'Business', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 150, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-treasury_vehicle_mileage_log-trip_purpose', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'trip_purpose', label: 'Purpose / destination', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 160, active: true, zone_role: 'list', show_in_column: true },
   { id: 'fld-qualification_examination-name', object_api_name: 'qualification_examination', api_name: 'name', label: 'Examination', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
   { id: 'fld-qualification_examination-status', object_api_name: 'qualification_examination', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-qualification_examination-notes', object_api_name: 'qualification_examination', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
@@ -2503,6 +2655,14 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-environment_stat-period_target', object_api_name: 'statistics', api_name: 'period_target', label: 'Period target', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 76, active: true, zone_role: 'header' },
   { id: 'fld-environment_stat-slot_target', object_api_name: 'statistics', api_name: 'slot_target', label: 'Target per step', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 77, active: true, zone_role: 'header' },
   { id: 'fld-environment_stat-series_mode', object_api_name: 'statistics', api_name: 'series_mode', label: 'Series mode', data_type: 'picklist', is_system: true, is_required: true, default_value: 'dynamic', value_set_api_name: 'stat_series_mode', lookup_object_api_name: null, sort_order: 80, active: true, zone_role: 'header' },
+  // 1.0.14: statistics fed from records (source-values.ts). Optional; empty = values are entered.
+  { id: 'fld-environment_stat-source_record_type', object_api_name: 'statistics', api_name: 'source_record_type', label: 'Source record type', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'record_type', sort_order: 82, active: true, zone_role: 'header' },
+  { id: 'fld-environment_stat-source_read_from', object_api_name: 'statistics', api_name: 'source_read_from', label: 'Read from', data_type: 'picklist', is_system: true, is_required: false, default_value: 'lines', value_set_api_name: 'stat_source_read', lookup_object_api_name: null, sort_order: 82, active: true, zone_role: 'header' },
+  { id: 'fld-environment_stat-source_record_id', object_api_name: 'statistics', api_name: 'source_record_id', label: 'Source record', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'record', sort_order: 83, active: true, zone_role: 'header' },
+  { id: 'fld-environment_stat-source_date_field', object_api_name: 'statistics', api_name: 'source_date_field', label: 'Date field', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 84, active: true, zone_role: 'header' },
+  { id: 'fld-environment_stat-source_value_field', object_api_name: 'statistics', api_name: 'source_value_field', label: 'Value field', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 85, active: true, zone_role: 'header' },
+  { id: 'fld-environment_stat-source_filter_field', object_api_name: 'statistics', api_name: 'source_filter_field', label: 'Only lines where', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 86, active: true, zone_role: 'header' },
+  { id: 'fld-environment_stat-source_filter_value', object_api_name: 'statistics', api_name: 'source_filter_value', label: 'equals', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 87, active: true, zone_role: 'header' },
   { id: 'fld-environment_stat-status', object_api_name: 'statistics', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'active', value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 90, active: false, zone_role: 'header' },
   { id: 'fld-environment_stat-line_value', object_api_name: 'statistics', api_name: 'line_value', label: 'Line value', data_type: 'number', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 100, active: true, zone_role: 'list', show_in_column: true },
   { id: 'fld-environment_stat-line_slot', object_api_name: 'statistics', api_name: 'line_slot', label: 'Line slot', data_type: 'number', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 110, active: true, zone_role: 'list', show_in_column: true },
@@ -2921,6 +3081,9 @@ const ALLOWED_DATA_TYPES: CatalogDataType[] = [
   'image_gallery',
   'text_list',
   'multi_lookup',
+  'attachments',
+  'summary',
+  'formula',
 ];
 
 export interface ExtendFieldInput {
@@ -2937,6 +3100,12 @@ export interface ExtendFieldInput {
   zone_role?: "header" | "list" | null;
   /** O1: explicit lines-table column flag for list-zone fields. */
   show_in_column?: boolean;
+  /** 1.0.14: data_type 'summary' only. */
+  summary?: SummaryConfig | null;
+  /** 1.0.15 */
+  formula?: string | null;
+  default_formula?: string | null;
+  lookup_filter?: { field: string; value: string } | null;
 }
 
 export type ExtendFieldResult =
@@ -3033,6 +3202,20 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
     };
   }
   const siblings = catalogLive().fields.filter((f) => f.object_api_name === input.object_api_name);
+  let summary: SummaryConfig | null = null;
+  if (input.data_type === 'summary') {
+    const checked = checkSummaryField(input.object_api_name, apiName, input.summary);
+    if (!checked.ok) return checked;
+    summary = checked.summary;
+  }
+  const placement = input.data_type === 'summary' ? 'header' : (input.zone_role ?? null);
+  if (input.data_type === 'formula' || input.default_formula) {
+    const problem = formulaFieldProblem(input.object_api_name, apiName, placement, {
+      formula: input.data_type === 'formula' ? input.formula ?? '' : null,
+      default_formula: input.default_formula ?? null,
+    });
+    if (problem) return { ok: false, code: 'INVALID_FORMULA', message: problem };
+  }
   const nextOrder = siblings.reduce((m, f) => Math.max(m, f.sort_order), 0) + 10;
   const field: FieldDefinition = {
     id: `fld-ext-${input.object_api_name}-${apiName}`,
@@ -3047,13 +3230,81 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
     lookup_object_api_name: input.lookup_object_api_name ?? null,
     lookup_delete_rule: input.lookup_delete_rule ?? null,
     sort_order: nextOrder,
-    zone_role: input.zone_role ?? null,
+    // A summary lives on the header and totals the lines.
+    zone_role: input.data_type === 'summary' ? 'header' : (input.zone_role ?? null),
     show_in_column: input.show_in_column,
+    ...(summary ? { summary } : {}),
+    ...(input.data_type === 'formula' ? { formula: (input.formula ?? '').trim() } : {}),
+    ...(input.default_formula?.trim() ? { default_formula: input.default_formula.trim() } : {}),
+    ...(input.lookup_filter?.field?.trim() ? { lookup_filter: { field: input.lookup_filter.field.trim(), value: String(input.lookup_filter.value ?? '') } } : {}),
     active: true,
   };
   catalogLive().fields.push(field);
   persistCatalog();
   return { ok: true, field };
+}
+
+/**
+ * 1.0.15: a Formula (or calculated default) may only use fields in the same
+ * place - header fields (and summaries) for a header field, that line's
+ * fields for a lines field - and formulas may not use each other in a loop.
+ */
+function formulaFieldProblem(
+  objectApiName: string,
+  apiName: string,
+  placement: 'header' | 'list' | null,
+  text: { formula: string | null; default_formula: string | null },
+): string | null {
+  const fields = catalogLive().fields.filter((f) => f.object_api_name === objectApiName && f.active !== false);
+  const samePlace = (f: FieldDefinition) =>
+    placement === 'list' ? f.zone_role === 'list' : f.zone_role !== 'list';
+  const usable = new Set(fields.filter(samePlace).map((f) => f.api_name));
+  usable.add(apiName);
+  for (const [label, expr] of [['Formula', text.formula], ['Calculated default', text.default_formula]] as const) {
+    if (expr === null) continue;
+    if (label === 'Calculated default' && !expr.trim()) continue;
+    const compiled = compileFormula(expr);
+    if (!compiled.ok) return `${label}: ${compiled.error}`;
+    const unknown = compiled.refs.filter((r) => !usable.has(r));
+    if (unknown.length) {
+      const where = placement === 'list' ? 'this line' : 'the header';
+      return `${label} uses ${unknown.join(', ')}, which ${unknown.length === 1 ? 'is not a field' : 'are not fields'} of ${where}.`;
+    }
+  }
+  if (text.formula !== null) {
+    const formulas = fields
+      .filter((f) => f.data_type === 'formula' && f.formula && samePlace(f) && f.api_name !== apiName)
+      .map((f) => ({ api_name: f.api_name, formula: f.formula as string }));
+    formulas.push({ api_name: apiName, formula: text.formula });
+    const ordered = orderFormulas(formulas);
+    if (!ordered.ok) return ordered.error;
+  }
+  return null;
+}
+
+/** 1.0.14: a Summary field needs a header_lines type and a usable config. */
+function checkSummaryField(
+  objectApiName: string,
+  apiName: string,
+  raw: unknown,
+): { ok: true; summary: SummaryConfig } | { ok: false; code: string; message: string } {
+  const type = getRecordType(objectApiName);
+  if (!type || type.structure !== 'header_lines') {
+    return {
+      ok: false,
+      code: 'SUMMARY_NEEDS_LINES',
+      message: 'Summary fields total the lines of a record, so the record type must be "Header and lines".',
+    };
+  }
+  const fields = catalogLive().fields.filter((f) => f.object_api_name === objectApiName && f.active !== false);
+  const summary = normalizeSummaryConfig(raw);
+  const problem = summaryConfigProblem(
+    summary,
+    fields.filter((f) => f.zone_role === 'list'),
+    fields.filter((f) => f.data_type === 'summary' && f.api_name !== apiName).map((f) => f.api_name),
+  );
+  if (problem || !summary) return { ok: false, code: 'INVALID_SUMMARY', message: problem ?? 'Invalid summary.' };
+  return { ok: true, summary };
 }
 
 // ---------------------------------------------------------------------------
@@ -3063,7 +3314,7 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
 export type UpdateFieldInput = Partial<Pick<FieldDefinition,
   'label' | 'is_required' | 'default_value' | 'value_set_api_name' |
   'lookup_object_api_name' | 'lookup_delete_rule' | 'sort_order' | 'active' | 'zone_role' |
-  'show_in_column'
+  'show_in_column' | 'summary' | 'formula' | 'default_formula' | 'lookup_filter'
 >>;
 
 export type FieldMutationResult =
@@ -3093,9 +3344,29 @@ export function updateFieldDefinition(
   if (input.value_set_api_name && !getValueSetByApiName(input.value_set_api_name)) {
     return { ok: false, code: 'UNKNOWN_VALUE_SET', message: `Unknown value_set_api_name '${input.value_set_api_name}'.` };
   }
+  let summaryPatch: { summary?: SummaryConfig | null } = {};
+  if (input.summary !== undefined) {
+    if (current.data_type !== 'summary') {
+      return { ok: false, code: 'NOT_SUMMARY', message: 'summary applies only to Summary fields.' };
+    }
+    const checked = checkSummaryField(objectApiName, apiName, input.summary);
+    if (!checked.ok) return checked;
+    summaryPatch = { summary: checked.summary };
+  }
+  if (input.formula !== undefined || input.default_formula !== undefined) {
+    if (input.formula !== undefined && current.data_type !== 'formula') {
+      return { ok: false, code: 'NOT_FORMULA', message: 'formula applies only to Formula fields.' };
+    }
+    const problem = formulaFieldProblem(objectApiName, apiName, input.zone_role ?? current.zone_role ?? null, {
+      formula: current.data_type === 'formula' ? (input.formula ?? current.formula ?? '') : null,
+      default_formula: input.default_formula !== undefined ? input.default_formula : current.default_formula ?? null,
+    });
+    if (problem) return { ok: false, code: 'INVALID_FORMULA', message: problem };
+  }
   const next: FieldDefinition = {
     ...current,
     ...input,
+    ...summaryPatch,
     label: input.label !== undefined ? input.label.trim() : current.label,
   };
   catalogLive().fields[index] = next;

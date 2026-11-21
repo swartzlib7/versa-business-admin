@@ -603,6 +603,8 @@ export function CanvasSettingsBox({
   onStyle,
   menuOn,
   onMenu,
+  siteMenuOn,
+  onSiteMenu,
   skyOn,
   skySiteOn,
   onSky,
@@ -619,6 +621,9 @@ export function CanvasSettingsBox({
   onStyle: (id: string) => void;
   menuOn?: boolean;
   onMenu?: (on: boolean) => void;
+  /** 1.0.16: show the site's top menu on this canvas's page. */
+  siteMenuOn?: boolean;
+  onSiteMenu?: (on: boolean) => void;
   skyOn: boolean;
   skySiteOn: boolean;
   onSky: (on: boolean) => void;
@@ -654,6 +659,12 @@ export function CanvasSettingsBox({
           <div className="flex h-10 items-center gap-2 text-sm">
             <span>Menu</span>
             <RowVisibilityToggle on={menuOn !== false} onChange={onMenu} />
+          </div>
+        ) : null}
+        {onSiteMenu ? (
+          <div className="flex h-10 items-center gap-2 text-sm" title="The site's top menu on this page. Off keeps Home and this canvas's own menu.">
+            <span>Site menu</span>
+            <RowVisibilityToggle on={siteMenuOn !== false} onChange={onSiteMenu} />
           </div>
         ) : null}
       </div>
@@ -1103,5 +1114,45 @@ function CellConfigColumn({
         Remove element
       </Button>
     </div>
+  );
+}
+
+/** 1.0.16: optional visitor heading above a row's cells. Empty fields are dropped. */
+export function RowHeadingEditor({
+  heading,
+  onChange,
+}: {
+  heading?: import("@/lib/public/page-builder").RowHeading;
+  onChange: (next: import("@/lib/public/page-builder").RowHeading | undefined) => void;
+}) {
+  const value = heading ?? {};
+  const set = (key: "kicker" | "title" | "lede" | "note", text: string) => {
+    const next = { ...value, [key]: text };
+    const kept = Object.fromEntries(Object.entries(next).filter(([, v]) => typeof v === "string" && v !== ""));
+    onChange(Object.keys(kept).length ? kept : undefined);
+  };
+  const fields: Array<{ key: "kicker" | "title" | "lede" | "note"; label: string; hint: string }> = [
+    { key: "kicker", label: "Kicker", hint: "Small label, e.g. Projects" },
+    { key: "title", label: "Headline", hint: "One line that says what the row shows" },
+    { key: "lede", label: "Lead line", hint: "A sentence under the headline" },
+    { key: "note", label: "Note", hint: "e.g. Staff edit this in Executive → Projects" },
+  ];
+  return (
+    <details className="mt-2 rounded-md border border-border/70 px-3 py-2 text-sm" open={Boolean(heading)}>
+      <summary className="cursor-pointer text-xs font-medium text-muted-foreground">Row heading (visitor page)</summary>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        {fields.map((field) => (
+          <label key={field.key} className="grid gap-1 text-xs text-muted-foreground">
+            {field.label}
+            <input
+              className="rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground"
+              value={value[field.key] ?? ""}
+              placeholder={field.hint}
+              onChange={(e) => set(field.key, e.target.value)}
+            />
+          </label>
+        ))}
+      </div>
+    </details>
   );
 }

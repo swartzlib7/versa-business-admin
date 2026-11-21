@@ -10,10 +10,12 @@ import {
 } from "@/lib/public/page-builder";
 import { DRIVER_PAIRING_TYPE, RENDER_DRIVER_TYPE, pairingPayload } from "@/lib/public/driver-pairings";
 import { ensureRenderDriverRecords } from "@/lib/public/ensure-render-drivers";
-import { DEMO_CANVAS_IDS, demoCanvas } from "@/lib/sample-data/demo-canvas";
+import { DEMO_CANVAS_IDS, demoCanvas, isCurrentDemoCanvas } from "@/lib/sample-data/demo-canvas";
+import { SAMPLE_ONLY_FILTER_JSON } from "@/lib/public/pairing-filter";
 import { sampleExternalId } from "@/lib/sample-data/pack";
 
-const VISITS = [8, 12, 15, 18, 22, 27];
+/** The three months before this one (the period opens three months back; 1.0.16). */
+const VISITS = [18, 21, 25];
 
 type Listed = { id: string; data?: Record<string, unknown> };
 
@@ -41,21 +43,33 @@ export async function installDemoCanvas(opts?: { keepCanvas?: boolean }): Promis
   };
   const page = (key: string) => idFor(rows, sampleExternalId("page", key));
   const statistics = idFor(rows, sampleExternalId("stat", "visits"));
+  const miles = idFor(rows, sampleExternalId("stat", "business-miles"));
   const location = idFor(rows, sampleExternalId("location", "hq"));
+  const invoice = idFor(rows, sampleExternalId("transaction", "bracket-invoice"));
+  const sample = { mode: "filter" as const, filter: SAMPLE_ONLY_FILTER_JSON };
 
-  const specs = [
-    { key: "facets", name: "Facets", code: "page-header", type: "page", target: page("facets") },
-    { key: "integrations", name: "Integrations", code: "page-header", type: "page", target: page("integrations") },
-    { key: "inspections", name: "Inspections & Reports", code: "page-header", type: "page", target: page("inspections") },
+  // 1.0.16 tour. Every list Element reads sample records only (DM-21).
+  const specs: Array<{
+    key: string;
+    name: string;
+    code: string;
+    type: string;
+    target: string;
+    mode?: "one" | "filter" | "all";
+    filter?: string;
+  }> = [
+    { key: "welcome", name: "Welcome", code: "page-header", type: "page", target: page("welcome") },
     { key: "knowledge", name: "Knowledge", code: "page-header", type: "page", target: page("knowledge") },
-    { key: "about", name: "About", code: "page-header", type: "page", target: page("about") },
+    { key: "orgboard", name: "Organization board", code: "org-board-header", type: "*", target: "*", ...sample },
+    { key: "project", name: "Projects", code: "project-header", type: "executive_project", target: "*", ...sample },
+    { key: "job", name: "Bracket invoice", code: "transaction-header", type: "treasury_transaction", target: invoice },
     { key: "statistics", name: "Sample monthly visits", code: "statistics-header", type: "statistics", target: statistics },
+    { key: "miles", name: "Business miles", code: "statistics-header", type: "statistics", target: miles },
+    { key: "assets", name: "Assets", code: "asset-header", type: "treasury_records_assets_materiel", target: "*", ...sample },
+    { key: "schedule", name: "Schedules", code: "schedule-header", type: "schedule", target: "*", ...sample },
+    { key: "signup", name: "Sign-up", code: "contact-header", type: "contact", target: "*", mode: "all" },
     { key: "location", name: "Sample HQ", code: "location-header", type: "location", target: location },
-    { key: "integration", name: "Integrations", code: "integration-header", type: "vendor_integration", target: "*", mode: "all" as const },
-    { key: "schedule", name: "Schedules", code: "schedule-header", type: "schedule", target: "*", mode: "all" as const },
-    { key: "tickets", name: "Support Requests", code: "inspection-header", type: "inspection_report", target: "*", mode: "all" as const },
-    { key: "project", name: "Projects", code: "project-header", type: "executive_project", target: "*", mode: "all" as const },
-  ] as const;
+  ];
 
   const { adapter } = await import("@/lib/data/adapter");
   const pairings: Record<string, string> = {};
@@ -67,7 +81,8 @@ export async function installDemoCanvas(opts?: { keepCanvas?: boolean }): Promis
         codeKey: spec.code,
         targetType: spec.type,
         targetId: spec.target,
-        selectionMode: "mode" in spec ? spec.mode : "one",
+        selectionMode: spec.mode ?? "one",
+        filterJson: spec.filter,
       }),
       external_id: externalId,
     };
@@ -91,6 +106,14 @@ export async function installDemoCanvas(opts?: { keepCanvas?: boolean }): Promis
     pairings[spec.key] = created.instance.id;
   }
 
+  // Pairings from the 1.0.15 demo that the tour no longer uses.
+  const keptPairings = new Set(specs.map((spec) => sampleExternalId("pairing", spec.key)));
+  for (const row of rows) {
+    const externalId = String(row.data?.external_id ?? "");
+    if (!externalId.startsWith(sampleExternalId("pairing", "")) || keptPairings.has(externalId)) continue;
+    if (adapter.deleteRecord) await adapter.deleteRecord(row.id);
+  }
+
   const lines = await listStatLinesDb(statistics);
   const filled = new Set(
     lines.filter((line) => line.value.trim() !== "").map((line) => line.slot),
@@ -108,37 +131,29 @@ export async function installDemoCanvas(opts?: { keepCanvas?: boolean }): Promis
   }
 
   const demo = demoCanvas({
-      pages: {
-        facets: page("facets"),
-        integrations: page("integrations"),
-        inspections: page("inspections"),
-        knowledge: page("knowledge"),
-        about: page("about"),
-      },
-      statistics,
-      location,
-      integration: idFor(rows, sampleExternalId("integration", "quickbooks")),
-      schedule: idFor(rows, sampleExternalId("schedule", "buffer")),
-      inspection: idFor(rows, sampleExternalId("inspection", "support")),
-      project: idFor(rows, sampleExternalId("project", "rollout")),
-      pairings: {
-        facets: pairings.facets,
-        integrations: pairings.integrations,
-        inspections: pairings.inspections,
-        knowledge: pairings.knowledge,
-        about: pairings.about,
-        statistics: pairings.statistics,
-        location: pairings.location,
-        integration: pairings.integration,
-        schedule: pairings.schedule,
-        tickets: pairings.tickets,
-        project: pairings.project,
-      },
+    pages: { welcome: page("welcome"), knowledge: page("knowledge") },
+    statistics: { visits: statistics, miles },
+    invoice,
+    location,
+    pairings: {
+      welcome: pairings.welcome,
+      knowledge: pairings.knowledge,
+      orgboard: pairings.orgboard,
+      project: pairings.project,
+      job: pairings.job,
+      statistics: pairings.statistics,
+      miles: pairings.miles,
+      assets: pairings.assets,
+      schedule: pairings.schedule,
+      signup: pairings.signup,
+      location: pairings.location,
+    },
   });
   const current = normalizePageBuilder(getSiteSettingsFixture().page_builder);
   const demoIds = new Set<string>(DEMO_CANVAS_IDS);
   const isDemo = (canvas: CustomCanvas) => Boolean(canvas.id && demoIds.has(canvas.id));
-  if (opts?.keepCanvas && current.canvases.some(isDemo)) return;
+  // Upgrades keep the installed Demo canvas unless it is an older tour.
+  if (opts?.keepCanvas && current.canvases.some((canvas) => isDemo(canvas) && isCurrentDemoCanvas(canvas))) return;
   const kept = current.canvases.filter((canvas) => !isDemo(canvas) && !isPlaceholderCanvas(canvas));
   const slug = kept.some((canvas) => canvas.slug === demo.slug)
     ? nextCanvasSlug({ ...current, canvases: kept }, demo.label)

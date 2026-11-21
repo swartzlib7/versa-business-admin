@@ -6,12 +6,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import type { RecordImageRef } from "@/lib/records/record-image-refs";
+import { uploadsDir } from "@/lib/records/uploads-dir";
 
 export { RECORD_IMAGE_MAX, parseRecordImages, type RecordImageRef } from "@/lib/records/record-image-refs";
 
 export const RECORD_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
 
-const DIR = path.join(process.cwd(), ".data", "record-images");
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const EXT: Record<string, string> = {
@@ -26,9 +26,10 @@ export function isAllowedRecordImage(type: string): boolean {
 }
 
 function fileFor(id: string): string | null {
-  if (!ID.test(id) || !fs.existsSync(DIR)) return null;
-  const found = fs.readdirSync(DIR).find((name) => name.startsWith(`${id}.`));
-  return found ? path.join(DIR, found) : null;
+  const dir = uploadsDir("record-images");
+  if (!ID.test(id) || !fs.existsSync(dir)) return null;
+  const found = fs.readdirSync(dir).find((name) => name.startsWith(`${id}.`));
+  return found ? path.join(dir, found) : null;
 }
 
 export function recordImageFile(id: string): { path: string; mime: string } | null {
@@ -45,8 +46,9 @@ export async function saveRecordImage(file: File): Promise<RecordImageRef> {
   if (file.size > RECORD_IMAGE_MAX_BYTES) throw new Error("Image must be 2 MB or smaller.");
   const id = randomUUID();
   const name = file.name.replace(/[/\\]/g, "").slice(0, 120) || "Image";
-  fs.mkdirSync(DIR, { recursive: true });
-  fs.writeFileSync(path.join(DIR, `${id}.${EXT[file.type]}`), Buffer.from(await file.arrayBuffer()));
+  const dir = uploadsDir("record-images");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, `${id}.${EXT[file.type]}`), Buffer.from(await file.arrayBuffer()));
   return { id, name };
 }
 

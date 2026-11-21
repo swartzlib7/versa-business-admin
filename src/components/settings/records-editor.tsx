@@ -13,6 +13,9 @@ import { SubTabBar } from "@/components/ui/sub-tab-bar";
 import { theme } from "@/lib/theme";
 import { BooleanSwitch } from "@/components/ui/boolean-switch";
 import { cn } from "@/lib/utils";
+import { SummaryConfigEditor, summaryFieldOptions } from "@/components/settings/summary-config-editor";
+import { FieldCalcEditor } from "@/components/settings/field-calc-editor";
+import { SUMMARY_AGGREGATES, type SummaryConfig } from "@/lib/records/summary-fields";
 import { CUSTOM_API_PREFIX, customApiBody, normalizeCustomApiName } from "@/lib/catalog/custom-namespace";
 import {
   ColumnHeaders,
@@ -26,7 +29,7 @@ import {
 type Parent = { parent_kind: string; parent_api_name: string; label: string; group?: string; baked_in_tabs: string[] };
 type SelectOption = string | { value: string; label: string; group?: string };
 type RT = { id?: string; api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string; is_system?: boolean; active?: boolean; show_as_tab?: boolean; sort_order?: number };
-type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; lookup_delete_rule?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean; zone_role?: "header" | "list" | null; show_in_column?: boolean };
+type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; lookup_delete_rule?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean; zone_role?: "header" | "list" | null; show_in_column?: boolean; summary?: SummaryConfig | null; formula?: string | null; default_formula?: string | null; lookup_filter?: { field: string; value: string } | null };
 type VS = { id?: string; api_name: string; label: string; description?: string; is_system?: boolean };
 type VSI = { id: string; api_value: string; label: string; sort_order: number; active: boolean };
 
@@ -55,6 +58,9 @@ const DATA_TYPES: SelectOption[] = [
   { value: "lookup", label: "Lookup (link to another record type)", group: "Relation" },
   { value: "multi_lookup", label: "Multi-lookup (link to several records)", group: "Relation" },
   { value: "image_gallery", label: "Image gallery (up to 10)", group: "Media" },
+  { value: "attachments", label: "Attachments (any allowed file, up to 10)", group: "Media" },
+  { value: "summary", label: "Summary (total of a lines field)", group: "Calculated" },
+  { value: "formula", label: "Formula (calculated from other fields)", group: "Calculated" },
 ];
 
 /** J3: UI label for a structure value (API value stays header_lines). */
@@ -548,8 +554,28 @@ export function RecordsEditor() {
           value_set_api_name: vals.data_type === "picklist" || vals.data_type === "multipicklist" ? (vals.value_set_api_name || null) : null,
           lookup_object_api_name: vals.data_type === "lookup" || vals.data_type === "multi_lookup" ? (vals.lookup_object_api_name || null) : null,
           lookup_delete_rule: vals.lookup_delete_rule || null,
-          zone_role: vals.zone_role || null,
+          zone_role: vals.data_type === "summary" ? "header" : vals.zone_role || null,
           show_in_column: vals.show_in_column === "true" || vals.show_in_column === "on",
+          // 1.0.15: Formula fields, calculated defaults and lookup filters.
+          ...(vals.data_type === "formula" ? { formula: vals.formula || "" } : {}),
+          ...((vals.data_type === "number" || vals.data_type === "currency") && vals.default_formula?.trim()
+            ? { default_formula: vals.default_formula.trim() }
+            : {}),
+          ...(vals.data_type === "lookup" && vals.lookup_filter_field?.trim()
+            ? { lookup_filter: { field: vals.lookup_filter_field.trim(), value: vals.lookup_filter_value ?? "" } }
+            : {}),
+          // 1.0.14: Summary fields - how to total the lines.
+          ...(vals.data_type === "summary"
+            ? {
+                summary: {
+                  aggregate: vals.summary_aggregate || "sum",
+                  source_field: vals.summary_source_field || null,
+                  filter_field: vals.summary_filter_field || null,
+                  filter_value: vals.summary_filter_field ? vals.summary_filter_value || "true" : null,
+                  percent_of: vals.summary_percent_of || null,
+                },
+              }
+            : {}),
         }),
       });
       setStatus("Added field " + vals.api_name);
@@ -1405,7 +1431,7 @@ export function RecordsEditor() {
                     { key: "data_type", label: "Data type", type: "select", options: DATA_TYPES },
                     ...(selectedTypeForFields && types.find((t) => t.api_name === selectedTypeForFields)?.structure === "header_lines"
                       ? [
-                          { key: "zone_role", label: "Placement", type: "select" as const, options: [{ value: "header", label: "Header" }, { value: "list", label: "Lines" }] },
+                          { key: "zone_role", label: "Placement", type: "select" as const, options: [{ value: "header", label: "Header" }, { value: "list", label: "Lines" }], showWhen: (vals: Record<string, string>) => vals.data_type !== "summary" },
                           { key: "show_in_column", label: "Show as column in lines table", type: "checkbox" as const, showWhen: (vals: Record<string, string>) => vals.zone_role === "list" },
                         ]
                       : []),
@@ -1414,6 +1440,23 @@ export function RecordsEditor() {
                     { key: "value_set_api_name", label: "Value set", type: "select", options: labeledSorted(valueSets.map((v) => ({ value: v.api_name, label: v.label || v.api_name }))), showWhen: (vals: Record<string, string>) => vals.data_type === "picklist" || vals.data_type === "multipicklist" },
                     { key: "lookup_object_api_name", label: "Lookup object", type: "select", options: typeOptionsByParent(types, parents, "object_api_name"), showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" || vals.data_type === "multi_lookup" },
                     { key: "lookup_delete_rule", label: "Lookup delete rule", type: "select", options: [{ value: "orphan", label: "Orphan (plain lookup)" }, { value: "cascade", label: "Cascade (master-detail)" }], showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" },
+                    // 1.0.14: Summary fields total a lines field of the selected type.
+                    ...(() => {
+                      const obj = types.find((t) => t.api_name === selectedTypeForFields)?.object_api_name ?? selectedTypeForFields;
+                      const opts = summaryFieldOptions(allFields.filter((f) => f.object_api_name === obj && f.active !== false));
+                      const isSummary = (vals: Record<string, string>) => vals.data_type === "summary";
+                      return [
+                        { key: "formula", label: "Formula", placeholder: "e.g. line_quantity * line_unit_cost", showWhen: (vals: Record<string, string>) => vals.data_type === "formula" },
+                        { key: "default_formula", label: "Calculated default (optional)", placeholder: "follows until someone types a value", showWhen: (vals: Record<string, string>) => vals.data_type === "number" || vals.data_type === "currency" },
+                        { key: "lookup_filter_field", label: "Only offer records where (optional)", placeholder: "field API name, e.g. org_type", showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" },
+                        { key: "lookup_filter_value", label: "equals", placeholder: "e.g. vendor", showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" && !!vals.lookup_filter_field },
+                        { key: "summary_aggregate", label: "Total", type: "select" as const, options: SUMMARY_AGGREGATES.map((a) => ({ value: a.value, label: a.label })), showWhen: isSummary },
+                        { key: "summary_source_field", label: "Lines field to total", type: "select" as const, options: opts.numbers.map((f) => ({ value: f.api_name, label: f.label })), showWhen: (vals: Record<string, string>) => isSummary(vals) && vals.summary_aggregate !== "count" },
+                        { key: "summary_filter_field", label: "Only lines where (optional)", type: "select" as const, options: opts.lines.map((f) => ({ value: f.api_name, label: f.label })), showWhen: isSummary },
+                        { key: "summary_filter_value", label: "equals (true = ticked)", placeholder: "true", showWhen: (vals: Record<string, string>) => isSummary(vals) && !!vals.summary_filter_field },
+                        { key: "summary_percent_of", label: "As a percentage of (optional)", type: "select" as const, options: opts.summaries.map((f) => ({ value: f.api_name, label: f.label })), showWhen: isSummary },
+                      ];
+                    })(),
                   ]}
                   accent={theme.colors.brand}
                   onSubmit={createField}
@@ -1596,6 +1639,26 @@ export function RecordsEditor() {
                                       </div>
                                     );
                                   })()}
+                                  <FieldCalcEditor
+                                    dataType={f.data_type}
+                                    value={{
+                                      formula: draft.formula ?? f.formula ?? "",
+                                      default_formula: draft.default_formula ?? f.default_formula ?? "",
+                                      lookup_filter: draft.lookup_filter ?? f.lookup_filter ?? null,
+                                    }}
+                                    onChange={(patch) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], ...patch } }))}
+                                  />
+                                  {f.data_type === "summary" ? (
+                                    <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
+                                      <span className="text-xs font-medium text-muted-foreground">Summary (how to total the lines)</span>
+                                      <SummaryConfigEditor
+                                        value={draft.summary ?? f.summary ?? { aggregate: "sum" }}
+                                        onChange={(next) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], summary: next } }))}
+                                        typeFields={allFields.filter((x) => x.object_api_name === objectApi && x.active !== false)}
+                                        selfApiName={f.api_name}
+                                      />
+                                    </div>
+                                  ) : null}
                                   <div className="space-y-1 text-sm sm:col-span-2 lg:col-span-3">
                                     <p><span className="text-muted-foreground">API name:</span> <span className="font-mono text-xs">{f.api_name}</span> (read-only)</p>
                                     <p><span className="text-muted-foreground">Data type:</span> {f.data_type} (read-only)</p>
@@ -1617,6 +1680,12 @@ export function RecordsEditor() {
                                       active: draft.active ?? f.active,
                                       zone_role: draft.zone_role ?? f.zone_role ?? null,
                                       show_in_column: draft.show_in_column ?? f.show_in_column ?? false,
+                                      ...(draft.summary ? { summary: draft.summary } : {}),
+                                      ...(draft.formula !== undefined ? { formula: draft.formula } : {}),
+                                      ...(draft.default_formula !== undefined ? { default_formula: draft.default_formula } : {}),
+                                      ...(draft.lookup_filter !== undefined
+                                        ? { lookup_filter: draft.lookup_filter?.field?.trim() ? draft.lookup_filter : null }
+                                        : {}),
                                     })}
                                     style={{ backgroundColor: theme.colors.brand }}
                                     className="text-white"

@@ -217,7 +217,22 @@ export function applyRecordTypesToTab(
   }
 
   const baked = wiredChildren.filter((c) => BAKED_IN_CHILD_IDS.has(c.id));
-  const dynamicChildren: ZoneTab[] = types.map((t) => {
+  const dynamicChildren: ZoneTab[] = types.map((t) => recordTypeTab(t, parentKind, tab.id, tab.relations ?? []));
+
+  return {
+    ...wiredTab,
+    children: [...baked, ...dynamicChildren],
+  };
+}
+
+
+/** One listing tab for a Records Editor type (division children and Custom Records). */
+function recordTypeTab(
+  t: ZoneRecordType,
+  parentKind: "faculty" | "collaboration" | "environment",
+  parentApiName: string,
+  relations: ZoneTab["relations"],
+): ZoneTab {
     const fieldDefs = listFieldDefinitions(t.object_api_name);
     // O1: header_lines types show only list-zone fields explicitly flagged as
     // columns (show_in_column). Other structures keep the legacy first-four.
@@ -236,7 +251,7 @@ export function applyRecordTypesToTab(
     const instances = listInstances({
       type_api_name: t.api_name,
       parent_kind: parentKind,
-      parent_api_name: tab.id,
+      parent_api_name: parentApiName,
     });
 
     let sampleRows: string[][];
@@ -269,18 +284,34 @@ export function applyRecordTypesToTab(
       listColumns: listColumns.length ? listColumns : ["Name", "Status"],
       sampleRows,
       fields,
-      relations: tab.relations ?? [],
+      relations,
       recordTypeApiName: t.api_name,
       objectApiName: t.object_api_name,
       parentKind,
-      parentApiName: tab.id,
+      parentApiName,
     };
-  });
+}
 
-  return {
-    ...wiredTab,
-    children: [...baked, ...dynamicChildren],
-  };
+/**
+ * 1.0.16: Custom Records lists every active type filed under Environment →
+ * Custom (show_as_tab), after its built-in tabs. Page Builder infrastructure
+ * types stay off it.
+ */
+export function appendCustomRecordTypeTabs(tabs: ZoneTab[], recordTypes: ZoneRecordType[]): ZoneTab[] {
+  const have = new Set(tabs.map((tab) => tab.recordTypeApiName).filter(Boolean));
+  const extra = recordTypes
+    .filter(
+      (t) =>
+        t.parent_kind === "environment" &&
+        t.parent_api_name === "custom" &&
+        t.active &&
+        t.show_as_tab &&
+        !have.has(t.api_name) &&
+        !CUSTOM_INFRA_TYPES.has(t.api_name),
+    )
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .map((t) => recordTypeTab(t, "environment", "custom", []));
+  return [...tabs, ...extra];
 }
 
 export function applyRecordTypesToZoneTabs(

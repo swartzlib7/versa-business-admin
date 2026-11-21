@@ -72,6 +72,8 @@ export interface StatHeaderConfig {
   seriesMode: SeriesMode;
   /** Quota for one period (series). null = no target set. */
   periodTarget: number | null;
+  /** 1.0.14: values come from the lines of this record type (null = entered by hand). */
+  sourceRecordType: string | null;
 }
 
 export type StatHeaderParse =
@@ -159,6 +161,14 @@ export function parseStatHeaderConfig(data: Record<string, unknown>): StatHeader
       startDatetime,
       seriesMode,
       periodTarget,
+      // Fed from records only when both the type and the date field are set (source-values.ts).
+      sourceRecordType:
+        typeof data.source_record_type === 'string' &&
+        data.source_record_type.trim() &&
+        typeof data.source_date_field === 'string' &&
+        data.source_date_field.trim()
+          ? data.source_record_type.trim()
+          : null,
     },
   };
 }

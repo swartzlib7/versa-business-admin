@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { foldRecordTypeApiName } from '@/lib/catalog/name-aliases';
-import { deriveStatHeaderData } from '@/lib/statistics/model';
+import { afterRecordWrite, prepareRecordWrite } from '@/lib/records/pipeline';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 import {
   listInstances,
@@ -148,10 +148,18 @@ export async function POST(request: Request) {
       relation_kind?: string;
     }> | undefined,
   } satisfies CreateInstanceInput;
-  // Statistics: store the derived Frequency start / Target per step, as the UI does.
-  if (foldRecordTypeApiName(input.type_api_name) === 'statistics') {
-    input.data = deriveStatHeaderData(input.data);
+  // 1.0.15 save pipeline: derived fields, formulas, summaries, allocation checks.
+  const prepared = await prepareRecordWrite({
+    typeApiName: foldRecordTypeApiName(input.type_api_name),
+    data: input.data,
+    lines: input.lines,
+    current: null,
+  });
+  if (!prepared.ok) {
+    return NextResponse.json({ error: { code: prepared.code, message: prepared.message } }, { status: 400 });
   }
+  input.data = { ...input.data, ...prepared.data };
+  if (prepared.lines) input.lines = prepared.lines;
   if (adapter.createRecord) {
     const result = await adapter.createRecord(input, {
       createdBy: session?.userId ?? null,
@@ -162,6 +170,7 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    await afterRecordWrite(result.instance, null);
     return NextResponse.json(
       { data: result.instance, meta: { persistence: 'horizon1_db' } },
       { status: 201 },

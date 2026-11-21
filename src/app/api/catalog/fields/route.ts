@@ -106,6 +106,12 @@ export async function POST(request: Request) {
       : (() => { const rt = getRecordType(objectApiName); return rt && rt.structure === "header_lines" ? "header" : null; })(),
     // O1: explicit lines-table column flag (list-zone fields).
     show_in_column: body.show_in_column,
+    // 1.0.14: Summary fields - how to total the lines.
+    summary: body.summary,
+    // 1.0.15: Formula fields, calculated defaults, lookup filters.
+    formula: body.formula,
+    default_formula: body.default_formula,
+    lookup_filter: body.lookup_filter,
   });
 
   if (!result.ok) {

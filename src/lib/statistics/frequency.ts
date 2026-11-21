@@ -341,6 +341,24 @@ export function advanceFrequency(d: Date, type: FrequencyType, steps: number): D
   return next;
 }
 
+/**
+ * Which step (counted from the header start, across periods) a date falls in:
+ * the largest k with start + k steps <= date. -1 when the date is before the
+ * start. 1.0.14, for statistics fed from records.
+ */
+export function stepIndexForDate(start: Date, type: FrequencyType, date: Date): number {
+  if (date.getTime() < start.getTime()) return -1;
+  let hi = 1;
+  while (advanceFrequency(start, type, hi).getTime() <= date.getTime() && hi < 1_000_000) hi *= 2;
+  let lo = 0;
+  while (hi - lo > 1) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (advanceFrequency(start, type, mid).getTime() <= date.getTime()) lo = mid;
+    else hi = mid;
+  }
+  return lo;
+}
+
 /** Header window shifted so this period graph starts on its own first slot. */
 export function configForSeries(config: StatHeaderConfig, series: number): StatHeaderConfig {
   const s = Number.isInteger(series) && series > 0 ? series : 1;
