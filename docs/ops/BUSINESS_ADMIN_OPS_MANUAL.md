@@ -335,6 +335,7 @@ When Versa - Business Admin shares a Versa AGi host with agents:
 |-------|-------------|
 | Git | Remote is source of truth for code |
 | `.env.local` | Host backup only; encrypted |
+| `.data/data-key` (1.0.18) | The key that encrypts stored credentials (or `VBA_DATA_KEY`). **Not** in `npm run backup`, on purpose: a stolen backup must not carry the key to its own secrets. Keep one copy somewhere else (a password manager, an encrypted drive). Lose it and every Credential must be typed in again |
 | Postgres (DATA_SOURCE=postgres) | Scheduled `pg_dump` — includes `catalog_overlay`, zone tables (`executive_project` with its task lines, `production_product`), and the whole public site: `site_settings` (Page Builder, menus, modes in `body`) plus Pages records and Elements |
 | `.data/site-settings.json` | Until the first 1.0.4 boot has copied it into `site_settings.body`, this file **is** the live Page Builder, menus, and modes. Back it up and leave it in place (§5.2.1). After that copy it is a cache: boot rewrites it from Postgres. Do not edit it by hand |
 | Durable catalog overlay (fixture mode) | `.data/catalog.json` IS the tenant customization store when no DB — back up the file |
@@ -515,6 +516,18 @@ Same steps as §5.2.1, including `npm run db:migrate` (no new migration). Catalo
 
 Health reports `"version":"1.0.17"`.
 
+### 5.2.15 Existing install to 1.0.18 (security fix: stored credentials)
+
+Same steps as §5.2.1, including `npm run db:migrate` (no new migration). Catalog seed pack stays `1.0.16-r1`. **Do this on every install.** Back up first (`npm run backup`).
+
+- Up to 1.0.17 a Credential's Configuration (for example the mailbox password) was stored in plain text and every signed-in user, member included, could read it through `GET /api/records`. 1.0.18 encrypts secret fields at rest (AES-256-GCM) and never returns them through the API.
+- The first start encrypts the stored Credentials; the log says `Encrypted the secret fields of N record(s) stored before 1.0.18.` once.
+- The first start creates `.data/data-key` (mode 600). **Copy it somewhere safe, apart from the backups** (§3.7). For an install reachable from the internet, prefer `VBA_DATA_KEY` (64 hexadecimal characters, `openssl rand -hex 32`) in the environment, so the key is not in `.data` at all. Set it **before** the first 1.0.18 start, or the file key is used; switching keys later means typing every Credential in again.
+- A wrong or missing key does not stop VBA: Credentials show `••••••`, system mail stops, and the log says the value could not be decrypted. Put the right key back and restart.
+- Check after the restart: Settings → E-Mail Delivery still sends (for example Forgot password to yourself), and `GET /api/records?type=vendor_credential` shows `••••••` where the password was.
+
+Health reports `"version":"1.0.18"`.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -622,6 +635,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-24 | §5.2.15: upgrade to 1.0.18, security fix (credential secrets encrypted at rest with `.data/data-key` or `VBA_DATA_KEY`, never returned by the API). §3.7: the key is not in backups; keep a copy apart. |
 | 2026-11-23 | §5.2.14: upgrade to 1.0.17, security fix (signed sessions; everyone signs in again; `.data/session-secret` or `VBA_SESSION_SECRET`; `src/proxy.ts` replaces `src/middleware.ts`). |
 | 2026-11-20 | §5.2.13: upgrade to 1.0.16 (Demo canvas guided tour, Transaction / Asset / Organization board drivers, Element filter, row headings, phone fixes; no build-time writes). Seed pack `1.0.16-r1` (Vehicle Mileage Logs under Custom Records). |
 | 2026-11-19 | §5.2.12: upgrade to 1.0.15 (job costing on Transactions, Formula fields, Clone / Convert, Linked from). Seed pack `1.0.15-r1`. |

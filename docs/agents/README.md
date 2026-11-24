@@ -21,3 +21,4 @@ Versa AGi's host skill **`business_admin_operate`** covers orientation, health a
 - Never write calculated fields yourself: Summary, Formula, Allocated / Remaining are worked out by VBA on save. Calculated defaults (Unit price, Line total, Amount, Actual cost) follow their formula unless you send a different value on purpose.
 - Records with an **External ID** belong to an integration (e.g. Wave): don't change their amounts and don't convert them.
 - A `400` answer carries a plain sentence in `error.message`. Show it to the Primary User rather than retrying blindly.
+- **Secrets come back as `••••••`** (1.0.18): passwords, tokens and keys in a Credential's Configuration are never sent by the API. To keep one, send `••••••` back unchanged; to change it, send the new value. Do not ask VBA for a secret you need elsewhere; ask the Primary User.

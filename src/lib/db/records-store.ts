@@ -1,6 +1,8 @@
 import '@/lib/catalog/install-durable';
 import { foldRecordTypeApiName } from '@/lib/catalog/name-aliases';
 import { isPrimaryAddress, locationOrgKey, siblingPrimaryIds } from '@/lib/records/location-primary';
+import { decryptSecret, encryptSecret, isEncrypted } from '@/lib/secrets/secret-box';
+import { maskSecretFields, sealSecretFields, secretFieldsFor } from '@/lib/secrets/secret-fields';
 /**
  * #245 Slice E1 - Horizon 1 core persistence (rev E section 4.2).
  * record_type / record / record_line persistence when DATA_SOURCE is postgres.
@@ -386,7 +388,8 @@ function toInstance(
   lines: RecordInstanceLine[],
   relations: RecordInstanceRelation[] = [],
 ): RecordInstance {
-  const header = headerToStrings(row.header);
+  // 1.0.18: secret fields are never read out; server code uses readRecordSecretDb.
+  const header = maskSecretFields(type.apiName, headerToStrings(row.header));
   const name = header.name ?? header.Name ?? '';
   const status = header.status ?? header.Status ?? 'active';
   const createdAt = row.createdAt.toISOString();
@@ -545,9 +548,10 @@ export async function createRecordDb(
     return { ok: false, code: orgResolved.code, message: orgResolved.message };
   }
 
-  const header: Record<string, string> = { ...(input.data ?? {}) };
+  let header: Record<string, string> = { ...(input.data ?? {}) };
   header.name = input.name.trim();
   header.status = input.status || 'active';
+  header = sealSecretFields(type.apiName, header, null);
 
   if (type.apiName === 'schedule' && header.integration_id) {
     const taken = await scheduleIntegrationTaken(header.integration_id);
@@ -633,7 +637,7 @@ export async function updateRecordDb(
     return { ok: false, code: 'NOT_FOUND', message: `Instance '${id}' not found.` };
 
   const curHeader = headerToStrings(cur[0].header);
-  const nextHeader: Record<string, string> = { ...curHeader };
+  let nextHeader: Record<string, string> = { ...curHeader };
   if (input.data !== undefined) {
     // Fixture semantics: data replaces wholesale; name/status re-stamped below.
     for (const k of Object.keys(nextHeader)) {
@@ -649,6 +653,7 @@ export async function updateRecordDb(
     .from(recordTypeTable)
     .where(eq(recordTypeTable.id, cur[0].recordTypeId))
     .limit(1);
+  if (curType[0]?.apiName) nextHeader = sealSecretFields(curType[0].apiName, nextHeader, curHeader);
   if (curType[0]?.apiName === 'schedule' && nextHeader.integration_id) {
     const taken = await scheduleIntegrationTaken(nextHeader.integration_id, id);
     if (taken) {
@@ -750,6 +755,58 @@ export async function updateRecordDb(
   return instance
     ? { ok: true, instance }
     : { ok: false, code: 'UPDATE_FAILED', message: 'Record update did not return a row.' };
+}
+
+/**
+ * 1.0.18: the plain value of a secret field, for server code only (system mail,
+ * integrations). Null when the record or value is missing, or it cannot be decrypted.
+ */
+export async function readRecordSecretDb(id: string, field: string): Promise<string | null> {
+  const db = getDb();
+  const rows = await db
+    .select({ header: recordTable.header, type: recordTypeTable.apiName })
+    .from(recordTable)
+    .innerJoin(recordTypeTable, eq(recordTable.recordTypeId, recordTypeTable.id))
+    .where(eq(recordTable.id, id))
+    .limit(1);
+  if (!rows.length) return null;
+  const raw = headerToStrings(rows[0].header)[field];
+  if (!raw) return null;
+  const plain = decryptSecret(raw);
+  if (plain === null) console.warn(`Secret ${rows[0].type}.${field} on ${id} could not be decrypted (data key changed?).`);
+  return plain;
+}
+
+/**
+ * 1.0.18: encrypt secret values stored in plain text before 1.0.18. Runs at
+ * start-up; touches only the secret fields, and not updated_at. Returns the count.
+ */
+export async function encryptPlainSecretsDb(typeApiNames: string[]): Promise<number> {
+  const db = getDb();
+  let count = 0;
+  for (const typeApiName of typeApiNames) {
+    const fields = secretFieldsFor(typeApiName);
+    if (!fields.length) continue;
+    const rows = await db
+      .select({ id: recordTable.id, header: recordTable.header })
+      .from(recordTable)
+      .innerJoin(recordTypeTable, eq(recordTable.recordTypeId, recordTypeTable.id))
+      .where(eq(recordTypeTable.apiName, typeApiName));
+    for (const row of rows) {
+      const header = headerToStrings(row.header);
+      const plain = fields.filter((f) => header[f] && !isEncrypted(header[f]));
+      if (!plain.length) continue;
+      const before = JSON.stringify(row.header);
+      for (const f of plain) header[f] = encryptSecret(header[f]);
+      // Only when nobody saved the record in between.
+      await db
+        .update(recordTable)
+        .set({ header })
+        .where(and(eq(recordTable.id, row.id), sql`${recordTable.header}::text = ${before}::jsonb::text`));
+      count++;
+    }
+  }
+  return count;
 }
 
 export async function deleteRecordDb(id: string): Promise<boolean> {

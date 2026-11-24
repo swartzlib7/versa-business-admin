@@ -1,9 +1,19 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.17 (2026-11-23)
+**Current:** 1.0.18 (2026-11-24)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.18 — security fix
+
+**Upgrade every install.** No migration; still run `npm run db:migrate`. Catalog seed pack stays `1.0.16-r1`. Upgrade steps are in the Ops Manual, section 5.2.15.
+
+- **Fixed: any signed-in user could read stored passwords.** Up to 1.0.17 a Credential's Configuration (for example the system mailbox password) was stored as plain text and sent in full to every signed-in user, member or administrator, through the records API. Secret fields are now **encrypted in the database** and **never sent by the API**, to anyone.
+- **What you see:** in a Credential's Configuration, passwords, tokens and keys show as `••••••`; the rest (host, port, user name) shows as before. To change a password, type the new one in place of `••••••`. Saving the form with `••••••` left in keeps the stored password. A clone of a Credential does not copy its secrets.
+- **The first start encrypts** every Credential stored before 1.0.18. Nothing to do by hand; the server log says how many.
+- **The key** lives in `.data/data-key` (created on first start, readable only by the app's user), or in the optional `VBA_DATA_KEY` setting (64 hexadecimal characters). `npm run backup` does not copy it: **keep a copy of the key apart from your backups.** Without it, stored credentials cannot be read and must be typed in again (system mail stops until then).
+- Scripts and agents that read a Credential through the API now get `••••••` for its secrets. VBA's own mail sender reads the real value on the server.
 
 ## 1.0.17 — security fix
 

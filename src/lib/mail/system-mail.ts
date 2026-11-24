@@ -3,8 +3,8 @@
  * Design: docs/production/state/state_account_mail.md
  */
 import nodemailer from "nodemailer";
-import { adapter } from "@/lib/data/adapter";
 import { getSiteSettingsFixture } from "@/lib/fixtures/site-settings";
+import { readRecordSecret } from "@/lib/secrets/read-secret";
 
 type SmtpBlock = {
   enabled?: boolean;
@@ -43,9 +43,9 @@ function readConfig(raw: unknown): Record<string, unknown> | null {
 
 export async function loadSystemMailbox(): Promise<Mailbox | null> {
   const credentialId = getSiteSettingsFixture().email_delivery?.credential_id?.trim() ?? "";
-  if (!credentialId || !adapter.getRecord) return null;
-  const row = await adapter.getRecord(credentialId).catch(() => null);
-  const config = readConfig(row?.data?.configuration);
+  if (!credentialId) return null;
+  // 1.0.18: the configuration is encrypted and masked on API reads; read the real value.
+  const config = readConfig(await readRecordSecret(credentialId, "configuration").catch(() => null));
   if (!config) return null;
   const smtp = (config.smtp ?? {}) as SmtpBlock;
   const host = String(smtp.host ?? "").trim();

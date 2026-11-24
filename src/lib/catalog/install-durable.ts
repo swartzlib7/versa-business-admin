@@ -103,6 +103,18 @@ export function ensureDurableCatalog(): void {
     stampIfNeeded(fromFile);
   }
   if (building) return;
+  const g = globalThis as Record<string, unknown>;
+  if (isPostgresDataSource() && !g.__vbaSecretsSealed__) {
+    // 1.0.18: secret fields stored in plain text before 1.0.18 are encrypted, once per process
+    // (this module can load in more than one bundle).
+    g.__vbaSecretsSealed__ = true;
+    void Promise.all([import("@/lib/db/records-store"), import("@/lib/secrets/secret-fields")])
+      .then(([store, secrets]) => store.encryptPlainSecretsDb(secrets.secretTypes()))
+      .then((count) => {
+        if (count) console.log(`Encrypted the secret fields of ${count} record(s) stored before 1.0.18.`);
+      })
+      .catch((err) => console.error("Encrypting stored secrets failed:", err));
+  }
   void import("@/lib/sample-data/apply").then((mod) => {
     void mod.hydrateSampleData();
   });
