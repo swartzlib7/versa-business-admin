@@ -27,7 +27,7 @@ Host install/orient: Versa AGi skill **`business_admin`** (`coa_only`). Host API
 
 A new install ships with **demo mode on** (`demo_mode: true`). Turn it off in Settings → Modes before real use. Turning it off deletes the sample pack. The Primary Org and the install accounts stay.
 
-The first boot also installs the **site pack**: the Versa AGi Primary slides, the Analysis canvas, their styles, and menus (`ba_site:` records, `src/lib/site-pack/site-pack.json`). Demo off never removes them. The site lives in Postgres (`site_settings.body`); scripts that change settings must call `hydrateSiteSettings()` first.
+The first boot also installs the **site pack**: the Versa AGi Primary slides, the Versa page canvases (story, three chapters, two comparisons, founder; 1.0.19), their styles, and menus (`ba_site:` records, `src/lib/site-pack/site-pack.json`). Demo off never removes them. On every start, an upgraded install receives the release's new pack pages and canvases once, and pack pages or canvas settings still exactly as an earlier release shipped them are updated; anything edited on the install is kept (1.0.19, Ops Manual §5.2.16). The site lives in Postgres (`site_settings.body`); scripts that change settings must call `hydrateSiteSettings()` first.
 
 ## Standing product rules
 

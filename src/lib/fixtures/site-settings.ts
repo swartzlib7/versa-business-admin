@@ -69,6 +69,11 @@ export interface FixtureSiteSettings {
   /** Visitor theme when this browser has not chosen one. */
   public_default_theme?: UiTheme;
   email_delivery?: EmailDeliverySettings;
+  /**
+   * 1.0.19: site-pack items this install already has had ("record:<key>", "canvas:<id>").
+   * The start-up step adds a pack page or canvas only once; one deleted here stays deleted.
+   */
+  site_pack_added?: string[];
 }
 
 const GLOBAL_KEY = "__versaSiteSettingsFixture__";
@@ -196,6 +201,9 @@ function parseSettings(raw: unknown): FixtureSiteSettings | null {
           ? parsed.brand_music_name
           : null,
       brand_name_in_menu: parsed.brand_name_in_menu !== false,
+      site_pack_added: Array.isArray(parsed.site_pack_added)
+        ? parsed.site_pack_added.filter((key): key is string => typeof key === "string")
+        : undefined,
     };
   } catch {
     return null;
@@ -490,6 +498,7 @@ export function upsertSiteSettingsFixture(
             ...input.email_delivery,
           })
         : normalizeEmailDelivery(current.email_delivery),
+    site_pack_added: input.site_pack_added !== undefined ? input.site_pack_added : current.site_pack_added,
   };
   const surfaces =
     next.brand_logo_surfaces ??

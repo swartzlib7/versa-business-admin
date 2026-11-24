@@ -3,9 +3,15 @@ import { sanitizeCanvasHtml } from "@/lib/public/sanitize-html";
 const STYLE = /<style[^>]*>[\s\S]*?<\/style>/gi;
 const SHEET = /<link\b[^>]*rel=["']?stylesheet["']?[^>]*>/gi;
 
-/** Page-level selectors become the shadow host, so the page's own background and font apply. */
-function hostCss(block: string): string {
+/**
+ * Page-level selectors become the shadow host, so the page's own background and font apply.
+ * 1.0.19: `:root[data-theme="dark"]` and `:root:not([data-theme="light"])` become
+ * `:host([data-theme="dark"])` and `:host(:not([data-theme="light"]))`: a host only
+ * matches the function form, so a page's light and dark designs follow the site theme.
+ */
+export function hostCss(block: string): string {
   return block
+    .replace(/:root((?:\[[^\]]*\]|:not\([^()]*\)|\.[\w-]+)+)/g, ":host($1)")
     .replace(/:root\b/g, ":host")
     .replace(/\bhtml\s*,\s*body\b/g, ":host")
     .replace(/(^|[\s,}])(html|body)(?=\s*[{,])/g, "$1:host");

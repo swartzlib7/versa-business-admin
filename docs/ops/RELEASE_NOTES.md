@@ -1,9 +1,22 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.18 (2026-11-24)
+**Current:** 1.0.19 (2026-11-24)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.19
+
+No new migration; still run `npm run db:migrate`. Catalog seed pack stays `1.0.16-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.16. Release this after the Versa AGi release that ships the Installer and Runner: the comparison pages name them as available.
+
+- **The Versa pages are part of the default site.** Seven pages, each a canvas: **The Versa story** (`/p/story`), the three chapters **The communicator** (`/p/communicator`), **The ecosystem** (`/p/ecosystem`) and **The network** (`/p/network`), the two comparisons **Analysis** (`/p/analysis`, now OpenClaw, Hermes Agent and Versa AGi on a counted scorecard) and **Versa and the AI platforms** (`/p/platforms`), and **The founder** (`/p/vision`). They link to each other and stay inside your site; only the manuals link to versavoice.ai. The founder photo ships with VBA.
+- **The menu lists the story page and the founder page.** The other five are one step from the story page. Analysis is no longer in the menu.
+- **Four home slides follow the website.** Technical Overview is a short overview of the three layers with one link to the story; Capabilities has the new sandboxing text; the Founder slide links to the founder page; Landscape shows the counted chart and links to both comparisons.
+- **Existing installs get all of this at start-up.** New pages and canvases are added once; a canvas you delete stays deleted. A page or a canvas setting you changed is kept, and the server log names it. Before, only pages you already had were updated.
+- **Pages follow your theme button.** A full HTML page with its own light and dark design now follows the site's theme (Light and Dusk show its light design; Slate, Dark and Architect its dark one). Before, it followed the visitor's computer setting.
+- **Links to a section of a page work** (for example the story page's "The founder" button).
+- **Up to 12 canvases** (was 4).
+- A canvas that is not in the menu shows "Home > its name" in the bar under the header when you are on it, instead of a lone "-".
 
 ## 1.0.18 — security fix
 

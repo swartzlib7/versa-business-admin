@@ -65,14 +65,15 @@ export function PublicHeader() {
   } = useSiteMode();
   // PB-06: every enabled custom canvas joins the sub-menu; canvases[0] keeps the v1 role.
   const homeLabel = primaryCanvasLabel(page_builder);
-  const canvases: CustomCanvas[] = enabledCanvases(page_builder ?? defaultPageBuilder()).filter(
-    (canvas) => canvas.menu_enabled !== false,
-  );
+  const allCanvases: CustomCanvas[] = enabledCanvases(page_builder ?? defaultPageBuilder());
+  const canvases: CustomCanvas[] = allCanvases.filter((canvas) => canvas.menu_enabled !== false);
   const homeMenu = (page_builder?.home_sections ?? []).filter(
     (section) => isRowOn(section) && section.in_menu !== false,
   );
-  const customOn = canvases.length > 0;
-  const currentCanvas = canvases.find((c) => isCustomCanvasPath(pathname, c)) ?? null;
+  // 1.0.19: a canvas left out of the menu (reached by a link) is still the page you are on,
+  // so its bar reads "Home > <canvas>"; the menu itself lists only menu canvases.
+  const currentCanvas = allCanvases.find((c) => isCustomCanvasPath(pathname, c)) ?? null;
+  const customOn = canvases.length > 0 || currentCanvas !== null;
   const onCustom = currentCanvas !== null;
   const shortName = brandInitials(brand.brand_name);
   // 1.0.16: a canvas can hide the site's top menu on its own page (the Demo tour does).

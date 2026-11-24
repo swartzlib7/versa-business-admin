@@ -184,7 +184,7 @@ curl -s localhost:<port>/api/health   # status=ok and database.connected=true
 2. Create a role + database (or run `scripts/provision-local-postgres.sh` if this is a local-socket install).
 3. Put `DATA_SOURCE=postgres` and `DATABASE_URL` in `.env.local`.
 4. `npm run db:migrate && npm run db:seed`
-5. Boot VBA (`npm run build && next start`). Health must show `database.connected=true`. The first boot installs the site pack (Versa AGi Primary slides, Analysis canvas, styles, menus): log line `Site pack installed: N records.`
+5. Boot VBA (`npm run build && next start`). Health must show `database.connected=true`. The first boot installs the site pack (Versa AGi Primary slides, the seven Versa page canvases, styles, menus): log line `Site pack installed: N records.`
 6. Then `migrate_agi_org --apply` so Org data is durable.
 
 An install that already has a site upgrades by §5.2.1. Do not follow this new-host list for that case.
@@ -528,6 +528,21 @@ Same steps as §5.2.1, including `npm run db:migrate` (no new migration). Catalo
 
 Health reports `"version":"1.0.18"`.
 
+### 5.2.16 Existing install to 1.0.19 (the Versa pages in the default site)
+
+Same steps as §5.2.1, including `npm run db:migrate` (no new migration). Catalog seed pack stays `1.0.16-r1`. Back up first (`npm run backup`).
+
+- The first start brings the site up to this release's site pack, on its own. The server log says what it did, for example:
+  - `Site pack: updated Versa AGi — Analysis, …` — pages still exactly as an earlier release shipped them took the new version.
+  - `Site pack: … edited on this install; left as is.` — a page someone changed is kept. To take the new version, compare it with the pack page on a fresh install and copy across by hand.
+  - `Site pack: added page:versa-agi-story, …, canvas:cv-story, …` — the six new pages and canvases.
+  - `Site pack: updated canvas Analysis (menu_enabled, seo)` — canvas settings still as an earlier release shipped them took the new values; a setting changed on this install is kept.
+  - `Site pack: not added …` — a canvas whose address (`/p/<slug>`) is already used here, or no room (12 canvases). Free the address or delete a canvas, then add it in Page Builder by hand.
+- New pages and canvases are added **once**. The install remembers them (`site_pack_added` in the site settings), so one deleted afterwards stays deleted.
+- Check after the restart: `/p/story` opens and its links reach the other six pages; the visitor menu shows The Versa story and The founder; the theme button switches the story page between light and dark.
+
+Health reports `"version":"1.0.19"`.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -635,6 +650,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-24 | §5.2.16: upgrade to 1.0.19 (Versa pages as seven canvases; start-up adds new pack pages and canvases once and updates untouched canvas settings; log lines explained). |
 | 2026-11-24 | §5.2.15: upgrade to 1.0.18, security fix (credential secrets encrypted at rest with `.data/data-key` or `VBA_DATA_KEY`, never returned by the API). §3.7: the key is not in backups; keep a copy apart. |
 | 2026-11-23 | §5.2.14: upgrade to 1.0.17, security fix (signed sessions; everyone signs in again; `.data/session-secret` or `VBA_SESSION_SECRET`; `src/proxy.ts` replaces `src/middleware.ts`). |
 | 2026-11-20 | §5.2.13: upgrade to 1.0.16 (Demo canvas guided tour, Transaction / Asset / Organization board drivers, Element filter, row headings, phone fixes; no build-time writes). Seed pack `1.0.16-r1` (Vehicle Mileage Logs under Custom Records). |

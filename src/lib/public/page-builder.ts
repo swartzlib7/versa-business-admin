@@ -198,7 +198,7 @@ export function normalizeHomeLabel(raw: unknown): string {
 }
 
 /** PB-06: how many custom canvases staff can run alongside the primary homepage. */
-export const MAX_CANVASES = 4;
+export const MAX_CANVASES = 12;
 
 /** Rows on one custom canvas. */
 export const MAX_CANVAS_ROWS = 16;

@@ -14,7 +14,15 @@ import path from "node:path";
 const ENV_LOADER = "./load-env-local.mjs";
 
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
-const DROP_DATA = new Set(["id", "name", "status", "created_at", "updated_at", "external_id"]);
+type History = {
+  about?: string;
+  pages: Record<string, string[]>;
+  canvases?: Record<string, Array<Record<string, unknown>>>;
+  offered?: string[];
+};
+
+// Audit stamps name users of the exporting instance; a pack never carries them.
+const DROP_DATA = new Set(["id", "name", "status", "created_at", "updated_at", "external_id", "created_by", "last_modified_by"]);
 
 type Row = {
   id: string;
@@ -41,7 +49,7 @@ async function main() {
   const { hydrateSiteSettings, getPublicSiteSettings } = await import(`${root}/src/lib/fixtures/site-settings.ts`);
   const { adapter } = await import(`${root}/src/lib/data/adapter.ts`);
   const { DEMO_CANVAS_IDS } = await import(`${root}/src/lib/sample-data/demo-canvas.ts`);
-  const { SITE_PACK_EXCLUDED_SETTINGS, sitePackToken } = await import(`${root}/src/lib/site-pack/index.ts`);
+  const { SITE_PACK_EXCLUDED_SETTINGS, sitePackToken, sitePackItems } = await import(`${root}/src/lib/site-pack/index.ts`);
 
   await hydrateSiteSettings();
   const site = { ...(await getPublicSiteSettings()) } as Record<string, unknown>;
@@ -106,11 +114,16 @@ async function main() {
   // replace a page only while it is still exactly as shipped (refreshSitePackPages).
   const historyPath = path.join(root, "src/lib/site-pack/site-pack-history.json");
   const history = fs.existsSync(historyPath)
-    ? (JSON.parse(fs.readFileSync(historyPath, "utf8")) as { about?: string; pages: Record<string, string[]> })
-    : { pages: {} as Record<string, string[]> };
+    ? (JSON.parse(fs.readFileSync(historyPath, "utf8")) as History)
+    : ({ pages: {} } as History);
   if (fs.existsSync(out)) {
     const { bodyHash } = await import(`${root}/src/lib/site-pack/page-refresh.ts`);
-    const previous = JSON.parse(fs.readFileSync(out, "utf8")) as { records: Array<{ key: string; type_api_name: string; data: Record<string, string> }> };
+    const previous = JSON.parse(fs.readFileSync(out, "utf8")) as {
+      version: string;
+      exported_at: string;
+      records: Array<{ key: string; type_api_name: string; data: Record<string, string> }>;
+      settings: Record<string, unknown>;
+    };
     const next = new Map(records.map((record) => [record.key, record.data.body_html]));
     for (const old of previous.records) {
       if (old.type_api_name !== "page" || typeof old.data.body_html !== "string") continue;
@@ -119,6 +132,19 @@ async function main() {
       const list = (history.pages[old.key] ??= []);
       if (!list.includes(hash)) list.push(hash);
     }
+    // 1.0.19: canvases as the previous pack shipped them (a setting still equal to one of
+    // these takes the new value on upgrade), and every item earlier packs offered.
+    type Canvas = Record<string, unknown> & { id?: string };
+    const canvasesOf = (settings: Record<string, unknown>) =>
+      ((settings.page_builder as { canvases?: Canvas[] } | undefined)?.canvases ?? []) as Canvas[];
+    const nextCanvases = new Map(canvasesOf(settings).map((canvas) => [canvas.id, JSON.stringify(canvas)]));
+    history.canvases ??= {};
+    for (const old of canvasesOf(previous.settings)) {
+      if (!old.id || nextCanvases.get(old.id) === JSON.stringify(old)) continue;
+      const list = (history.canvases[old.id] ??= []);
+      if (!list.some((seen) => JSON.stringify(seen) === JSON.stringify(old))) list.push(old);
+    }
+    history.offered = [...new Set([...(history.offered ?? []), ...sitePackItems(previous as never)])];
     fs.writeFileSync(historyPath, `${JSON.stringify(history, null, 2)}\n`);
   }
   fs.writeFileSync(out, `${JSON.stringify(pack, null, 2)}\n`);

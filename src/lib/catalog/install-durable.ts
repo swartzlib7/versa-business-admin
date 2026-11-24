@@ -131,6 +131,7 @@ export function ensureDurableCatalog(): void {
       .then(() => import("@/lib/site-pack").then(async (site) => {
         await site.installSitePackIfPending();
         await site.refreshSitePackPages();
+        await site.applySitePackAdditions();
       }))
       .catch((err) => console.error("Site pack refresh failed:", err));
   });
