@@ -7,7 +7,7 @@ Health check: `GET /api/health` returns this version from `package.json`.
 
 ## 1.0.19
 
-No new migration; still run `npm run db:migrate`. Catalog seed pack stays `1.0.16-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.16. Release this after the Versa AGi release that ships the Installer and Runner: the comparison pages name them as available.
+No new migration; still run `npm run db:migrate`. Catalog seed pack stays `1.0.16-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.16. **Coming from 1.0.17 or older: set the data key before the first start (Ops Manual 5.2.15).** Release this after the Versa AGi release that ships the Installer and Runner: the comparison pages name them as available.
 
 - **The Versa pages are part of the default site.** Seven pages, each a canvas: **The Versa story** (`/p/story`), the three chapters **The communicator** (`/p/communicator`), **The ecosystem** (`/p/ecosystem`) and **The network** (`/p/network`), the two comparisons **Analysis** (`/p/analysis`, now OpenClaw, Hermes Agent and Versa AGi on a counted scorecard) and **Versa and the AI platforms** (`/p/platforms`), and **The founder** (`/p/vision`). They link to each other and stay inside your site; only the manuals link to versavoice.ai. The founder photo ships with VBA.
 - **The menu lists the story page and the founder page.** The other five are one step from the story page. Analysis is no longer in the menu.
@@ -16,11 +16,12 @@ No new migration; still run `npm run db:migrate`. Catalog seed pack stays `1.0.1
 - **Pages follow your theme button.** A full HTML page with its own light and dark design now follows the site's theme (Light and Dusk show its light design; Slate, Dark and Architect its dark one). Before, it followed the visitor's computer setting.
 - **Links to a section of a page work** (for example the story page's "The founder" button).
 - **Up to 12 canvases** (was 4).
+- **Backups leave the data key out.** `npm run backup` copies `.env.local` without its `VBA_DATA_KEY` line, so a backup never carries the key to its own secrets. Keep the key apart.
 - A canvas that is not in the menu shows "Home > its name" in the bar under the header when you are on it, instead of a lone "-".
 
 ## 1.0.18 — security fix
 
-**Upgrade every install.** No migration; still run `npm run db:migrate`. Catalog seed pack stays `1.0.16-r1`. Upgrade steps are in the Ops Manual, section 5.2.15.
+**Upgrade every install.** No migration; still run `npm run db:migrate`. Catalog seed pack stays `1.0.16-r1`. Upgrade steps are in the Ops Manual, section 5.2.15. **Before the first start, set the data key** (`VBA_DATA_KEY` in `.env.local`, commands in 5.2.15) and keep a copy apart from the server and its backups.
 
 - **Fixed: any signed-in user could read stored passwords.** Up to 1.0.17 a Credential's Configuration (for example the system mailbox password) was stored as plain text and sent in full to every signed-in user, member or administrator, through the records API. Secret fields are now **encrypted in the database** and **never sent by the API**, to anyone.
 - **What you see:** in a Credential's Configuration, passwords, tokens and keys show as `••••••`; the rest (host, port, user name) shows as before. To change a password, type the new one in place of `••••••`. Saving the form with `••••••` left in keeps the stored password. A clone of a Credential does not copy its secrets.

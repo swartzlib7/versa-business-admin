@@ -8,7 +8,7 @@
  *
  * Writes one folder per run, e.g. backups/vba-2026-11-19-1530/:
  *   db.dump            pg_dump custom format (restore: pg_restore -d "$DATABASE_URL" --clean db.dump)
- *   env.local          a copy of .env.local (holds secrets: keep the backup private)
+ *   env.local          a copy of .env.local without VBA_DATA_KEY (still holds secrets: keep the backup private)
  *   data/              .data/site-settings.json, catalog.json, sample-data.json when present
  *   uploads.tar.gz     record-images/ and record-files/ from the uploads folder
  *   manifest.json      what was included, sizes, version
@@ -69,8 +69,14 @@ if (usesPostgres && process.env.DATABASE_URL) {
 
 // 2. Settings files
 if (existsSync(".env.local")) {
-  copyFileSync(".env.local", join(dir, "env.local"));
-  manifest.items.push({ item: "env", file: "env.local", bytes: size(".env.local") });
+  // 1.0.19: the data key that encrypts stored credentials is left out, so a backup never
+  // carries the key to its own secrets. Keep the key apart (Ops Manual §3.7, §5.2.15).
+  const env = readFileSync(".env.local", "utf8").replace(
+    /^(\s*(?:export\s+)?VBA_DATA_KEY\s*=).*$/gm,
+    "# VBA_DATA_KEY= (left out of the backup: restore it from where you keep the key)",
+  );
+  writeFileSync(join(dir, "env.local"), env, { mode: 0o600 });
+  manifest.items.push({ item: "env", file: "env.local", bytes: Buffer.byteLength(env), note: "VBA_DATA_KEY left out" });
 }
 mkdirSync(join(dir, "data"), { recursive: true });
 for (const name of ["site-settings.json", "catalog.json", "sample-data.json"]) {

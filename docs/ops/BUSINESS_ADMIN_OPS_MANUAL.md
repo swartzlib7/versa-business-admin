@@ -335,7 +335,7 @@ When Versa - Business Admin shares a Versa AGi host with agents:
 |-------|-------------|
 | Git | Remote is source of truth for code |
 | `.env.local` | Host backup only; encrypted |
-| `.data/data-key` (1.0.18) | The key that encrypts stored credentials (or `VBA_DATA_KEY`). **Not** in `npm run backup`, on purpose: a stolen backup must not carry the key to its own secrets. Keep one copy somewhere else (a password manager, an encrypted drive). Lose it and every Credential must be typed in again |
+| `.data/data-key` or `VBA_DATA_KEY` (1.0.18) | The key that encrypts stored credentials. **Not** in `npm run backup`, on purpose (1.0.19: the backup's copy of `.env.local` leaves the `VBA_DATA_KEY` line out): a stolen backup must not carry the key to its own secrets. Keep one copy somewhere else (a password manager, an encrypted drive). Lose it and every Credential must be typed in again |
 | Postgres (DATA_SOURCE=postgres) | Scheduled `pg_dump` — includes `catalog_overlay`, zone tables (`executive_project` with its task lines, `production_product`), and the whole public site: `site_settings` (Page Builder, menus, modes in `body`) plus Pages records and Elements |
 | `.data/site-settings.json` | Until the first 1.0.4 boot has copied it into `site_settings.body`, this file **is** the live Page Builder, menus, and modes. Back it up and leave it in place (§5.2.1). After that copy it is a cache: boot rewrites it from Postgres. Do not edit it by hand |
 | Durable catalog overlay (fixture mode) | `.data/catalog.json` IS the tenant customization store when no DB — back up the file |
@@ -394,7 +394,7 @@ Public GitHub is **`main`**. This checkout is pull-only. Do not commit product c
 
 **Every upgrade runs `npm run db:migrate`**, even when the version notes below say "No new migration". It only applies migrations the database does not have yet, so on a current database it changes nothing. Run it before the new process serves traffic.
 
-**Skipping versions:** go straight to the newest version in **one** upgrade (back up, pull, `npm ci`, `npm run db:migrate`, build, restart). Do not deploy the versions in between one by one. The one `npm run db:migrate` applies every missing migration (1.0.9 brings `0020`), and the first start rebases the catalog onto the newest seed pack, so all new fields and types arrive together. Then read the §5.2.x section of every skipped version, oldest first, for its notes on existing data. Check the installed version first: `curl -sS localhost:<port>/api/health`.
+**Skipping versions:** go straight to the newest version in **one** upgrade (back up, pull, `npm ci`, `npm run db:migrate`, build, restart). Do not deploy the versions in between one by one. **Before the first start, do the "Before the first start" step of every skipped version** (today only §5.2.15, the data key, when coming from 1.0.17 or older): some settings only take effect if they are in place on that start. The one `npm run db:migrate` applies every missing migration (1.0.9 brings `0020`), and the first start rebases the catalog onto the newest seed pack, so all new fields and types arrive together. Then read the §5.2.x section of every skipped version, oldest first, for its notes on existing data. Check the installed version first: `curl -sS localhost:<port>/api/health`.
 
 ### 5.2.1 Existing install to 1.0.4
 
@@ -520,9 +520,22 @@ Health reports `"version":"1.0.17"`.
 
 Same steps as §5.2.1, including `npm run db:migrate` (no new migration). Catalog seed pack stays `1.0.16-r1`. **Do this on every install.** Back up first (`npm run backup`).
 
+> **Before the first start (also when skipping to a later version): set the data key.**
+> The first start of 1.0.18 or later encrypts every stored credential with a data key. Set the key now, once, and it is used from then on:
+>
+> ```bash
+> # in the install folder, before the first start of the new version
+> grep -q '^VBA_DATA_KEY=' .env.local || echo "VBA_DATA_KEY=$(openssl rand -hex 32)" >> .env.local
+> grep '^VBA_DATA_KEY=' .env.local     # copy this line to a password manager now
+> ```
+>
+> - **Keep a copy of that line somewhere other than the server and its backups.** `npm run backup` leaves it out on purpose. Without it, every credential must be typed in again and system mail stops until then.
+> - **Never change it afterwards**; a different key cannot read what the first one encrypted.
+> - If the version was started without it, VBA created `.data/data-key` and is using that. Keep using it: copy that file somewhere safe and do not add `VBA_DATA_KEY` later.
+
 - Up to 1.0.17 a Credential's Configuration (for example the mailbox password) was stored in plain text and every signed-in user, member included, could read it through `GET /api/records`. 1.0.18 encrypts secret fields at rest (AES-256-GCM) and never returns them through the API.
 - The first start encrypts the stored Credentials; the log says `Encrypted the secret fields of N record(s) stored before 1.0.18.` once.
-- The first start creates `.data/data-key` (mode 600). **Copy it somewhere safe, apart from the backups** (§3.7). For an install reachable from the internet, prefer `VBA_DATA_KEY` (64 hexadecimal characters, `openssl rand -hex 32`) in the environment, so the key is not in `.data` at all. Set it **before** the first 1.0.18 start, or the file key is used; switching keys later means typing every Credential in again.
+- Without `VBA_DATA_KEY`, the first start creates `.data/data-key` (mode 600) and uses that file instead. Either works; what matters is that one key stays in use and a copy is kept apart from the backups (§3.7).
 - A wrong or missing key does not stop VBA: Credentials show `••••••`, system mail stops, and the log says the value could not be decrypted. Put the right key back and restart.
 - Check after the restart: Settings → E-Mail Delivery still sends (for example Forgot password to yourself), and `GET /api/records?type=vendor_credential` shows `••••••` where the password was.
 
@@ -531,6 +544,8 @@ Health reports `"version":"1.0.18"`.
 ### 5.2.16 Existing install to 1.0.19 (the Versa pages in the default site)
 
 Same steps as §5.2.1, including `npm run db:migrate` (no new migration). Catalog seed pack stays `1.0.16-r1`. Back up first (`npm run backup`).
+
+> **Coming from 1.0.17 or older?** Do the data-key step in §5.2.15 **before** the first start.
 
 - The first start brings the site up to this release's site pack, on its own. The server log says what it did, for example:
   - `Site pack: updated Versa AGi — Analysis, …` — pages still exactly as an earlier release shipped them took the new version.
@@ -650,6 +665,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-24 | §5.2.15: the data key is a "Before the first start" step with commands; §5.2 skipping rule: do those steps before the first start; §5.2.16 points to it; §3.7 backups leave `VBA_DATA_KEY` out of `env.local`. |
 | 2026-11-24 | §5.2.16: upgrade to 1.0.19 (Versa pages as seven canvases; start-up adds new pack pages and canvases once and updates untouched canvas settings; log lines explained). |
 | 2026-11-24 | §5.2.15: upgrade to 1.0.18, security fix (credential secrets encrypted at rest with `.data/data-key` or `VBA_DATA_KEY`, never returned by the API). §3.7: the key is not in backups; keep a copy apart. |
 | 2026-11-23 | §5.2.14: upgrade to 1.0.17, security fix (signed sessions; everyone signs in again; `.data/session-secret` or `VBA_SESSION_SECRET`; `src/proxy.ts` replaces `src/middleware.ts`). |
