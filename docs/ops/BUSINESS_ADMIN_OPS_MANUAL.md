@@ -503,6 +503,18 @@ With **Demo off**, no sample data is added.
 
 Health reports `"version":"1.0.16"`. Leave `.data/site-settings.json` in place.
 
+### 5.2.14 Existing install to 1.0.17 (security fix: signed sessions)
+
+Same steps as §5.2.1, including `npm run db:migrate` (no new migration). Catalog seed pack stays `1.0.16-r1`. **Do this on every install; public ones (reachable from the internet) first.**
+
+- Up to 1.0.16, anyone could forge an administrator session. 1.0.17 signs sessions and refuses unsigned, altered or expired ones.
+- After the restart **every user signs in again** (old sessions are refused). Agents that call the API sign in again the same way (proof-of-work challenge, then the session cookie).
+- The first start creates `.data/session-secret` (mode 600). Leave `.data/` in place on upgrades and backups. To set the secret yourself (for example on two processes behind one address), put the same `VBA_SESSION_SECRET` in each `.env.local`; changing it signs everyone out.
+- `src/middleware.ts` is replaced by `src/proxy.ts`. A pull that still has a local `src/middleware.ts` (for example an edited copy) must remove it, so only `src/proxy.ts` is used.
+- Check after the restart: signing in works, and `curl -s -o /dev/null -w "%{http_code}" -H "Cookie: __session=eyJyb2xlIjoiYWRtaW4ifQ==" localhost:<port>/api/users` prints `401`.
+
+Health reports `"version":"1.0.17"`.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -610,6 +622,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-23 | §5.2.14: upgrade to 1.0.17, security fix (signed sessions; everyone signs in again; `.data/session-secret` or `VBA_SESSION_SECRET`; `src/proxy.ts` replaces `src/middleware.ts`). |
 | 2026-11-20 | §5.2.13: upgrade to 1.0.16 (Demo canvas guided tour, Transaction / Asset / Organization board drivers, Element filter, row headings, phone fixes; no build-time writes). Seed pack `1.0.16-r1` (Vehicle Mileage Logs under Custom Records). |
 | 2026-11-19 | §5.2.12: upgrade to 1.0.15 (job costing on Transactions, Formula fields, Clone / Convert, Linked from). Seed pack `1.0.15-r1`. |
 | 2026-11-19 | §3.7: `npm run backup`, uploads folder (`VBA_UPLOADS_DIR`), attachment limit. §5.2.11: upgrade to 1.0.14 (Attachments, Summary fields, Vehicle Mileage Log, statistics fed from records). Seed pack `1.0.14-r1`. |

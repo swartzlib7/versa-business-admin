@@ -1,7 +1,7 @@
 # Agent recipes — using Versa - Business Admin over HTTP
 
 **Audience:** AI agents (and scripts) that work in a running VBA install on behalf of the Primary User.
-**Not this page:** installing or upgrading VBA (Ops Manual), or changing VBA's code (development skill).
+**Not this page:** installing or upgrading VBA (Ops Manual), or changing VBA's code (development skill). Designing a change: [extending.md](extending.md).
 
 Versa AGi's host skill **`business_admin_operate`** covers orientation, health and restarts. These recipes cover *doing the work*. They ship with each VBA version, so they always match the API of the install in front of you. The live list of endpoints is `GET /api` (and Settings → API).
 
@@ -13,6 +13,7 @@ Versa AGi's host skill **`business_admin_operate`** covers orientation, health a
 | [attachments.md](attachments.md) | Upload files and attach them to a record |
 | [statistics.md](statistics.md) | Capture statistic values; feed a statistic from records |
 | [operations.md](operations.md) | Health, backup, what never to do |
+| [extending.md](extending.md) | Design a new capability or a change: what is already decided, what exists, where it plugs in |
 
 **Rules for every recipe**
 

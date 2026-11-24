@@ -21,6 +21,7 @@ Host install/orient: Versa AGi skill **`business_admin`** (`coa_only`). Host API
 | Staff how-to | `docs/ops/BUSINESS_ADMIN_USER_MANUAL.md` |
 | HTTP API catalog | `GET /api` (open) and Settings → API |
 | Doing work over the API (records, lines, job costing, attachments, statistics) | `docs/agents/README.md` |
+| Designing a change or a new capability (a brief, a spec) | `docs/agents/extending.md` — the state docs in `docs/production/state/` are senior to any brief |
 
 ## First run
 

@@ -1,9 +1,18 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.16 (2026-11-20)
+**Current:** 1.0.17 (2026-11-23)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.17 — security fix
+
+**Upgrade every install, public ones first.** No migration; still run `npm run db:migrate`. Catalog seed pack stays `1.0.16-r1`. Upgrade steps are in the Ops Manual, section 5.2.14.
+
+- **Fixed: sign-in sessions could be forged.** Up to 1.0.16 the session cookie was plain encoded text that the server trusted as written, so anyone who wrote their own cookie with an administrator role was treated as an administrator by the API and the staff screens. Sessions are now signed with a secret only the server holds, carry an expiry, and are checked on every request; a cookie that is unsigned, altered or expired is refused.
+- **Everyone signs in again once** after the upgrade: sessions made by earlier versions are no longer accepted.
+- The secret lives in `.data/session-secret` (created on first start, readable only by the app's user), or in the optional `VBA_SESSION_SECRET` setting. Keep `.data` in place across upgrades; losing the secret only signs everyone out.
+- The request gate moved from `src/middleware.ts` to `src/proxy.ts` (the Next.js 16 name). It now runs in the server's own runtime and checks the signature too.
 
 ## 1.0.16
 

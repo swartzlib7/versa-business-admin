@@ -7,23 +7,22 @@ import { getDb } from "@/lib/db/client";
 import { users as usersTable, departments as departmentsTable } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { isPostgresDataSource } from "@/lib/db/data-source";
+import { signSessionToken, verifySessionToken } from "@/lib/session-token";
 
 // Cookie name is still `__session` (historical Firebase Hosting constraint).
-// Lightsail does not require that name; keep it so existing sessions stay valid.
+// 1.0.17: sessions from before 1.0.17 are unsigned and no longer accepted.
 const SESSION_COOKIE = process.env.AUTH_COOKIE_NAME || "__session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
+// 1.0.17 security fix: sessions are signed (src/lib/session-token.ts). Before,
+// the cookie was plain base64 JSON trusted as written, so anyone could write
+// their own admin session.
 function encodeSession(session: Session): string {
-  return Buffer.from(JSON.stringify(session)).toString("base64");
+  return signSessionToken(session, SESSION_MAX_AGE);
 }
 
 function decodeSession(token: string): Session | null {
-  try {
-    const json = Buffer.from(token, "base64").toString("utf-8");
-    return JSON.parse(json) as Session;
-  } catch {
-    return null;
-  }
+  return verifySessionToken<Session>(token);
 }
 
 function stripFixturePassword(user: (typeof userFixtures)[number]): User {

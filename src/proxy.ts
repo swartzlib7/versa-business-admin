@@ -1,9 +1,12 @@
-// Next.js middleware for I5 auth boundary.
+// Next.js proxy (was src/middleware.ts until 1.0.17) for the I5 auth boundary.
 // Protects backend pages and API routes; leaves public routes open.
+// Runs on the Node.js runtime (Next 16 default for proxy), so it can verify
+// the signed session cookie with the same secret as the route handlers.
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { AUTH_CONFIG } from '@/lib/auth';
+import { verifySessionToken } from '@/lib/session-token';
 
 // Routes that require authentication
 const PROTECTED_PAGE_PREFIXES = [
@@ -77,13 +80,8 @@ function readSession(cookie: string): { mustChangePassword?: boolean } | null {
     .find((c) => c.trim().startsWith(AUTH_CONFIG.cookieName + '='));
   if (!match) return null;
   const token = match.split('=')[1];
-  if (!token) return null;
-  try {
-    const json = Buffer.from(token, 'base64').toString('utf-8');
-    return JSON.parse(json) as { mustChangePassword?: boolean };
-  } catch {
-    return null;
-  }
+  // 1.0.17: only a signed, unexpired session counts (an unsigned or forged cookie is no session).
+  return verifySessionToken<{ mustChangePassword?: boolean }>(token);
 }
 
 const PASSWORD_CHANGE_OK = new Set([
@@ -108,7 +106,7 @@ function isVisitorPath(pathname: string): boolean {
   );
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const cookie = request.headers.get('cookie') || '';
   const session = readSession(cookie);
