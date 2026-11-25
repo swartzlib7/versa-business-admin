@@ -19,6 +19,8 @@ type Ctx = {
   userId: string | null;
   /** Pull: an item that would wait for its statistic is an error now (the marker moves on). */
   pulling?: boolean;
+  /** 1.0.21: the sending install's zone, from the request (push) or the answer (pull). */
+  senderTimeZone?: string;
 };
 
 const STANDARD = new Set(["name", "status", "external_id", "source_deleted_at"]);
@@ -103,6 +105,8 @@ async function applyRecord(ctx: Ctx, item: RecordItem, seen: Map<string, string>
     if (known.has(field)) data[field] = value;
     else dropped.push(field);
   }
+  // 1.0.21: a statistic from a sender before 1.0.21 carries no zone; it was stamped in the sender's.
+  if (item.type === "statistics" && !String(data.time_zone ?? "").trim() && ctx.senderTimeZone) data.time_zone = ctx.senderTimeZone;
   const notes = [
     dropped.length ? `Not on this install, left out: ${dropped.join(", ")}.` : "",
     item.left_out?.length ? `Not carried by the sender: ${item.left_out.join(", ")}.` : "",
@@ -170,7 +174,13 @@ async function applyLine(ctx: Ctx, item: StatLineItem, seen: Map<string, string>
   // S2: the same (series, slot) must fall on the same date here, or nothing is written.
   const mine = await stampFor(header.id, item.series, item.slot);
   if (item.stamp && mine && Date.parse(mine) !== Date.parse(item.stamp)) {
-    return { ...base, status: "error", message: `Header settings differ: series ${item.series} slot ${item.slot} is ${item.stamp} at the source and ${mine} here.` };
+    const hereZone = String(header.data?.time_zone ?? "").trim() || "no zone set";
+    const sourceZone = item.time_zone || ctx.senderTimeZone || "zone not sent";
+    return {
+      ...base,
+      status: "error",
+      message: `Header settings differ: series ${item.series} slot ${item.slot} is ${item.stamp} at the source (${sourceZone}) and ${mine} here (${hereZone}).`,
+    };
   }
   // S3, S5: by (series, slot), stored as sent; S4: source "integration" is never recomputed.
   const value = String(item.value ?? "").trim();

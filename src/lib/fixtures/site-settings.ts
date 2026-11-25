@@ -16,6 +16,7 @@ import { foldPublicHrefs } from "@/lib/catalog/name-aliases";
 import { resolveBrandLogoUrl } from "@/lib/public/brand-seed";
 import { normalizeUiTheme, type UiTheme } from "@/lib/ui-themes";
 import { isPostgresDataSource } from "@/lib/db/data-source";
+import { isTimeZone } from "@/lib/statistics/time-zone";
 import {
   EMPTY_EMAIL_DELIVERY,
   normalizeEmailDelivery,
@@ -74,6 +75,11 @@ export interface FixtureSiteSettings {
    * The start-up step adds a pack page or canvas only once; one deleted here stays deleted.
    */
   site_pack_added?: string[];
+  /**
+   * 1.0.21: the install's time zone (IANA). Written once on the first start from the host's
+   * zone, so it no longer follows the process; new statistics take it as their Time zone.
+   */
+  time_zone?: string;
 }
 
 const GLOBAL_KEY = "__versaSiteSettingsFixture__";
@@ -204,6 +210,7 @@ function parseSettings(raw: unknown): FixtureSiteSettings | null {
       site_pack_added: Array.isArray(parsed.site_pack_added)
         ? parsed.site_pack_added.filter((key): key is string => typeof key === "string")
         : undefined,
+      time_zone: isTimeZone(parsed.time_zone) ? parsed.time_zone.trim() : undefined,
     };
   } catch {
     return null;
@@ -499,6 +506,7 @@ export function upsertSiteSettingsFixture(
           })
         : normalizeEmailDelivery(current.email_delivery),
     site_pack_added: input.site_pack_added !== undefined ? input.site_pack_added : current.site_pack_added,
+    time_zone: input.time_zone !== undefined ? input.time_zone : current.time_zone,
   };
   const surfaces =
     next.brand_logo_surfaces ??

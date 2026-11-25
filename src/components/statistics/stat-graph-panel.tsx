@@ -1,4 +1,5 @@
 "use client";
+import { useInstallTimeZone } from "@/components/shell/site-mode-provider";
 
 import { useEffect, useState } from "react";
 import { parseStatHeaderConfig, statRowsToGraphPoints } from "@/lib/statistics/model";
@@ -6,6 +7,7 @@ import { StatGraph, type StatGraphLine } from "@/components/statistics/stat-grap
 import { useTwinSlot } from "@/components/zones/twin-slot-context";
 
 export function StatGraphPanel({ headerId }: { headerId: string | null }) {
+  const installZone = useInstallTimeZone();
   const { linesEpoch } = useTwinSlot();
   const [configRaw, setConfigRaw] = useState<Record<string, unknown> | null>(null);
   const [lines, setLines] = useState<StatGraphLine[]>([]);
@@ -54,7 +56,7 @@ export function StatGraphPanel({ headerId }: { headerId: string | null }) {
     );
   }
 
-  const parsed = configRaw ? parseStatHeaderConfig(configRaw) : null;
+  const parsed = configRaw ? parseStatHeaderConfig(configRaw, installZone) : null;
   if (parsed && !parsed.ok) {
     return (
       <p className="text-sm text-muted-foreground">

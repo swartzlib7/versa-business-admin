@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/shell/theme-provider";
 import { BrandProvider } from "@/components/shell/brand-provider";
 import { PublicSky } from "@/components/public/public-sky";
+import { hostTimeZone, isTimeZone } from "@/lib/statistics/time-zone";
 import { SiteModeProvider } from "@/components/shell/site-mode-provider";
 import { getSiteSettingsDb } from "@/lib/db/settings-store";
 import { getBrandLogoOverlay, getSiteSettingsFixture } from "@/lib/fixtures/site-settings";
@@ -96,6 +97,7 @@ type LoadedSite = {
   hero_headline: string;
   footer_copyright: string;
   public_default_theme: UiTheme;
+  time_zone: string;
 };
 
 async function loadBrand(): Promise<LoadedSite> {
@@ -158,6 +160,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_music_loop: fixture.brand_music_loop !== false,
       brand_music_autoplay: fixture.brand_music_autoplay !== false,
       brand_name_in_menu: fixture.brand_name_in_menu !== false,
+      time_zone: isTimeZone(fixture.time_zone) ? fixture.time_zone : hostTimeZone(),
       hero_headline: headline,
       footer_copyright: typeof fixture.footer_copyright === "string" ? fixture.footer_copyright.trim() : "",
       public_default_theme: normalizeUiTheme(fixture.public_default_theme),
@@ -193,6 +196,7 @@ async function loadBrand(): Promise<LoadedSite> {
       brand_music_loop: true,
       brand_music_autoplay: true,
       brand_name_in_menu: true,
+      time_zone: hostTimeZone(),
       hero_headline: business.slogan,
       footer_copyright: "",
       public_default_theme: "dark",
@@ -238,6 +242,7 @@ export default async function RootLayout({
     public_menu_order: site.public_menu_order,
     public_menu_enabled: site.public_menu_enabled,
     page_builder: site.page_builder,
+    time_zone: site.time_zone,
   };
   return (
     <html

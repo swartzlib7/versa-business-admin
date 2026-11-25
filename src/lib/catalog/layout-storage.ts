@@ -122,7 +122,30 @@ export function saveLayoutConfig(config: LayoutConfig): LayoutConfig {
  * Saved overlay if one exists; otherwise the catalog seed used at runtime.
  */
 function ensureStatScaleName(config: LayoutConfig): LayoutConfig {
-  return ensureStatSourceSection(ensureStatTargetFields(ensureStatScaleNameOnly(config)));
+  return ensureStatTimeZone(ensureStatSourceSection(ensureStatTargetFields(ensureStatScaleNameOnly(config))));
+}
+
+/**
+ * 1.0.21: layouts saved before statistics had a Time zone get it right after Start
+ * datetime (or at the end of the Frequency section), unless the operator placed it.
+ */
+function ensureStatTimeZone(config: LayoutConfig): LayoutConfig {
+  if (config.objectApiName !== "statistics" || config.layoutType === "list") return config;
+  if (config.sections.some((s) => s.fields.some((f) => f.api_name === "time_zone"))) return config;
+  const field: LayoutField = { api_name: "time_zone", label: "Time zone", visible: true, span: 1 };
+  const withStart = config.sections.find((s) => s.fields.some((f) => f.api_name === "start_datetime"));
+  const target = withStart ?? config.sections.find((s) => s.label === "Frequency" || s.id.includes("frequency"));
+  if (!target) return config;
+  return {
+    ...config,
+    sections: config.sections.map((s) => {
+      if (s.id !== target.id) return s;
+      const fields = [...s.fields];
+      const at = fields.findIndex((f) => f.api_name === "start_datetime");
+      fields.splice(at < 0 ? fields.length : at + 1, 0, field);
+      return { ...s, fields };
+    }),
+  };
 }
 
 /**

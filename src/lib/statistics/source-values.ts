@@ -49,12 +49,9 @@ export function statSourceFromData(data: Record<string, unknown>): StatSource | 
   };
 }
 
-/** "2026-11-19" is that day at local midnight; datetimes parse as usual. */
-export function parseLineDate(raw: unknown): Date | null {
-  const value = text(raw);
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (dateOnly) return new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
-  return parseStartDatetime(value);
+/** "2026-11-19" is that day at midnight in the statistic's zone; a wall clock is read there too. */
+export function parseLineDate(raw: unknown, timeZone: string): Date | null {
+  return parseStartDatetime(text(raw), timeZone);
 }
 
 function lineMatches(line: Record<string, unknown>, source: StatSource): boolean {
@@ -70,18 +67,18 @@ function lineMatches(line: Record<string, unknown>, source: StatSource): boolean
 
 /** Total per step index k (k = (series - 1) * qty + slot). */
 export function computeSourceSteps(
-  config: Pick<StatHeaderConfig, "startDatetime" | "frequencyType" | "frequencyQty" | "seriesMode">,
+  config: Pick<StatHeaderConfig, "startDatetime" | "frequencyType" | "frequencyQty" | "seriesMode" | "timeZone">,
   source: StatSource,
   lines: Array<Record<string, unknown>>,
 ): Map<number, number> {
   const out = new Map<number, number>();
-  const start = parseStartDatetime(config.startDatetime);
+  const start = parseStartDatetime(config.startDatetime, config.timeZone);
   if (!start) return out;
   for (const line of lines) {
     if (!lineMatches(line, source)) continue;
-    const date = parseLineDate(line[source.dateField]);
+    const date = parseLineDate(line[source.dateField], config.timeZone);
     if (!date) continue;
-    const k = stepIndexForDate(start, config.frequencyType, date);
+    const k = stepIndexForDate(start, config.frequencyType, date, config.timeZone);
     if (k < 0) continue;
     if (config.seriesMode === "single" && k >= config.frequencyQty) continue;
     let value = 1;

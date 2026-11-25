@@ -604,6 +604,18 @@ Same steps as §5.2.1, including `npm run db:migrate`: **three migrations** this
 
 Health reports `"version":"1.0.20"`.
 
+### 5.2.18 Existing install to 1.0.21 (time zones for statistics)
+
+Same steps as §5.2.1: no migrations this time. Catalog seed pack `1.0.21-r1`. Back up first (`npm run backup`). **Coming from 1.0.17 or older:** do the data-key step in §5.2.15 first.
+
+- The first start writes the **install time zone** from the host, once: the log says `Install time zone set to <zone> (the host's zone).` Then every statistic without a zone takes it, and its stamps are recalculated: `Statistics: <n> without a time zone now use the install zone <zone>.` That is the zone the values were stamped in, so no graph moves.
+- **Check the zone when the server's zone is not the business's** (a cloud server in UTC for a business in Texas). Settings → Modes → **Time zone** changes it for new statistics. Existing statistics keep their own: change **Time zone** on each one that should move (its values move with it).
+- From now on the server's process zone (`TZ`) does not move any graph. Health shows both: `time_zone` (the install's) and `process_time_zone`.
+- **Integrations:** upgrade both installs, then **Resend all** on the sender. The copies take the source's Time zone and the values go across. A refused value now names both zones: `… at the source (America/New_York) and … here (UTC).`
+- Check after the restart: health shows `"version":"1.0.21"` and the `time_zone` you expect; a statistic opened in Custom Records shows **Time zone** after Start datetime.
+
+Health reports `"version":"1.0.21"`.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -711,6 +723,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-25 | §5.2.18: upgrade to 1.0.21 (install time zone written once; statistics take it; check it on hosts whose zone is not the business's; Resend all for integrations). |
 | 2026-11-25 | §5.2.17: the first start also brings the Versa pages to the website of 2026-11-25 (log lines). |
 | 2026-11-24 | §2.11 public access (nginx and Caddy templates), §2.12 integrations and tokens (and Credentials for scripts: the Users list), §5.2.17 upgrade to 1.0.20 (HTTP Basic removed; migrations 0021–0023; old integrations moved; one process per database). §2.10: credentials encrypted since 1.0.18. |
 | 2026-11-24 | §5.2.15: the data key is a "Before the first start" step with commands; §5.2 skipping rule: do those steps before the first start; §5.2.16 points to it; §3.7 backups leave `VBA_DATA_KEY` out of `env.local`. |

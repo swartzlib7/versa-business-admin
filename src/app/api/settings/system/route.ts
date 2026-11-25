@@ -24,6 +24,8 @@ import {
   type EmailDeliverySettings,
 } from "@/lib/settings/email-delivery";
 import { isUiTheme, normalizeUiTheme } from "@/lib/ui-themes";
+import { installTimeZone } from "@/lib/settings/install-time-zone";
+import { isTimeZone } from "@/lib/statistics/time-zone";
 
 function modesFromStore() {
   const settings = getSiteSettingsFixture();
@@ -51,6 +53,7 @@ function modesFromStore() {
     page_builder: normalizePageBuilder(settings.page_builder),
     email_delivery: publicEmailDelivery(normalizeEmailDelivery(settings.email_delivery)),
     public_default_theme: normalizeUiTheme(settings.public_default_theme),
+    time_zone: installTimeZone(),
   };
 }
 
@@ -104,7 +107,19 @@ export async function PUT(request: Request) {
     page_builder?: ReturnType<typeof normalizePageBuilder>;
     email_delivery?: EmailDeliverySettings;
     public_default_theme?: ReturnType<typeof normalizeUiTheme>;
+    time_zone?: string;
   } = {};
+  // 1.0.21: the install time zone. New statistics take it; existing ones keep their own.
+  if (body.time_zone !== undefined) {
+    const zone = typeof body.time_zone === "string" ? body.time_zone.trim() : "";
+    if (!isTimeZone(zone)) {
+      return NextResponse.json(
+        { error: { code: "INVALID_TIME_ZONE", message: "time_zone must be a zone name such as America/New_York or UTC." } },
+        { status: 400 },
+      );
+    }
+    patch.time_zone = zone;
+  }
   if (typeof body.demo_mode === "boolean") patch.demo_mode = body.demo_mode;
   if (typeof body.maintenance_mode === "boolean") {
     patch.maintenance_mode = body.maintenance_mode;

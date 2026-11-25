@@ -24,6 +24,7 @@
  */
 
 import { applyDerivedFrequencyStart, deriveFrequencyStart } from './frequency';
+import { isTimeZone } from './time-zone';
 
 export const FREQUENCY_TYPES = [
   'sec', 'min', 'hour', 'day', 'week', 'month', 'year', 'decade', 'date', 'datetime',
@@ -69,6 +70,8 @@ export interface StatHeaderConfig {
   frequencyStart: string;
   frequencyQty: number;
   startDatetime: string;
+  /** 1.0.21: the IANA zone Start datetime and every step are read in (the statistic's Time zone). */
+  timeZone: string;
   seriesMode: SeriesMode;
   /** Quota for one period (series). null = no target set. */
   periodTarget: number | null;
@@ -95,9 +98,17 @@ function toInt(raw: unknown): number | null {
 /**
  * Parse + validate a header configuration. Returns every violation, not just
  * the first - the UI form shows all errors, the API returns them in one body.
+ * `installZone` is used when the statistic has no Time zone of its own yet
+ * (a new form; a statistic stored before 1.0.21 until the start-up step fills it).
  */
-export function parseStatHeaderConfig(data: Record<string, unknown>): StatHeaderParse {
+export function parseStatHeaderConfig(data: Record<string, unknown>, installZone: string): StatHeaderParse {
   const errors: string[] = [];
+
+  const zoneRaw = String(data.time_zone ?? '').trim();
+  if (zoneRaw && !isTimeZone(zoneRaw)) {
+    errors.push('Time zone must be a zone name such as America/New_York or UTC.');
+  }
+  const timeZone = zoneRaw && isTimeZone(zoneRaw) ? zoneRaw : isTimeZone(installZone) ? installZone : 'UTC';
 
   const scaleStart = toNumber(data.scale_start);
   if (scaleStart === null) errors.push('Scale Low must be a number.');
@@ -122,7 +133,7 @@ export function parseStatHeaderConfig(data: Record<string, unknown>): StatHeader
   const startDatetime = String(data.start_datetime ?? '').trim();
   if (!startDatetime) errors.push('Start datetime is required.');
 
-  const derivedStart = deriveFrequencyStart(frequencyType, startDatetime);
+  const derivedStart = deriveFrequencyStart(frequencyType, startDatetime, timeZone);
   const frequencyStart = (derivedStart ?? String(data.frequency_start ?? '').trim());
   if (!frequencyStart) {
     errors.push('Frequency start is derived from Start datetime and Frequency type.');
@@ -159,6 +170,7 @@ export function parseStatHeaderConfig(data: Record<string, unknown>): StatHeader
       frequencyStart,
       frequencyQty: frequencyQty as number,
       startDatetime,
+      timeZone,
       seriesMode,
       periodTarget,
       // Fed from records only when both the type and the date field are set (source-values.ts).
@@ -192,8 +204,8 @@ export function deriveSlotTarget(values: Record<string, unknown>): string {
  * the UI fills as the operator types. A statistic written by a script gets
  * the same stored Frequency start and Target per step as one made on screen.
  */
-export function deriveStatHeaderData<T extends Record<string, string>>(data: T): T {
-  const out = applyDerivedFrequencyStart(data);
+export function deriveStatHeaderData<T extends Record<string, string>>(data: T, installZone: string): T {
+  const out = applyDerivedFrequencyStart(data, installZone);
   if (!('period_target' in out) && !('slot_target' in out)) return out;
   return { ...out, slot_target: deriveSlotTarget(out) };
 }
@@ -273,8 +285,8 @@ export function statValueSteps(config: Pick<StatHeaderConfig, 'scaleStart' | 'sc
 }
 
 /** Read a header config from a record instance (header JSONB). */
-export function statHeaderConfigFromData(data: Record<string, unknown>): StatHeaderParse {
-  return parseStatHeaderConfig(data);
+export function statHeaderConfigFromData(data: Record<string, unknown>, installZone: string): StatHeaderParse {
+  return parseStatHeaderConfig(data, installZone);
 }
 
 /** Occupied (series, slot) pairs — seeded empty rows count as occupied. */
@@ -353,6 +365,7 @@ export function applyStatHeaderChange<T extends Record<string, string>>(
   if (!changedKey || changedKey === 'frequency_type' || changedKey === 'start_datetime') {
     out = applyDerivedFrequencyStart(out);
   }
+  if (changedKey === 'time_zone') out = applyDerivedFrequencyStart(out);
   if (
     'slot_target' in out &&
     (!changedKey || changedKey === 'period_target' || changedKey === 'frequency_qty')

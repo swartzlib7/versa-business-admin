@@ -93,8 +93,8 @@ test("a statistic written through the record API gets the derived header fields"
     start_datetime: "2026-11-09T07:00",
     frequency_qty: "7",
     period_target: "98",
-  });
+  }, "America/New_York");
   assert.equal(data.frequency_start, "Mon");
   assert.equal(data.slot_target, "14");
-  assert.equal("slot_target" in deriveStatHeaderData({ frequency_type: "day", start_datetime: "2026-11-09T07:00" }), false);
+  assert.equal("slot_target" in deriveStatHeaderData({ frequency_type: "day", start_datetime: "2026-11-09T07:00" }, "UTC"), false);
 });

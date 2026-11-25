@@ -13,6 +13,8 @@ export interface SiteMode {
   public_menu_order: string[];
   public_menu_enabled: string[];
   page_builder: PageBuilderState;
+  /** 1.0.21: the install time zone (a statistic without its own zone uses it). */
+  time_zone: string;
 }
 
 const DEFAULT_MODE: SiteMode = {
@@ -24,6 +26,7 @@ const DEFAULT_MODE: SiteMode = {
   public_menu_order: defaultPublicNavHrefs(),
   public_menu_enabled: defaultPublicNavHrefs(),
   page_builder: defaultPageBuilder(),
+  time_zone: "UTC",
 };
 
 const SiteModeContext = createContext<SiteMode>(DEFAULT_MODE);
@@ -42,4 +45,9 @@ export function SiteModeProvider({
 
 export function useSiteMode(): SiteMode {
   return useContext(SiteModeContext);
+}
+
+/** The install time zone, for statistics shown on screen (never the browser's zone). */
+export function useInstallTimeZone(): string {
+  return useContext(SiteModeContext).time_zone || "UTC";
 }

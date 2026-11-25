@@ -2277,7 +2277,7 @@ export const layoutDefinitions: LayoutDefinition[] = [
           id: 'sec-stat-frequency',
           label: 'Frequency',
           columns: 2,
-          fields: ['frequency_type', 'frequency_start', 'frequency_qty', 'start_datetime', 'period_target', 'slot_target'],
+          fields: ['frequency_type', 'frequency_start', 'frequency_qty', 'start_datetime', 'time_zone', 'period_target', 'slot_target'],
         },
         {
           id: 'sec-stat-source',
@@ -2320,7 +2320,7 @@ export const layoutDefinitions: LayoutDefinition[] = [
           id: 'sec-stat-frequency',
           label: 'Frequency',
           columns: 2,
-          fields: ['frequency_type', 'frequency_start', 'frequency_qty', 'start_datetime', 'period_target', 'slot_target'],
+          fields: ['frequency_type', 'frequency_start', 'frequency_qty', 'start_datetime', 'time_zone', 'period_target', 'slot_target'],
         },
         {
           id: 'sec-stat-source',
@@ -2680,6 +2680,8 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-environment_stat-frequency_start', object_api_name: 'statistics', api_name: 'frequency_start', label: 'Frequency start', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true, zone_role: 'header' },
   { id: 'fld-environment_stat-frequency_qty', object_api_name: 'statistics', api_name: 'frequency_qty', label: 'Frequency quantity', data_type: 'number', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 70, active: true, zone_role: 'header' },
   { id: 'fld-environment_stat-start_datetime', object_api_name: 'statistics', api_name: 'start_datetime', label: 'Start datetime', data_type: 'datetime', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 75, active: true, zone_role: 'header' },
+  // 1.0.21: the zone Start datetime and the steps are read in (IANA). New statistics take the install's.
+  { id: 'fld-environment_stat-time_zone', object_api_name: 'statistics', api_name: 'time_zone', label: 'Time zone', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 75, active: true, zone_role: 'header' },
   { id: 'fld-environment_stat-period_target', object_api_name: 'statistics', api_name: 'period_target', label: 'Period target', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 76, active: true, zone_role: 'header' },
   { id: 'fld-environment_stat-slot_target', object_api_name: 'statistics', api_name: 'slot_target', label: 'Target per step', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 77, active: true, zone_role: 'header' },
   { id: 'fld-environment_stat-series_mode', object_api_name: 'statistics', api_name: 'series_mode', label: 'Series mode', data_type: 'picklist', is_system: true, is_required: true, default_value: 'dynamic', value_set_api_name: 'stat_series_mode', lookup_object_api_name: null, sort_order: 80, active: true, zone_role: 'header' },

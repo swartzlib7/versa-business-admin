@@ -5,6 +5,7 @@
  * the capture validation (window labels).
  */
 import type { StatHeaderConfig, FrequencyType } from './model';
+import { addCalendar, wallClock, zonedInstant } from './time-zone';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -181,10 +182,11 @@ export function frequencySlotLabels(config: StatHeaderConfig, count: number): st
     case 'date': {
       const m = /^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/.exec(config.frequencyStart);
       if (m) {
-        const d = new Date(Number(m[3]), monthIndex(m[2]), Number(m[1]));
+        // Calendar arithmetic on UTC fields: a label is a wall clock, not an instant.
+        const d = new Date(Date.UTC(Number(m[3]), monthIndex(m[2]), Number(m[1])));
         for (let i = 1; i <= n; i++) {
-          d.setDate(d.getDate() + 1);
-          labels.push(d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear());
+          d.setUTCDate(d.getUTCDate() + 1);
+          labels.push(d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear());
         }
       } else {
         for (let i = 1; i <= n; i++) labels.push('D+' + i);
@@ -194,10 +196,10 @@ export function frequencySlotLabels(config: StatHeaderConfig, count: number): st
     case 'datetime': {
       const m = /^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s+@\s*(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(config.frequencyStart);
       if (m) {
-        const d = new Date(Number(m[3]), monthIndex(m[2]), Number(m[1]), Number(m[4]), Number(m[5]), m[6] ? Number(m[6]) : 0);
+        const d = new Date(Date.UTC(Number(m[3]), monthIndex(m[2]), Number(m[1]), Number(m[4]), Number(m[5]), m[6] ? Number(m[6]) : 0));
         for (let i = 1; i <= n; i++) {
-          d.setDate(d.getDate() + 1);
-          labels.push(d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear() + ' @ ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()));
+          d.setUTCDate(d.getUTCDate() + 1);
+          labels.push(d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear() + ' @ ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds()));
         }
       } else {
         for (let i = 1; i <= n; i++) labels.push('D+' + i);
@@ -219,55 +221,72 @@ export function frequencySlotLabels(config: StatHeaderConfig, count: number): st
 export function deriveFrequencyStart(
   type: string | undefined,
   startDatetime: unknown,
+  timeZone: string,
 ): string | null {
   if (!type) return null;
-  const d = parseStartDatetime(startDatetime);
-  if (!d) return null;
+  const at = parseStartDatetime(startDatetime, timeZone);
+  if (!at) return null;
+  const d = wallClock(at, timeZone);
   switch (type) {
     case "sec":
-      return String(d.getSeconds());
+      return String(d.second);
     case "min":
-      return String(d.getMinutes());
+      return String(d.minute);
     case "hour":
-      return String(d.getHours());
+      return String(d.hour);
     case "day":
-      return DAYS[d.getDay()];
+      return DAYS[d.weekday];
     case "week":
-      return "W/E " + d.getDate() + " " + MONTHS[d.getMonth()];
+      return "W/E " + d.day + " " + MONTHS[d.month];
     case "month":
-      return MONTHS[d.getMonth()] + " " + d.getFullYear();
+      return MONTHS[d.month] + " " + d.year;
     case "year":
-      return String(d.getFullYear());
+      return String(d.year);
     case "decade":
-      return String(Math.floor(d.getFullYear() / 10) * 10);
+      return String(Math.floor(d.year / 10) * 10);
     case "date":
-      return d.getDate() + " " + MONTHS[d.getMonth()] + " " + d.getFullYear();
+      return d.day + " " + MONTHS[d.month] + " " + d.year;
     case "datetime":
-      return formatStamp(d);
+      return formatStamp(at, timeZone);
     default:
       return null;
   }
 }
 
-export function applyDerivedFrequencyStart<T extends Record<string, string>>(values: T): T {
+/**
+ * Fills frequency_start from the form's values. A Start datetime typed on the form is a
+ * wall clock, so its zone only matters for an ISO time with an offset; the form's
+ * time_zone is used, else UTC (`fallbackZone` on the server: the install zone).
+ */
+export function applyDerivedFrequencyStart<T extends Record<string, string>>(values: T, fallbackZone = "UTC"): T {
   if (!("frequency_type" in values) && !("start_datetime" in values)) return values;
-  const derived = deriveFrequencyStart(values.frequency_type, values.start_datetime);
+  const zone = String(values.time_zone ?? "").trim() || fallbackZone;
+  let derived: string | null = null;
+  try {
+    derived = deriveFrequencyStart(values.frequency_type, values.start_datetime, zone);
+  } catch {
+    derived = deriveFrequencyStart(values.frequency_type, values.start_datetime, fallbackZone);
+  }
   return { ...values, frequency_start: derived ?? "" };
 }
 
-/** Parse header Start Datetime (ISO or datetime-local). */
-export function parseStartDatetime(raw: unknown): Date | null {
+/**
+ * Parse header Start Datetime. A wall clock ("2026-11-12T00:00", "2026-11-12") is read in
+ * `timeZone`, the statistic's zone (1.0.21); an ISO time with Z or an offset is that instant.
+ */
+export function parseStartDatetime(raw: unknown, timeZone: string): Date | null {
   if (raw instanceof Date && !Number.isNaN(raw.getTime())) return raw;
   if (typeof raw !== "string" || !raw.trim()) return null;
   const s = raw.trim();
-  const local = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(s);
+  const local = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?)?$/.exec(s);
   if (local) {
-    const d = new Date(
+    const d = zonedInstant(
+      timeZone,
       Number(local[1]),
       Number(local[2]) - 1,
       Number(local[3]),
-      Number(local[4]),
-      Number(local[5]),
+      local[4] ? Number(local[4]) : 0,
+      local[5] ? Number(local[5]) : 0,
       local[6] ? Number(local[6]) : 0,
     );
     return Number.isNaN(d.getTime()) ? null : d;
@@ -276,69 +295,46 @@ export function parseStartDatetime(raw: unknown): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export function toDatetimeLocalValue(d: Date): string {
-  return (
-    d.getFullYear() +
-    "-" +
-    pad(d.getMonth() + 1) +
-    "-" +
-    pad(d.getDate()) +
-    "T" +
-    pad(d.getHours()) +
-    ":" +
-    pad(d.getMinutes())
-  );
+/** The form value (datetime-local) of an instant, in the statistic's zone. */
+export function toDatetimeLocalValue(d: Date, timeZone: string): string {
+  const w = wallClock(d, timeZone);
+  return w.year + "-" + pad(w.month + 1) + "-" + pad(w.day) + "T" + pad(w.hour) + ":" + pad(w.minute);
 }
 
-export function formatStamp(d: Date): string {
-  return (
-    d.getDate() +
-    " " +
-    MONTHS[d.getMonth()] +
-    " " +
-    d.getFullYear() +
-    " @ " +
-    pad(d.getHours()) +
-    ":" +
-    pad(d.getMinutes()) +
-    ":" +
-    pad(d.getSeconds())
-  );
+/** "12 Nov 2026 @ 00:00:00" in the statistic's zone. */
+export function formatStamp(d: Date, timeZone: string): string {
+  const w = wallClock(d, timeZone);
+  return w.day + " " + MONTHS[w.month] + " " + w.year + " @ " + pad(w.hour) + ":" + pad(w.minute) + ":" + pad(w.second);
 }
 
-/** Advance one frequency step. */
-export function advanceFrequency(d: Date, type: FrequencyType, steps: number): Date {
-  const next = new Date(d.getTime());
-  if (steps === 0) return next;
+/**
+ * Advance frequency steps. Seconds, minutes and hours are fixed lengths of time; days,
+ * weeks, months, years and decades are calendar steps in the statistic's zone, so a
+ * daily statistic keeps one slot per calendar day across a DST change.
+ */
+export function advanceFrequency(d: Date, type: FrequencyType, steps: number, timeZone: string): Date {
+  if (steps === 0) return new Date(d.getTime());
   switch (type) {
     case "sec":
-      next.setSeconds(next.getSeconds() + steps);
-      break;
+      return new Date(d.getTime() + steps * 1000);
     case "min":
-      next.setMinutes(next.getMinutes() + steps);
-      break;
+      return new Date(d.getTime() + steps * 60_000);
     case "hour":
-      next.setHours(next.getHours() + steps);
-      break;
+      return new Date(d.getTime() + steps * 3_600_000);
     case "day":
     case "date":
     case "datetime":
-      next.setDate(next.getDate() + steps);
-      break;
+      return addCalendar(d, timeZone, 0, steps);
     case "week":
-      next.setDate(next.getDate() + steps * 7);
-      break;
+      return addCalendar(d, timeZone, 0, steps * 7);
     case "month":
-      next.setMonth(next.getMonth() + steps);
-      break;
+      return addCalendar(d, timeZone, steps, 0);
     case "year":
-      next.setFullYear(next.getFullYear() + steps);
-      break;
+      return addCalendar(d, timeZone, steps * 12, 0);
     case "decade":
-      next.setFullYear(next.getFullYear() + steps * 10);
-      break;
+      return addCalendar(d, timeZone, steps * 120, 0);
   }
-  return next;
+  return new Date(d.getTime());
 }
 
 /**
@@ -346,14 +342,14 @@ export function advanceFrequency(d: Date, type: FrequencyType, steps: number): D
  * the largest k with start + k steps <= date. -1 when the date is before the
  * start. 1.0.14, for statistics fed from records.
  */
-export function stepIndexForDate(start: Date, type: FrequencyType, date: Date): number {
+export function stepIndexForDate(start: Date, type: FrequencyType, date: Date, timeZone: string): number {
   if (date.getTime() < start.getTime()) return -1;
   let hi = 1;
-  while (advanceFrequency(start, type, hi).getTime() <= date.getTime() && hi < 1_000_000) hi *= 2;
+  while (advanceFrequency(start, type, hi, timeZone).getTime() <= date.getTime() && hi < 1_000_000) hi *= 2;
   let lo = 0;
   while (hi - lo > 1) {
     const mid = Math.floor((lo + hi) / 2);
-    if (advanceFrequency(start, type, mid).getTime() <= date.getTime()) lo = mid;
+    if (advanceFrequency(start, type, mid, timeZone).getTime() <= date.getTime()) lo = mid;
     else hi = mid;
   }
   return lo;
@@ -363,11 +359,11 @@ export function stepIndexForDate(start: Date, type: FrequencyType, date: Date): 
 export function configForSeries(config: StatHeaderConfig, series: number): StatHeaderConfig {
   const s = Number.isInteger(series) && series > 0 ? series : 1;
   if (s <= 1) return config;
-  const start = parseStartDatetime(config.startDatetime);
+  const start = parseStartDatetime(config.startDatetime, config.timeZone);
   if (!start) return config;
-  const shifted = stampForSlot(start, config.frequencyType, s, 0, config.frequencyQty);
-  const frequencyStart = deriveFrequencyStart(config.frequencyType, shifted) ?? config.frequencyStart;
-  return { ...config, startDatetime: toDatetimeLocalValue(shifted), frequencyStart };
+  const shifted = stampForSlot(start, config.frequencyType, s, 0, config.frequencyQty, config.timeZone);
+  const frequencyStart = deriveFrequencyStart(config.frequencyType, shifted, config.timeZone) ?? config.frequencyStart;
+  return { ...config, startDatetime: toDatetimeLocalValue(shifted, config.timeZone), frequencyStart };
 }
 
 /** Absolute stamp for series/slot: start + ((series-1)*qty + slot) steps. */
@@ -377,11 +373,12 @@ export function stampForSlot(
   series: number,
   slot: number,
   qty: number,
+  timeZone: string,
 ): Date {
   const s = Number.isInteger(series) && series > 0 ? series : 1;
   const i = Number.isInteger(slot) && slot >= 0 ? slot : 0;
   const q = qty > 0 ? qty : 1;
-  return advanceFrequency(start, type, (s - 1) * q + i);
+  return advanceFrequency(start, type, (s - 1) * q + i, timeZone);
 }
 
 /** Series numbers that have at least one plotted point — one graph per period. */
@@ -400,8 +397,8 @@ export function graphSeriesFromLines(
 
 /** e.g. `7 - Day - 2026-09-10T00:00` under the frequency tick labels. */
 export function frequencyWindowCaption(config: StatHeaderConfig): string {
-  const start = parseStartDatetime(config.startDatetime);
-  const stamp = start ? formatStamp(start) : config.startDatetime.trim();
+  const start = parseStartDatetime(config.startDatetime, config.timeZone);
+  const stamp = start ? formatStamp(start, config.timeZone) : config.startDatetime.trim();
   const typeLabels: Record<string, string> = {
     sec: "Second",
     min: "Minute",

@@ -1,19 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { stepIndexForDate } from "./frequency";
+import { parseStartDatetime, stepIndexForDate } from "./frequency";
 import { computeSourceSteps, statSourceFromData, stepToSeriesSlot } from "./source-values";
 
+const NY = "America/New_York";
+const at = (wall: string) => parseStartDatetime(wall, NY)!;
+
 test("a date lands in the step it falls in", () => {
-  const start = new Date(2026, 0, 1);
-  assert.equal(stepIndexForDate(start, "month", new Date(2026, 0, 31)), 0);
-  assert.equal(stepIndexForDate(start, "month", new Date(2026, 10, 19)), 10);
-  assert.equal(stepIndexForDate(start, "month", new Date(2027, 1, 1)), 13);
-  assert.equal(stepIndexForDate(start, "day", new Date(2026, 0, 8)), 7);
-  assert.equal(stepIndexForDate(start, "week", new Date(2026, 0, 15)), 2);
-  assert.equal(stepIndexForDate(start, "month", new Date(2025, 11, 31)), -1);
+  const start = at("2026-01-01T00:00");
+  assert.equal(stepIndexForDate(start, "month", at("2026-01-31"), NY), 0);
+  assert.equal(stepIndexForDate(start, "month", at("2026-11-19"), NY), 10);
+  assert.equal(stepIndexForDate(start, "month", at("2027-02-01"), NY), 13);
+  assert.equal(stepIndexForDate(start, "day", at("2026-01-08"), NY), 7);
+  assert.equal(stepIndexForDate(start, "week", at("2026-01-15"), NY), 2);
+  assert.equal(stepIndexForDate(start, "month", at("2025-12-31"), NY), -1);
 });
 
-const config = { startDatetime: "2026-01-01T00:00", frequencyType: "month" as const, frequencyQty: 12, seriesMode: "dynamic" as const };
+const config = { startDatetime: "2026-01-01T00:00", frequencyType: "month" as const, frequencyQty: 12, seriesMode: "dynamic" as const, timeZone: NY };
 const source = statSourceFromData({
   source_record_type: "treasury_vehicle_mileage_log",
   source_date_field: "trip_date",

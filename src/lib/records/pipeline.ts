@@ -173,7 +173,18 @@ export async function prepareRecordWrite(args: {
   let lines = args.lines?.map((line) => ({ ...line, data: { ...line.data } }));
 
   // 1. Statistics derived fields
-  if (type === "statistics") data = deriveStatHeaderData(data);
+  if (type === "statistics") {
+    // 1.0.21: a statistic always has its own Time zone; a new one takes the install's.
+    const { installTimeZone } = await import("@/lib/settings/install-time-zone");
+    const { isTimeZone } = await import("@/lib/statistics/time-zone");
+    const zone = String(data.time_zone ?? "").trim();
+    if (zone && !isTimeZone(zone)) {
+      return { ok: false, code: "VALIDATION_ERROR", message: `Time zone "${zone}" is not a zone name. Use one such as America/New_York or UTC.` };
+    }
+    // Left empty: keep the statistic's zone (clearing it never moves a graph), else the install's.
+    data.time_zone = zone || String(args.current?.data?.time_zone ?? "").trim() || installTimeZone();
+    data = deriveStatHeaderData(data, installTimeZone());
+  }
 
   // 2-5. Calculations, unless the record is integrated
   if (!isIntegrated(data)) {

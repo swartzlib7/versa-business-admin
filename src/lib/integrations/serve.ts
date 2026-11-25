@@ -9,7 +9,7 @@ import type { RecordInstance } from "@/lib/fixtures/record-instances";
 import { parsePairingFilter, recordMatchesFilter, type PairingFilterCondition } from "@/lib/public/pairing-filter";
 import { lineFor, type IntegrationLine } from "@/lib/integrations/token-auth";
 import { lastVersions, listDeleteRowsSince, patchRow, writeRow } from "@/lib/integrations/exchange-store";
-import { itemLabel, neverSent, recordItem, statLineItem, type ExchangeItem } from "@/lib/integrations/items";
+import { itemLabel, neverSent, recordItem, statLineItem, statZoneOf, type ExchangeItem } from "@/lib/integrations/items";
 import { MAX_ITEMS, PULL_OVERLAP_MS } from "@/lib/integrations/rules";
 
 /** `as_of`: this side's clock when the pull started; `marker`: as_of less the overlap (the caller's next "since"). */
@@ -53,7 +53,7 @@ export async function servePull(args: {
         // An empty slot VBA filled in (never given a value) is not a change; a value cleared later is.
         const cleared = Date.parse(ln.updated_at ?? "") - Date.parse(ln.created_at ?? "") > 1000;
         if (String(ln.value ?? "").trim() === "" && !cleared) continue;
-        items.push(statLineItem(header.id, ln, "upsert"));
+        items.push(statLineItem(header.id, ln, "upsert", statZoneOf(header)));
       }
     }
   }

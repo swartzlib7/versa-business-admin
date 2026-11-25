@@ -89,5 +89,6 @@ HTTP Basic (`-u email:password`) was removed in 1.0.20 and answers `401 BASIC_RE
 - Never print or store a token or a fetched secret outside its Credential. A token is shown once.
 - Not on a Credential's Users list: ask the Primary User. Do not ask another agent to fetch it for you.
 - Do not edit received copies to fix data: the source wins on the next sync. Fix it at the source.
-- Statistics: both sides must have the same Frequency, Quantity and Start on a copy (they do, unless someone changed the copy). A value whose date would differ is refused with "Header settings differ"; **Resend all** on the sender repairs the copy.
+- Statistics: both sides must have the same Frequency, Quantity, Start and Time zone on a copy (they do: the copy takes them from the source, unless someone changed the copy). A value whose date would differ is refused with "Header settings differ", naming both zones; **Resend all** on the sender repairs the copy.
+- 1.0.21: a push body and a pull answer carry `time_zone` (the sending install's zone); a statistic item carries its own `time_zone`, and a graph-line item the statistic's. A statistic from a sender before 1.0.21 takes the sender's install zone.
 - One VBA process per database.

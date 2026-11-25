@@ -50,7 +50,7 @@ export const API_RESOURCES: ApiResource[] = [
     method: "GET",
     path: "/api/health",
     auth: "open",
-    summary: "Process health, package version, and database connectivity.",
+    summary: "Process health, package version, database connectivity, the install time_zone and the process_time_zone (1.0.21).",
   },
   {
     group: "Auth",
@@ -351,14 +351,14 @@ export const API_RESOURCES: ApiResource[] = [
     method: "POST",
     path: "/api/exchange",
     auth: "token",
-    summary: "Receive pushed items (access token of an Integration receive + push; no session). Body { vba_exchange: 1, items[] }, at most 100 items / 5 MB. Answers a result per item.",
+    summary: "Receive pushed items (access token of an Integration receive + push; no session). Body { vba_exchange: 1, time_zone, items[] } (time_zone: the sender's install zone, 1.0.21), at most 100 items / 5 MB. Answers a result per item.",
   },
   {
     group: "Integrations",
     method: "GET",
     path: "/api/exchange",
     auth: "token",
-    summary: "Answer a pull (access token of an Integration send + pull; no session): ?type=&since=&filter=&cursor=&marker=. Records passing both filters, changed since, with values and deletes; 100 a page.",
+    summary: "Answer a pull (access token of an Integration send + pull; no session): ?type=&since=&filter=&cursor=&marker=. Records passing both filters, changed since, with values and deletes; 100 a page. The answer carries time_zone (this install's zone, 1.0.21).",
   },
   {
     group: "Integrations",
@@ -618,7 +618,7 @@ export const API_RESOURCES: ApiResource[] = [
     path: "/api/settings/system",
     auth: "session",
     summary:
-      "Modes, sky_enabled, operator menu, public menu, and page_builder (content_mode, html_page_id, in_menu, menu_enabled, seo, sky, header_enabled, footer_enabled, width_unit, width_px). The first custom canvas cannot be removed.",
+      "Modes, time_zone (the install zone, 1.0.21), sky_enabled, operator menu, public menu, and page_builder (content_mode, html_page_id, in_menu, menu_enabled, seo, sky, header_enabled, footer_enabled, width_unit, width_px). The first custom canvas cannot be removed.",
   },
   {
     group: "Settings",
@@ -626,7 +626,7 @@ export const API_RESOURCES: ApiResource[] = [
     path: "/api/settings/system",
     auth: "admin",
     summary:
-      "Update modes, sky_enabled, menus, and page_builder. Margins are pixels. Width unit is pct or px. The first custom canvas is kept if a payload omits it.",
+      "Update modes, time_zone (an IANA zone name; new statistics take it, existing ones keep their own), sky_enabled, menus, and page_builder. Margins are pixels. Width unit is pct or px. The first custom canvas is kept if a payload omits it.",
   },
   {
     group: "Settings",

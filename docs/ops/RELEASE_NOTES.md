@@ -1,9 +1,19 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.20 (2026-11-24)
+**Current:** 1.0.21 (2026-11-25)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.21 — time zones for statistics
+
+No migrations. Catalog seed pack `1.0.21-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.18. **Coming from 1.0.17 or older: set the data key before the first start (Ops Manual 5.2.15).**
+
+- **A statistic's days no longer depend on the server's time zone.** Before, a Start datetime such as 12 Nov 2026 00:00 was read in the zone the server process ran in, so the same statistic fell on different hours on an Eastern install and a UTC install, and an Integration between them refused every value ("Header settings differ"). Moving an install to another host could also shift its graphs.
+- **Install time zone** (Settings → Modes → **Time zone**). The first start of 1.0.21 writes the host's zone there once; from then on it does not follow the server. Health shows it as `time_zone` (and the server's own zone as `process_time_zone`). **If the server runs in a different zone from the business (many cloud servers run in UTC), check this setting after the upgrade.**
+- **Time zone on each statistic** (Frequency section, after Start datetime). A new statistic takes the install zone. The upgrade gives every existing statistic the install zone, which is the zone its values were stamped in, so no graph moves. Start datetime and every step are read in the statistic's own zone, on the server and on every screen, whatever zone the viewer is in.
+- **Days, weeks and months step by the calendar** in that zone, so a daily statistic keeps one step per day across the clock change in March and November. Hours, minutes and seconds are fixed lengths of time.
+- **Integrations carry the zone.** A statistic travels with its Time zone and the copy takes it (the source wins), so the copy's steps fall on the source's days. If a value is still refused, the message names both zones. To repair copies made by 1.0.20, upgrade both installs and use **Resend all** on the sender.
 
 ## 1.0.20 — integrations and access tokens
 

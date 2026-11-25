@@ -47,6 +47,7 @@ Click **New Record**. The form has the same four sections as Edit.
 | | **Frequency start** | Worked out from Start datetime and Frequency type. Read-only |
 | | **Frequency quantity** | Steps in one period. Day × 7 is a week of days |
 | | **Start datetime** | When the first step starts. It defaults to now |
+| | **Time zone** | The zone Start datetime and the steps are read in, such as America/New_York. A new statistic takes the install's (Settings → Modes). Changing it moves the statistic's values to that zone's days |
 | | **Period target** | The quota for one whole period, such as 98 parts a week (optional) |
 | | **Target per Day** (or Week, Month…) | Period target ÷ Frequency quantity (98 ÷ 7 = 14). Read-only |
 | **Audit** | **Created By** / **Last Modified By** | Filled in for you |

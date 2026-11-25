@@ -7,6 +7,7 @@ import type { StatLineRow } from "@/lib/db/stat-lines-store";
 import { listFieldDefinitions } from "@/lib/fixtures/catalog";
 import { STAT_SOURCE_FIELDS } from "@/lib/integrations/rules";
 import { getRecordType } from "@/lib/fixtures/record-types";
+import { installTimeZone } from "@/lib/settings/install-time-zone";
 
 export const EXCHANGE_VERSION = 1;
 
@@ -34,10 +35,17 @@ export type StatLineItem = {
   series: number;
   slot: number;
   stamp: string | null;
+  /** 1.0.21: the statistic's zone at the source, so a refused stamp explains itself. */
+  time_zone?: string;
   value: string;
   updated_at: string;
   force?: boolean;
 };
+
+/** A statistic's zone: its own Time zone, else this install's (1.0.21). */
+export function statZoneOf(record: { data?: Record<string, unknown> } | null | undefined): string {
+  return String(record?.data?.time_zone ?? "").trim() || installTimeZone();
+}
 
 export type ExchangeItem = RecordItem | StatLineItem;
 
@@ -79,6 +87,8 @@ export function recordItem(record: RecordInstance, action: "upsert" | "delete"):
     }
     data[field] = String(value ?? "");
   }
+  // 1.0.21: a statistic always travels with its zone, so the copy's slots fall where the source's do.
+  if (record.type_api_name === "statistics") data.time_zone = statZoneOf(record);
   const item: RecordItem = {
     table: "record",
     id: record.id,
@@ -110,7 +120,7 @@ export function recordItem(record: RecordInstance, action: "upsert" | "delete"):
   return item;
 }
 
-export function statLineItem(headerId: string, line: StatLineRow, action: "upsert" | "delete"): StatLineItem {
+export function statLineItem(headerId: string, line: StatLineRow, action: "upsert" | "delete", timeZone?: string): StatLineItem {
   return {
     table: "stat_line",
     id: line.id,
@@ -119,6 +129,7 @@ export function statLineItem(headerId: string, line: StatLineRow, action: "upser
     series: line.series,
     slot: line.slot,
     stamp: line.stamp,
+    ...(timeZone ? { time_zone: timeZone } : {}),
     value: line.value,
     updated_at: line.updated_at ?? line.captured_at,
   };

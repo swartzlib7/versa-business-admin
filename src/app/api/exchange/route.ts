@@ -1,3 +1,5 @@
+import { installTimeZone } from "@/lib/settings/install-time-zone";
+import { isTimeZone } from "@/lib/statistics/time-zone";
 import { NextResponse } from "next/server";
 import { authenticateToken, lineFor } from "@/lib/integrations/token-auth";
 import { applyItems } from "@/lib/integrations/receive";
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
   );
   if (!integration) return bad(403, "FORBIDDEN", "This token's Integration does not receive pushes.");
   if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) return bad(413, "TOO_LARGE", "At most 5 MB per request.");
-  let body: { vba_exchange?: unknown; items?: unknown };
+  let body: { vba_exchange?: unknown; time_zone?: unknown; items?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -38,7 +40,9 @@ export async function POST(request: Request) {
   }
   if (!Array.isArray(body.items)) return bad(400, "BAD_REQUEST", "items must be a list.");
   if (body.items.length > MAX_ITEMS) return bad(400, "TOO_MANY", `At most ${MAX_ITEMS} items per request.`);
-  const results = await applyItems({ integration, userId: auth.identity.session.userId }, body.items as ExchangeItem[]);
+  // 1.0.21: the sender's install zone; a statistic from an older sender takes it when it carries none.
+  const senderTimeZone = isTimeZone(body.time_zone) ? body.time_zone : undefined;
+  const results = await applyItems({ integration, userId: auth.identity.session.userId, senderTimeZone }, body.items as ExchangeItem[]);
   return NextResponse.json({ vba_exchange: EXCHANGE_VERSION, results });
 }
 
@@ -65,5 +69,5 @@ export async function GET(request: Request) {
     cursor,
     marker: marker && !Number.isNaN(Date.parse(marker)) ? marker : undefined,
   });
-  return NextResponse.json({ vba_exchange: EXCHANGE_VERSION, ...answer });
+  return NextResponse.json({ vba_exchange: EXCHANGE_VERSION, time_zone: installTimeZone(), ...answer });
 }

@@ -402,7 +402,7 @@ export function StatValuesGrid({
   /** Trash: the step goes back to empty (a gap), which is not the same as 0. */
   const clear = (series: number, slot: number) => void commit(series, slot, "", "scroller");
 
-  const start = parseStartDatetime(config.startDatetime);
+  const start = parseStartDatetime(config.startDatetime, config.timeZone);
   const stepWord = frequencyTypeLabel(config.frequencyType).toLowerCase();
   let nextKey = "";
   for (let s = 0; s < qty && !nextKey; s++) {
@@ -483,7 +483,7 @@ export function StatValuesGrid({
                   const error = errors[key];
                   const isNext = key === nextKey;
                   const stamp = start
-                    ? formatStamp(stampForSlot(start, config.frequencyType, series, slot, qty))
+                    ? formatStamp(stampForSlot(start, config.frequencyType, series, slot, qty, config.timeZone), config.timeZone)
                     : "";
                   const id = `stat-value-${series}-${slot}`;
                   return (

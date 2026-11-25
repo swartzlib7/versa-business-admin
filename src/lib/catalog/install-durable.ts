@@ -116,8 +116,12 @@ export function ensureDurableCatalog(): void {
       .catch((err) => console.error("Encrypting stored secrets failed:", err));
   }
   if (isPostgresDataSource()) {
-    // 1.0.20: the integration engine (push sends, pulls), once per process.
-    void import("@/lib/integrations/engine")
+    // 1.0.21: statistics stored before 1.0.21 take the install zone, before anything is sent.
+    // 1.0.20: then the integration engine (push sends, pulls), once per process.
+    void import("@/lib/statistics/fill-time-zones")
+      .then((mod) => mod.fillStatisticTimeZones())
+      .catch((err) => console.error("Filling statistic time zones failed:", err))
+      .then(() => import("@/lib/integrations/engine"))
       .then((mod) => mod.startIntegrationEngine())
       .catch((err) => console.error("Integration engine did not start:", err));
   }

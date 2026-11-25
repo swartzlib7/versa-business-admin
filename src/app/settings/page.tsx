@@ -12,6 +12,9 @@ import { ApiDocsPanel } from "@/components/settings/api-docs-panel";
 import { PanelShell } from "@/components/settings/settings-chrome";
 import { EmailDeliveryPanel } from "@/components/settings/email-delivery-panel";
 import { AppearancePanel } from "@/components/settings/appearance-panel";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { isTimeZone, timeZoneNames } from "@/lib/statistics/time-zone";
 
 type SettingsTab = "modes" | "appearance" | "email" | "api";
 
@@ -36,6 +39,8 @@ function SystemPanel() {
   const [demoMode, setDemoMode] = useState(true);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [publicLogin, setPublicLogin] = useState(true);
+  const [timeZone, setTimeZone] = useState("");
+  const [zoneDraft, setZoneDraft] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -48,6 +53,8 @@ function SystemPanel() {
           setDemoMode(json.data.demo_mode !== false);
           setMaintenanceMode(json.data.maintenance_mode === true);
           setPublicLogin(json.data.public_login_enabled !== false);
+          setTimeZone(String(json.data.time_zone ?? ""));
+          setZoneDraft(String(json.data.time_zone ?? ""));
         }
       })
       .catch(() => setError("Could not load system modes."))
@@ -58,6 +65,7 @@ function SystemPanel() {
     demo_mode?: boolean;
     maintenance_mode?: boolean;
     public_login_enabled?: boolean;
+    time_zone?: string;
   }) => {
     setSaving(true);
     setError(null);
@@ -76,6 +84,8 @@ function SystemPanel() {
       setDemoMode(json.data.demo_mode !== false);
       setMaintenanceMode(json.data.maintenance_mode === true);
       setPublicLogin(json.data.public_login_enabled !== false);
+      setTimeZone(String(json.data.time_zone ?? ""));
+      setZoneDraft(String(json.data.time_zone ?? ""));
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -130,6 +140,44 @@ function SystemPanel() {
             label={publicLogin ? "Visible" : "Hidden"}
             labelSide="start"
           />
+        </div>
+        <Separator />
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-lg space-y-1">
+            <p className="text-sm font-medium">Time zone</p>
+            <p className="text-sm text-muted-foreground">
+              The zone of this business, for example America/New_York. A new statistic takes it as
+              its Time zone, and reads its Start datetime and steps there. Changing it here does not
+              move existing statistics: each keeps its own Time zone, which you change on the statistic.
+            </p>
+          </div>
+          <form
+            className="flex items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!isTimeZone(zoneDraft.trim())) {
+                setError("Pick a zone from the list, for example America/New_York.");
+                return;
+              }
+              void persist({ time_zone: zoneDraft.trim() });
+            }}
+          >
+            <Input
+              aria-label="Install time zone"
+              className="w-60"
+              list="vba-time-zones"
+              value={zoneDraft}
+              onChange={(e) => setZoneDraft(e.target.value)}
+            />
+            <datalist id="vba-time-zones">
+              {timeZoneNames().map((zone) => (
+                <option key={zone} value={zone} />
+              ))}
+            </datalist>
+            <Button type="submit" size="sm" disabled={saving || zoneDraft.trim() === timeZone}>
+              Save
+            </Button>
+          </form>
         </div>
         {!loaded || saving ? (
           <p className="text-xs text-muted-foreground">{saving ? "Saving…" : "Loading…"}</p>

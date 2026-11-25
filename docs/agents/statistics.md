@@ -2,6 +2,8 @@
 
 A statistic is a `statistics` record (parent `environment` / `custom`). Its values are separate rows.
 
+**Time zone (1.0.21).** `start_datetime` is a wall clock (`2026-11-12T00:00`) read in the statistic's `time_zone` (IANA, e.g. `America/New_York`). Leave `time_zone` out and the statistic takes the install's (`GET /api/health` → `time_zone`); a name that is not a zone is refused. Day, week and month steps follow the calendar in that zone. Each value's `stamp` is that instant in UTC.
+
 | Do | Call |
 |----|------|
 | Values + config | `GET /api/statistics/<id>/lines` |

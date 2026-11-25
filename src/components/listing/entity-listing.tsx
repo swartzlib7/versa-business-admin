@@ -56,6 +56,14 @@ import {
   parseStartDatetime,
   stampForSlot,
 } from "@/lib/statistics/frequency";
+import { isTimeZone, timeZoneNames } from "@/lib/statistics/time-zone";
+import { useInstallTimeZone } from "@/components/shell/site-mode-provider";
+
+/** The form's Time zone when it is a zone, else the install's. */
+function statZone(values: Record<string, string> | undefined, installZone: string): string {
+  const zone = String(values?.time_zone ?? "").trim();
+  return isTimeZone(zone) ? zone : installZone;
+}
 import type { FrequencyType } from "@/lib/statistics/model";
 import { useSession } from "@/lib/auth/use-session";
 import {
@@ -121,6 +129,8 @@ export type ListingField = {
     frequencyType: string;
     frequencyQty: number;
     series: number;
+    /** 1.0.21: the statistic's zone. */
+    timeZone: string;
   };
 };
 
@@ -448,14 +458,17 @@ function FieldInput({
   const isChecked = value === "true" || value === "1";
   const locked = field.readOnly === true || isAuditField(field.key);
   const pairingEntry = useDriverCatalog(allValues?.driver_id);
+  const installZone = useInstallTimeZone();
   if (field.key === "target_kind" || field.key === "record_mode") return null;
   if (!pairingFieldVisible(field.key, pairingEntry, allValues)) return null;
   if (field.key === "line_stamp") {
     const slot = Number(allValues?.line_slot ?? "");
     const cfg = field.stampConfig;
     let shown = value;
+    // Stamps show in the statistic's zone, not the browser's (1.0.21).
+    const zone = cfg?.timeZone || installZone;
     if (cfg) {
-      const start = parseStartDatetime(cfg.startDatetime);
+      const start = parseStartDatetime(cfg.startDatetime, zone);
       if (start && Number.isInteger(slot)) {
         shown = formatStamp(
           stampForSlot(
@@ -464,15 +477,17 @@ function FieldInput({
             cfg.series,
             slot,
             cfg.frequencyQty,
+            zone,
           ),
+          zone,
         );
       } else if (value) {
-        const parsed = parseStartDatetime(value);
-        shown = parsed ? formatStamp(parsed) : value;
+        const parsed = parseStartDatetime(value, zone);
+        shown = parsed ? formatStamp(parsed, zone) : value;
       }
     } else if (value) {
-      const parsed = parseStartDatetime(value);
-      shown = parsed ? formatStamp(parsed) : value;
+      const parsed = parseStartDatetime(value, zone);
+      shown = parsed ? formatStamp(parsed, zone) : value;
     }
     return (
       <label className="flex flex-col gap-1.5">
@@ -529,7 +544,7 @@ function FieldInput({
   }
   if (field.key === "frequency_start") {
     const derived =
-      deriveFrequencyStart(allValues?.frequency_type, allValues?.start_datetime) ?? value;
+      deriveFrequencyStart(allValues?.frequency_type, allValues?.start_datetime, statZone(allValues, installZone)) ?? value;
     return (
       <FrequencyStartField
         label={field.label}
@@ -894,8 +909,15 @@ function FieldInput({
           inputMode={kind === "phone" ? "tel" : kind === "email" ? "email" : undefined}
           autoComplete={kind === "phone" ? "tel" : kind === "email" ? "email" : undefined}
           placeholder={
-            kind === "email" ? "name@example.com" : kind === "phone" ? "+1 555 000 0000" : undefined
+            kind === "email"
+              ? "name@example.com"
+              : kind === "phone"
+                ? "+1 555 000 0000"
+                : field.key === "time_zone"
+                  ? "America/New_York"
+                  : undefined
           }
+          list={field.key === "time_zone" ? "vba-tz-listing" : undefined}
           value={value}
           onChange={(e) => {
             onChange(e.target.value);
@@ -905,6 +927,13 @@ function FieldInput({
           }}
         />
       )}
+      {field.key === "time_zone" ? (
+        <datalist id="vba-tz-listing">
+          {timeZoneNames().map((zone) => (
+            <option key={zone} value={zone} />
+          ))}
+        </datalist>
+      ) : null}
     </label>
   );
 }

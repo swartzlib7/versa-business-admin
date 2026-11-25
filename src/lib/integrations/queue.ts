@@ -12,7 +12,7 @@ import type { StatLineRow } from "@/lib/db/stat-lines-store";
 import { parsePairingFilter, recordMatchesFilter } from "@/lib/public/pairing-filter";
 import { lineFor } from "@/lib/integrations/token-auth";
 import { findOpenRow, writeRow } from "@/lib/integrations/exchange-store";
-import { itemLabel, neverSent, recordItem, statLineItem, type ExchangeItem } from "@/lib/integrations/items";
+import { itemLabel, neverSent, recordItem, statLineItem, statZoneOf, type ExchangeItem } from "@/lib/integrations/items";
 
 async function sendingIntegrations(): Promise<RecordInstance[]> {
   const { isPostgresDataSource } = await import("@/lib/db/data-source");
@@ -68,7 +68,7 @@ export async function queueStatLineChange(headerId: string, line: StatLineRow, a
     const flow = lineFor(integration, "statistics");
     if (!flow || String(flow.data.flow_include_lines ?? "true") === "false") continue;
     if (!recordMatchesFilter(header, parsePairingFilter(flow.data.flow_filter))) continue;
-    await enqueue(integration, statLineItem(headerId, line, action));
+    await enqueue(integration, statLineItem(headerId, line, action, statZoneOf(header)));
   }
 }
 
@@ -93,7 +93,7 @@ export async function resendAll(integration: RecordInstance): Promise<number> {
       if (type === "statistics" && String(line.data?.flow_include_lines ?? "true") !== "false") {
         for (const ln of await listStatLinesDb(record.id)) {
           if (String(ln.value ?? "").trim() === "") continue;
-          await enqueue(integration, { ...statLineItem(record.id, ln, "upsert"), force: true });
+          await enqueue(integration, { ...statLineItem(record.id, ln, "upsert", statZoneOf(record)), force: true });
           count += 1;
         }
       }

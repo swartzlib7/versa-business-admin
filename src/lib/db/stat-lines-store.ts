@@ -76,7 +76,8 @@ export async function loadStatHeaderConfig(
       : new Date(rows[0].createdAt)
     ).toISOString();
   }
-  const parsed = statHeaderConfigFromData(raw);
+  const { installTimeZone } = await import('@/lib/settings/install-time-zone');
+  const parsed = statHeaderConfigFromData(raw, installTimeZone());
   if (!parsed.ok) {
     return {
       ok: false,
@@ -88,9 +89,9 @@ export async function loadStatHeaderConfig(
 }
 
 function resolveStamp(cfg: StatHeaderConfig, series: number, slot: number): Date | null {
-  const start = parseStartDatetime(cfg.startDatetime);
+  const start = parseStartDatetime(cfg.startDatetime, cfg.timeZone);
   if (!start) return null;
-  return stampForSlot(start, cfg.frequencyType, series, slot, cfg.frequencyQty);
+  return stampForSlot(start, cfg.frequencyType, series, slot, cfg.frequencyQty, cfg.timeZone);
 }
 
 export async function listStatLinesDb(

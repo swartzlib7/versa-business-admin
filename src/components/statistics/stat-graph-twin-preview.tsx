@@ -1,4 +1,5 @@
 "use client";
+import { useInstallTimeZone } from "@/components/shell/site-mode-provider";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -44,6 +45,7 @@ export function StatGraphTwinPreview({
   /** Page to the graph of this period when it changes (the period being edited). */
   focusSeries?: number;
 }) {
+  const installZone = useInstallTimeZone();
   const { linesEpoch } = useTwinSlot();
   const [fetched, setFetched] = useState<StatGraphLine[]>([]);
 
@@ -73,7 +75,7 @@ export function StatGraphTwinPreview({
     return () => controller.abort();
   }, [headerId, linesEpoch]);
 
-  const parsed = parseStatHeaderConfig(values);
+  const parsed = parseStatHeaderConfig(values, installZone);
   const lines = linesProp ?? fetched;
   const seriesIds = useMemo(() => {
     const fromData = graphSeriesFromLines(lines);

@@ -1,4 +1,6 @@
 "use client";
+import { isTimeZone } from "@/lib/statistics/time-zone";
+import { useInstallTimeZone } from "@/components/shell/site-mode-provider";
 
 import { IssueTokenButton } from "@/components/integrations/issue-token";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -404,6 +406,7 @@ function ListingPanel({
   suppressTwinPreview?: boolean;
   allowCreate?: boolean;
 }) {
+  const installZone = useInstallTimeZone();
   const { preview, setPreview, bumpLines, linesEpoch } = useTwinSlot();
   const publishesTwin =
     panel.recordTypeApiName === "statistics" ||
@@ -464,7 +467,7 @@ function ListingPanel({
       .then((json) => {
         const data = ((json.data as { data?: Record<string, unknown> } | null)?.data ??
           {}) as Record<string, unknown>;
-        const parsed = parseStatHeaderConfig(data);
+        const parsed = parseStatHeaderConfig(data, installZone);
         const next = parsed.ok ? parsed.config : null;
         // A value save re-reads the header (linesEpoch). Keep the same object
         // when nothing changed, so the values editor is not reloaded and the
@@ -478,7 +481,7 @@ function ListingPanel({
         if ((e as { name?: string }).name !== "AbortError") setStatHeader(null);
       });
     return () => controller.abort();
-  }, [panel.recordTypeApiName, headerRecordIdProp, linesEpoch]);
+  }, [panel.recordTypeApiName, headerRecordIdProp, linesEpoch, installZone]);
 
   useEffect(() => {
     if (!isDynamic || !panel.recordTypeApiName) {
@@ -614,8 +617,10 @@ function ListingPanel({
         if (objectApiName === "statistics") {
           return headerFields.map((f) =>
             f.key === "start_datetime"
-              ? { ...f, required: true, defaultValue: toDatetimeLocalValue(new Date()) }
-              : f,
+              ? { ...f, required: true, defaultValue: toDatetimeLocalValue(new Date(), installZone) }
+              : f.key === "time_zone"
+                ? { ...f, defaultValue: installZone }
+                : f,
           );
         }
         return headerFields;
@@ -677,7 +682,7 @@ function ListingPanel({
       if (!columns.includes(f.key)) ordered.push({ ...f, column: false });
     }
     return ordered;
-  }, [isDynamic, catalogFields, valueSets, panel.fields, columns, runtime.edit, viewMode, objectApiName, statHeader]);
+  }, [isDynamic, catalogFields, valueSets, panel.fields, columns, runtime.edit, viewMode, objectApiName, statHeader, installZone]);
 
   const seedRows: ZoneListRow[] = useMemo(() => {
     const seed: string[][] =
@@ -771,6 +776,7 @@ function ListingPanel({
             frequencyType: statHeader.frequencyType,
             frequencyQty: statHeader.frequencyQty,
             series: open,
+            timeZone: statHeader.timeZone,
           },
         };
       }
@@ -1334,7 +1340,7 @@ function ListingPanel({
       // #185 Slice A (rev E section 7.3): instances view creates a new header
       // record (list-to-detail), not a line on a shared header.
       if (panel.recordTypeApiName === "statistics") {
-        const statParse = parseStatHeaderConfig(applyStatHeaderChange(draft));
+        const statParse = parseStatHeaderConfig(applyStatHeaderChange(draft), installZone);
         if (!statParse.ok) {
           alert(statParse.errors.join(" "));
           return false;
@@ -1747,7 +1753,8 @@ function ListingPanel({
                   if (key === "line_stamp") {
                     const slot = Number(_row.cells.line_slot);
                     const series = Number(_row.cells.series || 1) || 1;
-                    const start = parseStartDatetime(statHeader.startDatetime);
+                    const zone = statHeader.timeZone;
+                    const start = parseStartDatetime(statHeader.startDatetime, zone);
                     if (start && Number.isInteger(slot)) {
                       return formatStamp(
                         stampForSlot(
@@ -1756,11 +1763,13 @@ function ListingPanel({
                           series,
                           slot,
                           statHeader.frequencyQty,
+                          zone,
                         ),
+                        zone,
                       );
                     }
-                    const parsed = parseStartDatetime(raw);
-                    return parsed ? formatStamp(parsed) : raw;
+                    const parsed = parseStartDatetime(raw, zone);
+                    return parsed ? formatStamp(parsed, zone) : raw;
                   }
                   return raw;
                 }
@@ -1782,7 +1791,7 @@ function ListingPanel({
                   if (key === "line_stamp") {
                     const slot = Number(row.cells.line_slot);
                     const series = Number(row.cells.series || 1) || 1;
-                    const start = parseStartDatetime(statHeader.startDatetime);
+                    const start = parseStartDatetime(statHeader.startDatetime, statHeader.timeZone);
                     if (start && Number.isInteger(slot)) {
                       return stampForSlot(
                         start,
@@ -1790,9 +1799,10 @@ function ListingPanel({
                         series,
                         slot,
                         statHeader.frequencyQty,
+                        statHeader.timeZone,
                       ).toISOString();
                     }
-                    const parsed = parseStartDatetime(raw);
+                    const parsed = parseStartDatetime(raw, statHeader.timeZone);
                     return parsed ? parsed.toISOString() : raw;
                   }
                   return raw;
@@ -2016,6 +2026,7 @@ function FormPanel({
   /** 1.0.15: Clone / Convert made a new record - reload the list and open it. */
   onRecordCreated?: (id: string) => void;
 }) {
+  const installZone = useInstallTimeZone();
   type CatalogField = { api_name: string; label: string; data_type: string; value_set_api_name?: string | null; active?: boolean; is_required?: boolean; is_secret?: boolean; zone_role?: "header" | "list" | null; lookup_object_api_name?: string | null };
   const isDynamic = !!panel.recordTypeApiName;
   const objectApiName = panel.objectApiName || panel.recordTypeApiName || "";
@@ -2204,8 +2215,9 @@ function FormPanel({
             const draft: Record<string, string> = { ...data };
             draft.name = inst.name ?? data.name ?? "";
             draft.status = inst.status ?? data.status ?? "";
-            const start = parseStartDatetime(draft.start_datetime);
-            if (start) draft.start_datetime = toDatetimeLocalValue(start);
+            const zone = isTimeZone(draft.time_zone) ? draft.time_zone : installZone;
+            const start = parseStartDatetime(draft.start_datetime, zone);
+            if (start) draft.start_datetime = toDatetimeLocalValue(start, zone);
             setValues(draft);
             setSavedValues(draft);
             setOrgId(inst.org_id ?? "");
@@ -2232,8 +2244,9 @@ function FormPanel({
           const draft: Record<string, string> = { ...data };
           draft.name = inst.name ?? data.name ?? "";
           draft.status = inst.status ?? data.status ?? "";
-          const start = parseStartDatetime(draft.start_datetime);
-          if (start) draft.start_datetime = toDatetimeLocalValue(start);
+          const zone = isTimeZone(draft.time_zone) ? draft.time_zone : installZone;
+          const start = parseStartDatetime(draft.start_datetime, zone);
+          if (start) draft.start_datetime = toDatetimeLocalValue(start, zone);
           setValues(draft);
           setSavedValues(draft);
         }
@@ -2242,7 +2255,7 @@ function FormPanel({
         /* header load failure is non-fatal; user can still save a new record */
       });
     return () => controller.abort();
-  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, detailRecordId]);
+  }, [isDynamic, panel.recordTypeApiName, panel.parentKind, panel.parentApiName, detailRecordId, installZone]);
 
   const fallbackSections = useMemo(() => {
     const fields = (isDynamic && catalogFields.length > 0
@@ -2352,7 +2365,7 @@ function FormPanel({
     // ONE layer the capture API also uses) so a malformed header can never be
     // saved from the UI.
     if (panel.recordTypeApiName === "statistics") {
-      const statParse = parseStatHeaderConfig(applyStatHeaderChange(values));
+      const statParse = parseStatHeaderConfig(applyStatHeaderChange(values), installZone);
       if (!statParse.ok) {
         setSaveError(statParse.errors.join(" "));
         setSaveStatus("");

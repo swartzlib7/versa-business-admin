@@ -10,6 +10,8 @@
 import type { RecordInstance } from "@/lib/fixtures/record-instances";
 import { readRecordSecret } from "@/lib/secrets/read-secret";
 import { listOpenRows, patchRow, readRow, type ExchangeRow } from "@/lib/integrations/exchange-store";
+import { installTimeZone } from "@/lib/settings/install-time-zone";
+import { isTimeZone } from "@/lib/statistics/time-zone";
 import { ALREADY_HERE, EXCHANGE_VERSION, type ExchangeItem, type ItemResult } from "@/lib/integrations/items";
 import { applyItems } from "@/lib/integrations/receive";
 import { endpointProblem, MAX_ITEMS, retryDelayMs } from "@/lib/integrations/rules";
@@ -199,7 +201,7 @@ async function sendWaiting(integration: RecordInstance, ignoreBackoff = false): 
   for (let i = 0; i < waiting.length; i += MAX_ITEMS) {
     const batch = waiting.slice(i, i + MAX_ITEMS);
     const items = batch.map((row) => JSON.parse(row.data.payload) as ExchangeItem);
-    const answer = await call(integration, "POST", "/api/exchange", { vba_exchange: EXCHANGE_VERSION, items });
+    const answer = await call(integration, "POST", "/api/exchange", { vba_exchange: EXCHANGE_VERSION, time_zone: installTimeZone(), items });
     if (!answer.ok) {
       for (const sentRow of batch) {
         // Read the row again: a save during the send may have newer values that must not be overwritten.
@@ -285,7 +287,8 @@ async function pullAll(integration: RecordInstance): Promise<string> {
       marker = String(answer.json.marker ?? marker);
       asOf = String(answer.json.as_of ?? asOf);
       const items = (answer.json.items ?? []) as ExchangeItem[];
-      const results = await applyItems({ integration, userId, pulling: true }, items);
+      const senderTimeZone = isTimeZone(answer.json.time_zone) ? answer.json.time_zone : undefined;
+      const results = await applyItems({ integration, userId, pulling: true, senderTimeZone }, items);
       for (const r of results) {
         if (r.status === "ok" && r.message === ALREADY_HERE) repeats += 1;
         else if (r.status === "ok") fresh += 1;

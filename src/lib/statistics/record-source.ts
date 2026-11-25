@@ -35,7 +35,8 @@ async function refreshHeader(header: Header): Promise<{ written: number; cleared
   const data = header.data ?? {};
   const source = statSourceFromData(data);
   if (!source) return null;
-  const parsed = parseStatHeaderConfig(data);
+  const { installTimeZone } = await import("@/lib/settings/install-time-zone");
+  const parsed = parseStatHeaderConfig(data, installTimeZone());
   if (!parsed.ok) return null;
   const lines = await sourceLines(source.recordType, source.recordId, source.readFrom);
   return writeComputedStatLines(header.id, computeSourceSteps(parsed.config, source, lines));

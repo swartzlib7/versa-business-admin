@@ -10,6 +10,14 @@ export async function register() {
       const { markSitePackPending } = await import("./lib/site-pack");
       markSitePackPending();
     }
+    // 1.0.21: the install time zone is written once, from the host, then never floats.
+    const { ensureInstallTimeZone } = await import("./lib/settings/install-time-zone");
+    const written = ensureInstallTimeZone();
+    if (written) {
+      const { flushSiteSettings } = await import("./lib/fixtures/site-settings");
+      await flushSiteSettings();
+      console.log(`Install time zone set to ${written} (the host's zone). Settings → Modes changes it.`);
+    }
     await import("./lib/catalog/install-durable");
   }
 }

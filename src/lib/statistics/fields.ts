@@ -13,6 +13,8 @@ export const STAT_HEADER_FIELD_APIS = [
   "frequency_start",
   "frequency_qty",
   "start_datetime",
+  // 1.0.21: the zone Start datetime and the steps are read in
+  "time_zone",
   "series_mode",
   "period_target",
   "slot_target",

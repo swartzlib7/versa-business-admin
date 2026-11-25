@@ -1,4 +1,6 @@
 "use client";
+import { isTimeZone, timeZoneNames } from "@/lib/statistics/time-zone";
+import { useInstallTimeZone } from "@/components/shell/site-mode-provider";
 
 import { isRecordTypeLookup } from "@/lib/catalog/lookup-targets";
 import { LineFieldSelect } from "@/components/statistics/line-field-select";
@@ -59,6 +61,7 @@ function FieldInput({
   allValues?: Record<string, string>;
   onFieldChange?: (key: string, value: string) => void;
 }) {
+  const installZone = useInstallTimeZone();
   const base =
     "w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
   const kind = field.kind ?? "text";
@@ -104,7 +107,11 @@ function FieldInput({
 
   if (field.key === "frequency_start") {
     const derived =
-      deriveFrequencyStart(allValues?.frequency_type, allValues?.start_datetime) ?? value;
+      deriveFrequencyStart(
+        allValues?.frequency_type,
+        allValues?.start_datetime,
+        isTimeZone(String(allValues?.time_zone ?? "").trim()) ? String(allValues?.time_zone).trim() : installZone,
+      ) ?? value;
     return (
       <FrequencyStartField
         label={field.label}
@@ -455,8 +462,15 @@ function FieldInput({
           inputMode={kind === "phone" ? "tel" : kind === "email" ? "email" : undefined}
           autoComplete={kind === "phone" ? "tel" : kind === "email" ? "email" : undefined}
           placeholder={
-            kind === "email" ? "name@example.com" : kind === "phone" ? "+1 555 000 0000" : undefined
+            kind === "email"
+              ? "name@example.com"
+              : kind === "phone"
+                ? "+1 555 000 0000"
+                : field.key === "time_zone"
+                  ? "America/New_York"
+                  : undefined
           }
+          list={field.key === "time_zone" ? "vba-tz-form" : undefined}
           value={value}
           onChange={(e) => {
             onChange?.(e.target.value);
@@ -466,6 +480,13 @@ function FieldInput({
           }}
         />
       )}
+      {field.key === "time_zone" ? (
+        <datalist id="vba-tz-form">
+          {timeZoneNames().map((zone) => (
+            <option key={zone} value={zone} />
+          ))}
+        </datalist>
+      ) : null}
     </label>
   );
 }
