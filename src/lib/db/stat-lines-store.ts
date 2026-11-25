@@ -32,6 +32,10 @@ export interface StatLineRow {
   captured_at: string;
   stamp: string | null;
   source: string;
+  /** 1.0.20: last change of any kind. */
+  updated_at?: string;
+  /** 1.0.20: when the row was made (a seeded empty slot has updated_at ≈ created_at). */
+  created_at?: string;
 }
 
 function mapRow(ln: typeof statLineTable.$inferSelect): StatLineRow {
@@ -46,6 +50,8 @@ function mapRow(ln: typeof statLineTable.$inferSelect): StatLineRow {
       ? (ln.stamp instanceof Date ? ln.stamp : new Date(ln.stamp)).toISOString()
       : null,
     source: ln.source,
+    updated_at: (ln.updatedAt instanceof Date ? ln.updatedAt : new Date(ln.updatedAt)).toISOString(),
+    created_at: (ln.createdAt instanceof Date ? ln.createdAt : new Date(ln.createdAt)).toISOString(),
   };
 }
 
@@ -249,10 +255,12 @@ export async function captureStatLineDb(input: CaptureLineInput): Promise<Captur
         value: String(input.value),
         source: input.source ?? 'ui',
         capturedAt: new Date(),
+        updatedAt: new Date(),
         stamp: stamp ?? undefined,
       })
       .where(eq(statLineTable.id, taken.id))
       .returning();
+    await notifyIntegrations(input.headerId, mapRow(filled[0]), 'upsert');
     return { ok: true, line: mapRow(filled[0]) };
   }
 
@@ -268,6 +276,7 @@ export async function captureStatLineDb(input: CaptureLineInput): Promise<Captur
         stamp,
       })
       .returning();
+    await notifyIntegrations(input.headerId, mapRow(inserted[0]), 'upsert');
     return { ok: true, line: mapRow(inserted[0]) };
   } catch (err) {
     // Drizzle wraps query failures in DrizzleQueryError; the underlying Postgres
@@ -366,10 +375,12 @@ export async function updateStatLineDb(input: {
       value: nextValue,
       source: input.source ?? cur.source,
       capturedAt: nextValue == null ? cur.capturedAt : new Date(),
+      updatedAt: new Date(),
       stamp: resolveStamp(cfg, cur.series, nextSlot) ?? cur.stamp,
     })
     .where(eq(statLineTable.id, input.lineId))
     .returning();
+  await notifyIntegrations(input.headerId, mapRow(updated[0]), 'upsert');
   return { ok: true, line: mapRow(updated[0]) };
 }
 
@@ -391,10 +402,12 @@ export async function restampStatLinesForHeader(headerId: string): Promise<void>
 
 export async function deleteStatLineDb(lineId: string): Promise<boolean> {
   const db = getDb();
+  const before = await db.select().from(statLineTable).where(eq(statLineTable.id, lineId)).limit(1);
   const deleted = await db
     .delete(statLineTable)
     .where(eq(statLineTable.id, lineId))
     .returning({ id: statLineTable.id });
+  if (deleted.length && before.length) await notifyIntegrations(before[0].headerId, mapRow(before[0]), 'delete');
   return deleted.length > 0;
 }
 
@@ -430,7 +443,7 @@ export async function writeComputedStatLines(
       if (existing.value.trim() !== '' && Number(existing.value) === value && existing.source === 'records') continue;
       await db
         .update(statLineTable)
-        .set({ value: text, source: 'records', capturedAt: new Date() })
+        .set({ value: text, source: 'records', capturedAt: new Date(), updatedAt: new Date() })
         .where(eq(statLineTable.id, existing.id));
     } else {
       await db.insert(statLineTable).values({
@@ -446,8 +459,84 @@ export async function writeComputedStatLines(
   }
   for (const [k, ln] of byKey) {
     if (values.has(k) || ln.source !== 'records' || ln.value.trim() === '') continue;
-    await db.update(statLineTable).set({ value: null }).where(eq(statLineTable.id, ln.id));
+    await db.update(statLineTable).set({ value: null, updatedAt: new Date() }).where(eq(statLineTable.id, ln.id));
     cleared++;
   }
+  if (written || cleared) {
+    const changedSince = new Date(Date.now() - 5_000);
+    for (const ln of await listStatLinesDb(headerId)) {
+      if (ln.updated_at && Date.parse(ln.updated_at) >= changedSince.getTime()) await notifyIntegrations(headerId, ln, 'upsert');
+    }
+  }
   return { written, cleared };
+}
+
+/**
+ * 1.0.20: tell the integration queue a graph line changed (state_integrations.md §3.5).
+ * Never fails the write: a queue problem is logged.
+ */
+async function notifyIntegrations(headerId: string, line: StatLineRow, action: 'upsert' | 'delete'): Promise<void> {
+  try {
+    const { queueStatLineChange } = await import('@/lib/integrations/queue');
+    await queueStatLineChange(headerId, line, action);
+  } catch (err) {
+    console.warn('Integration queue (graph line) failed:', err);
+  }
+}
+
+/**
+ * 1.0.20: write a received graph line by (series, slot), without the capture checks
+ * (statistics rules S3, S5, state_integrations.md §4). `value` null keeps the line and
+ * clears nothing; `source` marks where it came from ('integration', 'integration-deleted').
+ */
+export async function upsertStatLineDb(input: {
+  headerId: string;
+  series: number;
+  slot: number;
+  value: string | null;
+  source: string;
+  keepValue?: boolean;
+}): Promise<StatLineRow> {
+  const header = await loadStatHeaderConfig(input.headerId);
+  const stamp = header.ok ? resolveStamp(header.config, input.series, input.slot) : null;
+  const db = getDb();
+  const existing = await db
+    .select()
+    .from(statLineTable)
+    .where(and(eq(statLineTable.headerId, input.headerId), eq(statLineTable.series, input.series), eq(statLineTable.slot, input.slot)))
+    .limit(1);
+  if (existing.length) {
+    // A line kept after a delete at the source is not emptied by a later empty value (S8).
+    if (!input.keepValue && input.value === null && existing[0].source === 'integration-deleted') return mapRow(existing[0]);
+    const updated = await db
+      .update(statLineTable)
+      .set({
+        ...(input.keepValue ? {} : { value: input.value, capturedAt: new Date() }),
+        source: input.source,
+        updatedAt: new Date(),
+        stamp: stamp ?? existing[0].stamp,
+      })
+      .where(eq(statLineTable.id, existing[0].id))
+      .returning();
+    return mapRow(updated[0]);
+  }
+  const inserted = await db
+    .insert(statLineTable)
+    .values({ headerId: input.headerId, series: input.series, slot: input.slot, value: input.value, source: input.source, stamp })
+    .returning();
+  return mapRow(inserted[0]);
+}
+
+/** 1.0.20: lines of a header changed on or after `since` (integration pulls). */
+export async function listStatLinesChangedSince(headerId: string, since: Date | null): Promise<StatLineRow[]> {
+  const rows = await listStatLinesDb(headerId);
+  if (!since) return rows;
+  return rows.filter((ln) => ln.updated_at && Date.parse(ln.updated_at) >= since.getTime());
+}
+
+/** 1.0.20: the date a (series, slot) falls on for a header, as the receiver checks it (S2). */
+export async function stampFor(headerId: string, series: number, slot: number): Promise<string | null> {
+  const header = await loadStatHeaderConfig(headerId);
+  if (!header.ok) return null;
+  return resolveStamp(header.config, series, slot)?.toISOString() ?? null;
 }

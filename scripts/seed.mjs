@@ -177,7 +177,8 @@ async function main() {
       -- Tasks are Project task lines since 1.0.9 (migration 0020 dropped the tasks table).
       (SELECT count(*) FROM record_line WHERE line_group = 'tasks') as tasks,
       (SELECT count(*) FROM products) as products,
-      (SELECT count(*) FROM integrations) as integrations
+      -- 1.0.20: integrations are vendor_integration records (migration 0023 dropped the old table).
+      (SELECT count(*) FROM record r JOIN record_type t ON t.id = r.record_type_id WHERE t.api_name = 'vendor_integration') as integrations
   `;
   console.table(counts);
   console.log("DONE (install-only: projects/tasks/products/integrations intentionally empty; demo content = Settings → Modes → Insert Sample Data)");

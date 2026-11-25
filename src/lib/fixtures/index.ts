@@ -1,6 +1,5 @@
 export { agents, type AgentFixture } from './agents';
 export { projects, type ProjectFixture } from './projects';
-export { integrations, type IntegrationFixture } from './integrations';
 export { business, type BusinessProfile } from './business';
 export { services, type Service } from './services';
 export { products, type Product } from './products';

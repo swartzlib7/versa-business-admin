@@ -1,5 +1,6 @@
 "use client";
 
+import { IssueTokenButton } from "@/components/integrations/issue-token";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -173,9 +174,6 @@ export type ZoneTab = {
   listingOnTab?: boolean;
   /** #248 Slice D (C6): collaboration tabs render organizations of this type. */
   orgTypePanel?: "vendor" | "customer" | "partner" | "branch";
-  /** Slice F (D1 cutover): child renders org-attached record_line rows for
-   * the parent org (line_group = orgLinesGroup). */
-  orgLinesGroup?: string;
 };
 
 export type ZoneId = "organization" | "collaboration" | "environment";
@@ -209,7 +207,6 @@ function makeSelfPanel(tab: ZoneTab): ZoneTab {
     fields: tab.fields,
     relations: tab.relations,
     orgTypePanel: tab.orgTypePanel,
-    orgLinesGroup: tab.orgLinesGroup,
     links: [
       ...(tab.links ?? []),
       { href: `/records-editor?parent=${tab.parentKind}:${tab.parentApiName}`, label: "record types" },
@@ -365,265 +362,6 @@ function filterByZoneRole<T extends { zoneRole?: "header" | "list" | null }>(
   // types keep null zoneRole, so they must be included (all fields belong to
   // that single mode).
   return fields.filter((f) => f.zoneRole == null || f.zoneRole === role);
-}
-
-/**
- * #244 Slice F (D1 cutover): org-attached lines panel (C3 design note).
- * Renders record_line rows attached to organizations of the parent tab's type
- * (vendor integrations: line_group='integrations'); the vendor_integration
- * record type is retired. Rows aggregate across all orgs of the type; the
- * Vendor select in the add form chooses the owning organization.
- */
-function OrgLinesPanel({
-  orgType,
-  lineGroup,
-  fields,
-  listColumns,
-  accent,
-  summary,
-}: {
-  orgType: string;
-  lineGroup: string;
-  fields: ZoneField[];
-  listColumns?: string[];
-  accent?: string;
-  summary?: string;
-}) {
-  type OrgLine = {
-    id: string;
-    organization_id: string;
-    line_group: string;
-    data: Record<string, string>;
-    sort_order: number;
-  };
-  // Retired vendor_integration field api_names (catalog.ts pre-cutover) so
-  // migration-0004 rows keep rendering: name/kind/status/notes.
-  const dataKeyByLabel = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const f of fields) {
-      const label = f.label.toLowerCase();
-      if (label.includes('name')) map.set(f.label, 'name');
-      else if (label.includes('kind')) map.set(f.label, 'kind');
-      else if (label.includes('status')) map.set(f.label, 'status');
-      else if (label.includes('note')) map.set(f.label, 'notes');
-      else map.set(f.label, f.label.toLowerCase().replace(/\s+/g, '_'));
-    }
-    return map;
-  }, [fields]);
-
-  const [orgs, setOrgs] = useState<{ id: string; name: string }[]>([]);
-  const [lines, setLines] = useState<OrgLine[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [note, setNote] = useState('');
-
-  // Slice F lint: no synchronous setState before the first await (the initial
-  // loading state is true from useState; refreshes keep the list visible).
-  const load = useCallback(async () => {
-    try {
-      const orgRes = await fetch('/api/organizations?org_type=' + encodeURIComponent(orgType), {
-        credentials: 'include',
-      });
-      if (!orgRes.ok) throw new Error('Failed to load organizations');
-      const orgJson = await orgRes.json();
-      const orgList = (orgJson.data ?? []) as { id: string; name: string }[];
-      setOrgs(orgList);
-      const lineLists = await Promise.all(
-        orgList.map((o) =>
-          fetch(
-            '/api/organizations/' + o.id + '/lines?line_group=' + encodeURIComponent(lineGroup),
-            { credentials: 'include' },
-          )
-            .then((r) => (r.ok ? r.json() : { data: [] }))
-            .then((j) => (j.data ?? []) as OrgLine[])
-            .catch(() => [] as OrgLine[]),
-        ),
-      );
-      setLines(lineLists.flat());
-      setError('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load lines');
-    } finally {
-      setLoading(false);
-    }
-  }, [orgType, lineGroup]);
-
-  // Slice F lint: load starts on a microtask (not synchronously in the effect)
-  // per react-hooks/set-state-in-effect; cancelled guard prevents late setState.
-  useEffect(() => {
-    let cancelled = false;
-    void Promise.resolve().then(() => {
-      if (!cancelled) return load();
-      return undefined;
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [load]);
-
-  const orgNameById = useMemo(() => new Map(orgs.map((o) => [o.id, o.name])), [orgs]);
-  const orgIdByName = useMemo(() => new Map(orgs.map((o) => [o.name, o.id])), [orgs]);
-
-  const listingFields: ListingField[] = useMemo(() => {
-    const cols = new Set(listColumns ?? []);
-    const out: ListingField[] = [
-      {
-        key: 'Vendor',
-        label: 'Vendor',
-        kind: 'select',
-        options: orgs.map((o) => o.name),
-        column: true,
-      },
-    ];
-    for (const f of fields) {
-      out.push({
-        key: f.label,
-        label: f.label,
-        kind: f.kind ?? 'text',
-        options: f.options,
-        column: cols.size === 0 || cols.has(f.label),
-      });
-    }
-    return out;
-  }, [fields, listColumns, orgs]);
-
-  const rows = useMemo(
-    () =>
-      lines.map((ln) => {
-        const cells: Record<string, string> = { Vendor: orgNameById.get(ln.organization_id) ?? '' };
-        for (const [label, key] of dataKeyByLabel) {
-          cells[label] = ln.data[key] ?? '';
-        }
-        return { id: ln.id, orgId: ln.organization_id, cells };
-      }),
-    [lines, orgNameById, dataKeyByLabel],
-  );
-
-  const draftToData = (draft: Record<string, string>): Record<string, string> => {
-    const data: Record<string, string> = {};
-    for (const [label, key] of dataKeyByLabel) {
-      const v = (draft[label] ?? '').trim();
-      if (v) data[key] = v;
-    }
-    return data;
-  };
-
-  const onAdd = async (draft: Record<string, string>): Promise<boolean> => {
-    const orgId = orgIdByName.get((draft.Vendor ?? '').trim());
-    if (!orgId) {
-      setNote('Vendor is required - create a vendor organization first.');
-      return false;
-    }
-    try {
-      const res = await fetch('/api/organizations/' + orgId + '/lines', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ line_group: lineGroup, data: draftToData(draft) }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => null);
-        setNote(j?.error?.message ?? 'Failed to add line.');
-        return false;
-      }
-      setNote('Integration added.');
-      void load();
-      return true;
-    } catch (e) {
-      setNote(e instanceof Error ? e.message : 'Failed to add line.');
-      return false;
-    }
-  };
-
-  const onUpdate = async (id: string, draft: Record<string, string>): Promise<boolean> => {
-    const row = rows.find((r) => r.id === id);
-    if (!row) return false;
-    try {
-      const res = await fetch('/api/organizations/' + row.orgId + '/lines', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ line_id: id, line_group: lineGroup, data: draftToData(draft) }),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => null);
-        setNote(j?.error?.message ?? 'Failed to update line.');
-        return false;
-      }
-      setNote('Integration updated.');
-      void load();
-      return true;
-    } catch (e) {
-      setNote(e instanceof Error ? e.message : 'Failed to update line.');
-      return false;
-    }
-  };
-
-  const onDelete = async (id: string): Promise<void> => {
-    const row = rows.find((r) => r.id === id);
-    if (!row) return;
-    try {
-      const res = await fetch(
-        '/api/organizations/' +
-          row.orgId +
-          '/lines?line_id=' +
-          encodeURIComponent(id) +
-          '&line_group=' +
-          encodeURIComponent(lineGroup),
-        { method: 'DELETE', credentials: 'include' },
-      );
-      if (!res.ok) {
-        const j = await res.json().catch(() => null);
-        setNote(j?.error?.message ?? 'Failed to delete line.');
-        return;
-      }
-      setNote('Integration deleted.');
-      void load();
-    } catch (e) {
-      setNote(e instanceof Error ? e.message : 'Failed to delete line.');
-    }
-  };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className='flex flex-col items-center justify-center py-12 text-center'>
-          <p className='text-sm text-muted-foreground'>Loading integrations...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-  if (error) {
-    return (
-      <Card>
-        <CardContent className='flex flex-col items-center justify-center py-12 text-center'>
-          <p className='text-sm font-medium text-destructive'>{error}</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className='space-y-3'>
-      <EntityListing<Record<string, unknown> & { id: string; orgId: string; cells: Record<string, string> }>
-        summary={
-          summary ??
-          'Organization-attached lines (record_line.organization_id + line_group).'
-        }
-        accent={accent}
-        fields={listingFields}
-        rows={rows as unknown as (Record<string, unknown> & { id: string; orgId: string; cells: Record<string, string> })[]}
-        getRowId={(r) => r.id}
-        getCell={(r, key) => r.cells[key] ?? ''}
-        onAdd={onAdd}
-        onUpdate={onUpdate}
-        onDelete={onDelete}
-        emptyLabel={'No ' + lineGroup + ' lines yet - add the first one below.'}
-        columnStorageKey={`mc.listing.zone.lines.${lineGroup}`}
-      />
-      {note && <p className='pt-2 text-xs text-muted-foreground'>{note}</p>}
-    </div>
-  );
 }
 
 function ListingPanel({
@@ -2921,15 +2659,6 @@ function TabPanel({
             embedded
           />
         </PrimaryOrgPanel>
-      ) : panel.orgLinesGroup ? (
-        <OrgLinesPanel
-          orgType={panel.orgTypePanel ?? 'vendor'}
-          lineGroup={panel.orgLinesGroup}
-          fields={panel.fields}
-          listColumns={panel.listColumns}
-          accent={accent}
-          summary={panel.summary}
-        />
       ) : panel.orgTypePanel ? (
         <OrgTypeListingPanel orgType={panel.orgTypePanel} accent={accent} summary={panel.summary} />
       ) : isOrganizationsSelf ? (
@@ -3308,6 +3037,32 @@ function RecordActions({
       setBusy("");
     }
   };
+  // 1.0.20: Issue token on an Access-token Credential (state_integrations.md §3.2).
+  const tokenCredential =
+    typeApiName === "vendor_credential" && (values.auth_type === "token" || !values.auth_type);
+  // 1.0.20: Integration buttons and the received-copy notice (state_integrations.md §3.6, §3.9).
+  const runIntegration = async (action: "run" | "resend" | "repull") => {
+    if (action !== "run" && !window.confirm(action === "resend" ? "Queue every matching record again? The partner updates its copies; nothing is duplicated." : "Ask the partner for everything that matches on the next pull?")) return;
+    setBusy(action);
+    onError("");
+    try {
+      const res = await fetch("/api/exchange/actions", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ integration_id: recordId, action }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) onError(json?.error?.message ?? "That did not work.");
+      else window.alert(json?.data?.message ?? "Done.");
+    } finally {
+      setBusy("");
+    }
+  };
+  const isIntegration = typeApiName === "vendor_integration";
+  const pushSender = isIntegration && values.direction === "send" && (values.mode || "push") === "push";
+  const puller = isIntegration && values.direction === "receive" && values.mode === "pull";
+  const copyOf = /^[0-9a-f-]{36}:/.test(String(values.external_id ?? ""));
   const integrated = String(values.external_id ?? "").trim() !== "";
   const convertible =
     typeApiName === "treasury_transaction" &&
@@ -3326,6 +3081,31 @@ function RecordActions({
         >
           {busy === "convert" ? "Converting…" : "Convert to invoice"}
         </button>
+      ) : null}
+      {copyOf ? (
+        <span className="text-xs text-muted-foreground" title="This record was received from an integration.">
+          {values.source_deleted_at
+            ? `Deleted at the source on ${String(values.source_deleted_at).slice(0, 10)}; kept here.`
+            : "Kept in step by an integration: changes here are replaced on the next sync."}
+        </span>
+      ) : null}
+      {pushSender || puller ? (
+        <button type="button" className={cls} disabled={!!busy} title="Run this integration now" onClick={() => void runIntegration("run")}>
+          {busy === "run" ? "Running…" : "Run now"}
+        </button>
+      ) : null}
+      {pushSender ? (
+        <button type="button" className={cls} disabled={!!busy} title="Queue every matching record again" onClick={() => void runIntegration("resend")}>
+          {busy === "resend" ? "Queuing…" : "Resend all"}
+        </button>
+      ) : null}
+      {puller ? (
+        <button type="button" className={cls} disabled={!!busy} title="Ask for everything that matches on the next pull" onClick={() => void runIntegration("repull")}>
+          {busy === "repull" ? "…" : "Pull everything again"}
+        </button>
+      ) : null}
+      {tokenCredential ? (
+        <IssueTokenButton credentialId={recordId} hasToken={(values.configuration ?? "").includes("token_hash")} className={cls} onError={onError} />
       ) : null}
       <button type="button" className={cls} disabled={!!busy} title="Copy this record and its lines" onClick={() => void run("clone")}>
         {busy === "clone" ? "Cloning…" : "Clone"}

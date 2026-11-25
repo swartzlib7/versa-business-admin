@@ -27,7 +27,7 @@ function toCatalogValues(u: LocalUser): Record<string, string> {
 const HIDDEN_USER_FIELDS = new Set(["bio", "department", "department_id"]);
 const USER_COLUMN_ORDER = ["status", "role", "type", "name", "email"];
 
-export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "agent" }) {
+export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "agent" | "system" }) {
   const [users, setUsers] = useState<LocalUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -191,7 +191,9 @@ export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "a
     <>
       <EntityListing<LocalUser & Record<string, unknown>>
         summary={
-          (typeFilter === "agent"
+          typeFilter === "system"
+            ? "System accounts: one per integration access token. Issue token on a Credential (Collaboration → Vendor → Credentials) creates it; what that integration writes is recorded under its name. A system account never signs in. To stop it, set its Credential to Archived."
+            : (typeFilter === "agent"
             ? "Agent accounts. Click a row to open or close. Drag headers to reorder."
             : "Human accounts. Click a row to open or close. Drag headers to reorder.") +
           (mailActive
@@ -204,7 +206,7 @@ export function UsersPanel({ typeFilter = "human" }: { typeFilter?: "human" | "a
         getRowId={(u) => u.id}
         getCell={getCell}
         formatCell={formatCell}
-        onAdd={onAdd}
+        onAdd={typeFilter === "system" ? undefined : onAdd}
         onUpdate={onUpdate}
         columnStorageKey={`mc.listing.users.${typeFilter}`}
         columnOrder={USER_COLUMN_ORDER}

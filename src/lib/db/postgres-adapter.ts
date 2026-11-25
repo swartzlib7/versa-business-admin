@@ -5,7 +5,6 @@ import type {
   Agent,
   Project,
   Task,
-  Integration,
   BusinessProfile,
   Service,
   Product,
@@ -25,7 +24,6 @@ import {
   users as usersTable,
   departments as departmentsTable,
   organizations as organizationsTable,
-  integrations as integrationsTable,
 } from "./schema";
 import { eq } from "drizzle-orm";
 import {
@@ -84,17 +82,6 @@ function mapOrganizationRow(row: typeof organizationsTable.$inferSelect): Organi
     parent_organization_id: row.parentOrganizationId ?? null,
     is_primary: data.is_primary === true,
     data,
-  };
-}
-
-function mapIntegrationRow(row: typeof integrationsTable.$inferSelect): Integration {
-  return {
-    id: row.id,
-    name: row.name,
-    type: row.type as Integration["type"],
-    status: row.status as Integration["status"],
-    lastSync: row.lastSync?.toISOString() ?? "",
-    description: row.description,
   };
 }
 
@@ -176,15 +163,6 @@ export const postgresAdapter: DataAdapter = {
 
   async updateTask(id: string, input: UpdateTaskInput): Promise<Task | null> {
     return updatePgTask(id, input);
-  },
-
-  // --- Integrations ---
-  async listIntegrations(status?: string): Promise<Integration[]> {
-    const db = getDb();
-    const rows = await db.select().from(integrationsTable);
-    let mapped = rows.map(mapIntegrationRow);
-    if (status) mapped = mapped.filter((i) => i.status === status);
-    return mapped;
   },
 
   // --- Business profile (organizations singleton) ---
@@ -300,7 +278,7 @@ export const postgresAdapter: DataAdapter = {
     const type = input.type ?? "human";
     const status = input.status ?? "active";
     if (!["admin", "member"].includes(role)) throw new Error("VALIDATION: invalid role");
-    if (!["human", "agent"].includes(type)) throw new Error("VALIDATION: invalid type");
+    if (!["human", "agent", "system"].includes(type)) throw new Error("VALIDATION: invalid type");
     if (!["active", "inactive"].includes(status)) throw new Error("VALIDATION: invalid status");
     const data: Record<string, unknown> = { ...(input.data ?? {}) };
     if (input.bio !== undefined) data.bio = input.bio;

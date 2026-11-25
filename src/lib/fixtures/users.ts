@@ -5,7 +5,7 @@ export interface UserFixture {
   name: string;
   email: string;
   role: 'admin' | 'member';
-  type: 'human' | 'agent';
+  type: 'human' | 'agent' | 'system';
   password: string; // fixture-only; real auth will use hashed credentials
   department: string;
   department_id?: string;

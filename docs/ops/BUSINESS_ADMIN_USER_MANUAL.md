@@ -306,3 +306,58 @@ The calculations above are ordinary fields an admin can add to any record type i
 
 A statistic can graph money too: in its Source section choose **Read from: Records**, Source record type Transactions, Date field Date, Value field Amount, Only lines where Document kind equals `invoice` - invoiced per month (§4).
 
+
+## 10. Integrations between installs (1.0.20)
+
+An **Integration** links this install with another system. Today the other system is another VBA install, for example your office install and your public site. Everything lives under **Collaboration → Vendor**: **Credentials**, **Integrations** and **Exchange**.
+
+### Push or pull
+
+| Direction | Mode | What happens |
+|---|---|---|
+| Send | Push | This install sends changes to the other one, as they happen |
+| Receive | Push | The other install sends changes here |
+| Send | Pull | The other install asks this one for what changed |
+| Receive | Pull | This install asks the other one, every so often (**Every (seconds)**) |
+
+Use **pull** when the install that wants the records has no public address (an office install can pull from a public site; the public site cannot reach the office).
+
+### Set one up
+
+1. On the install that will be **called** (it receives pushes, or answers pulls): make a **Credential** with Auth type **Access token**, then press **Issue token**. Copy the token: it is shown once. Make an **Integration** with the right Direction and Mode, pick that Credential, and add a line per record type.
+2. On the install that **calls**: make a Credential with Auth type **Access token** and Configuration `{"token": "<the token>"}` (it is stored encrypted and shows as `••••••`). Make the matching Integration: the other Direction, the same Mode, the other install's address in **Partner address**, that Credential, the same record types.
+3. Push: press **Resend all** once on the sender, so what already exists goes across. Pull: the first pull fetches everything that matches.
+
+### Which records go across: filters
+
+Each line of an Integration names one record type and has a **Filter**: conditions that must all be true. No conditions means every record of that type.
+
+- **equals**, **is not**, **contains**, **starts with**, **is empty**, **is not empty**
+- **is one of**: a list separated by commas, on any field, IDs included, for example to send four named statistics
+- **on or after**, **before**: dates, including **Created** and **Last modified**
+
+On a receiving Integration the filter decides what is kept; anything else is listed in Exchange as *Skipped (filter)*.
+
+### What you see
+
+- **Exchange**: every record and statistic value that went out or came in, and what happened: OK, Skipped, Pending (will try again) or Error (with the reason).
+- On the Integration: **Last run**, **Last result** (what was sent; for a pull, the window it asked about and how many records were new, so you can see it move forward even when nothing changed), **Last error**, **Run now**, **Resend all** (push) or **Pull everything again** (pull). After five failed sends in a row, or if the other install refuses the token, the Integration switches itself to **Error** and keeps everything waiting. Fix the cause and set it back to **Active**.
+- A record that came from an integration says **Kept in step by an integration**: the other install wins, so changes you make here are replaced on the next sync.
+- **A delete on the other install never deletes your copy.** The copy says **Deleted at the source on …** and stays. A deleted statistic value stays too.
+- Statistic values never land on the wrong day: if someone changed the copy's Frequency or Start, values are refused (Error, "Header settings differ"); **Resend all** on the sender puts the copy right.
+
+### Tokens
+
+- A token is shown once. To replace it, press **Issue token** again: the old one stops at once, so paste the new one on the other side straight away.
+- To stop a token, set its Credential's Status to **Archived**.
+- Each token acts as a **System** account (Users → System). It never signs in; what it writes is recorded under its name.
+- A script that posts statistic values uses a token too (`Authorization: Bearer …`). Email and password sign-in for scripts was removed in 1.0.20.
+
+### Who may use a Credential
+
+A Credential keeps a secret (an API key, a mailbox password) encrypted. Nobody sees it on screen, administrators included. A Credential has a **Users** list below its details: the people and agents whose scripts may use it.
+
+- **Add someone:** open the Credential, **New Record** in the Users list, pick the person or agent, **Update row**. Remove the line to take it away; it takes effect at once.
+- **Last used** on each line shows when that person or agent last used it.
+- An agent that is not on the list is refused and told to ask you. Add it only if that agent's work needs the secret.
+- An agent's script signs in with the agent's own account, so there is nothing else to set up for it.

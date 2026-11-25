@@ -1,5 +1,7 @@
 "use client";
 
+import { describeFilter } from "@/lib/public/pairing-filter";
+import { IssueTokenButton } from "@/components/integrations/issue-token";
 import { isRecordTypeLookup } from "@/lib/catalog/lookup-targets";
 import { helpForField } from "@/lib/catalog/layout-to-fields";
 import { displayDateValue } from "@/lib/datetime-display";
@@ -16,7 +18,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { BooleanSwitch } from "@/components/ui/boolean-switch";
 import { NumberScrubInput } from "@/components/ui/number-scrub-input";
 import { SecretValueField, maskSecretDisplay } from "@/components/ui/secret-value-field";
-import { UserLookupField } from "@/components/catalog/user-lookup-field";
+import { UserLookupField, UserName } from "@/components/catalog/user-lookup-field";
 import { OrganizationLookupField, OrganizationName } from "@/components/catalog/organization-lookup-field";
 import { RecordTypeLookupField } from "@/components/catalog/record-type-lookup-field";
 import { RenderDriverLookupField } from "@/components/catalog/render-driver-lookup-field";
@@ -671,6 +673,19 @@ function FieldInput({
       />
     );
   }
+  // 1.0.20: an Integration line's Filter, built from that line's record type (state_integrations.md I18).
+  if (field.key === "flow_filter") {
+    return (
+      <PairingFilterField
+        label={field.label}
+        value={value}
+        onChange={locked ? undefined : onChange}
+        readOnly={locked}
+        help="All conditions must match. No conditions: every record of the type."
+        recordType={allValues?.flow_record_type}
+      />
+    );
+  }
   if (field.key === "filter_json") {
     return (
       <PairingFilterField
@@ -1001,6 +1016,14 @@ function InlineForm({
         >
           Cancel
         </button>
+        {/* 1.0.20: an Access-token Credential issues its token from here (list records open inline). */}
+        {draft.id && draft.auth_type === "token" && fields.some((f) => f.key === "configuration") ? (
+          <IssueTokenButton
+            credentialId={draft.id}
+            hasToken={(draft.configuration ?? "").includes("token_hash")}
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
+          />
+        ) : null}
       </div>
     </form>
   );
@@ -1063,6 +1086,8 @@ export function EntityListing<T extends Record<string, unknown>>({
     if (renderCell) return renderCell(row, key, raw);
     const field = fields.find((f) => f.key === key);
     if (field?.secret) return maskSecretDisplay(raw);
+    // 1.0.20: filters read as text ("ID is one of …"), not JSON.
+    if (key === "flow_filter" || key === "filter_json") return describeFilter(raw);
     if (formatCell) return formatCell(row, key, raw);
     if (field?.kind === "select" && field.optionLabels) {
       const i = field.options?.indexOf(raw) ?? -1;
@@ -1091,6 +1116,9 @@ export function EntityListing<T extends Record<string, unknown>>({
     }
     if (field?.kind === "lookup" && field.lookupObjectApiName === "organization") {
       return raw.trim() ? <OrganizationName id={raw.trim()} /> : "";
+    }
+    if (field?.lookupObjectApiName === "user") {
+      return raw.trim() ? <UserName id={raw.trim()} /> : "";
     }
     if (field?.kind === "lookup" && isRecordTypeLookup(field.lookupObjectApiName)) {
       return raw.trim() ? <RecordNames value={raw} recordType={field.lookupObjectApiName} /> : "";

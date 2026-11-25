@@ -86,7 +86,6 @@ const OPERATOR_PATH_OWNERS: { prefix: string; href: string }[] = [
   { prefix: "/organization", href: "/organization" },
   { prefix: "/collaboration", href: "/collaboration" },
   { prefix: "/environment", href: "/environment" },
-  { prefix: "/integrations", href: "/collaboration" },
   { prefix: "/dashboard", href: "/dashboard" },
   { prefix: "/glossary", href: "/glossary" },
   { prefix: "/page-builder", href: "/page-builder" },

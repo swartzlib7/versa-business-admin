@@ -51,15 +51,6 @@ export interface Task {
   updatedAt: string;
 }
 
-export interface Integration {
-  id: string;
-  name: string;
-  type: "email" | "cms" | "database" | "api" | "iot" | "messaging";
-  status: "connected" | "disconnected" | "error";
-  lastSync: string;
-  description: string;
-}
-
 // --- Public site types (I4) ---
 
 export interface BusinessProfile {
@@ -98,7 +89,7 @@ export interface StaffMember {
   id: string;
   name: string;
   role: string;
-  type: "human" | "agent";
+  type: "human" | "agent" | "system";
   bio: string;
   department: string;
 }
@@ -148,7 +139,7 @@ export interface User {
   name: string;
   email: string;
   role: "admin" | "member";
-  type: "human" | "agent";
+  type: "human" | "agent" | "system";
   department: string;
   department_id?: string;
   bio: string;
@@ -161,7 +152,7 @@ export interface Session {
   name: string;
   email: string;
   role: "admin" | "member";
-  type: "human" | "agent";
+  type: "human" | "agent" | "system";
   /** Set when this login still used the install default password. */
   mustChangePassword?: boolean;
 }

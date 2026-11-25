@@ -412,6 +412,7 @@ function toInstance(
     relations: relations.length ? relations : undefined,
     org_id: row.orgId,
     created_at: createdAt,
+    updated_at: updatedAt,
   };
 }
 
@@ -809,6 +810,27 @@ export async function encryptPlainSecretsDb(typeApiNames: string[]): Promise<num
   return count;
 }
 
+/**
+ * 1.0.20: set one plain header field without a save (no pipeline, no updated_at),
+ * for bookkeeping such as a credential's Last used. Never for secret fields.
+ */
+export async function touchRecordFieldDb(id: string, field: string, value: string): Promise<void> {
+  const db = getDb();
+  await db
+    .update(recordTable)
+    .set({ header: sql`jsonb_set(${recordTable.header}, ${`{${field}}`}::text[], to_jsonb(${value}::text))` })
+    .where(eq(recordTable.id, id));
+}
+
+/** Set one field in a line's data without touching updated_at (a Users line's Last used, 1.0.20). */
+export async function touchLineFieldDb(lineId: string, field: string, value: string): Promise<void> {
+  const db = getDb();
+  await db
+    .update(recordLineTable)
+    .set({ data: sql`jsonb_set(${recordLineTable.data}, ${`{${field}}`}::text[], to_jsonb(${value}::text))` })
+    .where(eq(recordLineTable.id, lineId));
+}
+
 export async function deleteRecordDb(id: string): Promise<boolean> {
   const db = getDb();
   const deleted = await db
@@ -819,11 +841,11 @@ export async function deleteRecordDb(id: string): Promise<boolean> {
 }
 
 // ---------------------------------------------------------------------------
-// #244 Slice F (D1 cutover): organization-attached lines (C3 design note).
-// Vendor integrations are record_line rows attached to the parent vendor
-// organization (record_line.organization_id + line_group='integrations'); the
-// vendor_integration record type is retired (seed removed this slice,
-// migration 0004 migrates any existing rows). The E1 XOR CHECK
+// #244 Slice F (D1 cutover): organization-attached lines (C3 design note):
+// record_line rows attached to an organization (record_line.organization_id +
+// line_group). Integrations are NOT stored here any more: they are
+// vendor_integration records (1.0.20 migration 0023 moved the old
+// line_group='integrations' rows into records). The E1 XOR CHECK
 // (record_line_parent_check) guarantees exactly one of record_id /
 // organization_id per row, so org-attached lines never collide with
 // record-attached lines.

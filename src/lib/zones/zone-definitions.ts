@@ -515,7 +515,8 @@ export const collaborationZone: ZoneConfig = {
         {
           id: "credentials",
           label: "Credentials",
-          summary: "Authentication material for integrations with this vendor.",
+          summary:
+            "Secrets this install keeps (encrypted, shown to no one). The Users list of a Credential names the people and agents whose scripts may use it; an Integration uses its own Credential.",
           presentation: "listing",
           listColumns: ["Name", "Auth type"],
           fields: [
@@ -536,7 +537,7 @@ export const collaborationZone: ZoneConfig = {
           id: "integrations",
           label: "Integrations",
           summary:
-            "Technical and commercial integrations with this vendor (moved from Product menu).",
+            "Links between this install and another system: send or receive, push or pull, and one line per record type that flows, with its filter. What came in and went out is under Exchange.",
           presentation: "listing",
           listColumns: ["Integration name", "Kind", "Status"],
           fields: [

@@ -58,6 +58,17 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+  if ((body as { type?: string }).type === "system") {
+    return NextResponse.json(
+      {
+        error: {
+          code: "SYSTEM_USER",
+          message: "System accounts are made by Issue token on a Credential, not here.",
+        },
+      },
+      { status: 400 },
+    );
+  }
 
   const mailOn = await mailIsActive();
   const createdPassword = mailOn ? generatePassword() : typeof body.password === "string" ? body.password : "";

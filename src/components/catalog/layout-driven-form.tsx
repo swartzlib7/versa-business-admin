@@ -253,6 +253,19 @@ function FieldInput({
       />
     );
   }
+  // 1.0.20: an Integration line's Filter, built from that line's record type (state_integrations.md I18).
+  if (field.key === "flow_filter") {
+    return (
+      <PairingFilterField
+        label={field.label}
+        value={value}
+        onChange={readOnly ? undefined : onChange}
+        readOnly={readOnly}
+        help="All conditions must match. No conditions: every record of the type."
+        recordType={allValues?.flow_record_type}
+      />
+    );
+  }
   if (field.key === "filter_json") {
     return (
       <PairingFilterField

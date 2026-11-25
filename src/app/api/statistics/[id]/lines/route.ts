@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
-import {
-  getSessionFromRequest,
-  isAuthenticated,
-  verifyCredentialsAsync,
-} from '@/lib/auth';
+import { getSessionFromRequest, isAuthenticated } from '@/lib/auth';
 import type { Session } from '@/lib/data';
+import { requireToken } from '@/lib/integrations/token-auth';
 import {
   captureStatLineDb,
   deleteStatLineDb,
@@ -21,44 +18,52 @@ import {
  * (src/lib/statistics/model.ts): scale bounds, frequency window, series
  * capacity.
  *
- * Auth: session cookie (UI) OR HTTP Basic (monitoring scripts) against the
- * same user store. Example:
- *   curl -u email:password -X POST .../api/statistics/<header_id>/lines \
- *     -H 'Content-Type: application/json' \
+ * Auth: session cookie (UI) OR an access token (scripts, 1.0.20). The token's
+ * Integration must list `statistics`, and the statistic must pass that line's
+ * filter. HTTP Basic (email and password) was removed in 1.0.20: it skipped the
+ * sign-in proof-of-work, so it allowed password guessing. Example:
+ *   curl -X POST .../api/statistics/<header_id>/lines \
+ *     -H 'Authorization: Bearer vba_…' -H 'Content-Type: application/json' \
  *     -d '{"slot": 0, "value": 42, "source": "script"}'
  */
 
-async function resolveSession(request: Request): Promise<Session | null> {
-  const session = getSessionFromRequest(request);
-  if (isAuthenticated(session)) return session;
-  const auth = request.headers.get('authorization');
-  if (!auth?.toLowerCase().startsWith('basic ')) return null;
-  try {
-    const decoded = Buffer.from(auth.slice(6).trim(), 'base64').toString('utf-8');
-    const sep = decoded.indexOf(':');
-    if (sep < 0) return null;
-    const user = await verifyCredentialsAsync(decoded.slice(0, sep), decoded.slice(sep + 1));
-    if (!user) return null;
-    return { userId: user.id, name: user.name, email: user.email, role: user.role, type: user.type };
-  } catch {
-    return null;
-  }
-}
+type Auth = { ok: true; session: Session } | { ok: false; response: NextResponse };
 
-function unauthorized() {
-  return NextResponse.json(
-    { error: { code: 'UNAUTHORIZED', message: 'Authentication required (session cookie or HTTP Basic).' } },
-    { status: 401 },
-  );
+async function resolveSession(request: Request, headerId: string): Promise<Auth> {
+  const session = getSessionFromRequest(request);
+  if (isAuthenticated(session)) return { ok: true, session: session as Session };
+  const auth = request.headers.get('authorization') ?? '';
+  if (/^basic\s/i.test(auth)) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        {
+          error: {
+            code: 'BASIC_REMOVED',
+            message: 'HTTP Basic sign-in was removed in 1.0.20. Use an access token: Authorization: Bearer vba_… (Ops Manual 5.2.17).',
+          },
+        },
+        { status: 401 },
+      ),
+    };
+  }
+  const { adapter } = await import('@/lib/data/adapter');
+  const record = adapter.getRecord ? await adapter.getRecord(headerId).catch(() => null) : null;
+  const check = await requireToken(request, { recordType: 'statistics', record: record?.type_api_name === 'statistics' ? record : null });
+  if (!check.ok) return check;
+  if (!record || record.type_api_name !== 'statistics') {
+    return { ok: false, response: NextResponse.json({ error: { code: 'HEADER_NOT_FOUND', message: 'Statistic not found.' } }, { status: 404 }) };
+  }
+  return { ok: true, session: check.grant.session };
 }
 
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await resolveSession(request);
-  if (!session) return unauthorized();
   const { id } = await context.params;
+  const auth = await resolveSession(request, id);
+  if (!auth.ok) return auth.response;
   const header = await loadStatHeaderConfig(id);
   if (!header.ok) {
     return NextResponse.json(
@@ -77,9 +82,9 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await resolveSession(request);
-  if (!session) return unauthorized();
   const { id } = await context.params;
+  const auth = await resolveSession(request, id);
+  if (!auth.ok) return auth.response;
 
   let body: { series?: number; slot?: number; value?: number; source?: string };
   try {
@@ -120,9 +125,9 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await resolveSession(request);
-  if (!session) return unauthorized();
   const { id } = await context.params;
+  const auth = await resolveSession(request, id);
+  if (!auth.ok) return auth.response;
 
   let body: { lineId?: string; series?: number; slot?: number; value?: number | string | null; source?: string };
   try {
@@ -166,9 +171,9 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await resolveSession(request);
-  if (!session) return unauthorized();
   const { id } = await context.params;
+  const auth = await resolveSession(request, id);
+  if (!auth.ok) return auth.response;
   const header = await loadStatHeaderConfig(id);
   if (!header.ok) {
     return NextResponse.json(

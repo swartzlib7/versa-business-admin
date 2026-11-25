@@ -1,0 +1,35 @@
+# Versa - Business Admin behind Caddy (1.0.20, Ops Manual §2.9 "Public access").
+# Caddy gets and renews the HTTPS certificate itself.
+#
+# 1. Replace example.com with your domain; point the domain and www at this server.
+# 2. Start VBA on the loopback only:  ./node_modules/.bin/next start -H 127.0.0.1 -p 3200
+# 3. sudo cp deploy/caddy/Caddyfile /etc/caddy/Caddyfile
+#    sudo caddy validate --config /etc/caddy/Caddyfile && sudo systemctl reload caddy
+#
+# Caddy passes the visitor's Host, X-Forwarded-For and X-Forwarded-Proto by itself;
+# X-Real-IP is added so the access-token limit counts the real caller.
+
+www.example.com {
+	redir https://example.com{uri} permanent
+}
+
+example.com {
+	# Attachments and pictures up to 25 MB.
+	request_body {
+		max_size 25MB
+	}
+	header {
+		X-Frame-Options SAMEORIGIN
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+		# Turn on once HTTPS has been settled for a while:
+		# Strict-Transport-Security "max-age=31536000"
+	}
+	reverse_proxy 127.0.0.1:3200 {
+		header_up X-Real-IP {remote_host}
+		transport http {
+			read_timeout 120s
+		}
+	}
+}

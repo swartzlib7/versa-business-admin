@@ -48,7 +48,8 @@ async function verifyCredentialsPostgres(
   const row = all.find(
     (r) => r.user.email.toLowerCase() === email.toLowerCase(),
   );
-  if (!row || row.user.status !== "active" || !row.user.passwordHash) {
+  // 1.0.20: system accounts (integration tokens) never sign in with a password.
+  if (!row || row.user.status !== "active" || !row.user.passwordHash || row.user.type === "system") {
     return null;
   }
   const ok = bcrypt.compareSync(password, row.user.passwordHash);

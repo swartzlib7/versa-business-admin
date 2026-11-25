@@ -1,5 +1,5 @@
 import { business } from "@/lib/fixtures/business";
-import { createInstance, listInstances, listOrgLines } from "@/lib/fixtures/record-instances";
+import { createInstance, listInstances } from "@/lib/fixtures/record-instances";
 import { isPostgresDataSource } from "@/lib/db/data-source";
 import { listStatLinesDb } from "@/lib/db/stat-lines-store";
 import type { FixtureSiteSettings } from "@/lib/fixtures/site-settings";
@@ -110,22 +110,20 @@ export async function loadCycleSteps(settings: FixtureSiteSettings): Promise<Cyc
   return enabledCycleSteps(settings);
 }
 
+/** 1.0.20: the public integrations list reads Integration records (name, kind, status, vendor); never credentials. */
 export async function listPublicIntegrations() {
   const { adapter } = await import("@/lib/data");
-  const orgs = adapter.listOrganizations
-    ? await adapter.listOrganizations("vendor")
-    : [];
-  const lines = orgs.flatMap((org) =>
-    listOrgLines(org.id, "integrations").map((line) => ({
-      id: line.id,
-      name: line.data.name || "Integration",
-      kind: line.data.kind || "other",
-      status: line.data.status || "connected",
-      notes: line.data.notes || "",
-      vendor: org.name,
-    })),
-  );
-  return lines;
+  const rows = adapter.listRecords ? await adapter.listRecords({ type_api_name: "vendor_integration" }) : [];
+  const orgs = adapter.listOrganizations ? await adapter.listOrganizations("vendor") : [];
+  const vendorName = new Map(orgs.map((org) => [org.id, org.name]));
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name || "Integration",
+    kind: row.data?.kind || "other",
+    status: row.status || "standby",
+    notes: row.data?.notes || "",
+    vendor: vendorName.get(String(row.data?.organization_id ?? "")) ?? "",
+  }));
 }
 
 export function listPublicKnowledge() {

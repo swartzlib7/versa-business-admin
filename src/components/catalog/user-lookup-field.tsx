@@ -70,3 +70,28 @@ export function UserLookupField({
     </label>
   );
 }
+
+/** User names for listings (1.0.20, a Credential's Users lines): one fetch per page, shared by every cell. */
+let userNamesPromise: Promise<Map<string, string>> | null = null;
+function loadUserNames(): Promise<Map<string, string>> {
+  userNamesPromise ??= fetch("/api/users", { credentials: "include" })
+    .then((r) => (r.ok ? r.json() : { data: [] }))
+    .then((json: { data?: UserRow[] }) => new Map((json.data ?? []).map((u) => [u.id, u.name ?? u.email ?? u.id])))
+    .catch(() => {
+      userNamesPromise = null;
+      return new Map<string, string>();
+    });
+  return userNamesPromise;
+}
+
+export function UserName({ id }: { id: string }) {
+  const [names, setNames] = useState<Map<string, string> | null>(null);
+  useEffect(() => {
+    let live = true;
+    void loadUserNames().then((map) => live && setNames(map));
+    return () => {
+      live = false;
+    };
+  }, []);
+  return <>{names?.get(id) ?? (names ? id : "…")}</>;
+}

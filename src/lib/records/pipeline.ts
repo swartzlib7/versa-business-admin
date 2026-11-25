@@ -192,7 +192,12 @@ export async function prepareRecordWrite(args: {
     data = applyRowCalculations(fieldsForPlacement(fields, "header"), data, args.current?.data ?? null);
   }
 
-  // 6. Allocation: this record's lines, and this record as a bill
+  // 6. Allocation: this record's lines, and this record as a bill.
+  // 1.0.20: a copy received from another VBA install (External ID "<integration id>:<source id>")
+  // keeps the source's figures: none of the invoices that allocate to it exist here.
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:./.test(String(data.external_id ?? ""))) {
+    return { ok: true, data, lines };
+  }
   const effectiveLines = lines ?? (args.current?.lines ?? []).map((line) => ({ id: line.id, data: line.data ?? {} }));
   const over = await overAllocation(object, args.current?.id, effectiveLines);
   if (over) return { ok: false, code: "OVER_ALLOCATED", message: over };
@@ -225,8 +230,11 @@ async function refreshAllocationTarget(targetId: string): Promise<void> {
   if ("problem" in totals) return; // over-allocated by an older save; leave it for the operator to see
   const changed = Object.entries(totals.data).some(([k, v]) => String(target.data?.[k] ?? "") !== v);
   if (!changed) return;
-  if (adapter.updateRecord) await adapter.updateRecord(target.id, { data: totals.data });
-  else updateInstance(target.id, { data: totals.data });
+  if (adapter.updateRecord) {
+    const result = await adapter.updateRecord(target.id, { data: totals.data });
+    // 1.0.20: a re-totalled bill is a change like any other for integrations.
+    if (result.ok) await queueForIntegrations(result.instance, "upsert");
+  } else updateInstance(target.id, { data: totals.data });
 }
 
 export async function afterRecordWrite(
@@ -245,6 +253,17 @@ export async function afterRecordWrite(
   }
   // 8. Statistics fed by this type (or this statistic itself)
   await refreshAfterRecordWrite(saved.type_api_name, saved.id);
+  // 9. 1.0.20: integrations that send this record (state_integrations.md §3.5)
+  await queueForIntegrations(saved, "upsert");
+}
+
+async function queueForIntegrations(record: RecordInstance, action: "upsert" | "delete"): Promise<void> {
+  try {
+    const { queueRecordChange } = await import("@/lib/integrations/queue");
+    await queueRecordChange(record, action);
+  } catch (err) {
+    console.warn("Integration queue failed for", record.id, err);
+  }
 }
 
 /** After a delete: bills the record allocated to, and statistics fed by its type. */
@@ -257,4 +276,5 @@ export async function afterRecordDelete(deleted: RecordInstance): Promise<void> 
     }
   }
   await refreshAfterRecordWrite(deleted.type_api_name, deleted.id);
+  await queueForIntegrations(deleted, "delete");
 }

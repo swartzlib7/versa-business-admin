@@ -22,4 +22,4 @@ const res = await fetch(`${base}/api/auth/login`, {
 const cookie = res.headers.get("set-cookie")?.split(";")[0]; // send as the Cookie header
 ```
 
-Statistics capture (`/api/statistics/<id>/lines`) also accepts **HTTP Basic** (`-u email:password`) for monitoring scripts.
+Scripts that only post statistic values use an **access token** instead (1.0.20; HTTP Basic was removed): `Authorization: Bearer vba_…` on `/api/statistics/<id>/lines`. See [integrations.md](integrations.md).

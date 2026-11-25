@@ -1,9 +1,29 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.19 (2026-11-24)
+**Current:** 1.0.20 (2026-11-24)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.20 — integrations and access tokens
+
+Three migrations (`0021`–`0023`): run `npm run db:migrate` as on every upgrade. Catalog seed pack `1.0.20-r3`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.17. **Coming from 1.0.17 or older: set the data key before the first start (Ops Manual 5.2.15).**
+
+- **Breaking: HTTP Basic sign-in is gone.** Scripts that post statistic values with an email and password (`curl -u …`) get `401` with a message pointing here. Give them an access token instead (below). Basic skipped the sign-in check that slows password guessing, so it had to go.
+- **Access tokens.** A Credential with Auth type **Access token** has an **Issue token** button. The token is shown once, with a Copy button; VBA keeps only a fingerprint of it. Issuing again ends the old token at once; setting the Credential to Archived stops it. Each token acts as its own **System** account (Users → System), which never signs in. A token works only where its Integration allows: the record types on its lines, and only the records its filters let through. Ten bad tokens in a minute from one address wait a minute.
+- **Integrations between two VBA installs.** Collaboration → Vendor → **Integrations** now runs:
+  - **Direction** (send or receive) and **Mode** (push or pull), so records can go either way, started from either side. Your LAN install can **pull** from versa-agi.com without a public address.
+  - **One line per record type**, each with a **Filter** built from that type's fields: equals, is not, contains, starts with, is empty, **is one of** (a comma-separated list, on any field, IDs too), **on or after** and **before** (dates, including Created and Last modified).
+  - Statistics go across with their values. A value can never land on the wrong day: if the two sides' statistic settings differ, the value is refused and the reason shown.
+  - **A delete at the source never deletes your copy.** The copy says "Deleted at the source on …" and stays; a deleted value stays too, marked.
+  - A received copy says it is kept in step by an integration: the source wins, so edits there are replaced on the next sync.
+  - **Run now**, **Resend all** (push) and **Pull everything again** (pull) on the Integration. **Every (seconds)** sets how often it runs; **Last run**, **Last result** and **Last error** show how it went. Last result says what was sent, or for a pull which window it covered (from the last successful run's edge to the partner's "now", in the partner's clock) and how many records were new: the window rolls forward even when nothing changed.
+  - Changes VBA makes itself go across too: a vendor bill re-totalled because an invoice line now uses it, an estimate marked Converted. Five failed sends in a row, or a refused token, set it to **Error** and keep everything queued.
+- **Credentials can be used by named people and agents.** A Credential now has a **Users** list. A person or agent on it, signed in with their own account, can fetch the secret from a script (`GET /api/credentials/<id>/secret`), so an agent's script uses the stored vendor key instead of a copy pasted into the script. Anyone not on the list, administrators included, is refused and told to ask the Primary User. Screens still show the secret to no one. Each use sets **Last used** on that person's line.
+- **Exchange** (Collaboration → Vendor → Exchange) lists every record and value that went out or came in, and what happened to it: ok, skipped (filter), pending (will retry) or error (with the reason). An Integration's Exchange rows are also under "Linked from" on the Integration.
+- **The old Integrations page is gone.** It showed example data, not your records. Anything found in its table, or in the old integration lines on vendors, is now an Integration record with status Standby and a note saying where it came from.
+- **Public access templates.** `deploy/nginx/vba.conf` and `deploy/caddy/Caddyfile`: HTTPS, the headers VBA needs, 25 MB uploads, `www` redirect, the app on 127.0.0.1 only. Ops Manual section 2.9.
+- Element filters (Page Builder) gain the same three conditions: is one of, on or after, before.
 
 ## 1.0.19
 

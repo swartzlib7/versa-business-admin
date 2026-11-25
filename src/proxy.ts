@@ -19,7 +19,6 @@ const PROTECTED_PAGE_PREFIXES = [
   '/agents',
   '/projects',
   '/tasks',
-  '/integrations',
   '/settings',
   '/print',
 ];
@@ -27,7 +26,6 @@ const PROTECTED_PAGE_PREFIXES = [
 const PROTECTED_API_PREFIXES = [
   '/api/projects',
   '/api/tasks',
-  '/api/integrations',
   '/api/users',
 ];
 

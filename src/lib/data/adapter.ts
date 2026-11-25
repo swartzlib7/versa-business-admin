@@ -1,4 +1,4 @@
-import type { Agent, Project, Task, Integration, BusinessProfile, Service, Product, StaffMember, User, OtherSystem, SupportTicket, Metric, KnowledgeArticle, Organization, CreateOrganizationInput, UpdateOrganizationInput } from './types';
+import type { Agent, Project, Task, BusinessProfile, Service, Product, StaffMember, User, OtherSystem, SupportTicket, Metric, KnowledgeArticle, Organization, CreateOrganizationInput, UpdateOrganizationInput } from './types';
 import type { OrgLineRow } from '@/lib/fixtures/record-instances';
 import { listOrgLines, createOrgLine, updateOrgLine, deleteOrgLine, deleteOrgLinesForOrganization } from '@/lib/fixtures/record-instances';
 import type { OrgLineRow as OrgLineRowDb } from '@/lib/db/records-store';
@@ -165,7 +165,6 @@ export interface DataAdapter {
   getProject(id: string): Promise<Project | null>;
   listTasks(filters?: TaskFilters): Promise<Task[]>;
   getTask(id: string): Promise<Task | null>;
-  listIntegrations(status?: string): Promise<Integration[]>;
   // Public site content (I4)
   getBusinessProfile(): Promise<BusinessProfile>;
   listServices(): Promise<Service[]>;
@@ -222,7 +221,6 @@ export interface DataAdapter {
 // ---------------------------------------------------------------------------
 
 import { agents as agentFixtures } from '@/lib/fixtures/agents';
-import { integrations as integrationFixtures } from '@/lib/fixtures/integrations';
 import { business as businessFixture } from '@/lib/fixtures/business';
 import { services as serviceFixtures } from '@/lib/fixtures/services';
 import { staff as staffFixtures } from '@/lib/fixtures/staff';
@@ -426,14 +424,6 @@ export const fixtureAdapter: DataAdapter = {
 
   async getTask(id: string) {
     return getBridgedTask(id);
-  },
-
-  async listIntegrations(status?: string) {
-    let result = integrationFixtures;
-    if (status) {
-      result = result.filter((i) => i.status === status);
-    }
-    return result;
   },
 
   async getBusinessProfile() {
@@ -686,7 +676,6 @@ function createAdapter(): DataAdapter {
       if (!postgresAdapter.deleteOrganization) throw new Error("deleteOrganization not available");
       return postgresAdapter.deleteOrganization(id);
     },
-    listIntegrations: (status?: string) => postgresAdapter.listIntegrations(status),
     listStaff: () => postgresAdapter.listStaff(),
     getBusinessProfile: () => postgresAdapter.getBusinessProfile(),
     listAgents: (status?: string) => postgresAdapter.listAgents(status),

@@ -115,6 +115,12 @@ export function ensureDurableCatalog(): void {
       })
       .catch((err) => console.error("Encrypting stored secrets failed:", err));
   }
+  if (isPostgresDataSource()) {
+    // 1.0.20: the integration engine (push sends, pulls), once per process.
+    void import("@/lib/integrations/engine")
+      .then((mod) => mod.startIntegrationEngine())
+      .catch((err) => console.error("Integration engine did not start:", err));
+  }
   void import("@/lib/sample-data/apply").then((mod) => {
     void mod.hydrateSampleData();
   });

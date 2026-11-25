@@ -92,7 +92,7 @@ export const users = pgTable(
   },
   (table) => [
     check('users_role_check', sql`${table.role} IN ('admin', 'member')`),
-    check('users_type_check', sql`${table.type} IN ('human', 'agent')`),
+    check('users_type_check', sql`${table.type} IN ('human', 'agent', 'system')`),
     check('users_status_check', sql`${table.status} IN ('active', 'inactive')`),
   ],
 );
@@ -182,32 +182,8 @@ export const products = pgTable(
   ],
 );
 
-// Integration (Product 1:N Integrations)
-export const integrations = pgTable(
-  'integrations',
-  {
-    id: text('id').primaryKey().default(sql`gen_random_uuid()::text`),
-    productId: text('product_id').references(() => products.id),
-    name: text('name').notNull(),
-    type: text('type').notNull(),
-    status: text('status').notNull().default('disconnected'),
-    lastSync: timestamp('last_sync', { withTimezone: true }),
-    description: text('description').notNull().default(''),
-    data: jsonb('data').notNull().default({}),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    check(
-      'integrations_type_check',
-      sql`${table.type} IN ('email', 'cms', 'database', 'api', 'iot', 'messaging')`,
-    ),
-    check(
-      'integrations_status_check',
-      sql`${table.status} IN ('connected', 'disconnected', 'error')`,
-    ),
-  ],
-);
+// 1.0.20: the old `integrations` table is gone (migration 0023); integrations are
+// `vendor_integration` records (state_integrations.md §3.7).
 
 // ---------------------------------------------------------------------------
 // Catalog tables (metadata layer)
@@ -506,6 +482,8 @@ export const statLine = pgTable(
     stamp: timestamp('stamp', { withTimezone: true }),
     source: text('source').notNull().default('ui'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    // 1.0.20: last change of any kind (value, clear, slot), for integration pulls.
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index('stat_line_header_series_slot_idx').on(

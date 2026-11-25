@@ -22,6 +22,7 @@ const AUTH_LABEL: Record<ApiAuth, string> = {
   admin: "Admin",
   "admin-or-self": "Admin or self",
   "admin-or-assignee": "Admin or assignee",
+  token: "Access token",
 };
 
 function methodClass(method: string): string {

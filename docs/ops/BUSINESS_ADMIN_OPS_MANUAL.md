@@ -221,7 +221,7 @@ The default review port in this product is **3200**. Use the port the Primary Us
 
 Outline only until packaging exists:
 
-1. Provision host + Node + reverse proxy (HTTPS)  
+1. Provision host + Node + reverse proxy (HTTPS): §2.11  
 2. Deploy immutable artifact (image or SHA-named build dir)  
 3. Configure `.env.local` (`DATA_SOURCE=postgres`, `DATABASE_URL`) + empty durable store  
 4. `npm run db:migrate` + `npm run db:seed` (**system seed**, not tenant data clone)  
@@ -248,11 +248,42 @@ Script: `scripts/migrate_agi_org.mjs` (`npm run migrate:agi-org`).
 - Default **dry-run** — reads host `agictl organization`, lists source orgs, and inspects the VBA target for existing production data.
 - **`--primary-source-org-id`** (id, slug, `external_id`, or name) is **required to apply**. That source org is merged onto VBA’s existing Primary Org (`internal` + `is_primary`). Other own Wave businesses become additional **Orgs** (`org_type=internal`, not Primary, not Collaboration Branch). The script will not guess.
 - `--apply --base http://localhost:3200` writes mapped orgs **and** catalog records (locations, contacts, staff, products, invoices/estimates + line items, **credential configuration**, Wave integration, exchange). Idempotent via `data.external_id` / `data.agi_org_id`. Fixture-mode rows are **in-memory** until restart.
-- Credential `configuration` is copied onto `vendor_credential` (needed after host Organization is turned off). The migrate report never prints it. Storage is catalog long_text until a vault exists — admins can see it in Records Editor.
+- Credential `configuration` is copied onto `vendor_credential` (needed after host Organization is turned off). The migrate report never prints it. Since 1.0.18 it is encrypted at rest and never returned by the API: secrets show as `••••••`.
 - If **both** systems already have production data, apply is not a blank-slate load. The script’s `post_process.check` tells the **agent team** whether a merge pass is required (match `external_id`, then reconcile VBA-only rows).
 - `--disable-host-org` is **refused** unless the Primary User has asked. After a verified migrate, disable agitop Organization so both catalogs do not own the same parties — only when the PU asks.
 
 On cutover (not this host): Wave Accounting becomes a VBA vendor + integration instance; stop the host Wave→org.db sync; then disable agitop Organization so both catalogs do not own the same parties.
+
+### 2.11 Public access (reverse proxy, 1.0.20)
+
+An install reached from the internet (a public site, or the receiving side of an integration) sits behind a reverse proxy that holds the HTTPS certificate. VBA does not need one on a LAN install that only calls out.
+
+| Template | Use |
+|---|---|
+| `deploy/nginx/vba.conf` | nginx + Certbot (as versa-agi.com runs). Comments at the top give the steps |
+| `deploy/caddy/Caddyfile` | Caddy, which gets and renews the certificate itself |
+
+Both templates:
+
+- start VBA on the loopback only: `./node_modules/.bin/next start -H 127.0.0.1 -p 3200`, so nothing reaches it except through the proxy;
+- pass the visitor's `Host`, `X-Forwarded-Proto` (sign-in cookies are marked Secure only over https), `X-Forwarded-For` and **`X-Real-IP`** (the access-token limit counts the real caller; without it every caller looks like the proxy);
+- allow **25 MB** request bodies (nginx's default 1 MB breaks attachments over 1 MB);
+- redirect `http://` and `www.` to `https://<domain>`;
+- give `/api/exchange` (integration batches) more burst and 120 seconds;
+- leave `/_next/static/` (page files) out of nginx's rate limit, so a first visit does not get 503.
+
+Check before reload: `sudo nginx -t` or `sudo caddy validate --config /etc/caddy/Caddyfile`. After: `curl -sS https://<domain>/api/health`, a 2 MB upload works, and `https://www.<domain>` redirects. HSTS is in the templates, commented out: turn it on once HTTPS has been settled for a while.
+
+### 2.12 Integrations and access tokens (1.0.20)
+
+Design and rules: `docs/production/state/state_integrations.md`. Staff steps: User Manual, Integrations. Agent recipe: `docs/agents/integrations.md`.
+
+- The engine runs inside the VBA process (started at boot). **Run one VBA process per database**: two processes on one database would both send.
+- **The side that is called issues the token** (Credential, Auth type Access token, **Issue token**); the side that calls pastes it into its own Credential (Configuration `{"token": "vba_…"}`), where it is encrypted.
+- Push: the sender needs the receiver's public address (§2.11). Pull: the caller (for example a LAN install) needs nothing public.
+- Monitoring scripts that post statistic values: an Integration **receive + push** with a `statistics` line (filter it to the statistics the script may write) and its Credential's token: `curl -H "Authorization: Bearer vba_…" -X POST https://<domain>/api/statistics/<id>/lines -d '{"slot":0,"value":42}' -H 'Content-Type: application/json'`.
+- **Credentials for scripts.** An agent's script that needs a stored secret (a vendor key, a mailbox password) fetches it with `GET /api/credentials/<id>/secret`, only if the agent is on that Credential's **Users** list; anyone else gets `403 NOT_ON_USERS_LIST` and asks the Primary User. The script signs in with the agent's own VBA account (on a Versa AGi host, from the agent's `.env`, never written into a script). Each use is logged (`Credentials: "<name>" used by <user>` in the server log) and sets **Last used** on the user's line. To cut an agent off: remove its line, or set the agent's account inactive.
+- Watch: Integration **Last run** / **Last result** / **Last error** / status; Exchange rows with status pending or error. A pull's Last result shows the window it asked for (from the last successful edge to the partner's now, partner's clock); the edge moves only after a complete pull.
 
 ---
 
@@ -558,6 +589,20 @@ Same steps as §5.2.1, including `npm run db:migrate` (no new migration). Catalo
 
 Health reports `"version":"1.0.19"`.
 
+### 5.2.17 Existing install to 1.0.20 (integrations, access tokens; HTTP Basic removed)
+
+Same steps as §5.2.1, including `npm run db:migrate`: **three migrations** this time. Catalog seed pack `1.0.20-r3`. Back up first (`npm run backup`). **Coming from 1.0.17 or older:** do the data-key step in §5.2.15 first.
+
+- **Before you upgrade, find scripts that use HTTP Basic** (`curl -u email:password …/api/statistics/<id>/lines`). From 1.0.20 they get `401` (`BASIC_REMOVED`). Afterwards give each one a token (§2.12).
+- Migrations: `0021` allows the `system` user type (token accounts); `0022` adds a last-changed time to statistic values (existing values take their capture time); `0023` moves rows of the old `integrations` table and the old vendor integration lines into Integration records (status **Standby**, a note says where each came from), then drops the table. If it stops with "old integrations were found, but this database has no Integration record type or Primary organization yet", start the previous release once, then run `npm run db:migrate` again.
+- The old `/integrations` page and `GET /api/integrations` are gone; Integrations are under Collaboration → Vendor.
+- The first start brings the catalog to `1.0.20-r3`: Integrations become header and lines (Direction, Mode, Partner address, Every (seconds), Last run, Last result, Last error; flow lines), Credentials become header and lines (a **Users** list) and gain Auth type Access token, Last used and Acts as, Exchange gains Action and Attempts and the status Skipped. Existing Integration records keep their fields; set Direction and Mode before switching one to Active.
+- Run **one** VBA process per database (§2.12).
+- Public install: compare the proxy with `deploy/nginx/vba.conf` (§2.11), in particular `X-Real-IP` and `client_max_body_size 25m`.
+- Check after the restart: health shows `"version":"1.0.20"`; `GET /api/integrations` gives 404; a script with `-u` gets 401 `BASIC_REMOVED`; Users shows a System tab.
+
+Health reports `"version":"1.0.20"`.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -665,6 +710,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-24 | §2.11 public access (nginx and Caddy templates), §2.12 integrations and tokens (and Credentials for scripts: the Users list), §5.2.17 upgrade to 1.0.20 (HTTP Basic removed; migrations 0021–0023; old integrations moved; one process per database). §2.10: credentials encrypted since 1.0.18. |
 | 2026-11-24 | §5.2.15: the data key is a "Before the first start" step with commands; §5.2 skipping rule: do those steps before the first start; §5.2.16 points to it; §3.7 backups leave `VBA_DATA_KEY` out of `env.local`. |
 | 2026-11-24 | §5.2.16: upgrade to 1.0.19 (Versa pages as seven canvases; start-up adds new pack pages and canvases once and updates untouched canvas settings; log lines explained). |
 | 2026-11-24 | §5.2.15: upgrade to 1.0.18, security fix (credential secrets encrypted at rest with `.data/data-key` or `VBA_DATA_KEY`, never returned by the API). §3.7: the key is not in backups; keep a copy apart. |

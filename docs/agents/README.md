@@ -13,6 +13,7 @@ Versa AGi's host skill **`business_admin_operate`** covers orientation, health a
 | [attachments.md](attachments.md) | Upload files and attach them to a record |
 | [statistics.md](statistics.md) | Capture statistic values; feed a statistic from records |
 | [operations.md](operations.md) | Health, backup, what never to do |
+| [integrations.md](integrations.md) | Connect two installs (push or pull), give a script an access token, check what went across |
 | [extending.md](extending.md) | Design a new capability or a change: what is already decided, what exists, where it plugs in |
 
 **Rules for every recipe**
@@ -21,4 +22,4 @@ Versa AGi's host skill **`business_admin_operate`** covers orientation, health a
 - Never write calculated fields yourself: Summary, Formula, Allocated / Remaining are worked out by VBA on save. Calculated defaults (Unit price, Line total, Amount, Actual cost) follow their formula unless you send a different value on purpose.
 - Records with an **External ID** belong to an integration (e.g. Wave): don't change their amounts and don't convert them.
 - A `400` answer carries a plain sentence in `error.message`. Show it to the Primary User rather than retrying blindly.
-- **Secrets come back as `••••••`** (1.0.18): passwords, tokens and keys in a Credential's Configuration are never sent by the API. To keep one, send `••••••` back unchanged; to change it, send the new value. Do not ask VBA for a secret you need elsewhere; ask the Primary User.
+- **Secrets come back as `••••••`** (1.0.18): passwords, tokens and keys in a Credential's Configuration are never sent by the API. To keep one, send `••••••` back unchanged; to change it, send the new value. To use one in a script, be on the Credential's **Users** list and fetch it with `GET /api/credentials/<id>/secret` (1.0.20, [integrations.md](integrations.md)); not on the list → ask the Primary User to add you.

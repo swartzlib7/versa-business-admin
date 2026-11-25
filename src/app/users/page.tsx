@@ -8,10 +8,10 @@ import { UsersPanel } from "@/components/settings/users-panel";
 import { theme } from "@/lib/theme";
 
 /**
- * Users — Human and Agent directories as main tabs (Records sub-tab on each).
+ * Users — Human, Agent and System (1.0.20: integration token accounts) directories as main tabs.
  */
 export default function UsersPage() {
-  const [tab, setTab] = useState<"human" | "agent">("human");
+  const [tab, setTab] = useState<"human" | "agent" | "system">("human");
 
   return (
     <AppShell>
@@ -23,9 +23,10 @@ export default function UsersPage() {
           tabs={[
             { id: "human", label: "Human" },
             { id: "agent", label: "Agent" },
+            { id: "system", label: "System" },
           ]}
           tabsValue={tab}
-          onTabChange={(id) => setTab(id === "agent" ? "agent" : "human")}
+          onTabChange={(id) => setTab(id === "agent" || id === "system" ? id : "human")}
           tabsAriaLabel="Users sections"
         />
         <div role="tabpanel" className="space-y-3">
@@ -34,7 +35,7 @@ export default function UsersPage() {
           activeId="records"
           accent={theme.colors.brand}
           onSelect={() => undefined}
-          ariaLabel={`${tab === "agent" ? "Agent" : "Human"} sub-sections`}
+          ariaLabel={`${tab === "agent" ? "Agent" : tab === "system" ? "System" : "Human"} sub-sections`}
         />
         <UsersPanel typeFilter={tab} />
         </div>

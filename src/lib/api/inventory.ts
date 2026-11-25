@@ -9,7 +9,9 @@ export type ApiAuth =
   | "session"
   | "admin"
   | "admin-or-self"
-  | "admin-or-assignee";
+  | "admin-or-assignee"
+  /** 1.0.20: an access token (Authorization: Bearer vba_…), no session. */
+  | "token";
 
 export type ApiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -345,32 +347,67 @@ export const API_RESOURCES: ApiResource[] = [
     summary: "Delete one stored attachment file (removing it from a record does not).",
   },
   {
+    group: "Integrations",
+    method: "POST",
+    path: "/api/exchange",
+    auth: "token",
+    summary: "Receive pushed items (access token of an Integration receive + push; no session). Body { vba_exchange: 1, items[] }, at most 100 items / 5 MB. Answers a result per item.",
+  },
+  {
+    group: "Integrations",
+    method: "GET",
+    path: "/api/exchange",
+    auth: "token",
+    summary: "Answer a pull (access token of an Integration send + pull; no session): ?type=&since=&filter=&cursor=&marker=. Records passing both filters, changed since, with values and deletes; 100 a page.",
+  },
+  {
+    group: "Integrations",
+    method: "POST",
+    path: "/api/exchange/actions",
+    auth: "admin",
+    summary: "Integration buttons: { integration_id, action: run | resend | repull }.",
+  },
+  {
+    group: "Integrations",
+    method: "POST",
+    path: "/api/credentials/{id}/token",
+    auth: "admin",
+    summary: "Issue an access token on a Credential (Auth type: Access token). The token is in the answer once; only its hash is kept. Issuing again ends the earlier token.",
+  },
+  {
+    group: "Integrations",
+    method: "GET",
+    path: "/api/credentials/{id}/secret",
+    auth: "session",
+    summary: "A Credential's plain Configuration, for a person or agent on its Users list, signed in with their own account (a script signs in as its agent). Anyone else gets 403 NOT_ON_USERS_LIST. Use it in memory; never store or log it.",
+  },
+  {
     group: "Statistics",
     method: "GET",
     path: "/api/statistics/{id}/lines",
     auth: "session",
-    summary: "A statistic's values (lines) and header config. Session or HTTP Basic. ?series= for one period.",
+    summary: "A statistic's values (lines) and header config. Session or access token (Bearer vba_…, 1.0.20; HTTP Basic removed). ?series= for one period.",
   },
   {
     group: "Statistics",
     method: "POST",
     path: "/api/statistics/{id}/lines",
     auth: "session",
-    summary: "Capture a value: { slot, value, series?, source? }. Session or HTTP Basic (monitoring scripts). Same validation as the UI.",
+    summary: "Capture a value: { slot, value, series?, source? }. Session or access token (monitoring scripts; the token's Integration must list statistics). Same validation as the UI.",
   },
   {
     group: "Statistics",
     method: "PATCH",
     path: "/api/statistics/{id}/lines",
     auth: "session",
-    summary: "Change or clear a value: { lineId, value } (value null clears it and keeps the step).",
+    summary: "Change or clear a value: { lineId, value } (value null clears it and keeps the step). Session or access token.",
   },
   {
     group: "Statistics",
     method: "DELETE",
     path: "/api/statistics/{id}/lines",
     auth: "session",
-    summary: "Delete one value row: ?lineId=.",
+    summary: "Delete one value row: ?lineId=. Session or access token.",
   },
   {
     group: "Statistics",
@@ -560,13 +597,6 @@ export const API_RESOURCES: ApiResource[] = [
     path: "/api/products/{id}",
     auth: "admin",
     summary: "Update a product.",
-  },
-  {
-    group: "Work",
-    method: "GET",
-    path: "/api/integrations",
-    auth: "session",
-    summary: "List integrations (optional seed).",
   },
   {
     group: "Work",

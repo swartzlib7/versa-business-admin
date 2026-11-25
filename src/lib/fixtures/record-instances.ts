@@ -25,6 +25,12 @@ export interface RecordInstance {
    */
   org_id?: string;
   created_at: string;
+  /**
+   * 1.0.20: when the record last changed in the database. Every write sets it, including
+   * VBA's own knock-on writes (a bill re-totalled), unlike data.updated_at, which only
+   * screens and the API stamp. Integrations read this one.
+   */
+  updated_at?: string;
 }
 
 export interface RecordInstanceLine {
@@ -262,9 +268,8 @@ export function deleteInstance(id: string): boolean {
 
 // ---------------------------------------------------------------------------
 // #244 Slice F (D1 cutover): organization-attached lines (fixture path).
-// Vendor integrations are org-attached record_line rows
-// (line_group='integrations'); the vendor_integration record type is retired.
-// Mirrors the postgres org-lines store shape (records-store.ts).
+// Mirrors the postgres org-lines store shape (records-store.ts). Integrations
+// are vendor_integration records (1.0.20), not org lines.
 // ---------------------------------------------------------------------------
 
 export interface OrgLineRow {

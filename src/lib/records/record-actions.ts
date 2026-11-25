@@ -138,7 +138,13 @@ export async function convertToInvoice(id: string, userId: string | null): Promi
   const created = await createThroughPipeline(source, invoiceName, "draft", data, lines, userId);
   if (!created.ok) return created;
   const marked = { ...(source.data ?? {}), status: "converted", updated_at: new Date().toISOString(), ...(userId ? { last_modified_by: userId } : {}) };
-  if (adapter.updateRecord) await adapter.updateRecord(source.id, { status: "converted", data: marked });
-  else updateInstance(source.id, { status: "converted", data: marked });
+  if (adapter.updateRecord) {
+    const result = await adapter.updateRecord(source.id, { status: "converted", data: marked });
+    // 1.0.20: the estimate marked Converted is a change like any other for integrations.
+    if (result.ok) {
+      const { queueRecordChange } = await import("@/lib/integrations/queue");
+      await queueRecordChange(result.instance, "upsert").catch((err) => console.warn("Integration queue failed for", source.id, err));
+    }
+  } else updateInstance(source.id, { status: "converted", data: marked });
   return created;
 }

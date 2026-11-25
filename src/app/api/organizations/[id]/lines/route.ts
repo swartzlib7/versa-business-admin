@@ -1,6 +1,6 @@
 // #244 Slice F (D1 cutover): organization-attached record_line rows (C3
-// design note). Vendor integrations live here (line_group='integrations');
-// the vendor_integration record type is retired. The E1 XOR CHECK
+// design note). Integrations are not stored here (1.0.20: vendor_integration
+// records). The E1 XOR CHECK
 // (record_line_parent_check) guarantees exactly one of record_id /
 // organization_id per row.
 import { NextResponse } from 'next/server';
@@ -8,6 +8,13 @@ import { adapter } from '@/lib/data';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 
 type Ctx = { params: Promise<{ id: string }> };
+
+function lineGroupRequired() {
+  return NextResponse.json(
+    { error: { code: 'LINE_GROUP_REQUIRED', message: 'line_group is required (integrations are Integration records since 1.0.20).' } },
+    { status: 400 },
+  );
+}
 
 function notImplemented() {
   return NextResponse.json(
@@ -27,7 +34,8 @@ export async function GET(request: Request, ctx: Ctx) {
   if (!adapter.listOrgLines) return notImplemented();
   const { id } = await ctx.params;
   const { searchParams } = new URL(request.url);
-  const lineGroup = searchParams.get('line_group') ?? 'integrations';
+  const lineGroup = String(searchParams.get('line_group') ?? '').trim();
+  if (!lineGroup) return lineGroupRequired();
   const data = await adapter.listOrgLines(id, lineGroup);
   return NextResponse.json({ data, count: data.length });
 }
@@ -57,7 +65,8 @@ export async function POST(request: Request, ctx: Ctx) {
       { status: 400 },
     );
   }
-  const lineGroup = body.line_group ?? 'integrations';
+  const lineGroup = String(body.line_group ?? '').trim();
+  if (!lineGroup) return lineGroupRequired();
   if (!/^[a-z][a-z0-9_]*$/.test(lineGroup)) {
     return NextResponse.json(
       { error: { code: 'VALIDATION', message: 'line_group must be snake_case.' } },
@@ -106,7 +115,8 @@ export async function PATCH(request: Request, ctx: Ctx) {
       { status: 400 },
     );
   }
-  const lineGroup = body.line_group ?? 'integrations';
+  const lineGroup = String(body.line_group ?? '').trim();
+  if (!lineGroup) return lineGroupRequired();
   const line = await adapter.updateOrgLine(id, body.line_id, lineGroup, body.data ?? {});
   if (!line) {
     return NextResponse.json(
@@ -135,7 +145,8 @@ export async function DELETE(request: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   const { searchParams } = new URL(request.url);
   const lineId = searchParams.get('line_id') ?? '';
-  const lineGroup = searchParams.get('line_group') ?? 'integrations';
+  const lineGroup = String(searchParams.get('line_group') ?? '').trim();
+  if (!lineGroup) return lineGroupRequired();
   if (!lineId) {
     return NextResponse.json(
       { error: { code: 'VALIDATION', message: 'line_id is required.' } },

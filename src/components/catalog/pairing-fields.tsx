@@ -126,7 +126,33 @@ const FILTER_OPS = [
   { id: "starts_with", label: "starts with" },
   { id: "empty", label: "is empty" },
   { id: "not_empty", label: "is not empty" },
+  // 1.0.20 (state_integrations.md I18)
+  { id: "in", label: "is one of (comma-separated)" },
+  { id: "gte", label: "on or after / at least" },
+  { id: "lt", label: "before / less than" },
 ] as const;
+
+/** 1.0.20: the fields of a record type for an Integration line's filter (plus id and the two dates). */
+function useRecordTypeFields(recordType?: string): Array<{ id: string; label: string }> | null {
+  const [fields, setFields] = useState<Array<{ id: string; label: string }> | null>(null);
+  useEffect(() => {
+    const type = (recordType ?? "").trim();
+    if (!type) return;
+    let live = true;
+    fetch(`/api/catalog/record-types/${encodeURIComponent(type)}`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (!live) return;
+        const list = ((json?.data?.fields ?? []) as Array<{ api_name: string; label: string }>).map((f) => ({ id: f.api_name, label: f.label }));
+        setFields([{ id: "id", label: "ID" }, { id: "created_at", label: "Created" }, { id: "updated_at", label: "Last modified" }, ...list]);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [recordType]);
+  return recordType ? fields : null;
+}
 
 type FilterRow = { field: string; op: string; value: string };
 
@@ -155,6 +181,7 @@ export function PairingFilterField({
   readOnly,
   help,
   targetType,
+  recordType,
 }: {
   label: string;
   value: string;
@@ -162,9 +189,12 @@ export function PairingFilterField({
   readOnly?: boolean;
   help?: string;
   targetType?: string;
+  /** 1.0.20: list this record type's fields (Integration lines) instead of an Element type's outputs. */
+  recordType?: string;
 }) {
   const spec = elementTypeById(targetType);
-  const outputs = spec ? RECORD_OUTPUTS_BY_TYPE[spec.id] ?? [] : [];
+  const typeFields = useRecordTypeFields(recordType);
+  const outputs = typeFields ?? (spec ? RECORD_OUTPUTS_BY_TYPE[spec.id] ?? [] : []);
   const rows = parseFilters(value);
   const base =
     "w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
