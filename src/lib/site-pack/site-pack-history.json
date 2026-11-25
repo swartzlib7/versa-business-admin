@@ -3,7 +3,8 @@
   "pages": {
     "page:versa-agi-analysis": [
       "18528ae9f185ee3e9c2615b763887aa65095d5e03e5ed6d5be290b59e0a5eee8",
-      "f8d233877a443e893e8c6371c388d5ced2345cd8aa60e316489f572b5e068896"
+      "f8d233877a443e893e8c6371c388d5ced2345cd8aa60e316489f572b5e068896",
+      "874d591e45627de3797ca7a127c57f33466b8ab12625c7a15db6452029f9d2f5"
     ],
     "page:versa-agi-capabilities": [
       "ee022bdfa711ffafa2a9692b9ad804ab24482de36b036b99aec12df64bb5caff",
@@ -17,18 +18,21 @@
     "page:versa-agi-landscape": [
       "ff52aab65c5a8b94519e2fb75b75b8614b2a6103bb48b2ce2b4b88229d8d0501",
       "67c5a605511c58f6d9a6cafb53d64d0fb2ab49255b8fad287d049297062936c3",
-      "5e5d856867222c9e7fa137df339b3ad4c118e6799d7606811047d048f2a5cc88"
+      "5e5d856867222c9e7fa137df339b3ad4c118e6799d7606811047d048f2a5cc88",
+      "96c7366d271efe47f767aa6c4cd3470b44ff8dc57453cb5039826c9d14b23f6f"
     ],
     "page:versa-agi-prompt-cache": [
       "3fc46f4f5d7a75656e62ce2ac76e97982d54c693185378234e96748af6a0f37a"
     ],
     "page:versa-agi-public-access": [
-      "aa8f040ef6fa1d0e0ca286cc144cb0b3f96f3dbaf32905485a6c73228dbd277f"
+      "aa8f040ef6fa1d0e0ca286cc144cb0b3f96f3dbaf32905485a6c73228dbd277f",
+      "a6e97cfd5203ade5ce60b758fa5976fb2b5a8203f8dbfcd22b86e9045fea3dbb"
     ],
     "page:versa-agi-styles": [
       "2e697532445a5331a3e815cc1f0c40796a83be9e021c5d27e9efc93c0b80df2a",
       "decfcc64bb63d29fe591329b3114996bd59948d226d19bbb93dbf4cac08be9f8",
-      "35b30c8b3346b5a10c0574fcfe0c078e9d31215512a39546e296ff0de3a25166"
+      "35b30c8b3346b5a10c0574fcfe0c078e9d31215512a39546e296ff0de3a25166",
+      "a7b92613ca3b1f5aa400526a871770b794b53d66dc1292fa7b33bc20c8378d5f"
     ],
     "page:versa-agi-technical-overview": [
       "d6dcca7e0be4497acf4a1eb24a97f8f4967344858df02f82c4832ebf69a55d6f",
@@ -37,6 +41,12 @@
     ],
     "page:versa-agi-founder": [
       "82088e618dc603f7257b5c1538b276d62339157eed3b6147e7411469a751492d"
+    ],
+    "page:versa-agi-story": [
+      "ad678eaf759a8f0fb62a247d0bbf6f2690cbe3e99e8400160ecbb713c7bad53d"
+    ],
+    "page:versa-agi-platforms": [
+      "0077cd6d6151af1113ca0b03628b8512b5e763fd41f1436a19cf8021b2b86a17"
     ]
   },
   "canvases": {
@@ -87,6 +97,63 @@
         "seo": {
           "title": "The Agentic Landscape: OpenClaw vs. Hermes vs. Versa AGi",
           "description": "A peer-to-peer comparative review of open-source agent architectures — OpenClaw, Hermes Agent, and Versa AGi. Covering security, orchestration, memory, and the Unified Global Production Network (uGPN).",
+          "og_image_url": "",
+          "noindex": false
+        },
+        "sky": "off",
+        "header_enabled": true,
+        "footer_enabled": true,
+        "columns": 1
+      }
+    ],
+    "cv-platforms": [
+      {
+        "id": "cv-platforms",
+        "enabled": true,
+        "slug": "platforms",
+        "slugManual": true,
+        "label": "Versa and the AI platforms",
+        "sections": [
+          {
+            "id": "intro",
+            "label": "Intro",
+            "kind": "empty",
+            "width_pct": 100,
+            "mobile_width_pct": 100,
+            "columns": 1,
+            "collapsed": true,
+            "display_px": 650,
+            "height_unit": "px",
+            "height_px": 650,
+            "height_vh": 40,
+            "enabled": true,
+            "in_menu": true,
+            "idManual": false,
+            "cells": [
+              {
+                "id": "intro-c1",
+                "enabled": true,
+                "kind": "empty"
+              }
+            ]
+          }
+        ],
+        "width_pct": 75,
+        "width_unit": "pct",
+        "width_px": 1200,
+        "margin": 48,
+        "mobile_width_pct": 85,
+        "mobile_width_unit": "pct",
+        "mobile_width_px": 1200,
+        "mobile_margin": 16,
+        "content_mode": "html",
+        "html_page_id": "{{site:page:versa-agi-platforms}}",
+        "style_page_id": "",
+        "menu_enabled": false,
+        "site_menu": true,
+        "seo": {
+          "title": "Versa and the AI Platforms: OpenAI, Anthropic, Microsoft — Versa AGi",
+          "description": "How the Versa ecosystem compares with the agent products of OpenAI, Anthropic and Microsoft: where the agent runs, who holds its records, and what each side offers that the other does not. Checked on 23 November 2026.",
           "og_image_url": "",
           "noindex": false
         },

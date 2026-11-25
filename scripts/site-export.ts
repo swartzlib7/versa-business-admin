@@ -133,7 +133,7 @@ async function main() {
       if (!list.includes(hash)) list.push(hash);
     }
     // 1.0.19: canvases as the previous pack shipped them (a setting still equal to one of
-    // these takes the new value on upgrade), and every item earlier packs offered.
+    // these takes the new value on upgrade).
     type Canvas = Record<string, unknown> & { id?: string };
     const canvasesOf = (settings: Record<string, unknown>) =>
       ((settings.page_builder as { canvases?: Canvas[] } | undefined)?.canvases ?? []) as Canvas[];
@@ -144,7 +144,11 @@ async function main() {
       const list = (history.canvases[old.id] ??= []);
       if (!list.some((seen) => JSON.stringify(seen) === JSON.stringify(old))) list.push(old);
     }
-    history.offered = [...new Set([...(history.offered ?? []), ...sitePackItems(previous as never)])];
+    // `offered` stays as 1.0.19 left it: the items of the packs before the ledger
+    // (site_pack_added). Only an install with no ledger reads it, and such an install is on
+    // 1.0.18 or older, so it has never had an item a later pack added. Growing the list would
+    // make an upgrade that skips versions skip those items too.
+    history.offered ??= sitePackItems(previous as never);
     fs.writeFileSync(historyPath, `${JSON.stringify(history, null, 2)}\n`);
   }
   fs.writeFileSync(out, `${JSON.stringify(pack, null, 2)}\n`);

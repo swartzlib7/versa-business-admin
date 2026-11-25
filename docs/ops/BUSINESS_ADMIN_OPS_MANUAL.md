@@ -597,6 +597,7 @@ Same steps as §5.2.1, including `npm run db:migrate`: **three migrations** this
 - Migrations: `0021` allows the `system` user type (token accounts); `0022` adds a last-changed time to statistic values (existing values take their capture time); `0023` moves rows of the old `integrations` table and the old vendor integration lines into Integration records (status **Standby**, a note says where each came from), then drops the table. If it stops with "old integrations were found, but this database has no Integration record type or Primary organization yet", start the previous release once, then run `npm run db:migrate` again.
 - The old `/integrations` page and `GET /api/integrations` are gone; Integrations are under Collaboration → Vendor.
 - The first start brings the catalog to `1.0.20-r3`: Integrations become header and lines (Direction, Mode, Partner address, Every (seconds), Last run, Last result, Last error; flow lines), Credentials become header and lines (a **Users** list) and gain Auth type Access token, Last used and Acts as, Exchange gains Action and Attempts and the status Skipped. Existing Integration records keep their fields; set Direction and Mode before switching one to Active.
+- The first start also brings the Versa pages to the website of 2026-11-25 (§5.2.16 explains the mechanism): Analysis, Platforms, Public Access, Landscape and the styles page take the new bodies where they are unedited, and the Platforms canvas its new search title and description. The log says `Site pack: updated …` for each, and `… edited on this install; left as is.` for a page staff changed. Coming from 1.0.18 or older, the six Versa page canvases are added as in §5.2.16.
 - Run **one** VBA process per database (§2.12).
 - Public install: compare the proxy with `deploy/nginx/vba.conf` (§2.11), in particular `X-Real-IP` and `client_max_body_size 25m`.
 - Check after the restart: health shows `"version":"1.0.20"`; `GET /api/integrations` gives 404; a script with `-u` gets 401 `BASIC_REMOVED`; Users shows a System tab.
@@ -710,6 +711,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-25 | §5.2.17: the first start also brings the Versa pages to the website of 2026-11-25 (log lines). |
 | 2026-11-24 | §2.11 public access (nginx and Caddy templates), §2.12 integrations and tokens (and Credentials for scripts: the Users list), §5.2.17 upgrade to 1.0.20 (HTTP Basic removed; migrations 0021–0023; old integrations moved; one process per database). §2.10: credentials encrypted since 1.0.18. |
 | 2026-11-24 | §5.2.15: the data key is a "Before the first start" step with commands; §5.2 skipping rule: do those steps before the first start; §5.2.16 points to it; §3.7 backups leave `VBA_DATA_KEY` out of `env.local`. |
 | 2026-11-24 | §5.2.16: upgrade to 1.0.19 (Versa pages as seven canvases; start-up adds new pack pages and canvases once and updates untouched canvas settings; log lines explained). |

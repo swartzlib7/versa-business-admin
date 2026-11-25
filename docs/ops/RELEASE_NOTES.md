@@ -24,6 +24,8 @@ Three migrations (`0021`–`0023`): run `npm run db:migrate` as on every upgrade
 - **The old Integrations page is gone.** It showed example data, not your records. Anything found in its table, or in the old integration lines on vendors, is now an Integration record with status Standby and a note saying where it came from.
 - **Public access templates.** `deploy/nginx/vba.conf` and `deploy/caddy/Caddyfile`: HTTPS, the headers VBA needs, 25 MB uploads, `www` redirect, the app on 127.0.0.1 only. Ops Manual section 2.9.
 - Element filters (Page Builder) gain the same three conditions: is one of, on or after, before.
+- **The default site follows the website of 25 November.** Platforms (`/p/platforms`) opens with "Why choose Versa when ChatGPT, Claude and Copilot exist?", compares five companies (SpaceXSI and Meta added), and gains the part-by-part chart, the voice band and the counted check grid; its search title and description follow. Analysis: the Model providers chart (OpenClaw 74, Hermes 43, Versa AGi 8). Story: the platforms card. Home: Public Access gains "Who it is for" (four cards), slide headings fit a phone, and the Landscape slide's second link goes to the short answer (`/p/platforms#why`). An existing install takes these at the first start where the page is unedited; an edited page stays as it is.
+- An upgrade that skips 1.0.19 still receives the Versa page canvases: the site export no longer adds each release's items to the list an install without a ledger treats as already offered.
 
 ## 1.0.19
 
