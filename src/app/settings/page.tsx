@@ -12,9 +12,9 @@ import { ApiDocsPanel } from "@/components/settings/api-docs-panel";
 import { PanelShell } from "@/components/settings/settings-chrome";
 import { EmailDeliveryPanel } from "@/components/settings/email-delivery-panel";
 import { AppearancePanel } from "@/components/settings/appearance-panel";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { isTimeZone, timeZoneNames } from "@/lib/statistics/time-zone";
+import { isTimeZone } from "@/lib/statistics/time-zone";
+import { TimeZoneSelect } from "@/components/statistics/time-zone-select";
 
 type SettingsTab = "modes" | "appearance" | "email" | "api";
 
@@ -156,24 +156,18 @@ function SystemPanel() {
             onSubmit={(e) => {
               e.preventDefault();
               if (!isTimeZone(zoneDraft.trim())) {
-                setError("Pick a zone from the list, for example America/New_York.");
+                setError("Pick a zone from the list.");
                 return;
               }
               void persist({ time_zone: zoneDraft.trim() });
             }}
           >
-            <Input
-              aria-label="Install time zone"
-              className="w-60"
-              list="vba-time-zones"
+            <TimeZoneSelect
+              ariaLabel="Install time zone"
+              className="h-8 w-60 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
               value={zoneDraft}
-              onChange={(e) => setZoneDraft(e.target.value)}
+              onChange={setZoneDraft}
             />
-            <datalist id="vba-time-zones">
-              {timeZoneNames().map((zone) => (
-                <option key={zone} value={zone} />
-              ))}
-            </datalist>
             <Button type="submit" size="sm" disabled={saving || zoneDraft.trim() === timeZone}>
               Save
             </Button>

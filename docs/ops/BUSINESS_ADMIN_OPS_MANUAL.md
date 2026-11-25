@@ -616,6 +616,16 @@ Same steps as §5.2.1: no migrations this time. Catalog seed pack `1.0.21-r1`. B
 
 Health reports `"version":"1.0.21"`.
 
+### 5.2.19 Existing install to 1.0.22 (values sent as lists; time zone pickers)
+
+Same steps as §5.2.1: no migrations, catalog seed pack stays `1.0.21-r1`. Back up first (`npm run backup`). **Coming from 1.0.20 or older:** do §5.2.18 too.
+
+- Nothing runs at start-up. Values stored as JSON lists (a Filter an agent sent as a list) now read as text, so an Integration whose records failed with `(e ?? "").trim is not a function` works again: **Resend all** on the sender (or **Pull everything again** on a pull) to send what failed.
+- A Filter saved through `POST /api/records/<id>/lines` as a list was stored as `[object Object]` and let every record through. Open the Integration: a line whose Filter shows no conditions but should have some needs them set again.
+- Check after the restart: health shows `"version":"1.0.22"`; Settings → Modes → Time zone opens a list of zones.
+
+Health reports `"version":"1.0.22"`.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -723,6 +733,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-25 | §5.2.19: upgrade to 1.0.22 (values sent as lists stored and read as text; Resend all for integrations that failed; check filters saved through the add-lines call). |
 | 2026-11-25 | §5.2.18: upgrade to 1.0.21 (install time zone written once; statistics take it; check it on hosts whose zone is not the business's; Resend all for integrations). |
 | 2026-11-25 | §5.2.17: the first start also brings the Versa pages to the website of 2026-11-25 (log lines). |
 | 2026-11-24 | §2.11 public access (nginx and Caddy templates), §2.12 integrations and tokens (and Credentials for scripts: the Users list), §5.2.17 upgrade to 1.0.20 (HTTP Basic removed; migrations 0021–0023; old integrations moved; one process per database). §2.10: credentials encrypted since 1.0.18. |

@@ -1,9 +1,17 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.21 (2026-11-25)
+**Current:** 1.0.22 (2026-11-25)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.22 — values sent as lists; time zone pickers
+
+No migrations. Catalog seed pack stays `1.0.21-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.19.
+
+- **A Filter saved through the API as a JSON list no longer breaks an Integration.** Record values are text. A caller that sent a Filter as a list (`"flow_filter": [{…}]`) instead of as text (`"flow_filter": "[{…}]"`) had it stored as a list, and every record that reached that line failed with `(e ?? "").trim is not a function`. Values sent as lists, numbers or true/false are now stored as their JSON text, and lines already stored that way read as text, so an affected Integration works again after the upgrade with no re-save.
+- **The add-lines call keeps a list too.** `POST /api/records/<id>/lines` turned a list into the text `[object Object]`. A Filter saved that way could not be read, so it let every record through. It now stores the list's JSON text. A Filter already saved as `[object Object]` has to be set again.
+- **Time zone pickers list every zone.** Settings → Modes → Time zone and a statistic's Time zone are now drop-downs grouped by region (America, Europe, …). Before, the list only offered names matching what was already in the field, so it looked empty.
 
 ## 1.0.21 — time zones for statistics
 

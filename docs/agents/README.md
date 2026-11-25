@@ -18,7 +18,7 @@ Versa AGi's host skill **`business_admin_operate`** covers orientation, health a
 
 **Rules for every recipe**
 
-- Writes need an **admin** session. Read the type's fields first (`GET /api/catalog/record-types/<type>`) and send field **API names**, values as strings.
+- Writes need an **admin** session. Read the type's fields first (`GET /api/catalog/record-types/<type>`) and send field **API names**, values as strings. A list or object sent as a value (a Filter) is stored as its JSON text (1.0.22).
 - Never write calculated fields yourself: Summary, Formula, Allocated / Remaining are worked out by VBA on save. Calculated defaults (Unit price, Line total, Amount, Actual cost) follow their formula unless you send a different value on purpose.
 - Records with an **External ID** belong to an integration (e.g. Wave): don't change their amounts and don't convert them.
 - A `400` answer carries a plain sentence in `error.message`. Show it to the Primary User rather than retrying blindly.

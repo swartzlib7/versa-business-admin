@@ -24,6 +24,7 @@ import { listAllFieldDefinitions, listFieldDefinitions, type FieldDefinition } f
 import { getInstance, listInstances, updateInstance, type RecordInstance } from "@/lib/fixtures/record-instances";
 import { getRecordType } from "@/lib/fixtures/record-types";
 import { foldRecordTypeApiName } from "@/lib/catalog/name-aliases";
+import { textValues } from "@/lib/records/text-values";
 import { deriveStatHeaderData } from "@/lib/statistics/model";
 import { computeSummaryValues } from "@/lib/records/summary-fields";
 import { applyRowCalculations, fieldsForPlacement } from "@/lib/records/calculated-fields";
@@ -169,8 +170,9 @@ export async function prepareRecordWrite(args: {
   const type = foldRecordTypeApiName(args.typeApiName);
   const object = objectFor(type);
   const fields = listFieldDefinitions(object);
-  let data = { ...args.data };
-  let lines = args.lines?.map((line) => ({ ...line, data: { ...line.data } }));
+  // 1.0.22: values are stored as text; a JSON list sent as a value is kept as its JSON text.
+  let data = textValues(args.data);
+  let lines = args.lines?.map((line) => ({ ...line, data: textValues(line.data) }));
 
   // 1. Statistics derived fields
   if (type === "statistics") {

@@ -20,7 +20,7 @@ Design and rules: `docs/production/state/state_integrations.md`. Operator notes:
 
 ## Filters
 
-`flow_filter` is a JSON list; a record goes across only when it passes **every** condition. Empty: every record of the type.
+`flow_filter` is a JSON list, stored as text; a record goes across only when it passes **every** condition. Empty: every record of the type. Send it as text (`"flow_filter": "[{…}]"`); a list sent as the value is stored as its text too (1.0.22).
 
 ```json
 [{ "field": "id", "op": "in", "value": "6409a206-…, 8e6a7f62-…" },

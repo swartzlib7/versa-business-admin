@@ -1,3 +1,4 @@
+import { textValues } from '@/lib/records/text-values';
 import { NextResponse } from 'next/server';
 import { foldRecordTypeApiName } from '@/lib/catalog/name-aliases';
 import { afterRecordWrite, prepareRecordWrite } from '@/lib/records/pipeline';
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
   }
   let pairingData =
     typeof body.data === 'object' && body.data && !Array.isArray(body.data)
-      ? { ...(body.data as Record<string, string>) }
+      ? textValues(body.data)
       : {};
   if (String(body.type_api_name || '') === DRIVER_PAIRING_TYPE) {
     const stamped = await stampPairingFromDriver(pairingData);

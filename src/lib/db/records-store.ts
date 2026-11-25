@@ -1,5 +1,6 @@
 import '@/lib/catalog/install-durable';
 import { foldRecordTypeApiName } from '@/lib/catalog/name-aliases';
+import { textValues } from '@/lib/records/text-values';
 import { isPrimaryAddress, locationOrgKey, siblingPrimaryIds } from '@/lib/records/location-primary';
 import { decryptSecret, encryptSecret, isEncrypted } from '@/lib/secrets/secret-box';
 import { maskSecretFields, sealSecretFields, secretFieldsFor } from '@/lib/secrets/secret-fields';
@@ -94,7 +95,6 @@ import {
 } from '@/lib/db/stat-lines-store';
 import type { StatLineRow } from '@/lib/db/stat-lines-store';
 
-type Header = Record<string, unknown>;
 type LineWrite = { id?: string; line_group?: string; data: Record<string, string> };
 
 /**
@@ -148,14 +148,7 @@ async function replaceRecordLines(recordId: string, lines: LineWrite[]): Promise
 }
 
 function headerToStrings(header: unknown): Record<string, string> {
-  const out: Record<string, string> = {};
-  if (header && typeof header === 'object' && !Array.isArray(header)) {
-    for (const [k, v] of Object.entries(header as Header)) {
-      if (v == null) continue;
-      out[k] = typeof v === 'string' ? v : JSON.stringify(v);
-    }
-  }
-  return out;
+  return textValues(header);
 }
 
 /**
@@ -267,7 +260,7 @@ async function loadLines(recordIds: string[]): Promise<Map<string, RecordInstanc
       id: ln.id,
       record_id: ln.recordId,
       line_group: ln.lineGroup ?? undefined,
-      data: (ln.data ?? {}) as Record<string, string>,
+      data: textValues(ln.data),
       sort_order: ln.position,
     });
     map.set(ln.recordId, list);
@@ -864,7 +857,7 @@ function mapOrgLineRow(ln: typeof recordLineTable.$inferSelect): OrgLineRow {
     id: ln.id,
     organization_id: ln.organizationId ?? '',
     line_group: ln.lineGroup ?? '',
-    data: (ln.data ?? {}) as Record<string, string>,
+    data: textValues(ln.data),
     sort_order: ln.position,
   };
 }

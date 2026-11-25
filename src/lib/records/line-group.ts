@@ -6,6 +6,7 @@
 import { listFieldDefinitions } from "@/lib/fixtures/catalog";
 import { getRecordType } from "@/lib/fixtures/record-types";
 import { foldRecordTypeApiName } from "@/lib/catalog/name-aliases";
+import { textValues } from "@/lib/records/text-values";
 
 export function defaultLineGroup(typeApiName: string): string | undefined {
   const folded = foldRecordTypeApiName(typeApiName);
@@ -16,13 +17,8 @@ export function defaultLineGroup(typeApiName: string): string | undefined {
   return prefix === "line" ? undefined : prefix + "s";
 }
 
-/** API callers may send numbers and booleans; records store strings. */
+/** API callers may send numbers, booleans and JSON lists; records store text (text-values.ts). */
 export function lineDataStrings(raw: unknown): Record<string, string> | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const out: Record<string, string> = {};
-  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-    if (value === null || value === undefined) continue;
-    out[key] = typeof value === "string" ? value : String(value);
-  }
-  return out;
+  return textValues(raw);
 }

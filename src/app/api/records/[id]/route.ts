@@ -1,3 +1,4 @@
+import { textValues } from '@/lib/records/text-values';
 import { NextResponse } from 'next/server';
 import { afterRecordDelete, afterRecordWrite, prepareRecordWrite } from '@/lib/records/pipeline';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
@@ -91,7 +92,7 @@ export async function PATCH(
   }
   let incoming =
     typeof body.data === 'object' && body.data && !Array.isArray(body.data)
-      ? { ...(body.data as Record<string, string>) }
+      ? textValues(body.data)
       : undefined;
   if (incoming) {
     delete incoming.created_by;

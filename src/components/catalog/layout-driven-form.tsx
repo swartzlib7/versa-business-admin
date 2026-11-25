@@ -1,5 +1,6 @@
 "use client";
-import { isTimeZone, timeZoneNames } from "@/lib/statistics/time-zone";
+import { isTimeZone } from "@/lib/statistics/time-zone";
+import { TimeZoneSelect } from "@/components/statistics/time-zone-select";
 import { useInstallTimeZone } from "@/components/shell/site-mode-provider";
 
 import { isRecordTypeLookup } from "@/lib/catalog/lookup-targets";
@@ -412,7 +413,9 @@ function FieldInput({
       {field.help ? (
         <span className="text-[11px] leading-snug text-muted-foreground/80">{field.help}</span>
       ) : null}
-      {kind === "textarea" ? (
+      {field.key === "time_zone" ? (
+        <TimeZoneSelect className={base} value={value} allowEmpty={!value} onChange={(zone) => onChange?.(zone)} />
+      ) : kind === "textarea" ? (
         <textarea
           className={cn(base, "min-h-[72px] resize-y")}
           value={value}
@@ -466,11 +469,8 @@ function FieldInput({
               ? "name@example.com"
               : kind === "phone"
                 ? "+1 555 000 0000"
-                : field.key === "time_zone"
-                  ? "America/New_York"
-                  : undefined
+                : undefined
           }
-          list={field.key === "time_zone" ? "vba-tz-form" : undefined}
           value={value}
           onChange={(e) => {
             onChange?.(e.target.value);
@@ -480,13 +480,6 @@ function FieldInput({
           }}
         />
       )}
-      {field.key === "time_zone" ? (
-        <datalist id="vba-tz-form">
-          {timeZoneNames().map((zone) => (
-            <option key={zone} value={zone} />
-          ))}
-        </datalist>
-      ) : null}
     </label>
   );
 }
