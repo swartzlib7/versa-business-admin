@@ -626,6 +626,17 @@ Same steps as §5.2.1: no migrations, catalog seed pack stays `1.0.21-r1`. Back 
 
 Health reports `"version":"1.0.22"`.
 
+### 5.2.20 Existing install to 1.0.23 (files on every business record)
+
+Same steps as §5.2.1: no migrations. Catalog seed pack `1.0.23-r1`. Back up first (`npm run backup`, with uploads). **Coming from 1.0.21 or older:** do §5.2.19 too.
+
+- Nothing runs at start-up. The **Documents & Photos** field appears on Transactions, Contacts, Projects, Policies, Hats, Products, Services, Sales, Promotion & Marketing, Inspections & Reports, Staff, Messages, Reviews, Examinations, Certifications & Awards, Knowledge, Events, Locations, Schedules and Vehicle Mileage Logs, and on organizations (vendors, customers, partners, branches, your own). Assets keep theirs.
+- A form layout saved in Records Editor gets a **Documents** section at the end. To keep the field off a form, untick it in that layout (removing it brings it back on the next start).
+- Uploads over 1 MB need the web server to allow them: nginx `client_max_body_size 25m;` (the 1.0.20 template has it, §2.11). Without it an upload answers `413`.
+- Check after the restart: health shows `"version":"1.0.23"`; a Transaction's edit form shows **Documents & Photos**; `GET /api` lists `POST /api/records/{id}/files`.
+
+Health reports `"version":"1.0.23"`.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -733,6 +744,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-26 | §5.2.20: upgrade to 1.0.23 (Documents & Photos on every business record type and on organizations; saved layouts gain a Documents section; uploads over 1 MB need `client_max_body_size`). |
 | 2026-11-25 | §5.2.19: upgrade to 1.0.22 (values sent as lists stored and read as text; Resend all for integrations that failed; check filters saved through the add-lines call). |
 | 2026-11-25 | §5.2.18: upgrade to 1.0.21 (install time zone written once; statistics take it; check it on hosts whose zone is not the business's; Resend all for integrations). |
 | 2026-11-25 | §5.2.17: the first start also brings the Versa pages to the website of 2026-11-25 (log lines). |

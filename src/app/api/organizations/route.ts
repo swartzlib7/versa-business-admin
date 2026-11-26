@@ -2,6 +2,7 @@
 // The Executive organizations list and the Collaboration zone rendering (C6)
 // read through this route; writes are admin-only (tenant identity is
 // relational, not user-editable content).
+import { checkAttachmentFields } from '@/lib/records/record-files';
 import { NextResponse } from 'next/server';
 import { adapter } from '@/lib/data';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
@@ -60,6 +61,13 @@ export async function POST(request: Request) {
   }
 
   try {
+    // 1.0.23: an Attachments field holds only files stored here, at most 10.
+    if (body.data && typeof body.data === 'object') {
+      const checked = checkAttachmentFields('organization', body.data, null);
+      if (!checked.ok) {
+        return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: checked.message } }, { status: 400 });
+      }
+    }
     const org = await adapter.createOrganization(body);
     return NextResponse.json({ data: org }, { status: 201 });
   } catch (e: unknown) {

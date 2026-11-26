@@ -1,9 +1,19 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.22 (2026-11-25)
+**Current:** 1.0.23 (2026-11-26)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.23 — files on every business record
+
+No migrations. Catalog seed pack `1.0.23-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.20.
+
+- **Documents & Photos on every business record.** Until now only Assets could hold files. Transactions, Contacts, Projects, Policies, Hats, Products, Services, Sales, Promotion & Marketing, Inspections & Reports, Staff, Messages, Reviews, Examinations, Certifications & Awards, Knowledge, Events, Locations, Schedules and Vehicle Mileage Logs now have a **Documents & Photos** field, and so does every organization: vendors, customers, partners, branches and your own. Up to 10 files of 20 MB each, as on Assets. A form whose layout was saved before gets a **Documents** section at the end; untick the field there to keep it off.
+- **Attach files over the API in one call.** `POST /api/records/<id>/files` (or `/api/organizations/<id>/files`) takes one or more files and adds them to the record; `DELETE …/files/<file id>` takes one off. Before, a script had to upload, read the record, merge the list and save it, and a save that sent only the new file replaced the others.
+- **Attachments are checked when saved.** A file that is not stored on this install, text that is not a list of files, or more than 10 files is refused with the reason. The file's name, type and size always come from the stored file. Before, all of these were accepted and the form then showed nothing.
+- A record type with no Attachments field answers the one-call upload with how to add one, instead of a save that looked fine and stored nothing visible.
+- **The Time zone list on Settings follows the theme.** In Slate, Dark and Architect, Settings → Modes → Time zone opened as a white list with light text. It now opens in the theme's colours, like a statistic's Time zone, which was not affected.
 
 ## 1.0.22 — values sent as lists; time zone pickers
 

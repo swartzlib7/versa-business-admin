@@ -235,7 +235,9 @@ An Attachments field holds up to **10 files of up to 20 MB** each: PDF, Word, Ex
 - Click a file to open it. PDFs and pictures open in the browser; other files download. The download arrow always downloads.
 - The **×** removes the file from this record. The stored file is kept, so cancelling the edit loses nothing.
 
-Admins can add more file types in Records Editor → value set `file_mime`, and add an Attachments field to any record type (data type **Attachments**).
+Since 1.0.23 the same **Documents & Photos** field is on Transactions, Contacts, Projects, Policies, Hats, Products, Services, Sales, Promotion & Marketing, Inspections & Reports, Staff, Messages, Reviews, Examinations, Certifications & Awards, Knowledge, Events, Locations, Schedules and Vehicle Mileage Logs, and on every organization (vendors, customers, partners, branches, your own), usually at the end of the form.
+
+Admins can add more file types in Records Editor → value set `file_mime`, and add an Attachments field to any other record type (data type **Attachments**).
 
 ### Vehicle Mileage Logs
 

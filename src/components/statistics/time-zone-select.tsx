@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { timeZoneNames } from "@/lib/statistics/time-zone";
+import { cn } from "@/lib/utils";
 
 /**
  * Time zone picker (1.0.21): every zone the browser knows, grouped by region.
@@ -10,6 +11,10 @@ import { timeZoneNames } from "@/lib/statistics/time-zone";
  *
  * The list comes from the browser after hydration (the server's Intl list can differ);
  * until then only the current value is offered.
+ *
+ * Themes (1.0.23): the open list takes its colours from the select. A transparent or
+ * see-through background opens as a white list with the theme's light text in Slate, Dark and
+ * Architect, so the select always carries the theme's solid background and text colour.
  */
 const noop = () => () => {};
 let cached: Array<[string, string[]]> | null = null;
@@ -44,7 +49,12 @@ export function TimeZoneSelect({
   const groups = useSyncExternalStore(noop, grouped, () => null);
   const known = groups?.some(([, zones]) => zones.includes(value)) ?? false;
   return (
-    <select className={className} aria-label={ariaLabel} value={value} onChange={(e) => onChange(e.target.value)}>
+    <select
+      className={cn(className, "bg-background text-foreground dark:bg-background")}
+      aria-label={ariaLabel}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
       {allowEmpty ? <option value="">Install time zone</option> : null}
       {value && !known ? <option value={value}>{value}</option> : null}
       {(groups ?? []).map(([region, zones]) =>

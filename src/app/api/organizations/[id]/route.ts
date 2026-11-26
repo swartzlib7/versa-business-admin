@@ -1,4 +1,5 @@
 // #248 Slice D (rev E section 4.3): single organization read + update.
+import { checkAttachmentFields } from '@/lib/records/record-files';
 import { NextResponse } from 'next/server';
 import { adapter } from '@/lib/data';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
@@ -68,6 +69,15 @@ export async function PATCH(
       { error: { code: 'BAD_REQUEST', message: 'Invalid JSON body.' } },
       { status: 400 },
     );
+  }
+
+  // 1.0.23: an Attachments field holds only files stored here, at most 10.
+  if (body.data && typeof body.data === 'object') {
+    const current = adapter.getOrganization ? await adapter.getOrganization(id) : null;
+    const checked = checkAttachmentFields('organization', body.data, current?.data);
+    if (!checked.ok) {
+      return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: checked.message } }, { status: 400 });
+    }
   }
 
   try {

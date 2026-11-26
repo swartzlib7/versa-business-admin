@@ -4,6 +4,7 @@
  * HTTP: GET/POST under /api/catalog (auth). Custom fields, layouts, and value sets
  * persist through the durable catalog overlay (seed ∪ overlay).
  */
+import { DOCUMENTS_OBJECTS } from "@/lib/catalog/documents-objects";
 import { normalizeSummaryConfig, summaryConfigProblem, type SummaryConfig } from "@/lib/records/summary-fields";
 import { compileFormula, orderFormulas } from "@/lib/records/formula";
 import { listInstances } from './record-instances';
@@ -2248,6 +2249,7 @@ export const layoutDefinitions: LayoutDefinition[] = [
         { id: 'sec-mileage-log', label: 'Log', columns: 2, fields: ['name', 'status', 'vehicle_id', 'tax_year', 'starting_odometer'] },
         { id: 'sec-mileage-totals', label: 'Totals', columns: 2, fields: ['total_miles', 'business_miles', 'business_use_pct'] },
         { id: 'sec-mileage-notes', label: 'Notes', columns: 1, fields: ['notes'] },
+        { id: 'sec-documents', label: 'Documents', columns: 1, fields: ['documents'] },
       ],
     },
   })),
@@ -2804,7 +2806,25 @@ function withPlatformAudit(fields: FieldDefinition[]): FieldDefinition[] {
   return [...normalized, ...extra];
 }
 
-const facultyRecordFieldSeed: FieldDefinition[] = withPlatformAudit(facultyRecordFieldSeedBase);
+
+/** 1.0.23: Documents & Photos on every business record type (documents-objects.ts). */
+const documentsFieldSeed: FieldDefinition[] = DOCUMENTS_OBJECTS.map((object_api_name) => ({
+  id: `fld-${object_api_name}-documents`,
+  object_api_name,
+  api_name: 'documents',
+  label: 'Documents & Photos',
+  data_type: 'attachments',
+  is_system: true,
+  is_required: false,
+  default_value: null,
+  value_set_api_name: null,
+  lookup_object_api_name: null,
+  sort_order: 8000,
+  active: true,
+  zone_role: 'header',
+}));
+
+const facultyRecordFieldSeed: FieldDefinition[] = withPlatformAudit([...facultyRecordFieldSeedBase, ...documentsFieldSeed]);
 
 // ---------------------------------------------------------------------------
 // Object registry (typed cores + faculty record types) — I5.6.32b

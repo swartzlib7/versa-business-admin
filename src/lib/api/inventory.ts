@@ -330,7 +330,7 @@ export const API_RESOURCES: ApiResource[] = [
     method: "POST",
     path: "/api/records/files",
     auth: "admin",
-    summary: "Upload one file for an Attachments field (multipart `file`). Returns { id, name, mime, size } to store in the field.",
+    summary: "Upload one file without attaching it (multipart `file`). Returns { id, name, mime, size }. To attach in one call use POST /api/records/{id}/files.",
   },
   {
     group: "Records",
@@ -345,6 +345,34 @@ export const API_RESOURCES: ApiResource[] = [
     path: "/api/records/files/{id}",
     auth: "admin",
     summary: "Delete one stored attachment file (removing it from a record does not).",
+  },
+  {
+    group: "Records",
+    method: "POST",
+    path: "/api/records/{id}/files",
+    auth: "admin",
+    summary: "Attach files to a record in one call (1.0.23): multipart, one or more `file` parts, plus `field` when the type has more than one Attachments field. Adds to what is there (up to 10); refused with a reason when the type has no Attachments field.",
+  },
+  {
+    group: "Records",
+    method: "DELETE",
+    path: "/api/records/{id}/files/{fileId}",
+    auth: "admin",
+    summary: "Take one file off a record (1.0.23). The stored file stays unless ?delete_file=1.",
+  },
+  {
+    group: "Organizations",
+    method: "POST",
+    path: "/api/organizations/{id}/files",
+    auth: "admin",
+    summary: "Attach files to an organization (vendor, customer, partner, branch or your own) in one call (1.0.23): multipart, one or more `file` parts. Adds to its Documents & Photos (up to 10).",
+  },
+  {
+    group: "Organizations",
+    method: "DELETE",
+    path: "/api/organizations/{id}/files/{fileId}",
+    auth: "admin",
+    summary: "Take one file off an organization (1.0.23). The stored file stays unless ?delete_file=1.",
   },
   {
     group: "Integrations",

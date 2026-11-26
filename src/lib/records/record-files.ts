@@ -12,9 +12,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { getValueSetByApiName, listValueSetItems } from "@/lib/fixtures/catalog";
+import { getValueSetByApiName, listFieldDefinitions, listValueSetItems } from "@/lib/fixtures/catalog";
 import type { RecordFileRef } from "@/lib/records/record-file-refs";
 import { uploadsDir } from "@/lib/records/uploads-dir";
+
+import { RECORD_FILE_MAX, parseRecordFiles } from "@/lib/records/record-file-refs";
 
 export { RECORD_FILE_MAX, parseRecordFiles, type RecordFileRef } from "@/lib/records/record-file-refs";
 
@@ -106,6 +108,69 @@ export function recordFile(id: string): (RecordFileRef & { path: string; inline:
   } catch {
     return null;
   }
+}
+
+/**
+ * 1.0.23: what an Attachments field may hold when it is saved. A JSON list (or nothing) of
+ * files stored on this install, at most RECORD_FILE_MAX; each entry is rewritten from the
+ * stored file, so name, type and size are always the real ones. Repeats are dropped. An
+ * entry the record already had is kept as it was even if its file is gone, so a record with
+ * a missing file can still be saved (and the entry removed).
+ */
+export function checkRecordFiles(
+  label: string,
+  raw: string,
+  already: RecordFileRef[] = [],
+): { ok: true; value: string } | { ok: false; message: string } {
+  if (!raw.trim()) return { ok: true, value: "" };
+  const shape = `${label} takes a JSON list of uploaded files, e.g. [{"id":"<file id>"}]. Upload with POST /api/records/<record id>/files.`;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { ok: false, message: shape };
+  }
+  if (!Array.isArray(parsed)) return { ok: false, message: shape };
+  const refs: RecordFileRef[] = [];
+  for (const item of parsed) {
+    const id = String((item as { id?: unknown } | null)?.id ?? "");
+    if (!id) return { ok: false, message: shape };
+    if (refs.some((ref) => ref.id === id)) continue;
+    const file = recordFile(id);
+    const kept = file ? null : already.find((ref) => ref.id === id);
+    if (kept) {
+      refs.push(kept);
+      continue;
+    }
+    if (!file) return { ok: false, message: `${label}: file ${id} is not stored on this install. Upload it first.` };
+    refs.push({ id, name: file.name, mime: file.mime, size: file.size });
+  }
+  if (refs.length > RECORD_FILE_MAX) {
+    return { ok: false, message: `${label} holds up to ${RECORD_FILE_MAX} files; this save has ${refs.length}.` };
+  }
+  return { ok: true, value: refs.length ? JSON.stringify(refs) : "" };
+}
+
+/**
+ * Check the Attachments fields this save changes. Values are written back as the checked
+ * JSON text. A field the save does not send, or sends unchanged, is not checked.
+ */
+export function checkAttachmentFields(
+  objectApiName: string,
+  data: Record<string, unknown>,
+  current?: Record<string, unknown> | null,
+): { ok: true } | { ok: false; message: string } {
+  for (const field of listFieldDefinitions(objectApiName).filter((f) => f.data_type === "attachments")) {
+    const sent = data[field.api_name];
+    if (sent === undefined) continue;
+    const next = sent === null ? "" : typeof sent === "string" ? sent : JSON.stringify(sent);
+    const before = String(current?.[field.api_name] ?? "");
+    if (next === before) continue;
+    const checked = checkRecordFiles(field.label, next, parseRecordFiles(before));
+    if (!checked.ok) return { ok: false, message: checked.message };
+    data[field.api_name] = checked.value;
+  }
+  return { ok: true };
 }
 
 export function deleteRecordFile(id: string): void {

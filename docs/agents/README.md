@@ -10,7 +10,7 @@ Versa AGi's host skill **`business_admin_operate`** covers orientation, health a
 | [sign-in.md](sign-in.md) | Get a session cookie from a script (proof-of-work login) |
 | [records-and-lines.md](records-and-lines.md) | Read a record type's fields; create, update, clone records; add lines one at a time; see what links to a record |
 | [job-costing.md](job-costing.md) | Estimate with a bill of materials → invoice → vendor bill → matching |
-| [attachments.md](attachments.md) | Upload files and attach them to a record |
+| [attachments.md](attachments.md) | Attach files to a record or an organization in one call (1.0.23), or save the field yourself |
 | [statistics.md](statistics.md) | Capture statistic values; feed a statistic from records |
 | [operations.md](operations.md) | Health, backup, what never to do |
 | [integrations.md](integrations.md) | Connect two installs (push or pull), give a script an access token, check what went across |

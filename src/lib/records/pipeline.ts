@@ -174,6 +174,13 @@ export async function prepareRecordWrite(args: {
   let data = textValues(args.data);
   let lines = args.lines?.map((line) => ({ ...line, data: textValues(line.data) }));
 
+  // 0. Attachments (1.0.23): a changed Attachments field holds only files stored here, at most 10.
+  if (fields.some((f) => f.data_type === "attachments")) {
+    const { checkAttachmentFields } = await import("@/lib/records/record-files");
+    const checked = checkAttachmentFields(object, data, args.current?.data);
+    if (!checked.ok) return { ok: false, code: "VALIDATION_ERROR", message: checked.message };
+  }
+
   // 1. Statistics derived fields
   if (type === "statistics") {
     // 1.0.21: a statistic always has its own Time zone; a new one takes the install's.

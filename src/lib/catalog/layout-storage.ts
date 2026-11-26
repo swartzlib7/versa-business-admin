@@ -4,6 +4,7 @@
  */
 
 import { getDefaultLayout, listFieldDefinitions, type LayoutDefinition } from '@/lib/fixtures/catalog';
+import { DOCUMENTS_OBJECTS } from '@/lib/catalog/documents-objects';
 import { normalizeLayoutColumns, type LayoutColumnCount } from '@/lib/catalog/layout-grid';
 
 export type LayoutSection = {
@@ -122,7 +123,20 @@ export function saveLayoutConfig(config: LayoutConfig): LayoutConfig {
  * Saved overlay if one exists; otherwise the catalog seed used at runtime.
  */
 function ensureStatScaleName(config: LayoutConfig): LayoutConfig {
-  return ensureStatTimeZone(ensureStatSourceSection(ensureStatTargetFields(ensureStatScaleNameOnly(config))));
+  return ensureDocuments(ensureStatTimeZone(ensureStatSourceSection(ensureStatTargetFields(ensureStatScaleNameOnly(config)))));
+}
+
+/**
+ * 1.0.23: a layout saved before its type had Documents & Photos gets a Documents section at
+ * the end, unless the operator placed the field. To keep it off a form, untick it there
+ * (Visible off): a placed field is never added again.
+ */
+const DOCUMENTS_OBJECT_SET = new Set<string>(DOCUMENTS_OBJECTS);
+function ensureDocuments(config: LayoutConfig): LayoutConfig {
+  if (!DOCUMENTS_OBJECT_SET.has(config.objectApiName) || config.layoutType === "list") return config;
+  if (config.sections.some((s) => s.fields.some((f) => f.api_name === "documents"))) return config;
+  const field: LayoutField = { api_name: "documents", label: "Documents & Photos", visible: true, span: 1 };
+  return { ...config, sections: [...config.sections, { id: "sec-documents", label: "Documents", columns: 1, fields: [field] }] };
 }
 
 /**
