@@ -349,17 +349,8 @@ export function pairingFieldVisible(
 }
 
 /** Required-field check for the Element form. Hidden fields are stamped, not typed. */
-export function pairingFieldRequired(
-  key: string,
-  values?: Record<string, string>,
-): boolean {
-  if (key === "target_record_type" || key === "target_kind" || key === "record_mode") return false;
-  const mode = values?.selection_mode || "one";
-  if (key === "target_record_id") return mode === "one";
-  if (key === "filter_json") return mode === "filter";
-  if (key === "page_size" || key === "page") return false;
-  return true;
-}
+// 1.0.28: the rule lives in driver-pairings.ts, shared with the save pipeline's Required check.
+export { pairingFieldRequired } from "@/lib/public/driver-pairings";
 
 function parseMap(raw: string): Record<string, string> {
   try {

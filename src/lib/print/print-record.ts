@@ -52,6 +52,11 @@ export async function printRecord(recordId: string, templateId?: string | null):
     }
     return fail(404, "NO_PRINT_TEMPLATE", `There is no print template for this record type. Add one in Custom Records → Print Templates (Prints: this type).`);
   }
+  return renderWith(record, template);
+}
+
+/** Render a record with a template (stored, or a draft from the maker). */
+async function renderWith(record: RecordInstance, template: TemplateRow): Promise<Printed | Fail> {
   const type = foldRecordTypeApiName(record.type_api_name);
   if (text(template.data.target_record_type) !== type) {
     return fail(400, "WRONG_TEMPLATE", `"${template.name}" prints ${text(template.data.target_record_type) || "another type"}, not this record's type (${type}).`);
@@ -64,6 +69,18 @@ export async function printRecord(recordId: string, templateId?: string | null):
   const label = text(record.data?.document_number) || text(record.data?.shipment_number) || record.name || record.id;
   const filename = `${template.name} ${label}`.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120) + ".pdf";
   return { ok: true, pdf, pages, filename, template: { id: template.id, name: template.name } };
+}
+
+/**
+ * 1.0.28 template maker: print a record with a template that is not saved yet (`data` as the
+ * template record's fields; `layout` as JSON text or an object).
+ */
+export async function previewDraft(recordId: string, data: Record<string, unknown>): Promise<Printed | Fail> {
+  const record = await getRecord(recordId);
+  if (!record) return fail(404, "NOT_FOUND", `Record '${recordId}' not found.`);
+  const clean: Record<string, string> = {};
+  for (const [k, v] of Object.entries(data ?? {})) clean[k] = typeof v === "string" ? v : JSON.stringify(v ?? "");
+  return renderWith(record, { id: "draft", name: text(clean.name) || "Draft", data: clean });
 }
 
 /** Print and keep the PDF in the record's Documents & Photos. */

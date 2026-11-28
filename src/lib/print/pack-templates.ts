@@ -50,6 +50,14 @@ export function contentHash(data: Record<string, unknown>): string {
   return createHash("sha256").update(parts.join("\n"), "utf8").digest("hex");
 }
 
+export type Origin = "shipped" | "edited" | "own";
+
+/** Where a template came from (1.0.28 maker): own = made here; shipped = as a release shipped it; edited = a shipped one changed here. */
+export function originOf(data: Record<string, unknown>): Origin {
+  if (!text(data.shipped_key)) return "own";
+  return contentHash(data) === text(data.shipped_hash) ? "shipped" : "edited";
+}
+
 export function packData(t: PackTemplate): Record<string, string> {
   return {
     name: t.name,

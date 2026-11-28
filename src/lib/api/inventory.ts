@@ -342,6 +342,27 @@ export const API_RESOURCES: ApiResource[] = [
   {
     group: "Records",
     method: "GET",
+    path: "/api/print-templates",
+    auth: "session",
+    summary: "Print templates (?type=<record type>), by Order, each with origin: shipped (as the release ships it), edited (a shipped one changed here) or own; can_reset.",
+  },
+  {
+    group: "Records",
+    method: "POST",
+    path: "/api/print-templates/{id}/reset",
+    auth: "admin",
+    summary: "Put a shipped print template back as this release ships it (Reset to shipped). 409 NOT_SHIPPED for one made on this install.",
+  },
+  {
+    group: "Records",
+    method: "POST",
+    path: "/api/print-templates/preview",
+    auth: "session",
+    summary: "Preview: { record_id, template: { …template fields, layout } } prints the record with an unsaved template and answers the PDF. Nothing is stored.",
+  },
+  {
+    group: "Records",
+    method: "GET",
     path: "/api/records/{id}/linked",
     auth: "session",
     summary: "Records whose lookup fields point at this record, grouped by type and field, with amounts and a total per group.",

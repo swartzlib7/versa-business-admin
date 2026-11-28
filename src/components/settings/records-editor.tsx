@@ -2,6 +2,7 @@
 import type { LookupFilter } from "@/lib/catalog/lookup-filter";
 import type { AutoNumber } from "@/lib/records/auto-number";
 import { LayoutEditorWrapper } from "@/components/settings/layout-editor-wrapper";
+import { PrintTemplatesEditor } from "@/components/print/template-maker";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -321,7 +322,7 @@ const TYPE_COLS_KEY = "mc.records-editor.type-columns";
 const FIELD_COLS_KEY = "mc.records-editor.field-columns";
 const PICKLIST_COLS_KEY = "mc.records-editor.picklist-columns";
 
-const EDITOR_TABS = ["types", "fields", "picklists", "layouts"] as const;
+const EDITOR_TABS = ["types", "fields", "picklists", "layouts", "print"] as const;
 type EditorTab = (typeof EDITOR_TABS)[number];
 
 function isEditorTab(value: string | null): value is EditorTab {
@@ -981,13 +982,14 @@ export function RecordsEditor() {
     <div className="space-y-3">
       <PageHeader
         title="Records Editor"
-        subtitle="Manage record types, fields, and picklists for the catalog."
+        subtitle="Manage record types, fields, picklists, layouts and print templates."
         accent={theme.colors.brand}
         tabs={[
           { id: "types", label: "Type" },
           { id: "fields", label: "Field" },
           { id: "picklists", label: "Picklist" },
           { id: "layouts", label: "Layout" },
+          { id: "print", label: "Print Templates" },
         ]}
         tabsValue={section}
         onTabChange={(id) => {
@@ -996,7 +998,7 @@ export function RecordsEditor() {
           router.replace(
             recordsEditorHref({
               tab: next,
-              type: next === "layouts" ? layoutFocusType || undefined : undefined,
+              type: next === "layouts" || next === "print" ? layoutFocusType || undefined : undefined,
               parent: parentFilter || undefined,
             }),
           );
@@ -2097,6 +2099,9 @@ export function RecordsEditor() {
           </Card>
         </div>
       )}
+
+      {/* ── PRINT TEMPLATES (1.0.28) ── */}
+      {section === "print" && <PrintTemplatesEditor types={types} initialType={layoutFocusType || undefined} />}
     </div>
   );
 }

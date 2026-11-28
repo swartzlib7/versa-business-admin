@@ -680,6 +680,16 @@ Same steps as §5.2.1, and **`npm ci` is required this time**: the release adds 
 
 Health reports `"version":"1.0.27"`.
 
+### 5.2.25 Existing install to 1.0.28 (print template maker; Required fields on every save)
+
+Same steps as §5.2.1: no migrations, no new libraries. Catalog seed pack stays `1.0.27-r1`. Back up first (`npm run backup`). **Coming from 1.0.26 or older:** do §5.2.24 too (it needs `npm ci`).
+
+- Nothing runs at start-up and no stored data changes.
+- **Scripts and agents:** a save that leaves a Required field empty now answers `400 REQUIRED_FIELD` naming it, where it answered `200` before. A new record must fill every Required field; an update is refused only when it empties one the record had. A script that fails after the upgrade was saving records with Required fields empty: send the field, or (in Records Editor) turn Required off if the field is not needed.
+- Check after the restart: health shows `"version":"1.0.28"`; Records Editor shows a **Print Templates** tab; `POST /api/records` for a Statistic without `scale_end` answers `400 REQUIRED_FIELD`.
+
+Health reports `"version":"1.0.28"`.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -787,6 +797,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-27 | §5.2.25: upgrade to 1.0.28 (template maker in Records Editor; Required fields checked on every save, REQUIRED_FIELD). |
 | 2026-11-27 | §5.2.24: upgrade to 1.0.27 (`npm ci` for pdfkit; print templates and the shipped Invoice, Estimate, Quote and Packing Slip; Print menu; server PDF). |
 | 2026-11-27 | §5.2.23: upgrade to 1.0.26 (migration 0024, the number counter; Shipments under Production, Create shipment from an invoice, ready Units Shipped feed, Number automatically, a new record's Status takes its default). |
 | 2026-11-27 | §5.2.22: upgrade to 1.0.25 (lookup filters on another field of the record; saves hold only records a filtered lookup offers; fed statistics dated and filtered by the record's fields). |

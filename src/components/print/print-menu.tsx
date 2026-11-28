@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Print menu on a record (1.0.27, state_printing.md §3). Lists the record's print templates,
+ * Print menu on a record (1.0.27, state_printing.md §5). Lists the record's print templates,
  * the one whose Use when fits first; Open PDF and Download use GET /api/records/<id>/print,
  * Save to Documents & Photos uses POST. Shows nothing when the type has no template.
  */

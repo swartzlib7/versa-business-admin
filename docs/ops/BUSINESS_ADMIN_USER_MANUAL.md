@@ -327,6 +327,7 @@ The calculations above are ordinary fields an admin can add to any record type i
 - **Formula** field: always calculated, read-only. Uses fields of the same header (or the same line), numbers, `+ - * /`, brackets, comparisons (`= <> < > <= >=`) and `SUM`, `ROUND`, `MIN`, `MAX`, `IF`, `FIRST`. Example: `IF(subtotal > 0, ROUND(margin / subtotal * 100, 1), 0)`.
 - **Calculated default** on a Number or Currency field: the field follows a formula until someone types a different value; clear it to follow again.
 - **Summary** field: totals a lines field on the header (§8).
+- **Required**: the field must be filled. The forms ask for it, and from 1.0.28 every save does, including agents and scripts: a new record must fill it, and an existing one can't be saved with it emptied (records saved before it was Required still save).
 - **Number automatically** on a header Text field: VBA gives each new record the next number when it is first saved, prefix + the number padded to the digits you choose (Shipments: `SH-`, 4 digits). The number is the record's identity: nobody can type or change it, on screen or through the API. Two people saving at once never get the same number, and a deleted record's number is not used again. Clone takes the next number. Turning it on for a field that already has values keeps them; records saved before without a number stay without one.
 - **Show as column in the records list** on header fields of a Header-and-lines type: the list of records shows only those columns (Shipments starts with eight). With none chosen it shows every header field. Each person can still add or hide columns with **Columns**.
 - **Only offer records where…** on a Lookup field: e.g. Vendor offers only organizations of type Vendor. Instead of a fixed value, **or equals this record's field** compares with another field of the same record: a Ship to lookup on Locations, Only offer records where `organization_id`, or equals this record's field `customer_org_id`, offers only the chosen Customer's Locations. Until that field is filled in the list says **Pick Customer first**, and changing it clears the pick. A save (on screen or through the API) that holds a record the filter does not offer is refused with the reason.
@@ -416,9 +417,36 @@ Each has your organization's name, address and logo at the top of page 1, the cu
 
 Your logo prints when it was uploaded to VBA as PNG or JPEG.
 
-### Change a template
+### Make or change a template (1.0.28)
 
-Templates live in **Custom Records → Print Templates**. Each one has:
+**Records Editor → Print Templates**. Choose the record type. The list shows each template's Order, Use when, page, and where it came from:
+
+| Origin | Means |
+|---|---|
+| **Shipped** | As the release ships it. A later release updates it while it is still unchanged |
+| **Edited** | A shipped template changed on this install. Releases leave it alone; **Reset to shipped** puts the release's version back |
+| **Own** | Made here with **New Template** or **Duplicate** |
+
+**Edit** opens the maker:
+
+1. **Top bar:** the name, Order, **Use when** (a field and the value it must have), paper, orientation, margins, font, status, and **Preview with** (a record to try it on).
+2. **Blocks** (left): drag one onto the page, or click it to add it where the selection is (after the selected block, or into the selected band).
+3. **The page** (middle): header bands at the top, the body, footer bands at the bottom. Click a band's tag or a block to select it; a selected block has ↑ ↓ to move it and ✕ to remove it. **+ Header** and **+ Footer** add a band.
+4. **Settings** (right), for what is selected:
+   - **A band:** its name, area, and **Shows on**: every page, first page only, every page after the first, last page only, or chosen pages (`1, 3, 5-7`).
+   - **Text:** words, with **Insert field…** to drop in `{field}` (and page number, page count, today).
+   - **Fields:** which header fields, how many columns, labels.
+   - **Organization:** your own or a lookup's organization, and which Location gives the address.
+   - **Lines table:** its columns (heading and width each), which lines, and the totals under it.
+   - **Signature, Page number, Spacer, Columns:** their few settings.
+5. **How it prints** shows which bands land on which page. **Preview PDF** prints the chosen record with the template as it is now, before you save.
+6. **Save.** A layout that names a field the type doesn't have is refused with the reason.
+
+**Duplicate** makes "Copy of …" to change without touching the original. **Archive** stops offering a template (a shipped one comes back if deleted, so archive it instead); **Delete** removes one of your own.
+
+### The template's settings
+
+Templates are also records in **Custom Records → Print Templates**. Each one has:
 
 | Field | What it does |
 |---|---|
@@ -426,7 +454,7 @@ Templates live in **Custom Records → Print Templates**. Each one has:
 | **Order** | Which comes first in the Print menu |
 | **Use when field** / **equals** | When it is the one to use, e.g. `document_kind` equals `invoice`. Several values separated by commas match any of them |
 | **Paper**, **Orientation**, **Margins (mm)**, **Font** | The page. Font: Helvetica or Times for Western European text; Hack for other scripts |
-| **Layout (JSON)** | The headers, footers and body. A screen for building it comes in 1.0.28; until then an admin or an agent edits the JSON (`docs/agents/printing.md`) |
+| **Layout (JSON)** | The headers, footers and body, as the maker saves it. Agents and exact edits use the JSON (`docs/agents/printing.md`) |
 | **Status** | Archived stops offering it |
 
 If you edit a ready-made template, later releases leave your version alone. To stop using one, archive it; deleting a ready-made template brings it back at the next restart.

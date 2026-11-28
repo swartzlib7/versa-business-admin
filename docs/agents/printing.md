@@ -14,6 +14,17 @@ Errors (`error.code`): `NO_PRINT_TEMPLATE` (the type has none), `NO_MATCHING_TEM
 
 To email or send a document, print with `POST` and attach the stored file (`GET /api/records/files/<file id>`), or use the `GET` bytes directly. Don't render your own PDF for a type that has a template.
 
+## The maker's routes (1.0.28)
+
+| Call | Does |
+|---|---|
+| `GET /api/print-templates?type=<record type>` | The type's templates by Order, each with `origin` (`shipped`, `edited`, `own`) and `can_reset` |
+| `POST /api/print-templates/<id>/reset` | Reset to shipped: the release's version back (status and notes kept). `409 NOT_SHIPPED` for an own template |
+| `POST /api/print-templates/preview` `{ record_id, template: { target_record_type, layout, page_size, … } }` | The record printed with an unsaved template, as a PDF. Nothing is stored. Use it to try a layout before saving it |
+| `POST /api/records/<id>/clone` | Duplicate: "Copy of …", an own template |
+
+Staff use the same through Records Editor → Print Templates.
+
 ## Make or change a template
 
 A template is a record: `POST /api/records` with `type_api_name: "print_template"`, `parent_kind: "environment"`, `parent_api_name: "custom"`, and in `data`:

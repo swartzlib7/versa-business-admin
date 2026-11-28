@@ -4,7 +4,8 @@
  * goes through here, from the screen, the API, agents and scripts alike.
  *
  *   prepareRecordWrite (before saving)
- *     0. Only fields the type has (1.0.24, known-fields.ts); filtered lookups hold offered records
+ *     0. Only fields the type has (1.0.24, known-fields.ts); Required fields filled (1.0.28,
+ *        required-check.ts, checked after the calculations); filtered lookups hold offered records
  *        (1.0.25, lookup-check.ts); Attachments hold stored files (1.0.23)
  *        New records: an empty Status takes the field's default (1.0.26). Number automatically
  *        fields can't be typed or changed (NUMBER_IS_AUTOMATIC); they are numbered in the insert
@@ -223,6 +224,15 @@ export async function prepareRecordWrite(args: {
     const statusField = fields.find((f) => f.api_name === "status");
     if (!String(data.status ?? "").trim() && statusField?.default_value) data.status = statusField.default_value;
   }
+  // 1.0.28: a new record's (or new line's) empty Required field takes its default value.
+  if (args.checkFields !== false && fields.some((f) => f.is_required && f.default_value)) {
+    const { fillRequiredDefaults } = await import("@/lib/records/required-check");
+    if (!args.current) fillRequiredDefaults(object, data, "header");
+    if (lines) {
+      const known = new Set((args.current?.lines ?? []).map((l) => l.id));
+      for (const line of lines) if (!line.id || !known.has(line.id)) fillRequiredDefaults(object, line.data, "list");
+    }
+  }
   // 1.0.26: a Number automatically field is the record's identity, given by VBA: never typed
   // on create, never changed after; an update that leaves it out keeps it. Copies (integration,
   // sample pack, Clone which empties it) skip this with checkFields: false.
@@ -296,6 +306,13 @@ export async function prepareRecordWrite(args: {
       data = { ...data, ...computeSummaryValues(fields, effective.map((line) => line.data)) };
     }
     data = applyRowCalculations(fieldsForPlacement(fields, "header"), data, args.current?.data ?? null);
+  }
+
+  // 1.0.28: Required fields (after the calculations, which may fill them).
+  if (args.checkFields !== false && fields.some((f) => f.is_required)) {
+    const { requiredProblem } = await import("@/lib/records/required-check");
+    const problem = requiredProblem({ object, data, lines, current: args.current });
+    if (problem) return { ok: false, code: "REQUIRED_FIELD", message: problem };
   }
 
   // 6. Allocation: this record's lines, and this record as a bill.

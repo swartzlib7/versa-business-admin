@@ -1,9 +1,17 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.27 (2026-11-27)
+**Current:** 1.0.28 (2026-11-27)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.28 — the print template maker; Required fields on every save
+
+No migrations. No new libraries. Catalog seed pack stays `1.0.27-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.25.
+
+- **Make and change print templates on screen.** Records Editor → **Print Templates**: choose a record type and see its templates with their Order, Use when, page and where each came from (**Shipped**, **Edited** on this install, or your **Own**). **New Template**, **Edit**, **Duplicate**, **Archive** (shipped ones) or **Delete** (your own), and **Reset to shipped** for a shipped template you changed.
+- **The maker:** blocks on the left (Text, Fields, Organization, Lines table, Signature, Page number, Columns, Divider, Spacer) to drag onto the page or click to add; the page in the middle with its header bands, body and footer bands; the settings of whatever you click on the right. A band's **Shows on** (every page, first page, every page after the first, last page, or chosen pages) is set there, and **How it prints** shows which band lands on which page. **Preview PDF** prints a real record with the template before you save it. The layout's JSON is there too, for exact edits.
+- **Required fields are checked on every save.** The forms always asked for them; saves through the API did not, so an agent or script could leave them empty. Now a save that leaves a Required field empty answers `400 REQUIRED_FIELD` naming it (and the line, for lines fields). A new record must fill them; an existing record is refused only when the save empties one it had, so records saved before still save. A Required field with a default value takes it on a new record. Fields VBA works out (Summary, Formula, read-only, Number automatically) are not asked for, and Configuration (page elements) asks for the Record or the Filter only when its Selection uses it, as on screen.
 
 ## 1.0.27 — printing to PDF; one map of what VBA can do
 

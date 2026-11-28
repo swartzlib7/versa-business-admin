@@ -1,6 +1,6 @@
 # What Versa - Business Admin can do
 
-This page lists everything Versa - Business Admin (VBA) can already do, in one place, with the route or screen for each and a link to the recipe or design document. **Current as of 1.0.27.** It is updated with every release.
+This page lists everything Versa - Business Admin (VBA) can already do, in one place, with the route or screen for each and a link to the recipe or design document. **Current as of 1.0.28.** It is updated with every release.
 
 **Rule:** before you build, propose or script anything new, search this page, then `GET /api/catalog/record-types`, then the state document for the area. Most things a business needs already exist as a record type, a field behaviour or a record action.
 
@@ -110,7 +110,7 @@ Set in Records Editor → Field, or through `POST /api/catalog/fields` and `PATC
 - **Number automatically** (1.0.26): header Text field → Number automatically, Prefix, Digits; `auto_number: { prefix, digits }`. VBA gives the next number on the first save, taken from a locked counter inside the insert, so parallel saves never share one and deleted numbers are never reused. Typing or changing it is refused with `400 NUMBER_IS_AUTOMATIC`; an update that leaves it out keeps it. Clone takes a new number.
 - **Show as column**: on a Lines field, Show as column in lines table (`show_in_column`). On a header field of a header-and-lines type, Show as column in the records list (1.0.26): the records list then shows only those fields.
 - **Allocation** (1.0.15): `allocation: { amount_field, target_total_field, target_allocated_field, target_remaining_field }` on a lines lookup. Each line takes a portion of the target's total (bill matching). Seed only.
-- **Required** (`is_required`): Records Editor → Required. The forms enforce it (header fields on the header form, line fields on the lines form). The API save pipeline does not check it.
+- **Required** (`is_required`): Records Editor → Required. Every save checks it (1.0.28): a new record or line must fill it, and an update may not empty one the record had (`400 REQUIRED_FIELD`, naming the field and line). Records saved before still save. A Required field with a default value takes it on a new record. Not asked: Summary, Formula, read-only, Number automatically and Yes/No fields; Configuration asks for the Record or Filter only when its Selection uses it.
 - **Hide, not delete** (`active: false`): `DELETE /api/catalog/fields/{object_api_name}/{api_name}` hides a system field and keeps its data. `DELETE /api/catalog/record-types/{api_name}` deactivates a type. Never delete a system field or give an old api_name a new meaning.
 - **Layouts**: Records Editor → Layout, or `/api/catalog/layouts` (`detail`, `edit`, `list`). Sections with 1 to 8 columns.
 
@@ -121,7 +121,7 @@ Every record write goes through one server pipeline: create, update, add lines, 
 1. **Field check** (1.0.24): a field the type does not have answers `400 UNKNOWN_FIELD`, naming it, the nearest real field and the type's fields. A field sent beside `data` instead of inside it answers `400 FIELD_OUTSIDE_DATA`. Hidden fields still save. Skipped for Clone, Convert, integration copies and the sample pack.
 2. **Lookup filters** (1.0.25): a changed filtered lookup must hold a record the filter offers, else `400 LOOKUP_NOT_OFFERED`.
 3. **Attachments** (1.0.23): only files stored on this install, at most 10.
-4. **New records** (1.0.26): an empty Status takes the Status field's default, else `active`. Number automatically fields refuse typed or changed values (`NUMBER_IS_AUTOMATIC`).
+4. **New records** (1.0.26): an empty Status takes the Status field's default, else `active`. Number automatically fields refuse typed or changed values (`NUMBER_IS_AUTOMATIC`). **Required fields** (1.0.28) are checked after the calculations: `400 REQUIRED_FIELD`.
 5. **Type steps**: Shipments get Shipped before on each line; Statistics get their derived fields, their Time zone, and a ready feed when Source Date and Value are empty; Print Templates must print a real type with a layout that names real fields (`400 PRINT_TEMPLATE_INVALID`, 1.0.27).
 6. **Integrated-record rule** (1.0.15): a record with an External ID (from an outside system such as Wave, or a copy received through an Integration) keeps what was written; calculations are skipped.
 7. **Calculations**: line formulas and calculated defaults, then header Summary fields, then header formulas.
@@ -254,12 +254,13 @@ On screen, Print, Clone, Convert to invoice and Create shipment are buttons on t
 
 Any record type can print to PDF, made on the server (no browser needed), so people and agents get the same file. Recipe: [printing.md](printing.md). Design: [state_printing.md](../production/state/state_printing.md).
 
-- **Print templates** are records of `print_template` (Custom Records → Print Templates): Prints (the record type), Order, **Use when** (a field equals a value; commas match any), Paper (Letter, A4, Legal), Orientation, Margins, Font (Helvetica, Times, or Hack, which prints most scripts), and a **Layout** (JSON). Archived templates are not offered.
+- **The template maker** (1.0.28): Records Editor → **Print Templates**: a type's templates with Origin (Shipped, Edited, Own); New Template, Edit, Duplicate, Archive or Delete, Reset to shipped. The maker has a blocks palette (drag or click), the page with header bands, body and footer bands, settings for the selection (a band's Shows on), How it prints, and Preview PDF of the unsaved draft for a real record. `GET /api/print-templates?type=`, `POST /api/print-templates/{id}/reset`, `POST /api/print-templates/preview`.
+- **Print templates** are records of `print_template` (Records Editor → Print Templates, or Custom Records → Print Templates): Prints (the record type), Order, **Use when** (a field equals a value; commas match any), Paper (Letter, A4, Legal), Orientation, Margins, Font (Helvetica, Times, or Hack, which prints most scripts), and a **Layout** (JSON). Archived templates are not offered.
 - **Layout**: header and footer **bands**, each with **Shows on**: every page, first page, every page after the first, last page, or chosen pages (`"1, 3"`); and **body** blocks: text with `{field}`, `{page}`, `{pages}`, `{today}`; fields (label and value grid); organization (your own or a lookup's, with its Location address, phone, email and logo); lines table (chosen columns, totals); signature lines; page number; spacer; divider; columns side by side.
 - **Long documents**: the lines table flows onto further pages and repeats its headings; Page n of N.
 - **Values print as people read them**: lookups as names, picklists as labels, dates as "Nov 27, 2026", money in the record's Currency.
 - **Routes**: `GET /api/records/{id}/print-templates` (the choices, the fitting one first); `GET /api/records/{id}/print` (`?template=`, `&download=1`); `POST /api/records/{id}/print` keeps the PDF in Documents & Photos. Errors: `NO_PRINT_TEMPLATE`, `NO_MATCHING_TEMPLATE`, `WRONG_TEMPLATE`, `PRINT_TEMPLATE_INVALID`.
-- **Shipped templates**: Invoice, Estimate, Quote (Transactions, by Document kind) and Packing Slip (Shipments, with a Received by signature on the last page). A release updates a shipped template only while it is unedited; an edited one is kept. A deleted one comes back on the next start: archive it instead.
+- **Shipped templates**: Invoice, Estimate, Quote (Transactions, by Document kind) and Packing Slip (Shipments, with a Received by signature on the last page). A release updates a shipped template only while it is unedited; an edited one is kept, and Reset to shipped puts the release's version back. A deleted one comes back on the next start: archive it instead.
 - **On screen**: the **Print** menu on an open record: template, Open PDF, Download PDF, Save PDF to Documents & Photos.
 - Hats and project Gantts also print through the browser (Hats and Projects, above).
 
@@ -267,7 +268,6 @@ Any record type can print to PDF, made on the server (no browser needed), so peo
 
 Do not assume these exist. Do not build them without the Primary User.
 
-- **Print template maker screen**: comes in 1.0.28. In 1.0.27, templates are made and changed as records: through the API, or in Custom Records → Print Templates by editing the Layout (JSON). Reset to shipped and Duplicate come with the maker.
 - **Stock levels / inventory**: planned after printing, with its own design round. Shipping does not reduce stock ([state_shipments.md](../production/state/state_shipments.md) §6).
 - **Shipments and print templates over Integrations**: they do not travel between installs. Integrations do not carry lookups, attachments, users or organizations ([state_integrations.md](../production/state/state_integrations.md) §3.9).
 - **Integration extras**: a chain A → B → C, overlapping tokens during rotation, a held request for instant pulls, and adapters for third-party systems ([state_integrations.md](../production/state/state_integrations.md) §3.8, §3.9, §6).

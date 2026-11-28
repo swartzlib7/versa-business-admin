@@ -255,3 +255,19 @@ export function pairingPayload(args: {
     args.codeKey,
   );
 }
+
+/**
+ * Which Configuration (pairing) fields must be filled (screen and save pipeline, 1.0.28): the
+ * Record only for Selection One, the Filter only for Selection Filter; the type and paging never.
+ */
+export function pairingFieldRequired(
+  key: string,
+  values?: Record<string, string>,
+): boolean {
+  if (key === "target_record_type" || key === "target_kind" || key === "record_mode") return false;
+  const mode = values?.selection_mode || "one";
+  if (key === "target_record_id") return mode === "one";
+  if (key === "filter_json") return mode === "filter";
+  if (key === "page_size" || key === "page") return false;
+  return true;
+}
