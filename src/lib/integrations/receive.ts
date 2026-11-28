@@ -116,7 +116,7 @@ async function applyRecord(ctx: Ctx, item: RecordItem, seen: Map<string, string>
   const lines = item.lines?.map((l) => ({ line_group: l.line_group, data: l.data }));
   if (!copy) {
     const full = { ...data, external_id: external, source_deleted_at: "" };
-    const prepared = await prepareRecordWrite({ typeApiName: item.type, data: full, lines });
+    const prepared = await prepareRecordWrite({ typeApiName: item.type, data: full, lines, checkFields: false });
     if (!prepared.ok) return { ...base, status: "error", message: prepared.message };
     const made = await adapter.createRecord!(
       {
@@ -137,7 +137,7 @@ async function applyRecord(ctx: Ctx, item: RecordItem, seen: Map<string, string>
   }
   // The source wins (§3.9): its fields replace the copy's; the copy keeps its own id and stamps.
   const full = { ...copy.data, ...data, external_id: external, source_deleted_at: "" };
-  const prepared = await prepareRecordWrite({ typeApiName: item.type, data: full, lines, current: copy });
+  const prepared = await prepareRecordWrite({ typeApiName: item.type, data: full, lines, current: copy, checkFields: false });
   if (!prepared.ok) return { ...base, status: "error", message: prepared.message };
   const res = await adapter.updateRecord!(copy.id, {
     name: item.name,

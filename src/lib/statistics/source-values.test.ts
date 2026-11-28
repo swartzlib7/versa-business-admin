@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { parseStartDatetime, stepIndexForDate } from "./frequency";
-import { computeSourceSteps, statSourceFromData, stepToSeriesSlot } from "./source-values";
+import { computeSourceSteps, statSourceFromData, stepToSeriesSlot, withRecordFields } from "./source-values";
 
 const NY = "America/New_York";
 const at = (wall: string) => parseStartDatetime(wall, NY)!;
@@ -51,4 +51,31 @@ test("no value field counts lines; single series ignores later periods", () => {
   assert.equal(steps.get(1), 2);
   assert.equal(steps.has(13), false);
   assert.equal(statSourceFromData({ source_record_type: "t" }), null, "no date field, no source");
+});
+
+test("1.0.25: line quantities dated by the record's date, only records with a status", () => {
+  const shipped = statSourceFromData({
+    source_record_type: "production_shipment",
+    source_date_field: "ship_date",
+    source_value_field: "line_qty_shipped",
+    source_filter_field: "status",
+    source_filter_value: "shipped",
+  })!;
+  const lines = withRecordFields([
+    { name: "SH-1", data: { ship_date: "2026-09-03", status: "shipped" }, lines: [{ data: { line_qty_shipped: "6" } }, { data: { line_qty_shipped: "2" } }] },
+    { name: "SH-2", data: { ship_date: "2026-10-12", status: "shipped" }, lines: [{ data: { line_qty_shipped: "10" } }] },
+    { name: "SH-3", data: { ship_date: "2026-10-20", status: "draft" }, lines: [{ data: { line_qty_shipped: "99" } }] },
+  ]);
+  assert.equal(lines.length, 4);
+  assert.equal(lines[0].ship_date, "2026-09-03");
+  const steps = computeSourceSteps(config, shipped, lines);
+  assert.equal(steps.get(8), 8, "September: 6 + 2");
+  assert.equal(steps.get(9), 10, "October: the draft is left out");
+});
+
+test("1.0.25: a line value wins over the record's for a shared key", () => {
+  const [line] = withRecordFields([{ name: "R", status: "active", data: { id: "rec", note: "x" }, lines: [{ data: { id: "line" } }] }]);
+  assert.equal(line.id, "line");
+  assert.equal(line.name, "R");
+  assert.equal(line.status, "active");
 });

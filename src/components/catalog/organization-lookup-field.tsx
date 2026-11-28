@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { dependsOnLabel, lookupFilterWant, lookupRowMatches, type LookupFilter } from "@/lib/catalog/lookup-filter";
 import { cn } from "@/lib/utils";
 
 type OrgRow = { id: string; name?: string; org_type?: string };
@@ -20,16 +21,27 @@ export function OrganizationLookupField({
   required,
   readOnly,
   filter,
+  values,
 }: {
   label: string;
   value: string;
   onChange?: (v: string) => void;
   required?: boolean;
   readOnly?: boolean;
-  /** 1.0.15 lookup filter, e.g. { field: "org_type", value: "vendor" }. */
-  filter?: { field: string; value: string } | null;
+  /** 1.0.15 lookup filter, e.g. { field: "org_type", value: "vendor" }; 1.0.25: or this record's own field. */
+  filter?: LookupFilter | null;
+  /** 1.0.25: this record's values, for a filter that compares with one of its fields. */
+  values?: Record<string, unknown> | null;
 }) {
   const [orgs, setOrgs] = useState<OrgRow[]>([]);
+  // 1.0.25: a filter on this record's own field (Ship to → the Customer's Locations).
+  const { want, waiting } = filter ? lookupFilterWant(filter, values) : { want: "", waiting: false };
+  const lastWant = useRef<string | null>(null);
+  useEffect(() => {
+    // The field it depends on changed: the old pick belongs to the old value, so clear it.
+    if (filter?.from_field && lastWant.current !== null && lastWant.current !== want && value) onChange?.("");
+    lastWant.current = want;
+  }, [want]); // eslint-disable-line react-hooks/exhaustive-deps
   const base =
     "w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
 
@@ -69,9 +81,9 @@ export function OrganizationLookupField({
         {required ? " *" : ""}
       </span>
       <select className={cn(base)} value={value} onChange={(e) => onChange?.(e.target.value)}>
-        <option value="">Select organization…</option>
+        <option value="">{waiting && filter ? `Pick ${dependsOnLabel(filter)} first` : "Select organization…"}</option>
         {orgs
-          .filter((o) => !filter || o.id === value || String((o as Record<string, unknown>)[filter.field] ?? "") === filter.value)
+          .filter((o) => !filter || o.id === value || (!waiting && lookupRowMatches(filter, o as Record<string, unknown>, want)))
           .map((o) => (
           <option key={o.id} value={o.id}>
             {o.name ?? o.id}

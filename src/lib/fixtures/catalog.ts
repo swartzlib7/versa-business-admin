@@ -4,6 +4,7 @@
  * HTTP: GET/POST under /api/catalog (auth). Custom fields, layouts, and value sets
  * persist through the durable catalog overlay (seed ∪ overlay).
  */
+import { cleanLookupFilter, type LookupFilter } from '@/lib/catalog/lookup-filter';
 import { DOCUMENTS_OBJECTS } from "@/lib/catalog/documents-objects";
 import { normalizeSummaryConfig, summaryConfigProblem, type SummaryConfig } from "@/lib/records/summary-fields";
 import { compileFormula, orderFormulas } from "@/lib/records/formula";
@@ -87,7 +88,7 @@ export interface FieldDefinition {
    */
   default_formula?: string | null;
   /** 1.0.15: lookup fields - only offer target records whose `field` equals `value`. */
-  lookup_filter?: { field: string; value: string } | null;
+  lookup_filter?: LookupFilter | null;
   /**
    * 1.0.15: lookup fields on lines - each line takes a portion (`amount_field`)
    * of the target record's `target_total_field`; the sum may not exceed it.
@@ -3059,6 +3060,16 @@ export function listFieldDefinitions(objectApiName: string): FieldDefinition[] {
     .sort((a, b) => a.sort_order - b.sort_order);
 }
 
+/**
+ * Every field name the object has, hidden ones included (1.0.24). A hidden field (`active: false`)
+ * still holds values that screens write, such as a Driver Pairing's Record mode.
+ */
+export function fieldApiNamesWithHidden(objectApiName: string): Set<string> {
+  ensureCatalogHydrated();
+  const object = foldRecordTypeApiName(objectApiName);
+  return new Set(catalogLive().fields.filter((f) => f.object_api_name === object).map((f) => f.api_name));
+}
+
 export function getDefaultLayout(
   objectApiName: string,
   layoutType: LayoutDefinition['layout_type'],
@@ -3173,7 +3184,7 @@ export interface ExtendFieldInput {
   /** 1.0.15 */
   formula?: string | null;
   default_formula?: string | null;
-  lookup_filter?: { field: string; value: string } | null;
+  lookup_filter?: LookupFilter | null;
 }
 
 export type ExtendFieldResult =
@@ -3284,6 +3295,8 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
     });
     if (problem) return { ok: false, code: 'INVALID_FORMULA', message: problem };
   }
+  const filterProblem = lookupFilterFieldProblem(input.object_api_name, cleanLookupFilter(input.lookup_filter));
+  if (filterProblem) return { ok: false, code: 'INVALID_LOOKUP_FILTER', message: filterProblem };
   const nextOrder = siblings.reduce((m, f) => Math.max(m, f.sort_order), 0) + 10;
   const field: FieldDefinition = {
     id: `fld-ext-${input.object_api_name}-${apiName}`,
@@ -3304,7 +3317,7 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
     ...(summary ? { summary } : {}),
     ...(input.data_type === 'formula' ? { formula: (input.formula ?? '').trim() } : {}),
     ...(input.default_formula?.trim() ? { default_formula: input.default_formula.trim() } : {}),
-    ...(input.lookup_filter?.field?.trim() ? { lookup_filter: { field: input.lookup_filter.field.trim(), value: String(input.lookup_filter.value ?? '') } } : {}),
+    ...(cleanLookupFilter(input.lookup_filter) ? { lookup_filter: cleanLookupFilter(input.lookup_filter)! } : {}),
     active: true,
   };
   catalogLive().fields.push(field);
@@ -3379,6 +3392,13 @@ function checkSummaryField(
 // Field lifecycle mutations (nested Record Type ownership) — I5.6.32c
 // ---------------------------------------------------------------------------
 
+/** 1.0.25: a filter that reads another field of this record must name a field the record has. */
+function lookupFilterFieldProblem(objectApiName: string, filter: LookupFilter | null): string | null {
+  if (!filter?.from_field) return null;
+  const has = catalogLive().fields.some((f) => f.object_api_name === objectApiName && f.api_name === filter.from_field);
+  return has ? null : `Lookup filter: this record type has no field "${filter.from_field}" to compare with.`;
+}
+
 export type UpdateFieldInput = Partial<Pick<FieldDefinition,
   'label' | 'is_required' | 'default_value' | 'value_set_api_name' |
   'lookup_object_api_name' | 'lookup_delete_rule' | 'sort_order' | 'active' | 'zone_role' |
@@ -3431,10 +3451,18 @@ export function updateFieldDefinition(
     });
     if (problem) return { ok: false, code: 'INVALID_FORMULA', message: problem };
   }
+  let filterPatch: { lookup_filter?: LookupFilter | null } = {};
+  if (input.lookup_filter !== undefined) {
+    const filter = cleanLookupFilter(input.lookup_filter);
+    const filterProblem = lookupFilterFieldProblem(objectApiName, filter);
+    if (filterProblem) return { ok: false, code: 'INVALID_LOOKUP_FILTER', message: filterProblem };
+    filterPatch = { lookup_filter: filter };
+  }
   const next: FieldDefinition = {
     ...current,
     ...input,
     ...summaryPatch,
+    ...filterPatch,
     label: input.label !== undefined ? input.label.trim() : current.label,
   };
   catalogLive().fields[index] = next;

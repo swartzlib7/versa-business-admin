@@ -104,3 +104,16 @@ export function stepToSeriesSlot(k: number, qty: number): { series: number; slot
   const q = qty > 0 ? qty : 1;
   return { series: Math.floor(k / q) + 1, slot: k % q };
 }
+
+/**
+ * 1.0.25: each line carries its record's own fields under their names, so the Date field or the
+ * filter can be a record field (a shipment's Ship date, its Status). Field names are unique within
+ * a type, so a line field never meets a record field of the same name; the line's value wins for
+ * the shared system keys (id, created_at, ...).
+ */
+export function withRecordFields(records: Array<{ name?: string; status?: string; data?: Record<string, unknown> | null; lines?: Array<{ data?: Record<string, unknown> | null }> }>): Array<Record<string, unknown>> {
+  return records.flatMap((record) => {
+    const header = { ...(record.data ?? {}), name: record.data?.name ?? record.name, status: record.data?.status ?? record.status };
+    return (record.lines ?? []).map((line) => ({ ...header, ...(line.data ?? {}) }));
+  });
+}

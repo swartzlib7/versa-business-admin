@@ -637,6 +637,26 @@ Same steps as §5.2.1: no migrations. Catalog seed pack `1.0.23-r1`. Back up fir
 
 Health reports `"version":"1.0.23"`.
 
+### 5.2.21 Existing install to 1.0.24 (only fields the type has are saved)
+
+Same steps as §5.2.1: no migrations. Catalog seed pack stays `1.0.23-r1`. Back up first (`npm run backup`). **Coming from 1.0.22 or older:** do §5.2.20 too.
+
+- Nothing runs at start-up and no stored data changes.
+- **Scripts and agents:** a save that sends a field the record type (or organizations) does not have now answers `400 UNKNOWN_FIELD` instead of `200`; a field sent beside `data` answers `400 FIELD_OUTSIDE_DATA`. A script that worked before and fails now was storing values nobody could see: correct the field name the message gives, or add the field in Records Editor if it is needed.
+- Check after the restart: health shows `"version":"1.0.24"`; `PATCH /api/records/<id>` with `{"data":{"no_such_field":"x"}}` answers `400 UNKNOWN_FIELD`; editing a record on screen still saves.
+
+Health reports `"version":"1.0.24"`.
+
+### 5.2.22 Existing install to 1.0.25 (lookups that follow another field; statistics dated by the record)
+
+Same steps as §5.2.1: no migrations. Catalog seed pack stays `1.0.23-r1`. Back up first (`npm run backup`). **Coming from 1.0.23 or older:** do §5.2.21 too.
+
+- Nothing runs at start-up and no stored data changes. Statistics fed from records read the same values as before; a record's own fields are only used when a statistic's Date field or filter names one.
+- **Scripts and agents:** a save that sets a filtered lookup to a record the filter does not offer (a line's Vendor set to a customer, for example) now answers `400 LOOKUP_NOT_OFFERED`. Values already stored are not re-checked unless the save changes them.
+- Check after the restart: health shows `"version":"1.0.25"`; in Records Editor a Lookup field shows **or equals this record's field**; a fed statistic's Date field lists **Record fields**.
+
+Health reports `"version":"1.0.25"`.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -744,6 +764,8 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-27 | §5.2.22: upgrade to 1.0.25 (lookup filters on another field of the record; saves hold only records a filtered lookup offers; fed statistics dated and filtered by the record's fields). |
+| 2026-11-27 | §5.2.21: upgrade to 1.0.24 (saves with fields the type does not have, or fields beside `data`, are refused with the reason; screens and stored data unchanged). |
 | 2026-11-26 | §5.2.20: upgrade to 1.0.23 (Documents & Photos on every business record type and on organizations; saved layouts gain a Documents section; uploads over 1 MB need `client_max_body_size`). |
 | 2026-11-25 | §5.2.19: upgrade to 1.0.22 (values sent as lists stored and read as text; Resend all for integrations that failed; check filters saved through the add-lines call). |
 | 2026-11-25 | §5.2.18: upgrade to 1.0.21 (install time zone written once; statistics take it; check it on hosts whose zone is not the business's; Resend all for integrations). |

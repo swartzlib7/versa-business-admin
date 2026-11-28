@@ -1,4 +1,5 @@
 /** Runtime adapter for the saved Layout Editor pilot. */
+import type { LookupFilter } from "@/lib/catalog/lookup-filter";
 import { listFieldDefinitions, type CatalogDataType, type FieldDefinition } from "@/lib/fixtures/catalog";
 import { dataTypeToUiKind, fieldDefinitionToUi, helpForField, optionsForField, type UiListingField } from "@/lib/catalog/layout-to-fields";
 import { isDriverCodeOwnedField } from "@/lib/public/render-driver-locks";
@@ -26,7 +27,7 @@ export type RuntimeFieldSource = {
   is_secret?: boolean;
   lookup_object_api_name?: string | null;
   summary?: { percent_of?: string | null } | null;
-  lookup_filter?: { field: string; value: string } | null;
+  lookup_filter?: LookupFilter | null;
   read_only?: boolean;
 };
 

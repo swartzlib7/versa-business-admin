@@ -1,6 +1,7 @@
 import { textValues } from '@/lib/records/text-values';
 import { NextResponse } from 'next/server';
 import { afterRecordDelete, afterRecordWrite, prepareRecordWrite } from '@/lib/records/pipeline';
+import { RECORD_BODY_KEYS, recordTopLevelProblem } from '@/lib/records/known-fields';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 import {
   getInstance,
@@ -100,6 +101,11 @@ export async function PATCH(
     delete incoming.id;
   }
   const current = adapter.getRecord ? await adapter.getRecord(id) : getInstance(id);
+  // 1.0.24: a field sent beside "data" instead of inside it would be ignored.
+  const misplaced = current ? recordTopLevelProblem(current.type_api_name, body, RECORD_BODY_KEYS.update) : null;
+  if (misplaced) {
+    return NextResponse.json({ error: { code: 'FIELD_OUTSIDE_DATA', message: misplaced } }, { status: 400 });
+  }
   const currentData = (current?.data ?? {}) as Record<string, string>;
   let lines = body.lines as Array<{ id?: string; line_group?: string; data: Record<string, string> }> | undefined;
   if (current?.type_api_name === 'executive_project' && Array.isArray(lines)) {

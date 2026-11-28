@@ -4,6 +4,8 @@
  * goes through here, from the screen, the API, agents and scripts alike.
  *
  *   prepareRecordWrite (before saving)
+ *     0. Only fields the type has (1.0.24, known-fields.ts); filtered lookups hold offered records
+ *        (1.0.25, lookup-check.ts); Attachments hold stored files (1.0.23)
  *     1. Statistics: derived header fields (Frequency start, Target per step)
  *     2. Integrated-record rule: a record with an External ID keeps what the
  *        integration wrote - steps 3-5 are skipped
@@ -25,6 +27,7 @@ import { getInstance, listInstances, updateInstance, type RecordInstance } from 
 import { getRecordType } from "@/lib/fixtures/record-types";
 import { foldRecordTypeApiName } from "@/lib/catalog/name-aliases";
 import { textValues } from "@/lib/records/text-values";
+import { checkKnownFields } from "@/lib/records/known-fields";
 import { deriveStatHeaderData } from "@/lib/statistics/model";
 import { computeSummaryValues } from "@/lib/records/summary-fields";
 import { applyRowCalculations, fieldsForPlacement } from "@/lib/records/calculated-fields";
@@ -166,6 +169,12 @@ export async function prepareRecordWrite(args: {
   lines?: WriteLine[];
   /** The record as stored before this write (null for a new record). */
   current?: RecordInstance | null;
+  /**
+   * 1.0.24: refuse fields the type does not have (default). False only where nothing was typed:
+   * copies of stored records (clone, convert), integration copies (the sender's own fields) and
+   * the sample pack.
+   */
+  checkFields?: boolean;
 }): Promise<PrepareResult> {
   const type = foldRecordTypeApiName(args.typeApiName);
   const object = objectFor(type);
@@ -174,7 +183,28 @@ export async function prepareRecordWrite(args: {
   let data = textValues(args.data);
   let lines = args.lines?.map((line) => ({ ...line, data: textValues(line.data) }));
 
-  // 0. Attachments (1.0.23): a changed Attachments field holds only files stored here, at most 10.
+  // 0. Only fields the type has (1.0.24).
+  if (args.checkFields !== false) {
+    const checked = checkKnownFields({
+      object,
+      label: getRecordType(type)?.label ?? type,
+      data,
+      lines,
+      baseline: args.current?.data ?? null,
+      baselineLines: args.current?.lines ?? null,
+    });
+    if (!checked.ok) return { ok: false, code: "UNKNOWN_FIELD", message: checked.message };
+    data = checked.data;
+    lines = checked.lines;
+    // 1.0.25: a filtered lookup holds a record its filter offers (only changed values are checked).
+    if (fields.some((f) => f.data_type === "lookup" && f.lookup_filter)) {
+      const { lookupFilterProblem } = await import("@/lib/records/lookup-check");
+      const problem = await lookupFilterProblem({ object, data, lines, current: args.current });
+      if (problem) return { ok: false, code: "LOOKUP_NOT_OFFERED", message: problem };
+    }
+  }
+
+  // Attachments (1.0.23): a changed Attachments field holds only files stored here, at most 10.
   if (fields.some((f) => f.data_type === "attachments")) {
     const { checkAttachmentFields } = await import("@/lib/records/record-files");
     const checked = checkAttachmentFields(object, data, args.current?.data);

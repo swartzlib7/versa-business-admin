@@ -1,5 +1,6 @@
 "use client";
 
+import type { LookupFilter } from "@/lib/catalog/lookup-filter";
 import { describeFilter } from "@/lib/public/pairing-filter";
 import { IssueTokenButton } from "@/components/integrations/issue-token";
 import { isRecordTypeLookup } from "@/lib/catalog/lookup-targets";
@@ -115,7 +116,7 @@ export type ListingField = {
   /** 1.0.14: a Summary field shown as a percentage. */
   summaryPercent?: boolean;
   /** 1.0.15: lookup filter (only target records whose field equals the value). */
-  lookupFilter?: { field: string; value: string } | null;
+  lookupFilter?: LookupFilter | null;
   /** header_lines placement — listing filters by this; omitted on other tables. */
   zoneRole?: "header" | "list" | null;
   required?: boolean;
@@ -583,7 +584,7 @@ function FieldInput({
         readOnly={locked}
         recordType={allValues?.source_record_type}
         accept={field.key === "source_date_field" ? "date" : field.key === "source_value_field" ? "number" : "any"}
-        placement={allValues?.source_read_from === "records" ? "header" : "list"}
+        placement={allValues?.source_read_from === "records" ? "header" : field.key === "source_value_field" ? "list" : "both"}
         emptyLabel={
           field.key === "source_date_field"
             ? "Select the date field…"
@@ -758,6 +759,7 @@ function FieldInput({
       <OrganizationLookupField
         label={field.label}
         filter={field.lookupFilter}
+        values={allValues}
         value={value}
         onChange={locked ? undefined : onChange}
         required={field.required}
@@ -779,6 +781,7 @@ function FieldInput({
         readOnly={locked}
         recordType={field.lookupObjectApiName}
         filter={field.lookupFilter}
+        values={allValues}
       />
     );
   }

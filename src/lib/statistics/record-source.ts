@@ -7,7 +7,7 @@
 import { adapter } from "@/lib/data/adapter";
 import { foldRecordTypeApiName } from "@/lib/catalog/name-aliases";
 import { parseStatHeaderConfig } from "@/lib/statistics/model";
-import { computeSourceSteps, statSourceFromData } from "@/lib/statistics/source-values";
+import { computeSourceSteps, statSourceFromData, withRecordFields } from "@/lib/statistics/source-values";
 import { writeComputedStatLines } from "@/lib/db/stat-lines-store";
 
 type Header = { id: string; data?: Record<string, unknown> };
@@ -25,10 +25,10 @@ async function sourceLines(
   if (recordId) {
     const one = adapter.getRecord ? await adapter.getRecord(recordId) : null;
     if (!one || foldRecordTypeApiName(one.type_api_name) !== foldRecordTypeApiName(recordType)) return [];
-    return (one.lines ?? []).map((line) => line.data ?? {});
+    return withRecordFields([one]);
   }
   const all = adapter.listRecords ? await adapter.listRecords({ type_api_name: recordType }) : [];
-  return all.flatMap((record) => (record.lines ?? []).map((line) => line.data ?? {}));
+  return withRecordFields(all);
 }
 
 async function refreshHeader(header: Header): Promise<{ written: number; cleared: number } | null> {

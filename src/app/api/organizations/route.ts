@@ -3,6 +3,7 @@
 // read through this route; writes are admin-only (tenant identity is
 // relational, not user-editable content).
 import { checkAttachmentFields } from '@/lib/records/record-files';
+import { checkOrganizationBody } from '@/lib/records/known-fields';
 import { NextResponse } from 'next/server';
 import { adapter } from '@/lib/data';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
@@ -61,6 +62,12 @@ export async function POST(request: Request) {
   }
 
   try {
+    // 1.0.24: only fields organizations have, inside "data".
+    const known = checkOrganizationBody(body as unknown as Record<string, unknown>, null);
+    if (!known.ok) {
+      return NextResponse.json({ error: { code: known.code, message: known.message } }, { status: 400 });
+    }
+    if (known.data) body.data = known.data;
     // 1.0.23: an Attachments field holds only files stored here, at most 10.
     if (body.data && typeof body.data === 'object') {
       const checked = checkAttachmentFields('organization', body.data, null);

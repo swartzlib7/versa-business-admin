@@ -5,6 +5,7 @@ import { getInstance, updateInstance } from '@/lib/fixtures/record-instances';
 import { getRecordType } from '@/lib/fixtures/record-types';
 import { foldRecordTypeApiName } from '@/lib/catalog/name-aliases';
 import { afterRecordWrite, prepareRecordWrite } from '@/lib/records/pipeline';
+import { RECORD_BODY_KEYS, recordTopLevelProblem } from '@/lib/records/known-fields';
 import { defaultLineGroup, lineDataStrings } from '@/lib/records/line-group';
 import { TASK_LINE_GROUP, taskLinesProblem } from '@/lib/records/project-task-lines';
 
@@ -49,6 +50,11 @@ export async function POST(
     return NextResponse.json({ error: { code: 'NOT_FOUND', message: `Record '${id}' not found.` } }, { status: 404 });
   }
   const typeApiName = foldRecordTypeApiName(current.type_api_name);
+  // 1.0.24: a line field sent beside "data" instead of inside it would be ignored.
+  const misplaced = recordTopLevelProblem(typeApiName, body, RECORD_BODY_KEYS.addLines);
+  if (misplaced) {
+    return NextResponse.json({ error: { code: 'FIELD_OUTSIDE_DATA', message: misplaced } }, { status: 400 });
+  }
   if (typeApiName === 'statistics') {
     return NextResponse.json(
       { error: { code: 'USE_CAPTURE_API', message: `Statistics values go through POST /api/statistics/${id}/lines.` } },

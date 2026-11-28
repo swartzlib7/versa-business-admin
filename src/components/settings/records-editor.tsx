@@ -1,4 +1,5 @@
 "use client";
+import type { LookupFilter } from "@/lib/catalog/lookup-filter";
 import { LayoutEditorWrapper } from "@/components/settings/layout-editor-wrapper";
 
 import Link from "next/link";
@@ -29,7 +30,7 @@ import {
 type Parent = { parent_kind: string; parent_api_name: string; label: string; group?: string; baked_in_tabs: string[] };
 type SelectOption = string | { value: string; label: string; group?: string };
 type RT = { id?: string; api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string; is_system?: boolean; active?: boolean; show_as_tab?: boolean; sort_order?: number };
-type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; lookup_delete_rule?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean; zone_role?: "header" | "list" | null; show_in_column?: boolean; summary?: SummaryConfig | null; formula?: string | null; default_formula?: string | null; lookup_filter?: { field: string; value: string } | null };
+type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; lookup_delete_rule?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean; zone_role?: "header" | "list" | null; show_in_column?: boolean; summary?: SummaryConfig | null; formula?: string | null; default_formula?: string | null; lookup_filter?: LookupFilter | null };
 type VS = { id?: string; api_name: string; label: string; description?: string; is_system?: boolean };
 type VSI = { id: string; api_value: string; label: string; sort_order: number; active: boolean };
 
@@ -562,7 +563,11 @@ export function RecordsEditor() {
             ? { default_formula: vals.default_formula.trim() }
             : {}),
           ...(vals.data_type === "lookup" && vals.lookup_filter_field?.trim()
-            ? { lookup_filter: { field: vals.lookup_filter_field.trim(), value: vals.lookup_filter_value ?? "" } }
+            ? {
+                lookup_filter: vals.lookup_filter_from_field?.trim()
+                  ? { field: vals.lookup_filter_field.trim(), value: "", from_field: vals.lookup_filter_from_field.trim() }
+                  : { field: vals.lookup_filter_field.trim(), value: vals.lookup_filter_value ?? "" },
+              }
             : {}),
           // 1.0.14: Summary fields - how to total the lines.
           ...(vals.data_type === "summary"
@@ -1449,7 +1454,8 @@ export function RecordsEditor() {
                         { key: "formula", label: "Formula", placeholder: "e.g. line_quantity * line_unit_cost", showWhen: (vals: Record<string, string>) => vals.data_type === "formula" },
                         { key: "default_formula", label: "Calculated default (optional)", placeholder: "follows until someone types a value", showWhen: (vals: Record<string, string>) => vals.data_type === "number" || vals.data_type === "currency" },
                         { key: "lookup_filter_field", label: "Only offer records where (optional)", placeholder: "field API name, e.g. org_type", showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" },
-                        { key: "lookup_filter_value", label: "equals", placeholder: "e.g. vendor", showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" && !!vals.lookup_filter_field },
+                        { key: "lookup_filter_value", label: "equals", placeholder: "e.g. vendor", showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" && !!vals.lookup_filter_field && !vals.lookup_filter_from_field },
+                        { key: "lookup_filter_from_field", label: "or equals this record's field", placeholder: "field API name, e.g. customer_org_id", showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" && !!vals.lookup_filter_field && !vals.lookup_filter_value },
                         { key: "summary_aggregate", label: "Total", type: "select" as const, options: SUMMARY_AGGREGATES.map((a) => ({ value: a.value, label: a.label })), showWhen: isSummary },
                         { key: "summary_source_field", label: "Lines field to total", type: "select" as const, options: opts.numbers.map((f) => ({ value: f.api_name, label: f.label })), showWhen: (vals: Record<string, string>) => isSummary(vals) && vals.summary_aggregate !== "count" },
                         { key: "summary_filter_field", label: "Only lines where (optional)", type: "select" as const, options: opts.lines.map((f) => ({ value: f.api_name, label: f.label })), showWhen: isSummary },

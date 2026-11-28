@@ -5,12 +5,13 @@
  * settings of one field. The server checks formulas when the field is saved
  * (unknown fields, loops) and returns a plain message.
  */
+import type { LookupFilter } from "@/lib/catalog/lookup-filter";
 import { FORMULA_FUNCTIONS } from "@/lib/records/formula";
 
 type Draft = {
   formula?: string | null;
   default_formula?: string | null;
-  lookup_filter?: { field: string; value: string } | null;
+  lookup_filter?: LookupFilter | null;
 };
 
 const inputCls =
@@ -55,7 +56,7 @@ export function FieldCalcEditor({
         </label>
       ) : null}
       {isLookup ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           <label className="space-y-1.5">
             <span className="text-xs font-medium text-muted-foreground">Only offer records where (optional)</span>
             <input
@@ -63,7 +64,7 @@ export function FieldCalcEditor({
               value={value.lookup_filter?.field ?? ""}
               placeholder="field API name, e.g. org_type"
               onChange={(e) =>
-                onChange({ lookup_filter: { field: e.target.value, value: value.lookup_filter?.value ?? "" } })
+                onChange({ lookup_filter: { ...(value.lookup_filter ?? { value: "" }), field: e.target.value } })
               }
             />
           </label>
@@ -73,8 +74,24 @@ export function FieldCalcEditor({
               className={inputCls}
               value={value.lookup_filter?.value ?? ""}
               placeholder="e.g. vendor"
+              disabled={!!value.lookup_filter?.from_field}
               onChange={(e) =>
                 onChange({ lookup_filter: { field: value.lookup_filter?.field ?? "", value: e.target.value } })
+              }
+            />
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-xs font-medium text-muted-foreground">or equals this record&apos;s field</span>
+            <input
+              className={inputCls}
+              value={value.lookup_filter?.from_field ?? ""}
+              placeholder="e.g. customer_org_id"
+              onChange={(e) =>
+                onChange({
+                  lookup_filter: e.target.value
+                    ? { field: value.lookup_filter?.field ?? "", value: "", from_field: e.target.value }
+                    : { field: value.lookup_filter?.field ?? "", value: "" },
+                })
               }
             />
           </label>

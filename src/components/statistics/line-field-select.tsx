@@ -3,6 +3,8 @@
 /**
  * Pick a lines field of another record type (1.0.14, statistics fed from
  * records): the Date field, the Value field, or the filter field.
+ * 1.0.25: "both" also offers the record's own fields (grouped), because each line
+ * carries its record's fields: a shipment's lines dated by its Ship date.
  */
 import { useEffect, useState } from "react";
 
@@ -33,8 +35,8 @@ export function LineFieldSelect({
   accept: "date" | "number" | "any";
   emptyLabel: string;
   help?: string;
-  /** 1.0.15: "list" = lines fields; "header" = the records' own fields. */
-  placement?: "list" | "header";
+  /** 1.0.15: "list" = lines fields; "header" = the records' own fields; 1.0.25: "both". */
+  placement?: "list" | "header" | "both";
 }) {
   // Fields of the current Source record type (kept with the type they belong to).
   const [loaded, setLoaded] = useState<{ type: string; fields: FieldRow[] }>({ type: "", fields: [] });
@@ -54,7 +56,7 @@ export function LineFieldSelect({
           fields: (json?.data?.fields ?? []).filter(
             (f) =>
               f.active !== false &&
-              (placement === "list" ? f.zone_role === "list" : f.zone_role !== "list") &&
+              (placement === "both" || (placement === "list" ? f.zone_role === "list" : f.zone_role !== "list")) &&
               ACCEPT[accept](f),
           ),
         }),
@@ -88,12 +90,31 @@ export function LineFieldSelect({
         disabled={!recordType}
       >
         <option value="">{recordType ? emptyLabel : "Pick a Source record type first"}</option>
-        {value && !selected ? <option value={value}>{value} (not a lines field of this type)</option> : null}
-        {fields.map((f) => (
-          <option key={f.api_name} value={f.api_name}>
-            {f.label}
-          </option>
-        ))}
+        {value && !selected ? <option value={value}>{value} (not a field of this type)</option> : null}
+        {placement === "both" ? (
+          <>
+            <optgroup label="Line fields">
+              {fields.filter((f) => f.zone_role === "list").map((f) => (
+                <option key={f.api_name} value={f.api_name}>
+                  {f.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Record fields (same for every line)">
+              {fields.filter((f) => f.zone_role !== "list").map((f) => (
+                <option key={f.api_name} value={f.api_name}>
+                  {f.label}
+                </option>
+              ))}
+            </optgroup>
+          </>
+        ) : (
+          fields.map((f) => (
+            <option key={f.api_name} value={f.api_name}>
+              {f.label}
+            </option>
+          ))
+        )}
       </select>
     </label>
   );

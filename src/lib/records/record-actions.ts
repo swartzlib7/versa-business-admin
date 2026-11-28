@@ -58,7 +58,7 @@ async function createThroughPipeline(
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
-  const prepared = await prepareRecordWrite({ typeApiName: source.type_api_name, data: stamped, lines, current: null });
+  const prepared = await prepareRecordWrite({ typeApiName: source.type_api_name, data: stamped, lines, current: null, checkFields: false });
   if (!prepared.ok) return { ok: false, status: 400, code: prepared.code, message: prepared.message };
   const input = {
     type_api_name: source.type_api_name,

@@ -1,5 +1,6 @@
 // #248 Slice D (rev E section 4.3): single organization read + update.
 import { checkAttachmentFields } from '@/lib/records/record-files';
+import { checkOrganizationBody } from '@/lib/records/known-fields';
 import { NextResponse } from 'next/server';
 import { adapter } from '@/lib/data';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
@@ -71,9 +72,15 @@ export async function PATCH(
     );
   }
 
+  // 1.0.24: only fields organizations have, inside "data".
+  const current = adapter.getOrganization ? await adapter.getOrganization(id) : null;
+  const known = checkOrganizationBody(body as unknown as Record<string, unknown>, current?.data);
+  if (!known.ok) {
+    return NextResponse.json({ error: { code: known.code, message: known.message } }, { status: 400 });
+  }
+  if (known.data) body.data = known.data;
   // 1.0.23: an Attachments field holds only files stored here, at most 10.
   if (body.data && typeof body.data === 'object') {
-    const current = adapter.getOrganization ? await adapter.getOrganization(id) : null;
     const checked = checkAttachmentFields('organization', body.data, current?.data);
     if (!checked.ok) {
       return NextResponse.json({ error: { code: 'VALIDATION_ERROR', message: checked.message } }, { status: 400 });

@@ -98,9 +98,9 @@ A statistic can fill its own values from other records, for example **monthly bu
 |-------|---------------|
 | **Source record type** | The "Header and lines" type to read, e.g. Vehicle Mileage Logs |
 | **Source record** | One record of that type (one vehicle's log), or empty for all of them |
-| **Date field** | The lines field with the date. Each line counts in the step its date falls in |
+| **Date field** | The field with the date: a lines field, or a field of the record itself (listed under **Record fields**), which every line of that record shares. Each line counts in the step its date falls in |
 | **Value field** | The lines field to total per step, e.g. Miles. Empty counts the lines instead |
-| **Only lines where** / **equals** | Optional. Only lines where this field matches, e.g. Business use is ticked (`true`) |
+| **Only lines where** / **equals** | Optional. Only lines where this field matches, e.g. Business use is ticked (`true`). It can be a field of the record, e.g. only lines of records whose Status is `shipped` |
 
 Save. The values appear straight away and update whenever those records change. A step between two steps with data shows 0. While a statistic is fed from records its values card is read-only. Clear Source record type to enter values by hand again.
 
@@ -305,7 +305,7 @@ The calculations above are ordinary fields an admin can add to any record type i
 - **Formula** field: always calculated, read-only. Uses fields of the same header (or the same line), numbers, `+ - * /`, brackets, comparisons (`= <> < > <= >=`) and `SUM`, `ROUND`, `MIN`, `MAX`, `IF`, `FIRST`. Example: `IF(subtotal > 0, ROUND(margin / subtotal * 100, 1), 0)`.
 - **Calculated default** on a Number or Currency field: the field follows a formula until someone types a different value; clear it to follow again.
 - **Summary** field: totals a lines field on the header (§8).
-- **Only offer records where…** on a Lookup field: e.g. Vendor offers only organizations of type Vendor.
+- **Only offer records where…** on a Lookup field: e.g. Vendor offers only organizations of type Vendor. Instead of a fixed value, **or equals this record's field** compares with another field of the same record: a Ship to lookup on Locations, Only offer records where `organization_id`, or equals this record's field `customer_org_id`, offers only the chosen Customer's Locations. Until that field is filled in the list says **Pick Customer first**, and changing it clears the pick. A save (on screen or through the API) that holds a record the filter does not offer is refused with the reason.
 
 A statistic can graph money too: in its Source section choose **Read from: Records**, Source record type Transactions, Date field Date, Value field Amount, Only lines where Document kind equals `invoice` - invoiced per month (§4).
 

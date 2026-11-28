@@ -2,6 +2,7 @@ import { textValues } from '@/lib/records/text-values';
 import { NextResponse } from 'next/server';
 import { foldRecordTypeApiName } from '@/lib/catalog/name-aliases';
 import { afterRecordWrite, prepareRecordWrite } from '@/lib/records/pipeline';
+import { RECORD_BODY_KEYS, recordTopLevelProblem } from '@/lib/records/known-fields';
 import { getSessionFromRequest, isAuthenticated, isAdmin } from '@/lib/auth';
 import {
   listInstances,
@@ -72,6 +73,11 @@ export async function POST(request: Request) {
       { error: { code: 'INVALID_JSON', message: 'Request body must be JSON.' } },
       { status: 400 },
     );
+  }
+  // 1.0.24: a field sent beside "data" instead of inside it would be ignored.
+  const misplaced = recordTopLevelProblem(String(body.type_api_name || ''), body, RECORD_BODY_KEYS.create);
+  if (misplaced) {
+    return NextResponse.json({ error: { code: 'FIELD_OUTSIDE_DATA', message: misplaced } }, { status: 400 });
   }
   let pairingData =
     typeof body.data === 'object' && body.data && !Array.isArray(body.data)
@@ -159,7 +165,8 @@ export async function POST(request: Request) {
   if (!prepared.ok) {
     return NextResponse.json({ error: { code: prepared.code, message: prepared.message } }, { status: 400 });
   }
-  input.data = { ...input.data, ...prepared.data };
+  // 1.0.24: the pipeline result is the record (an unknown key sent empty is dropped there).
+  input.data = prepared.data as typeof input.data;
   if (prepared.lines) input.lines = prepared.lines;
   if (adapter.createRecord) {
     const result = await adapter.createRecord(input, {

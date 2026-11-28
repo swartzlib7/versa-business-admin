@@ -1,6 +1,7 @@
 /**
  * ERD-C helpers: turn catalog field_definition + layout_definition into UI field lists.
  */
+import type { LookupFilter } from "@/lib/catalog/lookup-filter";
 import {
   getDefaultLayout,
   getValueSetByApiName,
@@ -51,7 +52,7 @@ export type UiListingField = {
   /** 1.0.14: a Summary field shown as a percentage. */
   summaryPercent?: boolean;
   /** 1.0.15: lookup filter (only target records whose field equals the value). */
-  lookupFilter?: { field: string; value: string } | null;
+  lookupFilter?: LookupFilter | null;
   lookupObjectApiName?: string | null;
   /** Empty grid cell from the Layout Editor (`__blank__*`). */
   blank?: boolean;

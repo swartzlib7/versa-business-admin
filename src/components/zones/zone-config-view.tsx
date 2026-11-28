@@ -1,4 +1,5 @@
 "use client";
+import type { LookupFilter } from "@/lib/catalog/lookup-filter";
 import { isTimeZone } from "@/lib/statistics/time-zone";
 import { useInstallTimeZone } from "@/components/shell/site-mode-provider";
 
@@ -597,7 +598,7 @@ function ListingPanel({
             isAuditField(f.api_name) ||
             isDriverCodeOwnedField(objectApiName, f.api_name) ||
             (f as { read_only?: boolean }).read_only === true,
-          lookupFilter: (f as { lookup_filter?: { field: string; value: string } | null }).lookup_filter ?? null,
+          lookupFilter: (f as { lookup_filter?: LookupFilter | null }).lookup_filter ?? null,
           column:
             (colSet.has(f.label) || colSet.has(f.api_name)) &&
             !isAuditField(f.api_name) &&
@@ -2272,7 +2273,7 @@ function FormPanel({
             lookupObjectApiName: f.lookup_object_api_name ?? null,
             readOnly:
               isDriverCodeOwnedField(objectApiName, f.api_name) || (f as { read_only?: boolean }).read_only === true,
-            lookupFilter: (f as { lookup_filter?: { field: string; value: string } | null }).lookup_filter ?? null,
+            lookupFilter: (f as { lookup_filter?: LookupFilter | null }).lookup_filter ?? null,
             help: helpForField(f.api_name, objectApiName),
             summaryPercent: !!(f as { summary?: { percent_of?: string | null } | null }).summary?.percent_of,
           };

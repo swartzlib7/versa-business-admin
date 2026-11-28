@@ -211,7 +211,7 @@ export async function insertSampleData(opts?: { keepCanvas?: boolean }): Promise
         );
         if (Object.keys(patch).length) {
           const merged = { ...current, ...patch };
-          const prepared = await prepareRecordWrite({ typeApiName: seed.type_api_name, data: merged, current: already });
+          const prepared = await prepareRecordWrite({ typeApiName: seed.type_api_name, data: merged, current: already, checkFields: false });
           const result = await adapter.updateRecord(already.id, { data: prepared.ok ? prepared.data : merged });
           if (result.ok) await afterRecordWrite(result.instance, already).catch(() => undefined);
         }
@@ -235,7 +235,7 @@ export async function insertSampleData(opts?: { keepCanvas?: boolean }): Promise
     Object.assign(data, await sampleFiles(seed));
     // 1.0.16: the same save pipeline as any other write, so totals, margins
     // and bill matching are worked out by VBA rather than typed into the pack.
-    const prepared = await prepareRecordWrite({ typeApiName: seed.type_api_name, data, lines, current: null });
+    const prepared = await prepareRecordWrite({ typeApiName: seed.type_api_name, data, lines, current: null, checkFields: false });
     if (!prepared.ok) console.warn(`Sample record ${seed.data.external_id}: ${prepared.message}`);
     const input = {
       type_api_name: seed.type_api_name,

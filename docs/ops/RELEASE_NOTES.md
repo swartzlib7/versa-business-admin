@@ -1,9 +1,26 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.23 (2026-11-26)
+**Current:** 1.0.25 (2026-11-27)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.25 — lookups that follow another field; statistics dated by the record
+
+No migrations. Catalog seed pack stays `1.0.23-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.22.
+
+- **A lookup can offer only the records that match another field of the same record.** In Records Editor, a Lookup field's **Only offer records where** now has **or equals this record's field**: a Ship to lookup on Locations can offer only the chosen Customer's Locations. The list says "Pick Customer first" until the Customer is set, and changing the Customer clears Ship to. On a line, the field is read from the same line.
+- **Saves hold only records a lookup offers.** A lookup with a filter (the fixed ones such as Vendor = organizations of type Vendor, or the new kind) is now checked when it is saved, on screen and through the API: a record the filter does not offer is refused with `400 LOOKUP_NOT_OFFERED` and the reason. Only a lookup that changed, or whose Customer (the field it follows) changed, is checked, so records saved before still save.
+- **A statistic fed from lines can be dated and filtered by the record's own fields.** The Date field and Only lines where now also list the record's fields (under **Record fields**), which every line of the record shares: units shipped per month from shipment lines, dated by the shipment's Ship date and counted only when its Status is Shipped.
+
+## 1.0.24 — only fields the type has are saved
+
+No migrations. Catalog seed pack stays `1.0.23-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.21.
+
+- **A save that sends a field the type does not have is refused.** Before, a script or agent that sent a misspelt field (`trackng_number`), a field of another type, or one that was never added got `200`, and the value was stored where no form, listing or report shows it. Now the save answers `400 UNKNOWN_FIELD`, names the fields it does not know, suggests the nearest real one ("did you mean `tracking_number`?") and lists the type's fields. Nothing is saved. This covers creating and updating records, adding lines, attaching files, and creating and updating organizations.
+- **A field sent beside `data` instead of inside it is refused.** `{"name": "Acme", "phone": "555"}` used to save the name and drop the phone without a word. It now answers `400 FIELD_OUTSIDE_DATA` with where to put it.
+- **Nothing changes for the screens or for data already stored.** Hidden fields still save. A value a record already holds under a name that is not a field (some integrations write these) is kept when the record is edited; only new or changed values are checked. An unknown field sent empty is dropped instead of refused.
+- Not checked: copies made by Clone and Convert to invoice (they copy what is stored), records received through an Integration (the sender may have fields this install does not), and the sample pack.
 
 ## 1.0.23 — files on every business record
 
