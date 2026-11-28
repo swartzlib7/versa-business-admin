@@ -169,6 +169,13 @@
       "when": 1789800000000,
       "tag": "0023_retire_old_integrations",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789900000000,
+      "tag": "0024_record_number_counter",
+      "breakpoints": true
     }
   ]
 }

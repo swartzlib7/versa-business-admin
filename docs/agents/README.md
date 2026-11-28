@@ -10,6 +10,7 @@ Versa AGi's host skill **`business_admin_operate`** covers orientation, health a
 | [sign-in.md](sign-in.md) | Get a session cookie from a script (proof-of-work login) |
 | [records-and-lines.md](records-and-lines.md) | Read a record type's fields; create, update, clone records; add lines one at a time; see what links to a record |
 | [job-costing.md](job-costing.md) | Estimate with a bill of materials → invoice → vendor bill → matching |
+| [shipments.md](shipments.md) | Create a shipment from an invoice, ship in parts, mark it shipped and delivered (1.0.26) |
 | [attachments.md](attachments.md) | Attach files to a record or an organization in one call (1.0.23), or save the field yourself |
 | [statistics.md](statistics.md) | Capture statistic values; feed a statistic from records |
 | [operations.md](operations.md) | Health, backup, what never to do |
@@ -18,7 +19,7 @@ Versa AGi's host skill **`business_admin_operate`** covers orientation, health a
 
 **Rules for every recipe**
 
-- Writes need an **admin** session. Read the type's fields first (`GET /api/catalog/record-types/<type>`) and send field **API names**, values as strings. A list or object sent as a value (a Filter) is stored as its JSON text (1.0.22). A field the type does not have is refused with `400 UNKNOWN_FIELD`, which names it, suggests the nearest real one and lists the type's fields; a field sent beside `data` instead of inside it is refused with `400 FIELD_OUTSIDE_DATA` (1.0.24). Before 1.0.24 both answered `200` and the value was lost. A lookup with a filter (`lookup_filter` in the type's fields: a fixed `value`, or `from_field`, another field of the same record) only takes a record the filter offers; anything else answers `400 LOOKUP_NOT_OFFERED` (1.0.25).
+- Writes need an **admin** session. Read the type's fields first (`GET /api/catalog/record-types/<type>`) and send field **API names**, values as strings. A list or object sent as a value (a Filter) is stored as its JSON text (1.0.22). A field the type does not have is refused with `400 UNKNOWN_FIELD`, which names it, suggests the nearest real one and lists the type's fields; a field sent beside `data` instead of inside it is refused with `400 FIELD_OUTSIDE_DATA` (1.0.24). Before 1.0.24 both answered `200` and the value was lost. A lookup with a filter (`lookup_filter` in the type's fields: a fixed `value`, or `from_field`, another field of the same record) only takes a record the filter offers; anything else answers `400 LOOKUP_NOT_OFFERED` (1.0.25). A new record sent without a status takes its Status field's default (Shipments and Policies: `draft`), else `active`; a field with `auto_number` (Shipment number) is given by VBA on create; sending or changing it answers `400 NUMBER_IS_AUTOMATIC`, and an update that leaves it out keeps it (1.0.26).
 - Never write calculated fields yourself: Summary, Formula, Allocated / Remaining are worked out by VBA on save. Calculated defaults (Unit price, Line total, Amount, Actual cost) follow their formula unless you send a different value on purpose.
 - Records with an **External ID** belong to an integration (e.g. Wave): don't change their amounts and don't convert them.
 - A `400` answer carries a plain sentence in `error.message`. Show it to the Primary User rather than retrying blindly.

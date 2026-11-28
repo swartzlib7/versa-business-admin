@@ -100,7 +100,9 @@ A statistic can fill its own values from other records, for example **monthly bu
 | **Source record** | One record of that type (one vehicle's log), or empty for all of them |
 | **Date field** | The field with the date: a lines field, or a field of the record itself (listed under **Record fields**), which every line of that record shares. Each line counts in the step its date falls in |
 | **Value field** | The lines field to total per step, e.g. Miles. Empty counts the lines instead |
-| **Only lines where** / **equals** | Optional. Only lines where this field matches, e.g. Business use is ticked (`true`). It can be a field of the record, e.g. only lines of records whose Status is `shipped` |
+| **Only lines where** / **equals** | Optional. Only lines where this field matches, e.g. Business use is ticked (`true`). It can be a field of the record, e.g. only lines of records whose Status is `shipped`. Several values separated by commas match any of them: `shipped, delivered` |
+
+**Units shipped, ready-made:** choose Source record type **Shipments** and leave Date field and Value field empty. On save they fill in: the Shipped quantities, dated by each shipment's Ship date, only for shipments that are Shipped or Delivered (§9, Shipments).
 
 Save. The values appear straight away and update whenever those records change. A step between two steps with data shows 0. While a statistic is fed from records its values card is read-only. Clear Source record type to enter values by hand again.
 
@@ -298,6 +300,24 @@ The bill shows **Allocated** (the shares taken so far) and **Remaining**. VBA re
 
 Under an open record, **Linked from** lists the records that point to it. On a project: its estimates, invoices and bills, with totals per kind (estimate, invoice, bill), so quoted and actual cost sit side by side. On a bill: the invoices whose lines it covers.
 
+### Shipments
+
+Organization → Production → **Shipments** records what left in boxes for a customer, with the packing details a packing slip needs.
+
+**From an invoice:** open the invoice (Treasury → Transactions) and click **Create shipment**. VBA makes a **Draft** shipment and opens it:
+
+- the invoice's product lines, each with **Ordered** (the invoice quantity), **Shipped before** (on this invoice's earlier shipments), **Shipped** (what is still owed) and **Backordered** (Ordered − Shipped before − Shipped)
+- **Customer** from the invoice, **Ship to** its Primary address, **Ship from** your own address, and the invoice's **Project**
+- a **Shipment number** (SH-0001, SH-0002 …), given by VBA and never typed or changed
+
+Lines without a product (freight, labour) are left out; if no line has a product, every line with a quantity is shipped.
+
+**Shipping in parts:** lower **Shipped** on the lines that don't fit, and put each line's **Box** number. Backordered shows what is left. The next **Create shipment** on the invoice offers only that. When every line is on a shipment, VBA says there is nothing left to ship. Shipped before counts the invoice's earlier shipments, whatever their status, and is worked out again each time a shipment is saved.
+
+**Then:** set **Status** as it goes (Draft → Packed → Shipped → Delivered), with **Ship date**, **Carrier**, **Tracking number**, **Boxes**, and on arrival **Delivered date** and **Received by**. Keep the carrier's receipt or a photo of the boxes in **Documents & Photos**. **Ship to** offers only the Customer's Locations.
+
+A shipment can also be made by hand (**New Record**). The invoice lists its shipments under **Linked from**, and a Units Shipped statistic can follow them (§4, Fed from records).
+
 ### Formulas and calculated defaults
 
 The calculations above are ordinary fields an admin can add to any record type in **Records Editor**:
@@ -305,6 +325,8 @@ The calculations above are ordinary fields an admin can add to any record type i
 - **Formula** field: always calculated, read-only. Uses fields of the same header (or the same line), numbers, `+ - * /`, brackets, comparisons (`= <> < > <= >=`) and `SUM`, `ROUND`, `MIN`, `MAX`, `IF`, `FIRST`. Example: `IF(subtotal > 0, ROUND(margin / subtotal * 100, 1), 0)`.
 - **Calculated default** on a Number or Currency field: the field follows a formula until someone types a different value; clear it to follow again.
 - **Summary** field: totals a lines field on the header (§8).
+- **Number automatically** on a header Text field: VBA gives each new record the next number when it is first saved, prefix + the number padded to the digits you choose (Shipments: `SH-`, 4 digits). The number is the record's identity: nobody can type or change it, on screen or through the API. Two people saving at once never get the same number, and a deleted record's number is not used again. Clone takes the next number. Turning it on for a field that already has values keeps them; records saved before without a number stay without one.
+- **Show as column in the records list** on header fields of a Header-and-lines type: the list of records shows only those columns (Shipments starts with eight). With none chosen it shows every header field. Each person can still add or hide columns with **Columns**.
 - **Only offer records where…** on a Lookup field: e.g. Vendor offers only organizations of type Vendor. Instead of a fixed value, **or equals this record's field** compares with another field of the same record: a Ship to lookup on Locations, Only offer records where `organization_id`, or equals this record's field `customer_org_id`, offers only the chosen Customer's Locations. Until that field is filled in the list says **Pick Customer first**, and changing it clears the pick. A save (on screen or through the API) that holds a record the filter does not offer is refused with the reason.
 
 A statistic can graph money too: in its Source section choose **Read from: Records**, Source record type Transactions, Date field Date, Value field Amount, Only lines where Document kind equals `invoice` - invoiced per month (§4).

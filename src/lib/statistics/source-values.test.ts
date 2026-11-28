@@ -79,3 +79,20 @@ test("1.0.25: a line value wins over the record's for a shared key", () => {
   assert.equal(line.name, "R");
   assert.equal(line.status, "active");
 });
+
+test("a filter with several values separated by commas matches any of them (1.0.26)", () => {
+  const shipped = statSourceFromData({
+    source_record_type: "production_shipment",
+    source_date_field: "ship_date",
+    source_value_field: "line_qty_shipped",
+    source_filter_field: "status",
+    source_filter_value: "shipped, delivered",
+  })!;
+  const steps = computeSourceSteps(config, shipped, [
+    { ship_date: "2026-10-02", line_qty_shipped: "4", status: "shipped" },
+    { ship_date: "2026-10-09", line_qty_shipped: "6", status: "Delivered" },
+    { ship_date: "2026-10-12", line_qty_shipped: "50", status: "packed" },
+    { ship_date: "2026-10-20", line_qty_shipped: "70", status: "draft" },
+  ]);
+  assert.equal(steps.get(9), 10);
+});

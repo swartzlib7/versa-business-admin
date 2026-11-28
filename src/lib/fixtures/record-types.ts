@@ -26,7 +26,20 @@ export interface RecordTypeDefinition {
   active: boolean;
   is_system: boolean;
   object_api_name: string;
+  /**
+   * 1.0.26: what a statistic fed from this type reads when its Date and Value fields are left
+   * empty (Shipments: units shipped by Ship date, Shipped or Delivered only).
+   */
+  statistic_feed?: StatisticFeed;
 }
+
+export type StatisticFeed = {
+  read_from: 'lines' | 'records';
+  date_field: string;
+  value_field: string;
+  filter_field?: string;
+  filter_value?: string;
+};
 
 export const recordTypes: RecordTypeDefinition[] = [
   // I5.6.32 Slice 2.1 (#220): unspec faculty seed types removed.
@@ -112,6 +125,22 @@ export const recordTypes: RecordTypeDefinition[] = [
     active: true,
     is_system: true,
     object_api_name: 'production_service',
+  },
+  {
+    // 1.0.26: what leaves in boxes, with the invoice it fills (state_shipments.md).
+    id: 'rt-production_shipment',
+    api_name: 'production_shipment',
+    label: 'Shipments',
+    description: 'What was packed and sent to a customer: one shipment per delivery, its lines the products in the boxes. Create one from an invoice; an invoice can ship in several parts.',
+    parent_kind: 'faculty',
+    parent_api_name: 'production',
+    structure: 'header_lines',
+    show_as_tab: true,
+    sort_order: 60,
+    active: true,
+    is_system: true,
+    object_api_name: 'production_shipment',
+    statistic_feed: { read_from: 'lines', date_field: 'ship_date', value_field: 'line_qty_shipped', filter_field: 'status', filter_value: 'shipped, delivered' },
   },
   // #246 Slice C (rev E section 3, 2026-08-31): 15 new system record types for
   // the locked element table - Communications (3), Dissemination (2), Treasury

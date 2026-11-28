@@ -1,6 +1,7 @@
 import '@/lib/catalog/install-durable';
 import { foldRecordTypeApiName } from '@/lib/catalog/name-aliases';
 import { textValues } from '@/lib/records/text-values';
+import { takeRecordNumbers } from './record-numbers';
 import { isPrimaryAddress, locationOrgKey, siblingPrimaryIds } from '@/lib/records/location-primary';
 import { decryptSecret, encryptSecret, isEncrypted } from '@/lib/secrets/secret-box';
 import { maskSecretFields, sealSecretFields, secretFieldsFor } from '@/lib/secrets/secret-fields';
@@ -544,7 +545,8 @@ export async function createRecordDb(
 
   let header: Record<string, string> = { ...(input.data ?? {}) };
   header.name = input.name.trim();
-  header.status = input.status || 'active';
+  // 1.0.26: a Status sent in data (or its default, set by the save pipeline) counts when none is sent beside it.
+  header.status = input.status || String(header.status ?? '').trim() || 'active';
   header = sealSecretFields(type.apiName, header, null);
 
   if (type.apiName === 'schedule' && header.integration_id) {
@@ -561,17 +563,22 @@ export async function createRecordDb(
   const stableId = input.id?.trim();
   let recordId: string;
   try {
-    const inserted = await db
-      .insert(recordTable)
-      .values({
-        ...(stableId ? { id: stableId } : {}),
-        orgId: orgResolved.orgId,
-        recordTypeId: type.id,
-        header,
-        createdBy: opts?.createdBy ?? null,
-      })
-      .returning({ id: recordTable.id });
-    recordId = inserted[0].id;
+    // 1.0.26: Number automatically fields take their number in the same transaction as the
+    // insert (record-numbers.ts): never shared by two saves, given back when the insert fails.
+    recordId = await db.transaction(async (tx) => {
+      await takeRecordNumbers(tx, { id: type.id, apiName: type.apiName }, header);
+      const inserted = await tx
+        .insert(recordTable)
+        .values({
+          ...(stableId ? { id: stableId } : {}),
+          orgId: orgResolved.orgId,
+          recordTypeId: type.id,
+          header,
+          createdBy: opts?.createdBy ?? null,
+        })
+        .returning({ id: recordTable.id });
+      return inserted[0].id;
+    });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     if (stableId && /unique|duplicate/i.test(msg)) {

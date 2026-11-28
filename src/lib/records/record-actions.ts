@@ -1,7 +1,8 @@
 /**
  * Record actions (1.0.15, state_records_pipeline.md § Actions): Clone (any
- * record type) and Convert to invoice (Transactions). Both create the new
- * record through the save pipeline, like any other write.
+ * record type), Convert to invoice (Transactions) and Create shipment (an
+ * invoice, 1.0.26). Each creates the new record through the save pipeline,
+ * like any other write.
  */
 import { randomUUID } from "node:crypto";
 import { adapter } from "@/lib/data/adapter";
@@ -26,6 +27,8 @@ function copyContent(source: RecordInstance): { data: Record<string, string>; li
   const drop = new Set([
     ...AUDIT,
     ...fields.filter((f) => f.read_only).map((f) => f.api_name),
+    // 1.0.26: a copy takes the next number, not the source's.
+    ...fields.filter((f) => f.auto_number).map((f) => f.api_name),
   ]);
   const data: Record<string, string> = {};
   for (const [k, v] of Object.entries(source.data ?? {})) if (!drop.has(k)) data[k] = String(v ?? "");
@@ -44,13 +47,16 @@ function copyContent(source: RecordInstance): { data: Record<string, string>; li
   return { data, lines };
 }
 
+type Target = Pick<RecordInstance, "type_api_name" | "parent_kind" | "parent_api_name" | "org_id">;
+
 async function createThroughPipeline(
-  source: RecordInstance,
+  source: Target,
   name: string,
   status: string,
   data: Record<string, string>,
   lines: WriteLine[],
   userId: string | null,
+  checkFields = false,
 ): Promise<ActionResult> {
   const stamped = {
     ...data,
@@ -58,7 +64,7 @@ async function createThroughPipeline(
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
-  const prepared = await prepareRecordWrite({ typeApiName: source.type_api_name, data: stamped, lines, current: null, checkFields: false });
+  const prepared = await prepareRecordWrite({ typeApiName: source.type_api_name, data: stamped, lines, current: null, checkFields });
   if (!prepared.ok) return { ok: false, status: 400, code: prepared.code, message: prepared.message };
   const input = {
     type_api_name: source.type_api_name,
@@ -147,4 +153,18 @@ export async function convertToInvoice(id: string, userId: string | null): Promi
     }
   } else updateInstance(source.id, { status: "converted", data: marked });
   return created;
+}
+
+/**
+ * Invoice -> shipment (1.0.26, shipments.ts): a Draft shipment of what the invoice still owes.
+ * Integrated invoices (from Wave) ship too: the shipment is VBA's own record.
+ */
+export async function createShipmentFromInvoice(id: string, userId: string | null): Promise<ActionResult> {
+  const source = await getRecord(id);
+  if (!source) return { ok: false, status: 404, code: "NOT_FOUND", message: `Record '${id}' not found.` };
+  const { SHIPMENT_TYPE, buildShipmentFromInvoice } = await import("@/lib/records/shipments");
+  const built = await buildShipmentFromInvoice(source);
+  if (!built.ok) return built;
+  const target = { type_api_name: SHIPMENT_TYPE, parent_kind: "faculty", parent_api_name: "production", org_id: source.org_id };
+  return createThroughPipeline(target, built.name, "draft", built.data, built.lines, userId, true);
 }

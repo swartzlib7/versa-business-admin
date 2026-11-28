@@ -29,6 +29,8 @@ export type RuntimeFieldSource = {
   summary?: { percent_of?: string | null } | null;
   lookup_filter?: LookupFilter | null;
   read_only?: boolean;
+  /** 1.0.26: Number automatically - given by VBA, read-only on screen. */
+  auto_number?: unknown;
 };
 
 /** Converts a server-supplied dynamic field into a UI field. */
@@ -37,7 +39,7 @@ function runtimeFieldToUi(field: RuntimeFieldSource, objectApiName: string): UiL
   return {
     key: field.api_name,
     label: field.label,
-    help: helpForField(field.api_name, objectApiName),
+    help: helpForField(field.api_name, objectApiName) ?? (field.auto_number ? "Given by VBA when the record is first saved; it can't be typed or changed" : undefined),
     kind: dataTypeToUiKind(field.data_type as CatalogDataType),
     options,
     optionLabels,
@@ -46,7 +48,7 @@ function runtimeFieldToUi(field: RuntimeFieldSource, objectApiName: string): UiL
     zoneRole: field.zone_role ?? null,
     secret: field.is_secret === true || field.api_name === "configuration",
     lookupObjectApiName: field.lookup_object_api_name ?? null,
-    readOnly: field.read_only === true || isDriverCodeOwnedField(objectApiName, field.api_name),
+    readOnly: field.read_only === true || !!field.auto_number || isDriverCodeOwnedField(objectApiName, field.api_name),
     summaryPercent: !!field.summary?.percent_of,
     lookupFilter: field.lookup_filter ?? null,
   };

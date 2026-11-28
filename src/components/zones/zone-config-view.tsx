@@ -4,7 +4,7 @@ import { isTimeZone } from "@/lib/statistics/time-zone";
 import { useInstallTimeZone } from "@/components/shell/site-mode-provider";
 
 import { IssueTokenButton } from "@/components/integrations/issue-token";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -231,6 +231,12 @@ function makeSelfPanel(tab: ZoneTab): ZoneTab {
     sampleRows: undefined,
   };
 }
+
+/**
+ * 1.0.26: open a record on another tab of this zone (Create shipment on an invoice opens the
+ * new shipment under Production → Shipments). False when no tab here lists that type.
+ */
+const OpenRecordContext = createContext<((typeApiName: string, recordId: string) => boolean) | null>(null);
 
 function zoneSubTabs(tab: ZoneTab): ZoneTab[] {
   if (tab.listingOnTab) return [];
@@ -535,9 +541,11 @@ function ListingPanel({
               .filter((f) => f.api_name === "name")
               .map((f) => f.label);
           }
-          return catalogFields
-            .filter((f) => f.zone_role === "header")
-            .map((f) => f.label);
+          // 1.0.26: header fields with Show as column on are the list's columns (Shipments);
+          // with none on, every header field is (the Columns picker adds the rest).
+          const header = catalogFields.filter((f) => f.zone_role === "header");
+          const chosen = header.filter((f) => f.show_in_column === true);
+          return (chosen.length ? chosen : header).map((f) => f.label);
         }
         if (objectApiName === "statistics") {
           return [frequencyTypeLabel(statHeader?.frequencyType), "Stamp", "Value"];
@@ -597,7 +605,8 @@ function ListingPanel({
           readOnly:
             isAuditField(f.api_name) ||
             isDriverCodeOwnedField(objectApiName, f.api_name) ||
-            (f as { read_only?: boolean }).read_only === true,
+            (f as { read_only?: boolean }).read_only === true ||
+            !!(f as { auto_number?: unknown }).auto_number,
           lookupFilter: (f as { lookup_filter?: LookupFilter | null }).lookup_filter ?? null,
           column:
             (colSet.has(f.label) || colSet.has(f.api_name)) &&
@@ -2272,9 +2281,11 @@ function FormPanel({
             zoneRole: (f as { zone_role?: "header" | "list" | null }).zone_role ?? null,
             lookupObjectApiName: f.lookup_object_api_name ?? null,
             readOnly:
-              isDriverCodeOwnedField(objectApiName, f.api_name) || (f as { read_only?: boolean }).read_only === true,
+              isDriverCodeOwnedField(objectApiName, f.api_name) ||
+              (f as { read_only?: boolean }).read_only === true ||
+              !!(f as { auto_number?: unknown }).auto_number,
             lookupFilter: (f as { lookup_filter?: LookupFilter | null }).lookup_filter ?? null,
-            help: helpForField(f.api_name, objectApiName),
+            help: helpForField(f.api_name, objectApiName) ?? ((f as { auto_number?: unknown }).auto_number ? "Given by VBA when the record is first saved; it can't be typed or changed" : undefined),
             summaryPercent: !!(f as { summary?: { percent_of?: string | null } | null }).summary?.percent_of,
           };
         })
@@ -2542,6 +2553,7 @@ function FormPanel({
                     setSaveStatus(message);
                     onRecordCreated?.(id);
                   }}
+                  onShipment={setSaveStatus}
                   onError={setSaveError}
                 />
               ) : null}
@@ -2607,12 +2619,15 @@ function TabPanel({
   childId,
   setChildId,
   hideSubTabs = false,
+  openRecordId,
 }: {
   tab: ZoneTab;
   accent: string;
   childId: string;
   setChildId: (id: string) => void;
   hideSubTabs?: boolean;
+  /** 1.0.26: open this record when the tab mounts (OpenRecordContext). */
+  openRecordId?: string;
 }) {
   const subTabs = useMemo(() => zoneSubTabs(tab), [tab]);
 
@@ -2639,9 +2654,9 @@ function TabPanel({
   // (instance list); set = detail view.
   // Rendering Drivers stay on the list path (row expands with the editor).
   const isListToDetail = panel.recordTypeApiName != null && isHeaderLines;
-  const [detailRecordId, setDetailRecordId] = useState<string | null>(null);
+  const [detailRecordId, setDetailRecordId] = useState<string | null>(openRecordId ?? null);
   const [detailEditing, setDetailEditing] = useState(false);
-  const [graphRecordId, setGraphRecordId] = useState<string | null>(null);
+  const [graphRecordId, setGraphRecordId] = useState<string | null>(openRecordId ?? null);
   // 1.0.15: Clone / Convert made a new record - remount the list (refetch) and open it.
   const [listReloadKey, setListReloadKey] = useState(0);
   const openCreatedRecord = (id: string) => {
@@ -2870,10 +2885,28 @@ function ZoneConfigViewBody({
     [config.id, active, childId],
   );
 
+  const [openRecord, setOpenRecord] = useState<{ key: string; id: string } | null>(null);
   const selectTab = useCallback((tabId: string) => {
     skipChildResetRef.current = false;
+    setOpenRecord(null);
     setActive(tabId);
   }, []);
+
+  const openRecordOn = useCallback(
+    (typeApiName: string, recordId: string) => {
+      for (const t of tabs) {
+        const child = zoneSubTabs(t).find((c) => c.recordTypeApiName === typeApiName);
+        if (!child) continue;
+        skipChildResetRef.current = t.id !== active;
+        setActive(t.id);
+        setChildId(child.id);
+        setOpenRecord({ key: t.id + ":" + child.id, id: recordId });
+        return true;
+      }
+      return false;
+    },
+    [tabs, active],
+  );
 
   const handleNodeClick = useCallback(
     (node: { id: string }) => {
@@ -2951,7 +2984,10 @@ function ZoneConfigViewBody({
           items={subTabs}
           activeId={subTabs.find((c) => c.id === childId)?.id ?? subTabs[0].id}
           accent={config.accent}
-          onSelect={setChildId}
+          onSelect={(id) => {
+            setOpenRecord(null);
+            setChildId(id);
+          }}
           ariaLabel={`${tab.label} sub-elements`}
         />
       ) : null}
@@ -2959,14 +2995,17 @@ function ZoneConfigViewBody({
       <div role="tabpanel" className="relative flex min-h-[max(640px,calc(100dvh-13rem))] flex-col gap-4 lg:flex-row lg:items-start">
         <div className="flex min-h-[640px] min-w-0 flex-1 flex-col">
           {tab && (
-            <TabPanel
-              key={active + ":" + childId}
-              tab={tab}
-              accent={config.accent}
-              childId={childId}
-              setChildId={setChildId}
-              hideSubTabs
-            />
+            <OpenRecordContext.Provider value={openRecordOn}>
+              <TabPanel
+                key={active + ":" + childId + ":" + (openRecord?.key === active + ":" + childId ? openRecord.id : "")}
+                tab={tab}
+                accent={config.accent}
+                childId={childId}
+                setChildId={setChildId}
+                hideSubTabs
+                openRecordId={openRecord?.key === active + ":" + childId ? openRecord.id : undefined}
+              />
+            </OpenRecordContext.Provider>
           )}
         </div>
 
@@ -3027,16 +3066,19 @@ function RecordActions({
   values,
   typeApiName,
   onCreated,
+  onShipment,
   onError,
 }: {
   recordId: string;
   values: Record<string, string>;
   typeApiName: string;
   onCreated: (id: string, message: string) => void;
+  onShipment?: (message: string) => void;
   onError: (message: string) => void;
 }) {
   const [busy, setBusy] = useState("");
-  const run = async (action: "clone" | "convert") => {
+  const openRecord = useContext(OpenRecordContext);
+  const run = async (action: "clone" | "convert" | "shipment") => {
     setBusy(action);
     onError("");
     try {
@@ -3044,6 +3086,14 @@ function RecordActions({
       const json = await res.json().catch(() => null);
       if (!res.ok) {
         onError(json?.error?.message ?? "That did not work.");
+        return;
+      }
+      if (action === "shipment") {
+        // 1.0.26: the shipment lives under Production → Shipments; this invoice lists it under Linked from.
+        const number = json.data?.data?.shipment_number ?? "";
+        if (!openRecord?.("production_shipment", json.data.id)) {
+          onShipment?.(`Shipment ${number} created: Production → Shipments.`.replace("  ", " "));
+        }
         return;
       }
       onCreated(json.data.id, action === "clone" ? "Copy created" : "Invoice created");
@@ -3078,6 +3128,7 @@ function RecordActions({
   const puller = isIntegration && values.direction === "receive" && values.mode === "pull";
   const copyOf = /^[0-9a-f-]{36}:/.test(String(values.external_id ?? ""));
   const integrated = String(values.external_id ?? "").trim() !== "";
+  const shippable = typeApiName === "treasury_transaction" && values.document_kind === "invoice";
   const convertible =
     typeApiName === "treasury_transaction" &&
     (values.document_kind === "quote" || values.document_kind === "estimate") &&
@@ -3094,6 +3145,17 @@ function RecordActions({
           onClick={() => void run("convert")}
         >
           {busy === "convert" ? "Converting…" : "Convert to invoice"}
+        </button>
+      ) : null}
+      {shippable ? (
+        <button
+          type="button"
+          className={cls}
+          disabled={!!busy}
+          title="Make a Draft shipment (Production → Shipments) of what this invoice still owes"
+          onClick={() => void run("shipment")}
+        >
+          {busy === "shipment" ? "Creating…" : "Create shipment"}
         </button>
       ) : null}
       {copyOf ? (

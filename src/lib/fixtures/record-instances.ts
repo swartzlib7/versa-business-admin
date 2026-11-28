@@ -6,6 +6,9 @@
 
 import { foldRecordTypeApiName } from "@/lib/catalog/name-aliases";
 import { isPrimaryAddress, locationOrgKey } from "@/lib/records/location-primary";
+import { cleanAutoNumber, nextAutoNumber } from "@/lib/records/auto-number";
+import { listFieldDefinitions } from "@/lib/fixtures/catalog";
+import { getRecordType } from "@/lib/fixtures/record-types";
 
 export interface RecordInstance {
   id: string;
@@ -150,14 +153,20 @@ export function createInstance(input: CreateInstanceInput): CreateInstanceResult
     sort_order: (idx + 1) * 10,
   }));
 
-  const incoming = input.data || {};
+  const incoming = { ...(input.data || {}) };
+  // 1.0.26: Number automatically (fixture mode: one process, so the highest number + 1 is safe).
+  for (const field of listFieldDefinitions(getRecordType(input.type_api_name.trim())?.object_api_name || input.type_api_name.trim())) {
+    if (!field.auto_number || field.zone_role === "list" || String(incoming[field.api_name] ?? "").trim()) continue;
+    const rule = cleanAutoNumber(field.auto_number);
+    if (rule) incoming[field.api_name] = nextAutoNumber(rule, mutableInstances.filter((r) => r.type_api_name === input.type_api_name.trim()).map((r) => r.data?.[field.api_name]));
+  }
   const instance: RecordInstance = {
     id,
     type_api_name: input.type_api_name.trim(),
     parent_kind: input.parent_kind.trim(),
     parent_api_name: input.parent_api_name.trim(),
     name: input.name.trim(),
-    status: input.status || 'active',
+    status: input.status || String(input.data?.status ?? '').trim() || 'active',
     data: {
       ...incoming,
       id,

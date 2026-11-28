@@ -205,7 +205,7 @@ export function fieldDefinitionToUi(fd: FieldDefinition): UiListingField {
   return {
     key: fd.api_name,
     label: fd.label,
-    help: helpForField(fd.api_name, fd.object_api_name),
+    help: helpForField(fd.api_name, fd.object_api_name) ?? (fd.auto_number ? "Given by VBA when the record is first saved; it can't be typed or changed" : undefined),
     kind: dataTypeToUiKind(fd.data_type),
     options,
     optionLabels,
@@ -216,6 +216,7 @@ export function fieldDefinitionToUi(fd: FieldDefinition): UiListingField {
     lookupObjectApiName: fd.lookup_object_api_name ?? null,
     readOnly:
       fd.read_only === true ||
+      !!fd.auto_number ||
       isDriverCodeOwnedField(fd.object_api_name, fd.api_name) ||
       isPairingStampField(fd.object_api_name, fd.api_name),
     lookupFilter: fd.lookup_filter ?? null,

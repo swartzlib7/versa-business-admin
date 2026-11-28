@@ -62,6 +62,9 @@ function lineMatches(line: Record<string, unknown>, source: StatSource): boolean
     const on = raw === "true" || raw === "1";
     return want === "true" ? on : !on;
   }
+  // 1.0.26: several values separated by commas match any of them ("shipped, delivered").
+  const wants = want.split(",").map((w) => w.trim().toLowerCase()).filter(Boolean);
+  if (wants.length > 1) return wants.includes(raw.toLowerCase());
   return raw.toLowerCase() === want.toLowerCase();
 }
 

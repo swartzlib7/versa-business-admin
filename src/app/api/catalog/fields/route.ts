@@ -112,6 +112,8 @@ export async function POST(request: Request) {
     formula: body.formula,
     default_formula: body.default_formula,
     lookup_filter: body.lookup_filter,
+    // 1.0.26: Number automatically (text fields).
+    auto_number: body.auto_number,
   });
 
   if (!result.ok) {

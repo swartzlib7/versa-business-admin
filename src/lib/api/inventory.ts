@@ -313,6 +313,13 @@ export const API_RESOURCES: ApiResource[] = [
   },
   {
     group: "Records",
+    method: "POST",
+    path: "/api/records/{id}/shipment",
+    auth: "admin",
+    summary: "From an invoice: a Draft shipment (Production → Shipments) of what it still owes, line by line (Ordered, Shipped before, Shipped). 409 NOTHING_TO_SHIP when every line is already shipped.",
+  },
+  {
+    group: "Records",
     method: "GET",
     path: "/api/records/{id}/linked",
     auth: "session",

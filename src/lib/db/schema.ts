@@ -22,6 +22,8 @@ import {
   uniqueIndex,
   index,
   check,
+  bigint,
+  primaryKey,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -324,6 +326,23 @@ export const record = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index('record_type_idx').on(table.recordTypeId)],
+);
+
+// 1.0.26 (migration 0024): Number automatically. The last number given per record type,
+// field and prefix; taken and moved on inside the record's insert transaction
+// (src/lib/db/record-numbers.ts).
+export const recordNumberCounter = pgTable(
+  'record_number_counter',
+  {
+    typeApiName: text('type_api_name').notNull(),
+    fieldApiName: text('field_api_name').notNull(),
+    prefix: text('prefix').notNull().default(''),
+    lastValue: bigint('last_value', { mode: 'number' }).notNull().default(0),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ name: 'record_number_counter_pk', columns: [table.typeApiName, table.fieldApiName, table.prefix] }),
+  ],
 );
 
 // Record line - lines under a record (structural, always cascade). #245 E1

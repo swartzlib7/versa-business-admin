@@ -657,6 +657,18 @@ Same steps as §5.2.1: no migrations. Catalog seed pack stays `1.0.23-r1`. Back 
 
 Health reports `"version":"1.0.25"`.
 
+### 5.2.23 Existing install to 1.0.26 (Shipments)
+
+Same steps as §5.2.1, **with a migration: run `npm run db:migrate`** before the restart (`0024_record_number_counter`: a new table, `record_number_counter`, holding the last number given per record type and field; nothing existing changes). Catalog seed pack `1.0.26-r1`. Back up first (`npm run backup`). **Coming from 1.0.24 or older:** do §5.2.22 too.
+
+- Without the migration, creating any record of a type with Number automatically (Shipments) fails with `relation "record_number_counter" does not exist`. Other saves are not affected.
+- The first start merges the new catalog seed: the **Shipments** type under Production, its fields, the Shipment status values (Draft, Packed, Shipped, Delivered) and its form layout. Nothing else changes in stored data.
+- **Units Shipped:** to have an existing Units Shipped statistic follow the shipments, open it in Custom Records, set **Source record type** to Shipments and leave **Date field** and **Value field** empty: the save fills them (Ship date, Shipped, only Shipped or Delivered). Values typed by hand before are replaced by what the shipments give for the steps they cover.
+- **Scripts and agents:** a record created without a status now takes the Status field's default instead of Active. Among the shipped types only **Policies** (Draft) and **Shipments** (Draft) have one; send `status` to choose another.
+- Check after the restart: health shows `"version":"1.0.26"`; `npm run db:migrate` says the migrations are applied; Organization → Production shows **Shipments**; a new shipment gets SH-0001 (or the next after the highest in use); an invoice in Treasury → Transactions shows **Create shipment**; `GET /api` lists `POST /api/records/{id}/shipment`.
+
+Health reports `"version":"1.0.26"`.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -764,6 +776,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-27 | §5.2.23: upgrade to 1.0.26 (migration 0024, the number counter; Shipments under Production, Create shipment from an invoice, ready Units Shipped feed, Number automatically, a new record's Status takes its default). |
 | 2026-11-27 | §5.2.22: upgrade to 1.0.25 (lookup filters on another field of the record; saves hold only records a filtered lookup offers; fed statistics dated and filtered by the record's fields). |
 | 2026-11-27 | §5.2.21: upgrade to 1.0.24 (saves with fields the type does not have, or fields beside `data`, are refused with the reason; screens and stored data unchanged). |
 | 2026-11-26 | §5.2.20: upgrade to 1.0.23 (Documents & Photos on every business record type and on organizations; saved layouts gain a Documents section; uploads over 1 MB need `client_max_body_size`). |

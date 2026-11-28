@@ -15,5 +15,8 @@ A statistic is a `statistics` record (parent `environment` / `custom`). Its valu
 
 - Monthly business miles: type `treasury_vehicle_mileage_log`, read `lines`, date `trip_date`, value `trip_miles`, filter `trip_business` = `true`.
 - Invoiced per month: type `treasury_transaction`, read `records`, date `transaction_date`, value `amount`, filter `document_kind` = `invoice`.
+- Units shipped per month (1.0.26): type `production_shipment` and leave `source_date_field` and `source_value_field` empty; the save fills the type's ready feed: read `lines`, date `ship_date`, value `line_qty_shipped`, filter `status` = `shipped, delivered`.
+
+`source_filter_value` with commas matches any of the values (1.0.26).
 
 A fed statistic updates itself whenever those records change through the API; don't capture values into it by hand.

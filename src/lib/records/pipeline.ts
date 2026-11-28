@@ -6,7 +6,12 @@
  *   prepareRecordWrite (before saving)
  *     0. Only fields the type has (1.0.24, known-fields.ts); filtered lookups hold offered records
  *        (1.0.25, lookup-check.ts); Attachments hold stored files (1.0.23)
- *     1. Statistics: derived header fields (Frequency start, Target per step)
+ *        New records: an empty Status takes the field's default (1.0.26). Number automatically
+ *        fields can't be typed or changed (NUMBER_IS_AUTOMATIC); they are numbered in the insert
+ *        itself (src/lib/db/record-numbers.ts)
+ *     1. Statistics: derived header fields (Frequency start, Target per step); a statistic
+ *        fed from a type with a ready feed takes it when Date and Value are empty (1.0.26)
+ *        Shipments: each line from an invoice gets its Shipped before (1.0.26, shipments.ts)
  *     2. Integrated-record rule: a record with an External ID keeps what the
  *        integration wrote - steps 3-5 are skipped
  *     3. Line Formula fields and calculated defaults, per line
@@ -211,8 +216,51 @@ export async function prepareRecordWrite(args: {
     if (!checked.ok) return { ok: false, code: "VALIDATION_ERROR", message: checked.message };
   }
 
+  // New records (1.0.26): an empty Status takes its default. (Number automatically fields get
+  // their number in the insert itself: src/lib/db/record-numbers.ts.)
+  if (!args.current) {
+    const statusField = fields.find((f) => f.api_name === "status");
+    if (!String(data.status ?? "").trim() && statusField?.default_value) data.status = statusField.default_value;
+  }
+  // 1.0.26: a Number automatically field is the record's identity, given by VBA: never typed
+  // on create, never changed after; an update that leaves it out keeps it. Copies (integration,
+  // sample pack, Clone which empties it) skip this with checkFields: false.
+  if (args.checkFields !== false) {
+    for (const f of fields.filter((x) => x.auto_number && x.zone_role !== "list")) {
+      const sent = String(data[f.api_name] ?? "").trim();
+      const stored = String(args.current?.data?.[f.api_name] ?? "").trim();
+      if (sent === stored) continue;
+      if (args.current && sent === "") {
+        data[f.api_name] = stored;
+        continue;
+      }
+      return {
+        ok: false,
+        code: "NUMBER_IS_AUTOMATIC",
+        message: `${f.label} is given by VBA when the record is first saved and can't be typed or changed ("${sent}" was sent). Leave it out. Nothing was saved.`,
+      };
+    }
+  }
+
+  // Shipments (1.0.26): lines taken from an invoice count what earlier shipments sent.
+  if (lines && object === "production_shipment") {
+    const { withShippedBefore } = await import("@/lib/records/shipments");
+    lines = await withShippedBefore(data, lines, args.current);
+  }
+
   // 1. Statistics derived fields
   if (type === "statistics") {
+    // 1.0.26: a source type with a ready feed (Shipments: units shipped) fills Date and Value left empty.
+    const feed = getRecordType(String(data.source_record_type ?? "").trim())?.statistic_feed;
+    if (feed && !String(data.source_date_field ?? "").trim() && !String(data.source_value_field ?? "").trim()) {
+      data.source_read_from = feed.read_from;
+      data.source_date_field = feed.date_field;
+      data.source_value_field = feed.value_field;
+      if (feed.filter_field && !String(data.source_filter_field ?? "").trim()) {
+        data.source_filter_field = feed.filter_field;
+        data.source_filter_value = feed.filter_value ?? "";
+      }
+    }
     // 1.0.21: a statistic always has its own Time zone; a new one takes the install's.
     const { installTimeZone } = await import("@/lib/settings/install-time-zone");
     const { isTimeZone } = await import("@/lib/statistics/time-zone");

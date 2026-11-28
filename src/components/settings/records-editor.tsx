@@ -1,5 +1,6 @@
 "use client";
 import type { LookupFilter } from "@/lib/catalog/lookup-filter";
+import type { AutoNumber } from "@/lib/records/auto-number";
 import { LayoutEditorWrapper } from "@/components/settings/layout-editor-wrapper";
 
 import Link from "next/link";
@@ -30,7 +31,7 @@ import {
 type Parent = { parent_kind: string; parent_api_name: string; label: string; group?: string; baked_in_tabs: string[] };
 type SelectOption = string | { value: string; label: string; group?: string };
 type RT = { id?: string; api_name: string; label: string; description?: string; parent_kind: string; parent_api_name: string; structure: string; object_api_name: string; is_system?: boolean; active?: boolean; show_as_tab?: boolean; sort_order?: number };
-type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; lookup_delete_rule?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean; zone_role?: "header" | "list" | null; show_in_column?: boolean; summary?: SummaryConfig | null; formula?: string | null; default_formula?: string | null; lookup_filter?: LookupFilter | null };
+type FD = { id?: string; api_name: string; label: string; data_type: string; value_set_api_name: string | null; lookup_object_api_name?: string | null; lookup_delete_rule?: string | null; object_api_name?: string; is_system?: boolean; active?: boolean; is_required?: boolean; zone_role?: "header" | "list" | null; show_in_column?: boolean; summary?: SummaryConfig | null; formula?: string | null; default_formula?: string | null; lookup_filter?: LookupFilter | null; auto_number?: AutoNumber | null };
 type VS = { id?: string; api_name: string; label: string; description?: string; is_system?: boolean };
 type VSI = { id: string; api_value: string; label: string; sort_order: number; active: boolean };
 
@@ -561,6 +562,10 @@ export function RecordsEditor() {
           ...(vals.data_type === "formula" ? { formula: vals.formula || "" } : {}),
           ...((vals.data_type === "number" || vals.data_type === "currency") && vals.default_formula?.trim()
             ? { default_formula: vals.default_formula.trim() }
+            : {}),
+          // 1.0.26: Number automatically (header Text fields).
+          ...(vals.data_type === "text" && vals.zone_role !== "list" && (vals.auto_number === "true" || vals.auto_number === "on")
+            ? { auto_number: { prefix: vals.auto_number_prefix ?? "", digits: Number(vals.auto_number_digits) || 4 } }
             : {}),
           ...(vals.data_type === "lookup" && vals.lookup_filter_field?.trim()
             ? {
@@ -1453,6 +1458,9 @@ export function RecordsEditor() {
                       return [
                         { key: "formula", label: "Formula", placeholder: "e.g. line_quantity * line_unit_cost", showWhen: (vals: Record<string, string>) => vals.data_type === "formula" },
                         { key: "default_formula", label: "Calculated default (optional)", placeholder: "follows until someone types a value", showWhen: (vals: Record<string, string>) => vals.data_type === "number" || vals.data_type === "currency" },
+                        { key: "auto_number", label: "Number automatically", type: "checkbox" as const, showWhen: (vals: Record<string, string>) => vals.data_type === "text" && vals.zone_role !== "list" },
+                        { key: "auto_number_prefix", label: "Prefix", placeholder: "e.g. SH-", showWhen: (vals: Record<string, string>) => vals.data_type === "text" && vals.zone_role !== "list" && (vals.auto_number === "true" || vals.auto_number === "on") },
+                        { key: "auto_number_digits", label: "Digits", placeholder: "4", showWhen: (vals: Record<string, string>) => vals.data_type === "text" && vals.zone_role !== "list" && (vals.auto_number === "true" || vals.auto_number === "on") },
                         { key: "lookup_filter_field", label: "Only offer records where (optional)", placeholder: "field API name, e.g. org_type", showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" },
                         { key: "lookup_filter_value", label: "equals", placeholder: "e.g. vendor", showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" && !!vals.lookup_filter_field && !vals.lookup_filter_from_field },
                         { key: "lookup_filter_from_field", label: "or equals this record's field", placeholder: "field API name, e.g. customer_org_id", showWhen: (vals: Record<string, string>) => vals.data_type === "lookup" && !!vals.lookup_filter_field && !vals.lookup_filter_value },
@@ -1632,16 +1640,14 @@ export function RecordsEditor() {
                                           <option value="header">Header</option>
                                           <option value="list">Lines</option>
                                         </select>
-                                        <p className="text-[10px] italic text-muted-foreground">Header fields show on the header form; Lines fields show on the lines table.</p>
-                                        {role === "list" && (
-                                          <div className="pt-1">
-                                            <BooleanSwitch
-                                              checked={draft.show_in_column ?? f.show_in_column ?? false}
-                                              label="Show as column in lines table"
-                                              onChange={(next) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], show_in_column: next } }))}
-                                            />
-                                          </div>
-                                        )}
+                                        <p className="text-[10px] italic text-muted-foreground">Header fields show on the header form; Lines fields show on the lines table. When any header field is a column, the records list shows only those (1.0.26).</p>
+                                        <div className="pt-1">
+                                          <BooleanSwitch
+                                            checked={draft.show_in_column ?? f.show_in_column ?? false}
+                                            label={role === "list" ? "Show as column in lines table" : "Show as column in the records list"}
+                                            onChange={(next) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], show_in_column: next } }))}
+                                          />
+                                        </div>
                                       </div>
                                     );
                                   })()}
@@ -1651,7 +1657,9 @@ export function RecordsEditor() {
                                       formula: draft.formula ?? f.formula ?? "",
                                       default_formula: draft.default_formula ?? f.default_formula ?? "",
                                       lookup_filter: draft.lookup_filter ?? f.lookup_filter ?? null,
+                                      auto_number: draft.auto_number !== undefined ? draft.auto_number : f.auto_number ?? null,
                                     }}
+                                    placement={draft.zone_role ?? f.zone_role ?? null}
                                     onChange={(patch) => setEditingField((s) => ({ ...s, [fid]: { ...s[fid], ...patch } }))}
                                   />
                                   {f.data_type === "summary" ? (
@@ -1692,6 +1700,7 @@ export function RecordsEditor() {
                                       ...(draft.lookup_filter !== undefined
                                         ? { lookup_filter: draft.lookup_filter?.field?.trim() ? draft.lookup_filter : null }
                                         : {}),
+                                      ...(draft.auto_number !== undefined ? { auto_number: draft.auto_number } : {}),
                                     })}
                                     style={{ backgroundColor: theme.colors.brand }}
                                     className="text-white"

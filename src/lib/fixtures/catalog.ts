@@ -5,6 +5,7 @@
  * persist through the durable catalog overlay (seed ∪ overlay).
  */
 import { cleanLookupFilter, type LookupFilter } from '@/lib/catalog/lookup-filter';
+import { cleanAutoNumber, type AutoNumber } from '@/lib/records/auto-number';
 import { DOCUMENTS_OBJECTS } from "@/lib/catalog/documents-objects";
 import { normalizeSummaryConfig, summaryConfigProblem, type SummaryConfig } from "@/lib/records/summary-fields";
 import { compileFormula, orderFormulas } from "@/lib/records/formula";
@@ -102,6 +103,11 @@ export interface FieldDefinition {
   } | null;
   /** 1.0.15: worked out by VBA (e.g. an allocation total); shown read-only. */
   read_only?: boolean;
+  /**
+   * 1.0.26: header text fields - a new record left empty here gets the next number,
+   * `prefix` + the number padded to `digits` (SH-0001). auto-number.ts.
+   */
+  auto_number?: AutoNumber | null;
 }
 
 export interface LayoutDefinition {
@@ -376,6 +382,12 @@ export const valueSets: ValueSet[] = [
     api_name: 'stat_source_read',
     label: 'Statistic source: read from',
     description: 'Statistics fed from records: total the lines, or the records themselves (1.0.15).',
+  },
+  {
+    id: 'vs-shipment-status',
+    api_name: 'shipment_status',
+    label: 'Shipment status',
+    description: 'Where a shipment is: Draft, Packed, Shipped, Delivered (1.0.26).',
   },
   {
     id: 'vs-asset-category',
@@ -1404,6 +1416,11 @@ export const valueSetItems: ValueSetItem[] = [
   { id: 'vsi-fm-xls', value_set_id: 'vs-file-mime', api_value: 'application/vnd.ms-excel', label: 'Excel (.xls)', sort_order: 130, active: true },
   { id: 'vsi-fm-heic', value_set_id: 'vs-file-mime', api_value: 'image/heic', label: 'HEIC (iPhone photo)', sort_order: 140, active: true },
   { id: 'vsi-fm-heif', value_set_id: 'vs-file-mime', api_value: 'image/heif', label: 'HEIF', sort_order: 150, active: true },
+  // 1.0.26: Shipments (Production).
+  { id: 'vsi-shs-draft', value_set_id: 'vs-shipment-status', api_value: 'draft', label: 'Draft', sort_order: 10, active: true },
+  { id: 'vsi-shs-packed', value_set_id: 'vs-shipment-status', api_value: 'packed', label: 'Packed', sort_order: 20, active: true },
+  { id: 'vsi-shs-shipped', value_set_id: 'vs-shipment-status', api_value: 'shipped', label: 'Shipped', sort_order: 30, active: true },
+  { id: 'vsi-shs-delivered', value_set_id: 'vs-shipment-status', api_value: 'delivered', label: 'Delivered', sort_order: 40, active: true },
   { id: 'vsi-ssr-lines', value_set_id: 'vs-stat-source-read', api_value: 'lines', label: 'Lines', sort_order: 10, active: true },
   { id: 'vsi-ssr-records', value_set_id: 'vs-stat-source-read', api_value: 'records', label: 'Records (header fields)', sort_order: 20, active: true },
   { id: 'vsi-ac-vehicle', value_set_id: 'vs-asset-category', api_value: 'vehicle', label: 'Vehicle', sort_order: 10, active: true },
@@ -2254,6 +2271,25 @@ export const layoutDefinitions: LayoutDefinition[] = [
       ],
     },
   })),
+  // 1.0.26: Shipments - header sections (the lines are what is in the boxes).
+  ...(['detail', 'edit'] as const).map((layoutType): LayoutDefinition => ({
+    id: `lay-production_shipment-${layoutType}-default`,
+    object_api_name: 'production_shipment',
+    api_name: `production_shipment_${layoutType}_default`,
+    label: `Shipment ${layoutType} (default)`,
+    layout_type: layoutType,
+    version: 1,
+    is_default: true,
+    body: {
+      sections: [
+        { id: 'sec-shipment', label: 'Shipment', columns: 2, fields: ['name', 'shipment_number', 'status', 'source_invoice_id', 'project_id', 'units_shipped'] },
+        { id: 'sec-shipment-parties', label: 'Customer and addresses', columns: 2, fields: ['customer_org_id', 'ship_to_location_id', 'ship_from_location_id'] },
+        { id: 'sec-shipment-delivery', label: 'Delivery', columns: 2, fields: ['ship_date', 'carrier', 'tracking_number', 'box_count', 'delivered_date', 'received_by'] },
+        { id: 'sec-shipment-notes', label: 'Notes', columns: 1, fields: ['packing_notes', 'notes'] },
+        { id: 'sec-documents', label: 'Documents', columns: 1, fields: ['documents'] },
+      ],
+    },
+  })),
   {
     id: 'lay-environment_stat-detail-default',
     object_api_name: 'statistics',
@@ -2597,6 +2633,37 @@ const facultyRecordFieldSeedBase: FieldDefinition[] = [
   { id: 'fld-treasury_vehicle_mileage_log-trip_business', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'trip_business', label: 'Business use', data_type: 'boolean', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 140, active: true, zone_role: 'list', show_in_column: true },
   { id: 'fld-treasury_vehicle_mileage_log-trip_business_org_id', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'trip_business_org_id', label: 'Business', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 150, active: true, zone_role: 'list', show_in_column: true },
   { id: 'fld-treasury_vehicle_mileage_log-trip_purpose', object_api_name: 'treasury_vehicle_mileage_log', api_name: 'trip_purpose', label: 'Purpose / destination', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 160, active: true, zone_role: 'list', show_in_column: true },
+  // 1.0.26: Shipments (Production, state_shipments.md). One shipment per box run of an
+  // invoice: Ordered / Shipped before / Shipped / Backordered per line; Ship to offers only
+  // the Customer's Locations; Shipment number SH-0001 is given on create (auto_number).
+  { id: 'fld-production_shipment-name', object_api_name: 'production_shipment', api_name: 'name', label: 'Shipment', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true, zone_role: 'header', show_in_column: true },
+  { id: 'fld-production_shipment-shipment_number', object_api_name: 'production_shipment', api_name: 'shipment_number', label: 'Shipment number', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 12, active: true, zone_role: 'header', auto_number: { prefix: 'SH-', digits: 4 }, show_in_column: true },
+  { id: 'fld-production_shipment-status', object_api_name: 'production_shipment', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: 'draft', value_set_api_name: 'shipment_status', lookup_object_api_name: null, sort_order: 14, active: true, zone_role: 'header', show_in_column: true },
+  { id: 'fld-production_shipment-customer_org_id', object_api_name: 'production_shipment', api_name: 'customer_org_id', label: 'Customer', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'organization', sort_order: 20, active: true, zone_role: 'header', show_in_column: true },
+  { id: 'fld-production_shipment-ship_to_location_id', object_api_name: 'production_shipment', api_name: 'ship_to_location_id', label: 'Ship to', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'location', sort_order: 22, active: true, zone_role: 'header', lookup_filter: { field: 'organization_id', value: '', from_field: 'customer_org_id' }, show_in_column: true },
+  { id: 'fld-production_shipment-ship_from_location_id', object_api_name: 'production_shipment', api_name: 'ship_from_location_id', label: 'Ship from', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'location', sort_order: 24, active: true, zone_role: 'header' },
+  { id: 'fld-production_shipment-source_invoice_id', object_api_name: 'production_shipment', api_name: 'source_invoice_id', label: 'Invoice', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'treasury_transaction', sort_order: 26, active: true, zone_role: 'header', lookup_filter: { field: 'document_kind', value: 'invoice' } },
+  { id: 'fld-production_shipment-project_id', object_api_name: 'production_shipment', api_name: 'project_id', label: 'Project', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'executive_project', sort_order: 28, active: true, zone_role: 'header' },
+  { id: 'fld-production_shipment-ship_date', object_api_name: 'production_shipment', api_name: 'ship_date', label: 'Ship date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true, zone_role: 'header', show_in_column: true },
+  { id: 'fld-production_shipment-delivered_date', object_api_name: 'production_shipment', api_name: 'delivered_date', label: 'Delivered date', data_type: 'date', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 32, active: true, zone_role: 'header' },
+  { id: 'fld-production_shipment-carrier', object_api_name: 'production_shipment', api_name: 'carrier', label: 'Carrier', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 40, active: true, zone_role: 'header' },
+  { id: 'fld-production_shipment-tracking_number', object_api_name: 'production_shipment', api_name: 'tracking_number', label: 'Tracking number', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 42, active: true, zone_role: 'header', show_in_column: true },
+  { id: 'fld-production_shipment-box_count', object_api_name: 'production_shipment', api_name: 'box_count', label: 'Boxes', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 44, active: true, zone_role: 'header' },
+  { id: 'fld-production_shipment-received_by', object_api_name: 'production_shipment', api_name: 'received_by', label: 'Received by', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 46, active: true, zone_role: 'header' },
+  { id: 'fld-production_shipment-units_shipped', object_api_name: 'production_shipment', api_name: 'units_shipped', label: 'Units shipped', data_type: 'summary', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 48, active: true, zone_role: 'header', summary: { aggregate: 'sum', source_field: 'line_qty_shipped' }, show_in_column: true },
+  { id: 'fld-production_shipment-packing_notes', object_api_name: 'production_shipment', api_name: 'packing_notes', label: 'Packing notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 50, active: true, zone_role: 'header' },
+  { id: 'fld-production_shipment-notes', object_api_name: 'production_shipment', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 52, active: true, zone_role: 'header' },
+  { id: 'fld-production_shipment-external_id', object_api_name: 'production_shipment', api_name: 'external_id', label: 'External id', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 60, active: true, zone_role: 'header' },
+  { id: 'fld-production_shipment-line_product_id', object_api_name: 'production_shipment', api_name: 'line_product_id', label: 'Product', data_type: 'lookup', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: 'production_product', sort_order: 100, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-production_shipment-line_sku', object_api_name: 'production_shipment', api_name: 'line_sku', label: 'SKU / variant', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 105, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-production_shipment-line_description', object_api_name: 'production_shipment', api_name: 'line_description', label: 'Description', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 110, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-production_shipment-line_unit', object_api_name: 'production_shipment', api_name: 'line_unit', label: 'Unit', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 115, active: true, zone_role: 'list' },
+  { id: 'fld-production_shipment-line_qty_ordered', object_api_name: 'production_shipment', api_name: 'line_qty_ordered', label: 'Ordered', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 120, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-production_shipment-line_qty_previous', object_api_name: 'production_shipment', api_name: 'line_qty_previous', label: 'Shipped before', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 125, active: true, zone_role: 'list', show_in_column: true, read_only: true },
+  { id: 'fld-production_shipment-line_qty_shipped', object_api_name: 'production_shipment', api_name: 'line_qty_shipped', label: 'Shipped', data_type: 'number', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 130, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-production_shipment-line_qty_backordered', object_api_name: 'production_shipment', api_name: 'line_qty_backordered', label: 'Backordered', data_type: 'formula', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 135, active: true, zone_role: 'list', show_in_column: true, formula: 'MAX(0, line_qty_ordered - line_qty_previous - line_qty_shipped)' },
+  { id: 'fld-production_shipment-line_box', object_api_name: 'production_shipment', api_name: 'line_box', label: 'Box', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 140, active: true, zone_role: 'list', show_in_column: true },
+  { id: 'fld-production_shipment-line_source_line_id', object_api_name: 'production_shipment', api_name: 'line_source_line_id', label: 'Invoice line', data_type: 'text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 150, active: true, zone_role: 'list', read_only: true },
   { id: 'fld-qualification_examination-name', object_api_name: 'qualification_examination', api_name: 'name', label: 'Examination', data_type: 'text', is_system: true, is_required: true, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 10, active: true },
   { id: 'fld-qualification_examination-status', object_api_name: 'qualification_examination', api_name: 'status', label: 'Status', data_type: 'picklist', is_system: true, is_required: false, default_value: null, value_set_api_name: 'record_status', lookup_object_api_name: null, sort_order: 20, active: true },
   { id: 'fld-qualification_examination-notes', object_api_name: 'qualification_examination', api_name: 'notes', label: 'Notes', data_type: 'long_text', is_system: true, is_required: false, default_value: null, value_set_api_name: null, lookup_object_api_name: null, sort_order: 30, active: true },
@@ -3185,6 +3252,8 @@ export interface ExtendFieldInput {
   formula?: string | null;
   default_formula?: string | null;
   lookup_filter?: LookupFilter | null;
+  /** 1.0.26: text fields only. */
+  auto_number?: AutoNumber | null;
 }
 
 export type ExtendFieldResult =
@@ -3297,6 +3366,9 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
   }
   const filterProblem = lookupFilterFieldProblem(input.object_api_name, cleanLookupFilter(input.lookup_filter));
   if (filterProblem) return { ok: false, code: 'INVALID_LOOKUP_FILTER', message: filterProblem };
+  const autoNumber = cleanAutoNumber(input.auto_number);
+  const autoProblem = autoNumberFieldProblem(input.data_type, placement, autoNumber);
+  if (autoProblem) return { ok: false, code: 'INVALID_AUTO_NUMBER', message: autoProblem };
   const nextOrder = siblings.reduce((m, f) => Math.max(m, f.sort_order), 0) + 10;
   const field: FieldDefinition = {
     id: `fld-ext-${input.object_api_name}-${apiName}`,
@@ -3318,6 +3390,7 @@ export function extendFieldDefinition(input: ExtendFieldInput): ExtendFieldResul
     ...(input.data_type === 'formula' ? { formula: (input.formula ?? '').trim() } : {}),
     ...(input.default_formula?.trim() ? { default_formula: input.default_formula.trim() } : {}),
     ...(cleanLookupFilter(input.lookup_filter) ? { lookup_filter: cleanLookupFilter(input.lookup_filter)! } : {}),
+    ...(autoNumber ? { auto_number: autoNumber } : {}),
     active: true,
   };
   catalogLive().fields.push(field);
@@ -3399,10 +3472,18 @@ function lookupFilterFieldProblem(objectApiName: string, filter: LookupFilter | 
   return has ? null : `Lookup filter: this record type has no field "${filter.from_field}" to compare with.`;
 }
 
+/** 1.0.26: Number automatically applies to header text fields. */
+function autoNumberFieldProblem(dataType: string, placement: string | null | undefined, rule: AutoNumber | null): string | null {
+  if (!rule) return null;
+  if (dataType !== 'text') return 'Number automatically applies only to Text fields.';
+  if (placement === 'list') return 'Number automatically applies only to header fields, not lines.';
+  return null;
+}
+
 export type UpdateFieldInput = Partial<Pick<FieldDefinition,
   'label' | 'is_required' | 'default_value' | 'value_set_api_name' |
   'lookup_object_api_name' | 'lookup_delete_rule' | 'sort_order' | 'active' | 'zone_role' |
-  'show_in_column' | 'summary' | 'formula' | 'default_formula' | 'lookup_filter'
+  'show_in_column' | 'summary' | 'formula' | 'default_formula' | 'lookup_filter' | 'auto_number'
 >>;
 
 export type FieldMutationResult =
@@ -3458,11 +3539,19 @@ export function updateFieldDefinition(
     if (filterProblem) return { ok: false, code: 'INVALID_LOOKUP_FILTER', message: filterProblem };
     filterPatch = { lookup_filter: filter };
   }
+  let autoPatch: { auto_number?: AutoNumber | null } = {};
+  if (input.auto_number !== undefined) {
+    const rule = cleanAutoNumber(input.auto_number);
+    const problem = autoNumberFieldProblem(current.data_type, input.zone_role ?? current.zone_role ?? null, rule);
+    if (problem) return { ok: false, code: 'INVALID_AUTO_NUMBER', message: problem };
+    autoPatch = { auto_number: rule };
+  }
   const next: FieldDefinition = {
     ...current,
     ...input,
     ...summaryPatch,
     ...filterPatch,
+    ...autoPatch,
     label: input.label !== undefined ? input.label.trim() : current.label,
   };
   catalogLive().fields[index] = next;

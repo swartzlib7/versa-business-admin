@@ -1,9 +1,21 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.25 (2026-11-27)
+**Current:** 1.0.26 (2026-11-27)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.26 — Shipments
+
+**One migration: run `npm run db:migrate`** (`0024_record_number_counter`). Catalog seed pack `1.0.26-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.23.
+
+- **Shipments under Production.** A new tab, Production → **Shipments**, records what left in boxes for a customer: Shipment number, Status (Draft, Packed, Shipped, Delivered), Customer, **Ship to** (only that customer's Locations), Ship from, Invoice, Project, Ship date, Carrier, Tracking number, Boxes, Delivered date, Received by, packing notes and **Documents & Photos** (the carrier's receipt, a photo of the boxes). Each line is a product: SKU / variant, Description, Unit, **Ordered**, **Shipped before**, **Shipped**, **Backordered** and **Box**. **Units shipped** totals the Shipped column.
+- **Create shipment from an invoice.** An invoice (Treasury → Transactions, Document kind Invoice) has a **Create shipment** button. It makes a Draft shipment of what the invoice still owes and opens it: the product lines with their quantities, the invoice's customer, its Primary address as Ship to, your own address as Ship from, and the project. Ship part now and the rest later: change Shipped on a line, and the next **Create shipment** offers only what is left, with Shipped before filled in. When everything is on a shipment, it says so. Invoices from an integration (Wave) can be shipped too. The invoice lists its shipments under **Linked from**. Over the API: `POST /api/records/<invoice id>/shipment`.
+- **Units Shipped feeds itself.** A statistic whose Source record type is Shipments, with Date field and Value field left empty, takes the ready feed on save: the Shipped quantities, dated by each shipment's Ship date, counted when the shipment is Shipped or Delivered. A Draft or Packed shipment does not count until it is marked Shipped.
+- **Numbers given automatically.** Shipments are numbered SH-0001, SH-0002 and so on when they are first saved. The number is the shipment's identity: it is read-only on screen, and a save through the API that types or changes it is refused (`400 NUMBER_IS_AUTOMATIC`); an update that leaves it out keeps it. Clone takes the next number. Any header Text field can do the same: Records Editor → the field → **Number automatically**, with a prefix and number of digits. The number is taken in the same database step that saves the record, so two people saving at the same moment never get the same number, a save that fails uses none up, and a deleted record's number is not given again. Numbering starts after the highest number already in use.
+- **A statistic filter can match several values.** In **Only lines where … equals**, values separated by commas match any of them (`shipped, delivered`).
+- **The records list of a Header-and-lines type can show chosen columns.** Turn on **Show as column in the records list** for header fields in Records Editor, and the list shows only those. Shipments start with Name, Shipment number, Status, Customer, Ship to, Ship date, Units shipped and Tracking number. A type with none chosen lists every header field, as before.
+- **A new record with no Status takes the Status field's default.** Before, a record created without a status was always Active. Shipments start as Draft, and a Policy created through the API without a status is now Draft, as on screen. A Status sent inside `data` now counts when none is sent beside it.
 
 ## 1.0.25 — lookups that follow another field; statistics dated by the record
 
