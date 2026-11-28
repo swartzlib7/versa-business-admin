@@ -12,6 +12,7 @@
  *     1. Statistics: derived header fields (Frequency start, Target per step); a statistic
  *        fed from a type with a ready feed takes it when Date and Value are empty (1.0.26)
  *        Shipments: each line from an invoice gets its Shipped before (1.0.26, shipments.ts)
+ *        Print templates: a real target type and a layout that names real fields (1.0.27)
  *     2. Integrated-record rule: a record with an External ID keeps what the
  *        integration wrote - steps 3-5 are skipped
  *     3. Line Formula fields and calculated defaults, per line
@@ -246,6 +247,13 @@ export async function prepareRecordWrite(args: {
   if (lines && object === "production_shipment") {
     const { withShippedBefore } = await import("@/lib/records/shipments");
     lines = await withShippedBefore(data, lines, args.current);
+  }
+
+  // Print templates (1.0.27): a template prints a real type and its layout names real fields.
+  if (object === "print_template") {
+    const { printTemplateProblem } = await import("@/lib/print/layout-fields");
+    const problem = printTemplateProblem(data);
+    if (problem) return { ok: false, code: "PRINT_TEMPLATE_INVALID", message: `${problem} Nothing was saved.` };
   }
 
   // 1. Statistics derived fields

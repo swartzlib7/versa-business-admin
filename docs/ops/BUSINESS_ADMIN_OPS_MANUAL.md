@@ -669,6 +669,17 @@ Same steps as §5.2.1, **with a migration: run `npm run db:migrate`** before the
 
 Health reports `"version":"1.0.26"`.
 
+### 5.2.24 Existing install to 1.0.27 (printing to PDF)
+
+Same steps as §5.2.1, and **`npm ci` is required this time**: the release adds pdfkit (the PDF library). No migrations. Catalog seed pack `1.0.27-r1`. Back up first (`npm run backup`). **Coming from 1.0.25 or older:** do §5.2.23 too (it has a migration).
+
+- The first start merges the new catalog seed (the **Print Templates** type in Custom Records and its value sets) and adds the shipped templates: the log says `Print templates: added Invoice, Estimate, Quote, Packing Slip.` Later releases log `updated …` for templates still as shipped and `… edited on this install; left as is.` for the others.
+- **Logo on printouts:** the Primary Org's Logo prints when it is a PNG or JPEG stored on this install (uploaded through VBA or under `public/`). A logo given as an outside web address, or as SVG or WebP, is left off the PDF.
+- Nothing else changes in stored data. Without `npm ci`, the build fails with `Module not found: Can't resolve 'pdfkit'`.
+- Check after the restart: health shows `"version":"1.0.27"`; Custom Records shows **Print Templates** with four templates; an invoice's **Print** menu opens a PDF; `GET /api` lists `GET /api/records/{id}/print`.
+
+Health reports `"version":"1.0.27"`.
+
 ### 5.3 What v1 must **not** do
 
 - `db:seed` that truncates tenant data in production  
@@ -776,6 +787,7 @@ npx next dev --port 3200
 
 | Date | Change |
 |------|--------|
+| 2026-11-27 | §5.2.24: upgrade to 1.0.27 (`npm ci` for pdfkit; print templates and the shipped Invoice, Estimate, Quote and Packing Slip; Print menu; server PDF). |
 | 2026-11-27 | §5.2.23: upgrade to 1.0.26 (migration 0024, the number counter; Shipments under Production, Create shipment from an invoice, ready Units Shipped feed, Number automatically, a new record's Status takes its default). |
 | 2026-11-27 | §5.2.22: upgrade to 1.0.25 (lookup filters on another field of the record; saves hold only records a filtered lookup offers; fed statistics dated and filtered by the record's fields). |
 | 2026-11-27 | §5.2.21: upgrade to 1.0.24 (saves with fields the type does not have, or fields beside `data`, are refused with the reason; screens and stored data unchanged). |

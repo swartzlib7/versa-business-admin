@@ -5,11 +5,15 @@
 
 Versa AGi's host skill **`business_admin_operate`** covers orientation, health and restarts. These recipes cover *doing the work*. They ship with each VBA version, so they always match the API of the install in front of you. The live list of endpoints is `GET /api` (and Settings → API).
 
+**Start here:** [capabilities.md](capabilities.md) lists everything VBA can already do, with the route or screen and a link for each. Read it before building, proposing or scripting anything new.
+
 | Recipe | Use it to |
 |--------|-----------|
+| [capabilities.md](capabilities.md) | See everything VBA already does: record types, field behaviours, the save pipeline, record actions, printing, and what is not built yet |
 | [sign-in.md](sign-in.md) | Get a session cookie from a script (proof-of-work login) |
 | [records-and-lines.md](records-and-lines.md) | Read a record type's fields; create, update, clone records; add lines one at a time; see what links to a record |
 | [job-costing.md](job-costing.md) | Estimate with a bill of materials → invoice → vendor bill → matching |
+| [printing.md](printing.md) | Print a record to PDF, keep it on the record, make or change a print template (1.0.27) |
 | [shipments.md](shipments.md) | Create a shipment from an invoice, ship in parts, mark it shipped and delivered (1.0.26) |
 | [attachments.md](attachments.md) | Attach files to a record or an organization in one call (1.0.23), or save the field yourself |
 | [statistics.md](statistics.md) | Capture statistic values; feed a statistic from records |

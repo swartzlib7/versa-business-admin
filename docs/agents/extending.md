@@ -7,6 +7,8 @@ This install is pull-only. Your output is a **proposal** for the Primary User. Y
 
 ## 1. Find what is already decided
 
+**First:** [capabilities.md](capabilities.md) lists everything VBA already does. If what you are asked to design is there, use it or extend it; don't design a second one.
+
 VBA's design documents ship in this repo, so they are on disk next to the code. **Decisions in them are senior to your brief.** If your plan disagrees with one, say so and ask; do not work around it.
 
 | Read | For |
@@ -19,6 +21,8 @@ VBA's design documents ship in this repo, so they are on disk next to the code. 
 | `GET /api` | The routes this version has |
 
 ## 2. Use what exists before adding
+
+- **When it ships, update [capabilities.md](capabilities.md)** in the same change, like the release notes: the type, field behaviour, route or action, its version and links. Move a "Not built yet" line out when it is built.
 
 - **Record types first.** Look for a record type that already fits (`GET /api/catalog/record-types`, or `src/lib/fixtures/record-types.ts` and `catalog.ts`). Many exist with no engine yet. Example: Collaboration → Vendor already has Credentials, Integrations and Exchange.
 - **A new table is the last resort.** New fields and value sets ship as catalog seed: the feature is built generically and the specific fields come pre-configured.

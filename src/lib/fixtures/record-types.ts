@@ -127,6 +127,22 @@ export const recordTypes: RecordTypeDefinition[] = [
     object_api_name: 'production_service',
   },
   {
+    // 1.0.27: print templates (state_printing.md). One per way a record type prints; the Print
+    // menu offers them, the one whose Use when matches first. The maker screen is 1.0.28.
+    id: 'rt-print_template',
+    api_name: 'print_template',
+    label: 'Print Templates',
+    description: 'How records print: which record type, when a template is the one to use (Use when), paper, and the layout of header and footer bands and body blocks. Invoice, Estimate, Quote and Packing Slip ship ready; archive one to stop offering it.',
+    parent_kind: 'environment',
+    parent_api_name: 'custom',
+    structure: 'list',
+    show_as_tab: true,
+    sort_order: 50,
+    active: true,
+    is_system: true,
+    object_api_name: 'print_template',
+  },
+  {
     // 1.0.26: what leaves in boxes, with the invoice it fills (state_shipments.md).
     id: 'rt-production_shipment',
     api_name: 'production_shipment',

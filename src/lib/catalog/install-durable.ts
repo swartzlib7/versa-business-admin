@@ -145,6 +145,10 @@ export function ensureDurableCatalog(): void {
       }))
       .catch((err) => console.error("Site pack refresh failed:", err));
   });
+  // 1.0.27: shipped print templates are added, and updated while unedited (print/pack.ts).
+  void import("@/lib/print/pack")
+    .then((mod) => mod.ensurePrintTemplates())
+    .catch((err) => console.error("Print templates failed:", err));
 }
 
 function persistHook(): void {

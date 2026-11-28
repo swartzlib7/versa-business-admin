@@ -316,6 +316,8 @@ Lines without a product (freight, labour) are left out; if no line has a product
 
 **Then:** set **Status** as it goes (Draft → Packed → Shipped → Delivered), with **Ship date**, **Carrier**, **Tracking number**, **Boxes**, and on arrival **Delivered date** and **Received by**. Keep the carrier's receipt or a photo of the boxes in **Documents & Photos**. **Ship to** offers only the Customer's Locations.
 
+**Packing slip:** on the shipment, **Print ▾** → Packing Slip → Open PDF, or Save PDF to Documents & Photos to keep the copy that went in the box (§11).
+
 A shipment can also be made by hand (**New Record**). The invoice lists its shipments under **Linked from**, and a Units Shipped statistic can follow them (§4, Fed from records).
 
 ### Formulas and calculated defaults
@@ -386,3 +388,45 @@ A Credential keeps a secret (an API key, a mailbox password) encrypted. Nobody s
 - **Last used** on each line shows when that person or agent last used it.
 - An agent that is not on the list is refused and told to ask you. Add it only if that agent's work needs the secret.
 - An agent's script signs in with the agent's own account, so there is nothing else to set up for it.
+
+## 11. Printing (1.0.27)
+
+Any record can be printed to a PDF: an invoice, an estimate or quote, a packing slip, or any other type you give a template.
+
+### Print a record
+
+Open the record and click **Print ▾** (beside Clone). The template that fits the record is chosen; pick another if you like. Then:
+
+- **Open PDF**: opens it in a new tab, to view or print on paper.
+- **Download PDF**: saves it to your computer.
+- **Save PDF to Documents & Photos**: keeps a copy on the record, for example the packing slip that went in the box.
+
+The Print button only shows on record types that have a template.
+
+### The ready-made templates
+
+| Template | Prints | Used for |
+|---|---|---|
+| Invoice | Transactions | Document kind Invoice |
+| Estimate | Transactions | Document kind Estimate |
+| Quote | Transactions | Document kind Quote |
+| Packing Slip | Shipments | Every shipment |
+
+Each has your organization's name, address and logo at the top of page 1, the customer's address, the lines and totals, and Page n of N at the bottom. When the lines run past one page they carry on, with the column headings repeated and "(continued)" at the top. The packing slip ends with a **Received by** signature line on its last page.
+
+Your logo prints when it was uploaded to VBA as PNG or JPEG.
+
+### Change a template
+
+Templates live in **Custom Records → Print Templates**. Each one has:
+
+| Field | What it does |
+|---|---|
+| **Prints** | The record type it is for |
+| **Order** | Which comes first in the Print menu |
+| **Use when field** / **equals** | When it is the one to use, e.g. `document_kind` equals `invoice`. Several values separated by commas match any of them |
+| **Paper**, **Orientation**, **Margins (mm)**, **Font** | The page. Font: Helvetica or Times for Western European text; Hack for other scripts |
+| **Layout (JSON)** | The headers, footers and body. A screen for building it comes in 1.0.28; until then an admin or an agent edits the JSON (`docs/agents/printing.md`) |
+| **Status** | Archived stops offering it |
+
+If you edit a ready-made template, later releases leave your version alone. To stop using one, archive it; deleting a ready-made template brings it back at the next restart.

@@ -321,6 +321,27 @@ export const API_RESOURCES: ApiResource[] = [
   {
     group: "Records",
     method: "GET",
+    path: "/api/records/{id}/print-templates",
+    auth: "session",
+    summary: "The print templates this record can use (Custom Records → Print Templates), the one to use first marked default; matches = its Use when fits the record.",
+  },
+  {
+    group: "Records",
+    method: "GET",
+    path: "/api/records/{id}/print",
+    auth: "session",
+    summary: "The record as a PDF: ?template=<template id> or the first that fits; &download=1 to save instead of show. 404 NO_PRINT_TEMPLATE when the type has none, NO_MATCHING_TEMPLATE when none's Use when fits (send ?template).",
+  },
+  {
+    group: "Records",
+    method: "POST",
+    path: "/api/records/{id}/print",
+    auth: "admin",
+    summary: "Print the record ({ template? }) and keep the PDF in its Documents & Photos; answers the stored file.",
+  },
+  {
+    group: "Records",
+    method: "GET",
     path: "/api/records/{id}/linked",
     auth: "session",
     summary: "Records whose lookup fields point at this record, grouped by type and field, with amounts and a total per group.",
@@ -789,6 +810,9 @@ export const API_DOCS = {
   operator: "/settings?tab=api",
   contract: "GET /api",
   ops_manual: "docs/ops/BUSINESS_ADMIN_OPS_MANUAL.md",
+  /** 1.0.27: everything VBA can already do, in one place. Read it before building anything. */
+  capabilities: "docs/agents/capabilities.md",
+  agent_recipes: "docs/agents/README.md",
   conventions: {
     protocol: "HTTP JSON",
     list_envelope: "{ data: [...], count: N }",
@@ -810,7 +834,10 @@ export function apiIndexPayload(version: string) {
       operator: API_DOCS.operator,
       contract: API_DOCS.contract,
       ops_manual: API_DOCS.ops_manual,
+      capabilities: API_DOCS.capabilities,
+      agent_recipes: API_DOCS.agent_recipes,
     },
+    before_building: "Read docs.capabilities (in the VBA checkout) before building or scripting anything new: most needs are already a record type, a field behaviour or a record action.",
     conventions: API_DOCS.conventions,
     resources: API_RESOURCES,
     endpoints,

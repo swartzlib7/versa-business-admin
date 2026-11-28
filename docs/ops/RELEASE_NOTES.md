@@ -1,9 +1,21 @@
 # Versa - Business Admin — Release notes
 
 **Product:** Versa - Business Admin (VBA)  
-**Current:** 1.0.26 (2026-11-27)
+**Current:** 1.0.27 (2026-11-27)
 
 Health check: `GET /api/health` returns this version from `package.json`.
+
+## 1.0.27 — printing to PDF; one map of what VBA can do
+
+**Run `npm ci` before the build**: this release adds a library (pdfkit, which makes the PDFs). No migrations. Catalog seed pack `1.0.27-r1`. Back up first with `npm run backup`. Upgrade steps are in the Ops Manual, section 5.2.24.
+
+- **Print any record to PDF.** An open record has a **Print** menu: choose the template (the one that fits the record is chosen), then **Open PDF**, **Download PDF**, or **Save PDF to Documents & Photos**. The PDF is made by VBA itself, so it is the same for staff and for agents, and installs need no browser on the server.
+- **Ready-made templates:** **Invoice**, **Estimate** and **Quote** for Transactions (chosen by Document kind) and **Packing Slip** for Shipments: your letterhead and logo, the customer's address, the lines with money or quantities, totals, notes, and on the packing slip Ship to, Ship from, carrier and tracking, Units shipped and a **Received by** signature on the last page.
+- **Long documents continue properly.** The lines table carries on to the next page with its column headings repeated, pages after the first get a "(continued)" header instead of the letterhead, and every page says **Page n of N**.
+- **Print templates are records** (Custom Records → **Print Templates**): which record type they print, **Use when** (e.g. Document kind = invoice), paper (Letter, A4, Legal), orientation, margins, font, and a layout of header and footer bands and body blocks. Each band shows on every page, the first page, every page after the first, the last page, or chosen pages. Any record type can have templates. Until the template maker arrives (1.0.28), a layout is changed by editing its JSON or through the API; a layout that names a field the type does not have is refused with the reason.
+- **Shipped templates stay yours once edited.** A later release updates a shipped template only while it is unchanged on the install. To stop using one, set its Status to Archived.
+- **Over the API:** `GET /api/records/<id>/print` returns the PDF, `POST /api/records/<id>/print` keeps it on the record, and `GET /api/records/<id>/print-templates` lists the choices.
+- **One map of everything VBA can do, for agents.** `docs/agents/capabilities.md` lists every record type, field behaviour, save rule, record action and capability, with its route or screen and a link to the recipe and the design document, plus what is not built yet. `AGENTS.md`, the agent recipes and `GET /api` (`docs.capabilities`) point to it first, so an agent finds what exists before it builds something again. Every release updates it.
 
 ## 1.0.26 — Shipments
 

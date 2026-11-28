@@ -73,6 +73,7 @@ import { StatGraphPanel } from "@/components/statistics/stat-graph-panel";
 import type { StatGraphLine } from "@/components/statistics/stat-graph";
 import { hasCalculatedFields, previewCalculations, type CalcFieldLike } from "@/lib/records/calculated-fields";
 import { LinkedFromPanel } from "@/components/zones/linked-from-panel";
+import { PrintMenu } from "@/components/print/print-menu";
 import {
   StatValueCell,
   StatValuesGrid,
@@ -3182,6 +3183,10 @@ function RecordActions({
       ) : null}
       {tokenCredential ? (
         <IssueTokenButton credentialId={recordId} hasToken={(values.configuration ?? "").includes("token_hash")} className={cls} onError={onError} />
+      ) : null}
+      {/* 1.0.27: Print templates (Custom Records → Print Templates). Hidden when the type has none. */}
+      {typeApiName !== "print_template" ? (
+        <PrintMenu recordId={recordId} className={cls} onSaved={(message) => onCreated(recordId, message)} onError={onError} />
       ) : null}
       <button type="button" className={cls} disabled={!!busy} title="Copy this record and its lines" onClick={() => void run("clone")}>
         {busy === "clone" ? "Cloning…" : "Clone"}

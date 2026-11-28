@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
     proxyClientMaxBodySize: `${Math.ceil(attachmentMaxMb) + 5}mb`,
   },
 
+  // 1.0.27 print templates: pdfkit reads its font metrics from its own folder at run time,
+  // so it is loaded with Node's require instead of being bundled.
+  serverExternalPackages: ["pdfkit"],
+
   // Allow phone/LAN access during next dev (blank page without this)
   allowedDevOrigins: ["192.168.4.107"],
 
